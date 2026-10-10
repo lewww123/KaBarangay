@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\ResidentAuth;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust Cloudflare Tunnel / reverse proxy.
         // Needed so Laravel recognizes the original HTTPS request.
         $middleware->trustProxies(at: '*');
+
+        // Register custom middleware aliases.
+        $middleware->alias([
+            'resident.auth' => ResidentAuth::class,
+        ]);
 
         $middleware->web(append: [
             HandleInertiaRequests::class,

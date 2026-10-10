@@ -3,8 +3,15 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Resident\RegistrationController;
+use App\Http\Controllers\Resident\QrVerificationController;
 use App\Http\Controllers\Admin\ResidentRegistrationController;
+use App\Http\Controllers\Resident\CertificateRequestController;
+use App\Http\Controllers\ClerkController;
+use App\Http\Controllers\CertificateController; // <-- IDINAGDAG NATIN ITO
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -56,38 +63,59 @@ Route::post(
 
 /*
 |--------------------------------------------------------------------------
-| Resident Authentication & Portal
+| Laravel Auth Login Redirect
 |--------------------------------------------------------------------------
 |
-| These routes are temporarily public while we are building the Resident
-| side. Later, the portal routes will be protected by Resident
-| authentication.
+| Laravel's built-in "auth" middleware expects a route named "login".
+| Our actual staff login page is /staff-login.
 |
+*/
+
+Route::redirect(
+    '/login',
+    '/staff-login'
+)->name('login');
+
+/*
+|--------------------------------------------------------------------------
+| Public Resident QR Verification
+|--------------------------------------------------------------------------
+|
+| This route is intentionally outside the resident.auth middleware.
+| Anyone who scans a resident QR should be able to verify it.
+|
+*/
+
+Route::get(
+    '/verify/resident/{token}',
+    [
+        QrVerificationController::class,
+        'show',
+    ]
+)->name('resident.qr.verify');
+
+/*
+|--------------------------------------------------------------------------
+| Resident Authentication & Public Pages
+|--------------------------------------------------------------------------
 */
 
 Route::prefix('resident')
     ->name('resident.')
     ->group(function () {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Resident Authentication
-        |--------------------------------------------------------------------------
-        */
-
         Route::inertia(
             '/login',
             'Resident/Login'
         )->name('login');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Resident Login Barangay Dropdown
-        |--------------------------------------------------------------------------
-        |
-        | Returns active barangays for the Resident Login dropdown.
-        |
-        */
+        Route::post(
+            '/login',
+            [
+                AuthController::class,
+                'processResidentLogin',
+            ]
+        )->name('login.process');
 
         Route::get(
             '/login/barangays',
@@ -96,12 +124,6 @@ Route::prefix('resident')
                 'residentLoginBarangays',
             ]
         )->name('login.barangays');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Resident Registration
-        |--------------------------------------------------------------------------
-        */
 
         Route::get(
             '/register',
@@ -134,131 +156,395 @@ Route::prefix('resident')
             'Resident/ForgotPassword'
         )->name('forgot-password');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Resident Dashboard
-        |--------------------------------------------------------------------------
-        */
+        Route::middleware('resident.auth')
+            ->group(function () {
 
-        Route::inertia(
-            '/',
-            'Resident/Dashboard'
-        )->name('dashboard');
+                /*
+                |--------------------------------------------------------------------------
+                | Resident Dashboard
+                |--------------------------------------------------------------------------
+                */
 
-        /*
-        |--------------------------------------------------------------------------
-        | Certificates
-        |--------------------------------------------------------------------------
-        */
+                Route::get(
+                    '/',
+                    function () {
 
-        Route::inertia(
-            '/certificates',
-            'Resident/Certificates'
-        )->name('certificates');
+                        $resident = \App\Models\Resident::query()
+                            ->with([
+                                'barangay',
+                                'sectors',
+                                'qrCredential',
+                            ])
+                            ->where(
+                                'id',
+                                session('resident_id')
+                            )
+                            ->where(
+                                'status',
+                                'active'
+                            )
+                            ->firstOrFail();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Lupon
-        |--------------------------------------------------------------------------
-        */
+                        $qrUrl =
+                            $resident->qrCredential &&
+                            $resident->qrCredential->is_active &&
+                            ! $resident->qrCredential->revoked_at
+                                ? route(
+                                    'resident.qr.verify',
+                                    [
+                                        'token' =>
+                                            $resident
+                                                ->qrCredential
+                                                ->token,
+                                    ]
+                                )
+                                : null;
 
-        Route::inertia(
-            '/lupon',
-            'Resident/Lupon'
-        )->name('lupon');
+                        return Inertia::render(
+                            'Resident/Dashboard',
+                            [
+                                'resident' => [
+                                    'id' =>
+                                        $resident->id,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Announcements
-        |--------------------------------------------------------------------------
-        */
+                                    'first_name' =>
+                                        $resident->first_name,
 
-        Route::inertia(
-            '/announcements',
-            'Resident/Announcements'
-        )->name('announcements');
+                                    'middle_name' =>
+                                        $resident->middle_name,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Disbursement
-        |--------------------------------------------------------------------------
-        */
+                                    'last_name' =>
+                                        $resident->last_name,
 
-        Route::inertia(
-            '/disbursement',
-            'Resident/Disbursement'
-        )->name('disbursement');
+                                    'suffix' =>
+                                        $resident->suffix,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Citizen's Charter
-        |--------------------------------------------------------------------------
-        */
+                                    'full_name' =>
+                                        $resident->full_name,
 
-        Route::inertia(
-            '/citizen-charter',
-            'Resident/CitizenCharter'
-        )->name('citizen-charter');
+                                    'resident_number' =>
+                                        $resident->resident_number,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Chatbot
-        |--------------------------------------------------------------------------
-        */
+                                    'barangay' => [
+                                        'id' =>
+                                            $resident->barangay?->id,
 
-        Route::inertia(
-            '/chatbot',
-            'Resident/Chatbot'
-        )->name('chatbot');
+                                        'name' =>
+                                            $resident->barangay?->name,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Profile
-        |--------------------------------------------------------------------------
-        */
+                                        'code' =>
+                                            $resident->barangay?->code,
 
-        Route::inertia(
-            '/profile',
-            'Resident/Profile'
-        )->name('profile');
+                                        'city_municipality' =>
+                                            $resident->barangay?->city_municipality,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Settings
-        |--------------------------------------------------------------------------
-        */
+                                        'province' =>
+                                            $resident->barangay?->province,
+                                    ],
 
-        Route::inertia(
-            '/settings',
-            'Resident/Settings'
-        )->name('settings');
+                                    'sectors' =>
+                                        $resident->sectors
+                                            ->map(function ($sector) {
+                                                return [
+                                                    'id' =>
+                                                        $sector->id,
 
-        /*
-        |--------------------------------------------------------------------------
-        | About
-        |--------------------------------------------------------------------------
-        */
+                                                    'name' =>
+                                                        $sector->name,
 
-        Route::inertia(
-            '/about',
-            'Resident/About'
-        )->name('about');
+                                                    'slug' =>
+                                                        $sector->slug,
+                                                ];
+                                            })
+                                            ->values(),
+                                ],
+
+                                'qrUrl' =>
+                                    $qrUrl,
+                            ]
+                        );
+                    }
+                )->name('dashboard');
+
+                // Dito pinalitan ang route para sa Certificates (GET at POST)
+                Route::get(
+                    '/certificates',
+                    [CertificateRequestController::class, 'index']
+                )->name('certificates');
+
+                Route::post(
+                    '/certificates',
+                    [CertificateRequestController::class, 'store']
+                )->name('certificates.store');
+
+                Route::inertia(
+                    '/lupon',
+                    'Resident/Lupon'
+                )->name('lupon');
+
+                Route::inertia(
+                    '/announcements',
+                    'Resident/Announcements'
+                )->name('announcements');
+
+                Route::inertia(
+                    '/disbursement',
+                    'Resident/Disbursement'
+                )->name('disbursement');
+
+                Route::inertia(
+                    '/citizen-charter',
+                    'Resident/CitizenCharter'
+                )->name('citizen-charter');
+
+                Route::inertia(
+                    '/chatbot',
+                    'Resident/Chatbot'
+                )->name('chatbot');
+
+                /*
+                |--------------------------------------------------------------------------
+                | Resident Profile
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/profile',
+                    function () {
+
+                        $resident = \App\Models\Resident::query()
+                            ->with([
+                                'barangay',
+                                'purok',
+                                'account',
+                                'sectors',
+                                'qrCredential',
+                            ])
+                            ->where(
+                                'id',
+                                session('resident_id')
+                            )
+                            ->where(
+                                'status',
+                                'active'
+                            )
+                            ->firstOrFail();
+
+                        $birthdate =
+                            $resident->birthdate;
+
+                        $age = $birthdate
+                            ? $birthdate->age
+                            : 0;
+
+                        $qrCredential =
+                            $resident->qrCredential;
+
+                        return Inertia::render(
+                            'Resident/Profile',
+                            [
+                                'profile' => [
+
+                                    'fullName' =>
+                                        $resident->full_name,
+
+                                    'residentId' =>
+                                        $resident->resident_number,
+
+                                    'birthdate' =>
+                                        $birthdate
+                                            ? $birthdate->format(
+                                                'F j, Y'
+                                            )
+                                            : 'Not provided',
+
+                                    'age' =>
+                                        $age,
+
+                                    'sex' =>
+                                        $resident->sex
+                                            ?? 'Not provided',
+
+                                    'civilStatus' =>
+                                        $resident->civil_status
+                                            ?? 'Not provided',
+
+                                    'mobileNumber' =>
+                                        $resident->mobile
+                                            ?? '',
+
+                                    'email' =>
+                                        $resident->email
+                                            ?? '',
+
+                                    'purok' =>
+                                        $resident->purok?->name
+                                            ?? 'Not provided',
+
+                                    'barangay' =>
+                                        $resident->barangay?->name
+                                            ?? 'Not provided',
+
+                                    'city' =>
+                                        $resident->barangay?->city_municipality
+                                            ?? 'Not provided',
+
+                                    'province' =>
+                                        $resident->barangay?->province
+                                            ?? 'Not provided',
+
+                                    'accountStatus' =>
+                                        (
+                                            $resident
+                                                ->account
+                                                ?->is_active
+                                            ?? false
+                                        )
+                                            ? 'Verified'
+                                            : 'Inactive',
+
+                                    'registeredDate' =>
+                                        (
+                                            $resident->approved_at
+                                            ?? $resident->created_at
+                                        )->format(
+                                            'F j, Y'
+                                        ),
+
+                                    'classification' =>
+                                        $resident->sectors->isEmpty()
+                                            ? 'Regular Resident'
+                                            : $resident->sectors
+                                                ->pluck('name')
+                                                ->implode(
+                                                    ' • '
+                                                ),
+
+                                    'qrToken' =>
+                                        (
+                                            $qrCredential?->is_active
+                                            && ! $qrCredential?->revoked_at
+                                        )
+                                            ? $qrCredential->token
+                                            : null,
+                                ],
+                            ]
+                        );
+                    }
+                )->name('profile');
+
+                /*
+                |--------------------------------------------------------------------------
+                | Resident Profile Contact Update
+                |--------------------------------------------------------------------------
+                */
+
+                Route::post(
+                    '/profile/contact',
+                    function (Request $request) {
+
+                        $resident =
+                            \App\Models\Resident::query()
+                                ->where(
+                                    'id',
+                                    session('resident_id')
+                                )
+                                ->where(
+                                    'status',
+                                    'active'
+                                )
+                                ->firstOrFail();
+
+                        $validated =
+                            $request->validate([
+                                'mobileNumber' => [
+                                    'nullable',
+                                    'string',
+                                    'max:20',
+
+                                    Rule::unique(
+                                        'residents',
+                                        'mobile'
+                                    )
+                                        ->where(
+                                            function ($query) use (
+                                                $resident
+                                            ) {
+                                                return $query->where(
+                                                    'barangay_id',
+                                                    $resident->barangay_id
+                                                );
+                                            }
+                                        )
+                                        ->ignore(
+                                            $resident->id
+                                        ),
+                                ],
+
+                                'email' => [
+                                    'nullable',
+                                    'email',
+                                    'max:255',
+
+                                    Rule::unique(
+                                        'residents',
+                                        'email'
+                                    )
+                                        ->where(
+                                            function ($query) use (
+                                                $resident
+                                            ) {
+                                                return $query->where(
+                                                    'barangay_id',
+                                                    $resident->barangay_id
+                                                );
+                                            }
+                                        )
+                                        ->ignore(
+                                            $resident->id
+                                        ),
+                                ],
+                            ]);
+
+                        $resident->update([
+                            'mobile' =>
+                                $validated['mobileNumber']
+                                ?? null,
+
+                            'email' =>
+                                $validated['email']
+                                ?? null,
+                        ]);
+
+                        return back()->with(
+                            'success',
+                            'Contact information updated successfully.'
+                        );
+                    }
+                )->name(
+                    'profile.contact.update'
+                );
+
+                Route::inertia(
+                    '/settings',
+                    'Resident/Settings'
+                )->name('settings');
+
+                Route::inertia(
+                    '/about',
+                    'Resident/About'
+                )->name('about');
+            });
     });
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated Area
+| Admin / Staff
 |--------------------------------------------------------------------------
 */
 
 Route::middleware('auth')
     ->group(function () {
-
-        /*
-        |--------------------------------------------------------------------------
-        | Logout
-        |--------------------------------------------------------------------------
-        */
 
         Route::post(
             '/logout',
@@ -268,21 +554,9 @@ Route::middleware('auth')
             ]
         )->name('logout');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Admin Area
-        |--------------------------------------------------------------------------
-        */
-
         Route::prefix('admin')
             ->name('admin.')
             ->group(function () {
-
-                /*
-                |--------------------------------------------------------------------------
-                | Dashboard
-                |--------------------------------------------------------------------------
-                */
 
                 Route::inertia(
                     '/',
@@ -291,7 +565,18 @@ Route::middleware('auth')
 
                 /*
                 |--------------------------------------------------------------------------
-                | Residents
+                | Resident QR Scanner
+                |--------------------------------------------------------------------------
+                */
+
+                Route::inertia(
+                    '/qr-scanner',
+                    'Admin/QrScanner'
+                )->name('qr-scanner');
+
+                /*
+                |--------------------------------------------------------------------------
+                | Resident Registrations
                 |--------------------------------------------------------------------------
                 */
 
@@ -314,6 +599,16 @@ Route::middleware('auth')
                 );
 
                 Route::post(
+                    '/residents/{registration}/approve',
+                    [
+                        ResidentRegistrationController::class,
+                        'approve',
+                    ]
+                )->name(
+                    'residents.approve'
+                );
+
+                Route::post(
                     '/residents/{registration}/reject',
                     [
                         ResidentRegistrationController::class,
@@ -323,77 +618,35 @@ Route::middleware('auth')
                     'residents.reject'
                 );
 
-                /*
-                |--------------------------------------------------------------------------
-                | Sectors
-                |--------------------------------------------------------------------------
-                */
-
                 Route::inertia(
                     '/sectors',
                     'Admin/Sectors'
                 )->name('sectors');
-
-                /*
-                |--------------------------------------------------------------------------
-                | Certificates
-                |--------------------------------------------------------------------------
-                */
 
                 Route::inertia(
                     '/certificates',
                     'Admin/Certificates'
                 )->name('certificates');
 
-                /*
-                |--------------------------------------------------------------------------
-                | Staff
-                |--------------------------------------------------------------------------
-                */
-
                 Route::inertia(
                     '/staff',
                     'Admin/Staff'
                 )->name('staff');
-
-                /*
-                |--------------------------------------------------------------------------
-                | Audit Log
-                |--------------------------------------------------------------------------
-                */
 
                 Route::inertia(
                     '/audit-log',
                     'Admin/AuditLog'
                 )->name('audit-log');
 
-                /*
-                |--------------------------------------------------------------------------
-                | Reports
-                |--------------------------------------------------------------------------
-                */
-
                 Route::inertia(
                     '/reports',
                     'Admin/Reports'
                 )->name('reports');
 
-                /*
-                |--------------------------------------------------------------------------
-                | Population
-                |--------------------------------------------------------------------------
-                */
-
                 Route::inertia(
                     '/population',
                     'Admin/Population'
                 )->name('population');
-
-                /*
-                |--------------------------------------------------------------------------
-                | Settings
-                |--------------------------------------------------------------------------
-                */
 
                 Route::inertia(
                     '/settings',
@@ -401,3 +654,18 @@ Route::middleware('auth')
                 )->name('settings');
             });
     });
+
+/*
+|--------------------------------------------------------------------------
+| Clerk Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->prefix('clerk')->group(function () {
+    Route::get('/dashboard', [ClerkController::class, 'dashboard'])->name('clerk.dashboard');
+    
+    // 1. ROUTE PARA MAKITA ANG FORM PAGE (GET) - Ito baka ang kulang kaya 404 kapag binibisita mo
+    Route::inertia('/certificates', 'Clerk/Certificates')->name('clerk.certificates.page');
+    
+    // 2. ROUTE PARA MAG-GENERATE NG FILE (POST)
+    Route::post('/generate-certificate', [CertificateController::class, 'generate'])->name('clerk.certificates.generate');
+});

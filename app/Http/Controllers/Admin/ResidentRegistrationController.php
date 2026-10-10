@@ -3,11 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Barangay;
 use App\Models\RegistrationDocument;
+use App\Models\Resident;
+use App\Models\ResidentAccount;
+use App\Models\ResidentQrCredential;
 use App\Models\ResidentRegistration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -108,16 +115,37 @@ class ResidentRegistrationController extends Controller
             ])
             ->count();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Permanent Resident Statistics
+        |--------------------------------------------------------------------------
+        */
+
+        $totalResidents = Resident::query()
+            ->where('barangay_id', $user->barangay_id)
+            ->count();
+
+        $activeResidents = Resident::query()
+            ->where('barangay_id', $user->barangay_id)
+            ->where('status', 'active')
+            ->count();
+
         return Inertia::render('Admin/Residents', [
             'pendingRegistrations' => $pendingRegistrations,
 
             'stats' => [
-                'totalResidents' => 0,
-                'activeResidents' => 0,
+                'totalResidents' => $totalResidents,
+                'activeResidents' => $activeResidents,
                 'pendingRegistrations' => $pendingCount,
             ],
         ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Show Registration Document
+    |--------------------------------------------------------------------------
+    */
 
     public function showDocument(
         Request $request,
@@ -158,6 +186,305 @@ class ResidentRegistrationController extends Controller
             'inline'
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Approve Resident Registration
+    |--------------------------------------------------------------------------
+    */
+
+    public function approve(
+        Request $request,
+        ResidentRegistration $registration
+    ): RedirectResponse {
+        $user = $request->user();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Barangay Security
+        |--------------------------------------------------------------------------
+        |
+        | An admin can only approve applications belonging to their barangay.
+        |
+        */
+
+        abort_unless(
+            (int) $registration->barangay_id ===
+                (int) $user->barangay_id,
+            403
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Application Status
+        |--------------------------------------------------------------------------
+        */
+
+        abort_unless(
+            in_array(
+                $registration->status,
+                [
+                    'pending',
+                    'needs_correction',
+                ],
+                true
+            ),
+            422
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Prevent Double Approval
+        |--------------------------------------------------------------------------
+        */
+
+        if ($registration->resident()->exists()) {
+            throw ValidationException::withMessages([
+                'approval' =>
+                    'This registration already has a permanent resident record.',
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Existing Resident Contact Information
+        |--------------------------------------------------------------------------
+        */
+
+        $mobileExists = Resident::query()
+            ->where('barangay_id', $registration->barangay_id)
+            ->where('mobile', $registration->mobile)
+            ->exists();
+
+        if ($mobileExists) {
+            throw ValidationException::withMessages([
+                'approval' =>
+                    'A permanent resident with this mobile number already exists in this barangay.',
+            ]);
+        }
+
+        if ($registration->email) {
+            $emailExists = Resident::query()
+                ->where('barangay_id', $registration->barangay_id)
+                ->whereRaw(
+                    'LOWER(email) = ?',
+                    [Str::lower($registration->email)]
+                )
+                ->exists();
+
+            if ($emailExists) {
+                throw ValidationException::withMessages([
+                    'approval' =>
+                        'A permanent resident with this email address already exists in this barangay.',
+                ]);
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create Permanent Resident
+        |--------------------------------------------------------------------------
+        */
+
+        DB::transaction(function () use ($registration, $user) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Lock Registration
+            |--------------------------------------------------------------------------
+            |
+            | Prevent two approval requests from processing the same application
+            | at the same time.
+            |
+            */
+
+            $lockedRegistration = ResidentRegistration::query()
+                ->whereKey($registration->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedRegistration->resident()->exists()) {
+                throw ValidationException::withMessages([
+                    'approval' =>
+                        'This registration has already been approved.',
+                ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Lock Barangay
+            |--------------------------------------------------------------------------
+            |
+            | This also helps prevent two approvals from generating the same
+            | resident number for the same barangay.
+            |
+            */
+
+            $barangay = Barangay::query()
+                ->whereKey($lockedRegistration->barangay_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Generate Resident Number
+            |--------------------------------------------------------------------------
+            |
+            | Example:
+            |
+            | BSJ-RES-000001
+            | BSJ-RES-000002
+            |
+            */
+
+            $residentNumber = $this->generateResidentNumber(
+                $barangay->id,
+                $barangay->code
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create Permanent Resident
+            |--------------------------------------------------------------------------
+            */
+
+            $resident = Resident::create([
+                'public_id' => (string) Str::uuid(),
+
+                'resident_registration_id' =>
+                    $lockedRegistration->id,
+
+                'barangay_id' =>
+                    $lockedRegistration->barangay_id,
+
+                'purok_id' =>
+                    $lockedRegistration->purok_id,
+
+                'resident_number' =>
+                    $residentNumber,
+
+                'first_name' =>
+                    $lockedRegistration->first_name,
+
+                'middle_name' =>
+                    $lockedRegistration->middle_name,
+
+                'last_name' =>
+                    $lockedRegistration->last_name,
+
+                'suffix' =>
+                    $lockedRegistration->suffix,
+
+                'birthdate' =>
+                    $lockedRegistration->birthdate,
+
+                'sex' =>
+                    $lockedRegistration->sex,
+
+                'civil_status' =>
+                    $lockedRegistration->civil_status,
+
+                'address_line' =>
+                    $lockedRegistration->address_line,
+
+                'mobile' =>
+                    $lockedRegistration->mobile,
+
+                'email' =>
+                    $lockedRegistration->email,
+
+                'status' => 'active',
+
+                'approved_at' => now(),
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create Resident Login Account
+            |--------------------------------------------------------------------------
+            |
+            | IMPORTANT:
+            |
+            | The registration password is already hashed.
+            | Do NOT Hash::make() it again.
+            |
+            */
+
+            ResidentAccount::create([
+                'resident_id' => $resident->id,
+                'password' => $lockedRegistration->password,
+                'is_active' => true,
+                'password_changed_at' => null,
+                'last_login_at' => null,
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Copy Approved Sectors
+            |--------------------------------------------------------------------------
+            |
+            | Regular Resident:
+            | No sector rows.
+            |
+            | Senior/PWD:
+            | Copy sector IDs from registration_sectors.
+            |
+            */
+
+            $sectorIds = $lockedRegistration
+                ->sectors()
+                ->pluck('sector_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            if (! empty($sectorIds)) {
+                $resident->sectors()->sync($sectorIds);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create QR Credential
+            |--------------------------------------------------------------------------
+            |
+            | QR stores only this random token, not resident personal data.
+            |
+            */
+
+            ResidentQrCredential::create([
+                'resident_id' => $resident->id,
+                'token' => 'KBQR-' . Str::random(64),
+                'is_active' => true,
+                'generated_at' => now(),
+                'revoked_at' => null,
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Mark Application Approved
+            |--------------------------------------------------------------------------
+            */
+
+            $lockedRegistration->update([
+                'status' => 'approved',
+                'review_notes' => null,
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+            ]);
+        });
+
+        return back()->with(
+            'success',
+            'Resident registration approved successfully.'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reject Resident Registration
+    |--------------------------------------------------------------------------
+    */
 
     public function reject(
         Request $request,
@@ -206,6 +533,55 @@ class ResidentRegistrationController extends Controller
             'Resident application rejected.'
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Generate Resident Number
+    |--------------------------------------------------------------------------
+    */
+
+    private function generateResidentNumber(
+        int $barangayId,
+        string $barangayCode
+    ): string {
+        $lastResidentNumber = Resident::query()
+            ->where('barangay_id', $barangayId)
+            ->orderByDesc('id')
+            ->value('resident_number');
+
+        $nextNumber = 1;
+
+        if (
+            $lastResidentNumber &&
+            preg_match(
+                '/(\d+)$/',
+                $lastResidentNumber,
+                $matches
+            )
+        ) {
+            $nextNumber = ((int) $matches[1]) + 1;
+        }
+
+        $code = strtoupper(
+            preg_replace(
+                '/[^A-Za-z0-9]/',
+                '',
+                $barangayCode
+            )
+        );
+
+        return sprintf(
+            '%s-RES-%06d',
+            $code,
+            $nextNumber
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Document Label
+    |--------------------------------------------------------------------------
+    */
 
     private function documentLabel(string $type): string
     {

@@ -1,4 +1,12 @@
-import { FormEvent, useState } from 'react';
+import {
+    useEffect,
+    useRef,
+    useState,
+    type FormEvent,
+    type ReactNode,
+} from 'react';
+import { router, usePage } from '@inertiajs/react';
+import { QRCodeSVG } from 'qrcode.react';
 import ResidentLayout from '@/layouts/ResidentLayout';
 
 type ProfileData = {
@@ -13,29 +21,34 @@ type ProfileData = {
     purok: string;
     barangay: string;
     city: string;
+    province: string;
     accountStatus: string;
     registeredDate: string;
+    classification: string;
+    qrToken: string | null;
 };
 
-const initialProfile: ProfileData = {
-    fullName: 'Juan Dela Cruz',
-    residentId: 'BSJ-2026-0001',
-    birthdate: 'January 15, 1995',
-    age: 31,
-    sex: 'Male',
-    civilStatus: 'Single',
-    mobileNumber: '0912 345 6789',
-    email: 'juan.delacruz@example.com',
-    purok: 'Purok 3',
-    barangay: 'Barangay San Jose',
-    city: 'Puerto Princesa City',
-    accountStatus: 'Verified',
-    registeredDate: 'August 20, 2026',
+type PageProps = {
+    profile: ProfileData;
+};
+
+type NotificationType =
+    | 'success'
+    | 'error'
+    | 'warning';
+
+type Notification = {
+    type: NotificationType;
+    title: string;
+    message: string;
 };
 
 export default function Profile() {
+    const { profile: serverProfile } =
+        usePage<PageProps>().props;
+
     const [profile, setProfile] =
-        useState<ProfileData>(initialProfile);
+        useState<ProfileData>(serverProfile);
 
     const [editingContact, setEditingContact] =
         useState(false);
@@ -46,42 +59,201 @@ export default function Profile() {
     const [email, setEmail] =
         useState(profile.email);
 
-    const [savedMessage, setSavedMessage] =
-        useState('');
+    const [notification, setNotification] =
+        useState<Notification | null>(null);
+
+    const [savingContact, setSavingContact] =
+        useState(false);
 
     const [showQrModal, setShowQrModal] =
         useState(false);
 
+    const notificationTimer =
+        useRef<number | null>(null);
+
+    const classification =
+        profile.classification;
+
+    /*
+    |--------------------------------------------------------------------------
+    | QR Verification URL
+    |--------------------------------------------------------------------------
+    |
+    | The QR code contains the public verification URL instead of
+    | exposing only the raw KBQR token.
+    |
+    */
+
+    const qrVerificationUrl = profile.qrToken
+        ? `${window.location.origin}/verify/resident/${encodeURIComponent(profile.qrToken)}`
+        : '';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification System
+    |--------------------------------------------------------------------------
+    */
+
+    const showNotification = (
+        type: NotificationType,
+        title: string,
+        message: string,
+    ) => {
+
+        if (notificationTimer.current) {
+            window.clearTimeout(
+                notificationTimer.current,
+            );
+        }
+
+        setNotification({
+            type,
+            title,
+            message,
+        });
+
+        notificationTimer.current =
+            window.setTimeout(() => {
+                setNotification(null);
+            }, 4000);
+    };
+
+
+    const closeNotification = () => {
+
+        if (notificationTimer.current) {
+            window.clearTimeout(
+                notificationTimer.current,
+            );
+        }
+
+        setNotification(null);
+    };
+
+
+    useEffect(() => {
+        return () => {
+
+            if (notificationTimer.current) {
+                window.clearTimeout(
+                    notificationTimer.current,
+                );
+            }
+
+        };
+    }, []);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Save Contact Information
+    |--------------------------------------------------------------------------
+    */
+
     const handleSaveContact = (
         event: FormEvent<HTMLFormElement>,
     ) => {
+
         event.preventDefault();
 
-        setProfile((current) => ({
-            ...current,
-            mobileNumber,
-            email,
-        }));
 
-        setEditingContact(false);
+        /*
+        |--------------------------------------------------------------------------
+        | Warning - No Changes
+        |--------------------------------------------------------------------------
+        */
 
-        setSavedMessage(
-            'Contact information updated successfully.',
+        if (
+            mobileNumber.trim() ===
+                profile.mobileNumber.trim() &&
+            email.trim() ===
+                profile.email.trim()
+        ) {
+
+            showNotification(
+                'warning',
+                'No changes made.',
+                'Your contact information is already up to date.',
+            );
+
+            return;
+        }
+
+
+        setSavingContact(true);
+
+
+        router.post(
+            '/resident/profile/contact',
+            {
+                mobileNumber,
+                email,
+            },
+            {
+                preserveScroll: true,
+
+                onSuccess: () => {
+
+                    setProfile((current) => ({
+                        ...current,
+                        mobileNumber,
+                        email,
+                    }));
+
+                    setEditingContact(false);
+
+                    showNotification(
+                        'success',
+                        'Successfully updated!',
+                        'Your contact information has been successfully updated.',
+                    );
+                },
+
+                onError: (errors) => {
+
+                    const firstError =
+                        Object.values(errors)[0];
+
+                    showNotification(
+                        'error',
+                        'Update failed.',
+                        firstError ||
+                            'Unable to update your contact information. Please try again.',
+                    );
+                },
+
+                onFinish: () => {
+                    setSavingContact(false);
+                },
+            },
         );
-
-        window.setTimeout(() => {
-            setSavedMessage('');
-        }, 2500);
     };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cancel Contact Edit
+    |--------------------------------------------------------------------------
+    */
 
     const handleCancelEdit = () => {
-        setMobileNumber(profile.mobileNumber);
-        setEmail(profile.email);
+
+        setMobileNumber(
+            profile.mobileNumber,
+        );
+
+        setEmail(
+            profile.email,
+        );
+
         setEditingContact(false);
     };
+
 
     return (
         <ResidentLayout active="profile">
+
             <div className="mx-auto w-full max-w-6xl">
 
                 {/* PAGE HEADER */}
@@ -99,25 +271,16 @@ export default function Profile() {
 
                 </div>
 
-                {/* SUCCESS MESSAGE */}
 
-                {savedMessage && (
-                    <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+                {/* NOTIFICATION */}
 
-                        <div className="flex items-center gap-2">
-
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
-                                <CheckIcon />
-                            </div>
-
-                            <p className="text-sm font-medium text-green-800">
-                                {savedMessage}
-                            </p>
-
-                        </div>
-
-                    </div>
+                {notification && (
+                    <NotificationAlert
+                        notification={notification}
+                        onClose={closeNotification}
+                    />
                 )}
+
 
                 {/* PROFILE SUMMARY */}
 
@@ -154,9 +317,16 @@ export default function Profile() {
                                     {profile.purok}, {profile.barangay}
                                 </p>
 
+                                <p className="mt-1 text-sm font-semibold text-[#3f6f3d]">
+                                    {classification}
+                                </p>
+
                             </div>
 
                         </div>
+
+
+                        {/* QR BUTTON */}
 
                         <button
                             type="button"
@@ -188,16 +358,22 @@ export default function Profile() {
 
                 </div>
 
+
                 {/* INFO GRID */}
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
 
-                    {/* PERSONAL INFO */}
+                    {/* PERSONAL INFORMATION */}
 
                     <CompactCard
                         title="Personal Information"
                         icon={<UserIcon />}
                     >
+
+                        <CompactRow
+                            label="Full Name"
+                            value={profile.fullName}
+                        />
 
                         <CompactRow
                             label="Birthdate"
@@ -206,7 +382,11 @@ export default function Profile() {
 
                         <CompactRow
                             label="Age"
-                            value={`${profile.age} years old`}
+                            value={
+                                profile.age > 0
+                                    ? `${profile.age} years old`
+                                    : 'Not provided'
+                            }
                         />
 
                         <CompactRow
@@ -219,7 +399,13 @@ export default function Profile() {
                             value={profile.civilStatus}
                         />
 
+                        <CompactRow
+                            label="Classification"
+                            value={classification}
+                        />
+
                     </CompactCard>
+
 
                     {/* ADDRESS */}
 
@@ -243,15 +429,21 @@ export default function Profile() {
                             value={profile.city}
                         />
 
+                        <CompactRow
+                            label="Province"
+                            value={profile.province}
+                        />
+
                     </CompactCard>
 
                 </div>
+
 
                 {/* CONTACT + ACCOUNT */}
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
 
-                    {/* CONTACT */}
+                    {/* CONTACT INFORMATION */}
 
                     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
 
@@ -264,6 +456,7 @@ export default function Profile() {
                                 </div>
 
                                 <div>
+
                                     <h2 className="text-sm font-bold text-gray-900 sm:text-base">
                                         Contact Information
                                     </h2>
@@ -271,9 +464,11 @@ export default function Profile() {
                                     <p className="mt-0.5 text-xs text-gray-500">
                                         Editable contact details
                                     </p>
+
                                 </div>
 
                             </div>
+
 
                             {!editingContact && (
                                 <button
@@ -289,21 +484,31 @@ export default function Profile() {
 
                         </div>
 
+
                         {!editingContact ? (
+
                             <div className="mt-4 space-y-3">
 
                                 <CompactRow
                                     label="Mobile Number"
-                                    value={profile.mobileNumber}
+                                    value={
+                                        profile.mobileNumber ||
+                                        'Not provided'
+                                    }
                                 />
 
                                 <CompactRow
                                     label="Email Address"
-                                    value={profile.email}
+                                    value={
+                                        profile.email ||
+                                        'Not provided'
+                                    }
                                 />
 
                             </div>
+
                         ) : (
+
                             <form
                                 onSubmit={handleSaveContact}
                                 className="mt-4"
@@ -312,6 +517,7 @@ export default function Profile() {
                                 <div className="space-y-3">
 
                                     <Field label="Mobile Number">
+
                                         <input
                                             type="tel"
                                             value={mobileNumber}
@@ -321,10 +527,16 @@ export default function Profile() {
                                                 )
                                             }
                                             className={inputClass}
+                                            disabled={
+                                                savingContact
+                                            }
                                         />
+
                                     </Field>
 
+
                                     <Field label="Email Address">
+
                                         <input
                                             type="email"
                                             value={email}
@@ -334,10 +546,15 @@ export default function Profile() {
                                                 )
                                             }
                                             className={inputClass}
+                                            disabled={
+                                                savingContact
+                                            }
                                         />
+
                                     </Field>
 
                                 </div>
+
 
                                 <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
 
@@ -346,26 +563,37 @@ export default function Profile() {
                                         onClick={
                                             handleCancelEdit
                                         }
-                                        className="min-h-10 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                                        disabled={
+                                            savingContact
+                                        }
+                                        className="min-h-10 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         Cancel
                                     </button>
 
+
                                     <button
                                         type="submit"
-                                        className="min-h-10 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#315b30]"
+                                        disabled={
+                                            savingContact
+                                        }
+                                        className="min-h-10 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        Save
+                                        {savingContact
+                                            ? 'Saving...'
+                                            : 'Save'}
                                     </button>
 
                                 </div>
 
                             </form>
+
                         )}
 
                     </div>
 
-                    {/* ACCOUNT */}
+
+                    {/* ACCOUNT INFORMATION */}
 
                     <CompactCard
                         title="Account Information"
@@ -378,6 +606,7 @@ export default function Profile() {
                         />
 
                         <div>
+
                             <p className="text-xs text-gray-400">
                                 Account Status
                             </p>
@@ -390,7 +619,9 @@ export default function Profile() {
                                 </span>
 
                             </div>
+
                         </div>
+
 
                         <CompactRow
                             label="Date Registered"
@@ -400,6 +631,7 @@ export default function Profile() {
                     </CompactCard>
 
                 </div>
+
 
                 {/* OFFICIAL UPDATE NOTICE */}
 
@@ -429,6 +661,7 @@ export default function Profile() {
 
                         </div>
 
+
                         <button
                             type="button"
                             className="min-h-10 shrink-0 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"
@@ -442,9 +675,11 @@ export default function Profile() {
 
             </div>
 
+
             {/* QR MODAL */}
 
             {showQrModal && (
+
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
 
                     <button
@@ -455,6 +690,7 @@ export default function Profile() {
                             setShowQrModal(false)
                         }
                     />
+
 
                     <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
 
@@ -473,6 +709,7 @@ export default function Profile() {
 
                             </div>
 
+
                             <button
                                 type="button"
                                 onClick={() =>
@@ -486,13 +723,52 @@ export default function Profile() {
 
                         </div>
 
+
+                        {/* REAL QR CODE */}
+
                         <div className="mt-5 flex justify-center">
 
                             <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-                                <MockQrCode size={230} />
+
+                                {profile.qrToken ? (
+
+                                    <QRCodeSVG
+                                        value={
+                                            qrVerificationUrl
+                                        }
+                                        size={230}
+                                        level="H"
+                                        includeMargin={true}
+                                        bgColor="#ffffff"
+                                        fgColor="#000000"
+                                        aria-label="Resident QR Code"
+                                    />
+
+                                ) : (
+
+                                    <div
+                                        className="flex h-[230px] w-[230px] items-center justify-center rounded-lg bg-gray-50 p-6 text-center"
+                                    >
+                                        <div>
+
+                                            <p className="text-sm font-semibold text-gray-700">
+                                                QR Code unavailable
+                                            </p>
+
+                                            <p className="mt-1 text-xs leading-5 text-gray-500">
+                                                Please contact the barangay
+                                                office.
+                                            </p>
+
+                                        </div>
+                                    </div>
+
+                                )}
+
                             </div>
 
                         </div>
+
 
                         <div className="mt-4 text-center">
 
@@ -502,6 +778,10 @@ export default function Profile() {
 
                             <p className="mt-1 text-sm text-gray-500">
                                 {profile.residentId}
+                            </p>
+
+                            <p className="mt-2 text-sm font-semibold text-[#3f6f3d]">
+                                {classification}
                             </p>
 
                             <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-[#e8f1e4] px-2.5 py-1 text-xs font-semibold text-[#3f6f3d]">
@@ -514,11 +794,171 @@ export default function Profile() {
                     </div>
 
                 </div>
+
             )}
 
         </ResidentLayout>
     );
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| Notification Alert
+|--------------------------------------------------------------------------
+*/
+
+function NotificationAlert({
+    notification,
+    onClose,
+}: {
+    notification: Notification;
+    onClose: () => void;
+}) {
+
+    const styles = {
+        success: {
+            container:
+                'border-green-200 bg-green-50',
+            icon:
+                'bg-green-100 text-green-700',
+            title:
+                'text-green-900',
+            message:
+                'text-green-800',
+        },
+
+        error: {
+            container:
+                'border-red-200 bg-red-50',
+            icon:
+                'bg-red-100 text-red-700',
+            title:
+                'text-red-900',
+            message:
+                'text-red-800',
+        },
+
+        warning: {
+            container:
+                'border-amber-200 bg-amber-50',
+            icon:
+                'bg-amber-100 text-amber-700',
+            title:
+                'text-amber-900',
+            message:
+                'text-amber-800',
+        },
+    };
+
+    const style =
+        styles[notification.type];
+
+
+    return (
+        <div
+            role="alert"
+            className={`
+                mb-4
+                rounded-xl
+                border
+                px-4
+                py-3
+                ${style.container}
+            `}
+        >
+
+            <div className="flex items-start gap-3">
+
+                {/* ICON */}
+
+                <div
+                    className={`
+                        flex
+                        h-8
+                        w-8
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-full
+                        ${style.icon}
+                    `}
+                >
+
+                    {notification.type ===
+                        'success' && (
+                        <CheckIcon />
+                    )}
+
+                    {notification.type ===
+                        'error' && (
+                        <ErrorIcon />
+                    )}
+
+                    {notification.type ===
+                        'warning' && (
+                        <WarningIcon />
+                    )}
+
+                </div>
+
+
+                {/* MESSAGE */}
+
+                <div className="min-w-0 flex-1">
+
+                    <p
+                        className={`
+                            text-sm
+                            font-bold
+                            ${style.title}
+                        `}
+                    >
+                        {notification.title}
+                    </p>
+
+                    <p
+                        className={`
+                            mt-0.5
+                            text-xs
+                            leading-5
+                            ${style.message}
+                        `}
+                    >
+                        {notification.message}
+                    </p>
+
+                </div>
+
+
+                {/* CLOSE */}
+
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className={`
+                        flex
+                        h-7
+                        w-7
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-full
+                        transition
+                        hover:bg-black/5
+                        ${style.message}
+                    `}
+                    aria-label="Close notification"
+                >
+                    <CloseIcon />
+                </button>
+
+            </div>
+
+        </div>
+    );
+}
+
 
 /*
 |--------------------------------------------------------------------------
@@ -532,8 +972,8 @@ function CompactCard({
     children,
 }: {
     title: string;
-    icon: React.ReactNode;
-    children: React.ReactNode;
+    icon: ReactNode;
+    children: ReactNode;
 }) {
     return (
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
@@ -550,6 +990,7 @@ function CompactCard({
 
             </div>
 
+
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {children}
             </div>
@@ -557,6 +998,7 @@ function CompactCard({
         </div>
     );
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -586,6 +1028,7 @@ function CompactRow({
     );
 }
 
+
 /*
 |--------------------------------------------------------------------------
 | Field
@@ -597,7 +1040,7 @@ function Field({
     children,
 }: {
     label: string;
-    children: React.ReactNode;
+    children: ReactNode;
 }) {
     return (
         <div>
@@ -611,6 +1054,7 @@ function Field({
         </div>
     );
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -633,89 +1077,11 @@ const inputClass = `
     focus:border-[#3f6f3d]
     focus:ring-2
     focus:ring-[#3f6f3d]/15
+    disabled:bg-gray-50
+    disabled:text-gray-400
     sm:text-sm
 `;
 
-/*
-|--------------------------------------------------------------------------
-| Mock QR
-|--------------------------------------------------------------------------
-*/
-
-function MockQrCode({
-    size,
-}: {
-    size: number;
-}) {
-    const pattern = [
-        '111111100101101111111',
-        '100000101110101000001',
-        '101110100101101011101',
-        '101110101011001011101',
-        '101110100110101011101',
-        '100000101001001000001',
-        '111111101010101111111',
-        '000000001101100000000',
-        '110101111001011010101',
-        '001011001110101101000',
-        '111001111011111010111',
-        '010110000101001110010',
-        '101111111010111101101',
-        '000000001011100101010',
-        '111111101101111001111',
-        '100000100010001010001',
-        '101110101111101011101',
-        '101110100101001001001',
-        '101110101011111101111',
-        '100000101100010100101',
-        '111111101011101111111',
-    ];
-
-    const cellSize =
-        size / pattern.length;
-
-    return (
-        <div
-            className="relative bg-white"
-            style={{
-                width: size,
-                height: size,
-            }}
-            aria-label="Resident QR Code preview"
-        >
-            {pattern.map((row, rowIndex) =>
-                row
-                    .split('')
-                    .map((cell, columnIndex) => {
-                        if (cell !== '1') {
-                            return null;
-                        }
-
-                        return (
-                            <span
-                                key={`${rowIndex}-${columnIndex}`}
-                                className="absolute bg-black"
-                                style={{
-                                    left:
-                                        columnIndex *
-                                        cellSize,
-                                    top:
-                                        rowIndex *
-                                        cellSize,
-                                    width:
-                                        cellSize +
-                                        0.25,
-                                    height:
-                                        cellSize +
-                                        0.25,
-                                }}
-                            />
-                        );
-                    }),
-            )}
-        </div>
-    );
-}
 
 /*
 |--------------------------------------------------------------------------
@@ -746,6 +1112,7 @@ function ProfileLargeIcon() {
     );
 }
 
+
 function UserIcon() {
     return (
         <svg
@@ -769,6 +1136,7 @@ function UserIcon() {
     );
 }
 
+
 function LocationIcon() {
     return (
         <svg
@@ -791,6 +1159,7 @@ function LocationIcon() {
         </svg>
     );
 }
+
 
 function ContactIcon() {
     return (
@@ -816,6 +1185,7 @@ function ContactIcon() {
         </svg>
     );
 }
+
 
 function AccountIcon() {
     return (
@@ -844,11 +1214,14 @@ function AccountIcon() {
             />
 
             <path d="M6 16c.4-1.5 1.2-2 2-2s1.6.5 2 2" />
+
             <path d="M13 10h5" />
+
             <path d="M13 14h4" />
         </svg>
     );
 }
+
 
 function QrIcon() {
     return (
@@ -884,11 +1257,14 @@ function QrIcon() {
             />
 
             <path d="M15 15h2v2h-2z" />
+
             <path d="M19 15h2v6h-2" />
+
             <path d="M15 19h2v2h-2z" />
         </svg>
     );
 }
+
 
 function InfoIcon() {
     return (
@@ -909,10 +1285,12 @@ function InfoIcon() {
             />
 
             <path d="M12 11v6" />
+
             <path d="M12 7h.01" />
         </svg>
     );
 }
+
 
 function CheckIcon() {
     return (
@@ -931,6 +1309,55 @@ function CheckIcon() {
     );
 }
 
+
+function ErrorIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-4 w-4"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <circle
+                cx="12"
+                cy="12"
+                r="9"
+            />
+
+            <path d="M9 9l6 6" />
+
+            <path d="M15 9l-6 6" />
+        </svg>
+    );
+}
+
+
+function WarningIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-4 w-4"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <path d="M12 3 21 20H3L12 3Z" />
+
+            <path d="M12 9v5" />
+
+            <path d="M12 17h.01" />
+        </svg>
+    );
+}
+
+
 function SmallCheckIcon() {
     return (
         <svg
@@ -948,6 +1375,7 @@ function SmallCheckIcon() {
     );
 }
 
+
 function CloseIcon() {
     return (
         <svg
@@ -960,6 +1388,7 @@ function CloseIcon() {
             aria-hidden="true"
         >
             <path d="M6 6l12 12" />
+
             <path d="M18 6 6 18" />
         </svg>
     );

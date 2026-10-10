@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ResidentRegistration extends Model
 {
@@ -48,28 +49,76 @@ class ResidentRegistration extends Model
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Barangay
+    |--------------------------------------------------------------------------
+    */
+
     public function barangay(): BelongsTo
     {
         return $this->belongsTo(Barangay::class);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Purok
+    |--------------------------------------------------------------------------
+    */
 
     public function purok(): BelongsTo
     {
         return $this->belongsTo(Purok::class);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Reviewer
+    |--------------------------------------------------------------------------
+    */
+
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Registration Sectors
+    |--------------------------------------------------------------------------
+    */
 
     public function sectors(): HasMany
     {
         return $this->hasMany(RegistrationSector::class);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Registration Documents
+    |--------------------------------------------------------------------------
+    */
+
     public function documents(): HasMany
     {
         return $this->hasMany(RegistrationDocument::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Permanent Resident
+    |--------------------------------------------------------------------------
+    |
+    | Once this registration is approved, it can create exactly one
+    | permanent resident record.
+    |
+    */
+
+    public function resident(): HasOne
+    {
+        return $this->hasOne(
+            Resident::class,
+            'resident_registration_id'
+        );
     }
 }

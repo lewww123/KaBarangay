@@ -39,9 +39,9 @@ const departments = [
         description: 'Persons with disability services',
     },
     {
-        value: 'certificate',
-        label: 'Certificate',
-        description: 'Barangay certificate services',
+        value: 'clerk',
+        label: 'Clerk',
+        description: 'Barangay clerk services',
     },
 ];
 

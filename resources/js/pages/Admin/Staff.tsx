@@ -10,7 +10,7 @@ type StaffMember = {
     status: 'Active' | 'Inactive';
 };
 
-const roles = ['Admin', 'Lupon', 'Senior', 'PWD', 'Certificate'];
+const roles = ['Admin', 'Lupon', 'Senior', 'PWD', 'Clerk'];
 
 const initialStaff: StaffMember[] = [
     {
@@ -286,6 +286,6 @@ export default function Staff() {
                     </div>
                 )}
             </AdminLayout>
-        </>
+        </> 
     );
 }

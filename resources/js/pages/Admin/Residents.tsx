@@ -48,6 +48,7 @@ type Stats = {
 
 type Props = {
     pendingRegistrations?: PendingRegistration[];
+    approvedResidents?: Resident[];
     stats?: Stats;
 };
 
@@ -65,10 +66,9 @@ type Resident = {
     status: ResidentStatus;
 };
 
-const approvedResidents: Resident[] = [];
-
 export default function Residents({
     pendingRegistrations = [],
+    approvedResidents = [],
     stats = {
         totalResidents: 0,
         activeResidents: 0,
@@ -77,6 +77,10 @@ export default function Residents({
 }: Props) {
     const safePending = Array.isArray(pendingRegistrations)
         ? pendingRegistrations
+        : [];
+
+    const safeApproved = Array.isArray(approvedResidents)
+        ? approvedResidents
         : [];
 
     const [activeTab, setActiveTab] = useState<Tab>('pending');
@@ -89,21 +93,25 @@ export default function Residents({
     const [rejectError, setRejectError] = useState('');
     const [processingReject, setProcessingReject] = useState(false);
 
+    const [processingApproveId, setProcessingApproveId] =
+        useState<number | null>(null);
+    const [approveError, setApproveError] = useState('');
+
     const filteredApproved = useMemo(() => {
         const keyword = search.trim().toLowerCase();
 
         if (!keyword) {
-            return approvedResidents;
+            return safeApproved;
         }
 
-        return approvedResidents.filter((resident) => {
+        return safeApproved.filter((resident) => {
             return (
                 resident.fullName.toLowerCase().includes(keyword) ||
                 resident.residentId.toLowerCase().includes(keyword) ||
                 resident.purok.toLowerCase().includes(keyword)
             );
         });
-    }, [search]);
+    }, [safeApproved, search]);
 
     const filteredPending = useMemo(() => {
         const keyword = search.trim().toLowerCase();
@@ -133,6 +141,47 @@ export default function Residents({
         setRejectingApplication(application);
         setRejectionReason('');
         setRejectError('');
+        setApproveError('');
+    };
+
+    const approveRegistration = (application: PendingRegistration) => {
+        if (processingApproveId !== null) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Approve ${getApplicantName(application)} as a permanent resident?`,
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setProcessingApproveId(application.id);
+        setApproveError('');
+
+        router.post(
+            `/admin/residents/${application.id}/approve`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelectedApplication(null);
+                    setApproveError('');
+                },
+                onError: (errors) => {
+                    const message =
+                        typeof errors.approval === 'string'
+                            ? errors.approval
+                            : 'Unable to approve this registration. Please review the application and try again.';
+
+                    setApproveError(message);
+                },
+                onFinish: () => {
+                    setProcessingApproveId(null);
+                },
+            },
+        );
     };
 
     const rejectRegistration = (event: FormEvent<HTMLFormElement>) => {
@@ -241,6 +290,14 @@ export default function Residents({
                     </div>
                 </div>
 
+                {approveError && (
+                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                        <p className="text-sm font-medium text-red-700">
+                            {approveError}
+                        </p>
+                    </div>
+                )}
+
                 {activeTab === 'approved' && (
                     <ApprovedResidentsTable residents={filteredApproved} />
                 )}
@@ -248,16 +305,34 @@ export default function Residents({
                 {activeTab === 'pending' && (
                     <PendingRegistrationsTable
                         applications={filteredPending}
-                        onView={setSelectedApplication}
+                        onView={(application) => {
+                            setApproveError('');
+                            setSelectedApplication(application);
+                        }}
                         onReject={openReject}
+                        onApprove={approveRegistration}
+                        processingApproveId={processingApproveId}
                     />
                 )}
 
                 {selectedApplication && (
                     <ApplicationModal
                         application={selectedApplication}
-                        onClose={() => setSelectedApplication(null)}
+                        onClose={() => {
+                            if (processingApproveId !== null) {
+                                return;
+                            }
+
+                            setSelectedApplication(null);
+                            setApproveError('');
+                        }}
                         onReject={() => openReject(selectedApplication)}
+                        onApprove={() =>
+                            approveRegistration(selectedApplication)
+                        }
+                        processingApprove={
+                            processingApproveId === selectedApplication.id
+                        }
                     />
                 )}
 
@@ -359,7 +434,7 @@ function ApprovedResidentsTable({
                                         No approved residents yet
                                     </p>
                                     <p className="mt-1 text-xs text-gray-400">
-                                        Approved resident accounts will appear here after the approval backend is connected.
+                                        Approved resident accounts will appear here.
                                     </p>
                                 </td>
                             </tr>
@@ -375,10 +450,14 @@ function PendingRegistrationsTable({
     applications,
     onView,
     onReject,
+    onApprove,
+    processingApproveId,
 }: {
     applications: PendingRegistration[];
     onView: (application: PendingRegistration) => void;
     onReject: (application: PendingRegistration) => void;
+    onApprove: (application: PendingRegistration) => void;
+    processingApproveId: number | null;
 }) {
     return (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -447,11 +526,15 @@ function PendingRegistrationsTable({
 
                                         <button
                                             type="button"
-                                            disabled
-                                            title="Approval backend will be connected after the permanent resident account tables are ready."
-                                            className="cursor-not-allowed rounded-md bg-[#3f6f3d] px-3 py-2 text-xs font-medium text-white opacity-50"
+                                            onClick={() => onApprove(application)}
+                                            disabled={
+                                                processingApproveId !== null
+                                            }
+                                            className="rounded-md bg-[#3f6f3d] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
                                         >
-                                            Approve
+                                            {processingApproveId === application.id
+                                                ? 'Approving...'
+                                                : 'Approve'}
                                         </button>
                                     </div>
                                 </td>
@@ -484,10 +567,14 @@ function ApplicationModal({
     application,
     onClose,
     onReject,
+    onApprove,
+    processingApprove,
 }: {
     application: PendingRegistration;
     onClose: () => void;
     onReject: () => void;
+    onApprove: () => void;
+    processingApprove: boolean;
 }) {
     return (
         <ModalContainer>
@@ -579,7 +666,8 @@ function ApplicationModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                        disabled={processingApprove}
+                        className="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         Close
                     </button>
@@ -587,18 +675,21 @@ function ApplicationModal({
                     <button
                         type="button"
                         onClick={onReject}
-                        className="rounded-md border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                        disabled={processingApprove}
+                        className="rounded-md border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         Reject
                     </button>
 
                     <button
                         type="button"
-                        disabled
-                        title="Approval backend is not connected yet."
-                        className="cursor-not-allowed rounded-md bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white opacity-50"
+                        onClick={onApprove}
+                        disabled={processingApprove}
+                        className="rounded-md bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        Approve Registration
+                        {processingApprove
+                            ? 'Approving...'
+                            : 'Approve Registration'}
                     </button>
                 </div>
             </div>

@@ -13,6 +13,8 @@ class Barangay extends Model
     protected $fillable = [
         'name',
         'code',
+        'city_municipality',
+        'province',
         'is_active',
     ];
 
@@ -23,8 +25,47 @@ class Barangay extends Model
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Users / Staff
+    |--------------------------------------------------------------------------
+    */
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Puroks
+    |--------------------------------------------------------------------------
+    */
+
+    public function puroks(): HasMany
+    {
+        return $this->hasMany(Purok::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Resident Registrations
+    |--------------------------------------------------------------------------
+    */
+
+    public function residentRegistrations(): HasMany
+    {
+        return $this->hasMany(ResidentRegistration::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Permanent Residents
+    |--------------------------------------------------------------------------
+    */
+
+    public function residents(): HasMany
+    {
+        return $this->hasMany(Resident::class);
     }
 }

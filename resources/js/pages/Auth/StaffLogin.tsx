@@ -23,7 +23,7 @@ const departmentLabels: Record<string, string> = {
     lupon: 'Lupon',
     senior: 'Senior',
     pwd: 'PWD',
-    certificate: 'Certificate',
+    clerk: 'Clerk',
 };
 
 export default function StaffLogin({

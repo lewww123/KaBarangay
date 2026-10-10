@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 type AdminPage =
     | 'overview'
     | 'residents'
+    | 'qr-scanner'
     | 'sectors'
     | 'staff'
     | 'population'
@@ -76,6 +77,14 @@ export default function AdminLayout({
                             icon="♙"
                             label="Residents"
                             active={active === 'residents'}
+                        />
+
+                        {/* QR SCANNER */}
+                        <SidebarLink
+                            href="/admin/qr-scanner"
+                            icon="▦"
+                            label="QR Scanner"
+                            active={active === 'qr-scanner'}
                         />
 
                         <SidebarLink

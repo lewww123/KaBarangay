@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Barangay;
+use App\Models\Resident;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -96,8 +97,11 @@ class AuthController extends Controller
             'department' => [
                 'required',
                 'string',
-                'in:admin,lupon,senior,pwd,certificate',
+                'in:admin,lupon,senior,pwd,clerk',
             ],
+
+
+            
 
             'username' => [
                 'required',
@@ -333,12 +337,186 @@ class AuthController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Redirect to Admin Dashboard
+        | Redirect Based on Role / Department
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->role === 'clerk') {
+            return redirect()->route('clerk.dashboard');
+        }
+
+        // Default fallback for Admin
+        return redirect()->route('admin.dashboard');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Resident Login
+    |--------------------------------------------------------------------------
+    */
+
+    public function processResidentLogin(
+        Request $request
+    ) {
+        $validated = $request->validate([
+            'barangay_id' => [
+                'required',
+                'integer',
+                'exists:barangays,id',
+            ],
+
+            'identifier' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'password' => [
+                'required',
+                'string',
+            ],
+
+            'remember' => [
+                'nullable',
+                'boolean',
+            ],
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Verify Barangay
+        |--------------------------------------------------------------------------
+        */
+
+        $barangay = Barangay::query()
+            ->where(
+                'id',
+                $validated['barangay_id']
+            )
+            ->where(
+                'is_active',
+                true
+            )
+            ->first();
+
+        if (!$barangay) {
+            return back()
+                ->withErrors([
+                    'barangay_id' =>
+                        'The selected barangay is not available.',
+                ])
+                ->withInput([
+                    'identifier' =>
+                        $validated['identifier'],
+                ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find Active Resident
+        |--------------------------------------------------------------------------
+        */
+
+        $identifier = trim(
+            $validated['identifier']
+        );
+
+        $resident = Resident::query()
+            ->with('account')
+            ->where(
+                'barangay_id',
+                $barangay->id
+            )
+            ->where(
+                'status',
+                'active'
+            )
+            ->where(function ($query) use ($identifier) {
+                $query
+                    ->where(
+                        'resident_number',
+                        strtoupper($identifier)
+                    )
+                    ->orWhere(
+                        'mobile',
+                        $identifier
+                    )
+                    ->orWhere(
+                        'email',
+                        strtolower($identifier)
+                    );
+            })
+            ->first();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Verify Resident Account + Password
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$resident ||
+            !$resident->account ||
+            !$resident->account->is_active ||
+            !Hash::check(
+                $validated['password'],
+                $resident->account->password
+            )
+        ) {
+            return back()
+                ->withErrors([
+                    'login' =>
+                        'Invalid resident credentials.',
+                ])
+                ->withInput([
+                    'barangay_id' =>
+                        $validated['barangay_id'],
+
+                    'identifier' =>
+                        $validated['identifier'],
+                ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Authenticate Resident Session
+        |--------------------------------------------------------------------------
+        */
+
+        $request->session()->regenerate();
+
+        $request->session()->put([
+            'resident_id' =>
+                $resident->id,
+
+            'resident_barangay_id' =>
+                $resident->barangay_id,
+
+            'resident_logged_in' =>
+                true,
+
+            'resident_remember' =>
+                (bool) ($validated['remember'] ?? false),
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Last Login
+        |--------------------------------------------------------------------------
+        */
+
+        $resident->account->update([
+            'last_login_at' => now(),
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Redirect
         |--------------------------------------------------------------------------
         */
 
         return redirect()->route(
-            'admin.dashboard'
+            'resident.dashboard'
         );
     }
 
@@ -368,4 +546,4 @@ class AuthController extends Controller
             'barangays' => $barangays,
         ]);
     }
-}
+}   
