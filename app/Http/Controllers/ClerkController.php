@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Announcement;
+use App\Models\Resident;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,16 +14,19 @@ class ClerkController extends Controller
     {
         $user = $request->user();
 
-        // Security: I-kick out ang user kung hindi 'clerk' ang role niya
-        if ($user->role !== 'clerk') {
-            abort(403, 'Unauthorized access. This page is for Barangay Clerks only.');
+        if (! in_array($user->role, ['clerk', 'admin'])) {
+            abort(403, 'Unauthorized access to General Clerk Portal.');
         }
 
-        // I-render ang React page at ipasa ang user data
         return Inertia::render('Clerk/Dashboard', [
-            'auth' => [
-                'user' => $user,
+            'userName' => $user->name,
+            'stats' => [
+                'totalResidents' => Resident::where('status', 'active')->count(),
+                'totalAnnouncements' => Announcement::count(),
+                'pendingAnnouncements' => Announcement::where('approval_status', 'pending')->count(),
+                'approvedAnnouncements' => Announcement::where('approval_status', 'approved')->count(),
             ],
+            'recentAnnouncements' => Announcement::latest()->take(5)->get(),
         ]);
     }
 }

@@ -26,8 +26,15 @@ type ResidentDashboardResident = {
     }[];
 };
 
+type LatestAnnouncement = {
+    id: number;
+    title: string;
+    created_at: string;
+} | null;
+
 type DashboardProps = {
     resident: ResidentDashboardResident;
+    latestAnnouncement?: LatestAnnouncement;
 };
 
 type TanodContact = {
@@ -37,30 +44,11 @@ type TanodContact = {
     phone: string;
 };
 
-/*
-|--------------------------------------------------------------------------
-| Temporary Barangay Contact Data
-|--------------------------------------------------------------------------
-|
-| Frontend-only for now.
-| Later this MUST come from the authenticated resident's barangay.
-|
-| Barangay San Jose official Tanod hotline:
-| 0939 459 6081
-|
-*/
-
 const barangayContact = {
     barangayName: 'Barangay San Jose',
     tanodHotline: '09394596081',
     tanodHotlineDisplay: '0939 459 6081',
 };
-
-/*
-|--------------------------------------------------------------------------
-| Public / Backup Tanod Contacts
-|--------------------------------------------------------------------------
-*/
 
 const publicTanodContacts: TanodContact[] = [
     {
@@ -250,9 +238,9 @@ const emergencyCategories = [
 
 export default function Dashboard({
     resident,
+    latestAnnouncement,
 }: DashboardProps) {
-    const [activeModal, setActiveModal] =
-        useState<ModalType>(null);
+    const [activeModal, setActiveModal] = useState<ModalType>(null);
 
     return (
         <>
@@ -260,13 +248,10 @@ export default function Dashboard({
 
             <ResidentLayout active="home">
 
-                {/* ======================================================
-                    WELCOME
-                ====================================================== */}
-
+                {/* WELCOME */}
                 <section className="mb-5 sm:mb-6">
                     <h1 className="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">
-                        Good afternoon, {resident.first_name}!
+                        Good day, {resident.first_name}!
                     </h1>
 
                     <p className="mt-2 text-sm leading-6 text-gray-500 sm:text-base">
@@ -274,10 +259,7 @@ export default function Dashboard({
                     </p>
                 </section>
 
-                {/* ======================================================
-                    ORIGINAL QUICK SERVICES
-                ====================================================== */}
-
+                {/* QUICK SERVICES */}
                 <section
                     aria-labelledby="quick-services-heading"
                     className="mb-7"
@@ -290,7 +272,6 @@ export default function Dashboard({
                     </h2>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-
                         <QuickServiceCard
                             href="/resident/certificates"
                             icon={<CertificateIcon />}
@@ -304,14 +285,10 @@ export default function Dashboard({
                             title="File a Complaint"
                             description="Submit a concern or view your Lupon case."
                         />
-
                     </div>
                 </section>
 
-                {/* ======================================================
-                    LATEST ANNOUNCEMENT
-                ====================================================== */}
-
+                {/* LATEST ANNOUNCEMENT (REAL DATA FROM BACKEND) */}
                 <section
                     aria-labelledby="latest-announcement-heading"
                     className="mb-7"
@@ -332,30 +309,33 @@ export default function Dashboard({
                         </Link>
                     </div>
 
-                    <Link
-                        href="/resident/announcements"
-                        className="flex min-h-[72px] items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#cfddca] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#3f6f3d]/25 sm:gap-4"
-                    >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
-                            <AnnouncementIcon />
-                        </div>
+                    {latestAnnouncement ? (
+                        <Link
+                            href="/resident/announcements"
+                            className="flex min-h-[72px] items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#cfddca] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#3f6f3d]/25 sm:gap-4"
+                        >
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                                <AnnouncementIcon />
+                            </div>
 
-                        <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-gray-900 sm:text-base">
-                                Barangay Clean-Up Drive
-                            </p>
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-gray-900 sm:text-base">
+                                    {latestAnnouncement.title}
+                                </p>
 
-                            <p className="mt-1 text-xs text-gray-500 sm:text-sm">
-                                September 25, 2026
-                            </p>
+                                <p className="mt-1 text-xs text-gray-500 sm:text-sm">
+                                    {latestAnnouncement.created_at}
+                                </p>
+                            </div>
+                        </Link>
+                    ) : (
+                        <div className="flex min-h-[72px] items-center justify-center rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500 shadow-sm">
+                            No active announcements at this time.
                         </div>
-                    </Link>
+                    )}
                 </section>
 
-                {/* ======================================================
-                    BARANGAY ASSISTANCE
-                ====================================================== */}
-
+                {/* BARANGAY ASSISTANCE */}
                 <section
                     aria-labelledby="barangay-assistance-heading"
                     className="rounded-2xl border border-[#d6e3d2] bg-white p-4 shadow-sm sm:p-5 lg:p-6"
@@ -375,14 +355,9 @@ export default function Dashboard({
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
-
-                        {/* TANOD ASSISTANCE */}
-
                         <button
                             type="button"
-                            onClick={() =>
-                                setActiveModal('tanod')
-                            }
+                            onClick={() => setActiveModal('tanod')}
                             className="group w-full overflow-hidden rounded-2xl border border-[#cbdcc7] bg-white text-left shadow-sm transition hover:border-[#9fbd99] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#3f6f3d]/25 active:scale-[0.995]"
                         >
                             <div className="flex min-h-[118px] items-center gap-4 p-4 sm:p-5">
@@ -415,13 +390,9 @@ export default function Dashboard({
                             </div>
                         </button>
 
-                        {/* EMERGENCY */}
-
                         <button
                             type="button"
-                            onClick={() =>
-                                setActiveModal('emergency')
-                            }
+                            onClick={() => setActiveModal('emergency')}
                             className="group w-full overflow-hidden rounded-2xl border border-red-200 bg-white text-left shadow-sm transition hover:border-red-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-300 active:scale-[0.995]"
                         >
                             <div className="flex min-h-[118px] items-center gap-4 p-4 sm:p-5">
@@ -453,7 +424,6 @@ export default function Dashboard({
                                 Puerto Princesa City emergency contacts available inside
                             </div>
                         </button>
-
                     </div>
 
                     <p className="mt-4 text-xs leading-5 text-gray-500 sm:text-sm">
@@ -462,10 +432,7 @@ export default function Dashboard({
                     </p>
                 </section>
 
-                {/* ======================================================
-                    TANOD MODAL
-                ====================================================== */}
-
+                {/* MODALS */}
                 {activeModal === 'tanod' && (
                     <ModalContainer
                         title="Request Tanod Assistance"
@@ -475,21 +442,11 @@ export default function Dashboard({
                                 <ShieldIcon />
                             </span>
                         }
-                        onClose={() =>
-                            setActiveModal(null)
-                        }
+                        onClose={() => setActiveModal(null)}
                     >
-                        <TanodAssistanceForm
-                            onCancel={() =>
-                                setActiveModal(null)
-                            }
-                        />
+                        <TanodAssistanceForm onCancel={() => setActiveModal(null)} />
                     </ModalContainer>
                 )}
-
-                {/* ======================================================
-                    EMERGENCY MODAL
-                ====================================================== */}
 
                 {activeModal === 'emergency' && (
                     <ModalContainer
@@ -500,15 +457,9 @@ export default function Dashboard({
                                 <EmergencyIcon />
                             </span>
                         }
-                        onClose={() =>
-                            setActiveModal(null)
-                        }
+                        onClose={() => setActiveModal(null)}
                     >
-                        <EmergencyPanel
-                            onCancel={() =>
-                                setActiveModal(null)
-                            }
-                        />
+                        <EmergencyPanel onCancel={() => setActiveModal(null)} />
                     </ModalContainer>
                 )}
 
@@ -516,12 +467,6 @@ export default function Dashboard({
         </>
     );
 }
-
-/*
-|--------------------------------------------------------------------------
-| Quick Service Card
-|--------------------------------------------------------------------------
-*/
 
 function QuickServiceCard({
     href,
@@ -556,47 +501,21 @@ function QuickServiceCard({
     );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Tanod Assistance Form
-|--------------------------------------------------------------------------
-*/
-
-function TanodAssistanceForm({
-    onCancel,
-}: {
-    onCancel: () => void;
-}) {
-    const [showOtherContacts, setShowOtherContacts] =
-        useState(false);
-
-    const [concernType, setConcernType] =
-        useState('');
-
-    const [location, setLocation] =
-        useState('');
-
-    const [details, setDetails] =
-        useState('');
+function TanodAssistanceForm({ onCancel }: { onCancel: () => void }) {
+    const [showOtherContacts, setShowOtherContacts] = useState(false);
+    const [concernType, setConcernType] = useState('');
+    const [location, setLocation] = useState('');
+    const [details, setDetails] = useState('');
 
     const handleSubmit = () => {
-        window.alert(
-            'Tanod assistance request preview submitted.',
-        );
-
+        window.alert('Tanod assistance request preview submitted.');
         onCancel();
     };
 
     return (
         <div className="space-y-5">
-
-            {/* ==========================================================
-                OFFICIAL TANOD HOTLINE
-            ========================================================== */}
-
             <section className="overflow-hidden rounded-2xl border border-[#cdddc9] bg-white shadow-sm">
                 <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-
                     <div className="flex min-w-0 items-start gap-3">
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f1e4] text-[#3f6f3d]">
                             <PhoneIcon />
@@ -624,16 +543,11 @@ function TanodAssistanceForm({
                         <PhoneIcon />
                         Call Hotline
                     </a>
-
                 </div>
 
                 <button
                     type="button"
-                    onClick={() =>
-                        setShowOtherContacts(
-                            (current) => !current,
-                        )
-                    }
+                    onClick={() => setShowOtherContacts((current) => !current)}
                     className="flex min-h-12 w-full items-center justify-between gap-3 border-t border-[#dce8d8] bg-[#f7faf6] px-4 py-3 text-left text-sm font-semibold text-[#315b30] transition hover:bg-[#edf4ea] sm:px-5"
                     aria-expanded={showOtherContacts}
                 >
@@ -643,21 +557,11 @@ function TanodAssistanceForm({
                             : 'View other Tanod contacts'}
                     </span>
 
-                    <span
-                        className={`transition-transform ${
-                            showOtherContacts
-                                ? 'rotate-90'
-                                : ''
-                        }`}
-                    >
+                    <span className={`transition-transform ${showOtherContacts ? 'rotate-90' : ''}`}>
                         <ChevronRightIcon />
                     </span>
                 </button>
             </section>
-
-            {/* ==========================================================
-                OTHER PUBLIC TANOD CONTACTS
-            ========================================================== */}
 
             {showOtherContacts && (
                 <section>
@@ -667,52 +571,42 @@ function TanodAssistanceForm({
                         </h3>
 
                         <p className="mt-1 text-xs leading-5 text-gray-500 sm:text-sm">
-                            These are backup contacts for key Tanod
-                            personnel. The official hotline above should
-                            remain the primary contact.
+                            These are backup contacts for key Tanod personnel.
                         </p>
                     </div>
 
                     <div className="space-y-2">
-                        {publicTanodContacts.map(
-                            (contact) => (
-                                <div
-                                    key={contact.id}
-                                    className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3.5 sm:flex-row sm:items-center sm:justify-between"
-                                >
-                                    <div className="min-w-0">
-                                        <p className="font-semibold text-gray-900">
-                                            {contact.name}
-                                        </p>
+                        {publicTanodContacts.map((contact) => (
+                            <div
+                                key={contact.id}
+                                className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3.5 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                                <div className="min-w-0">
+                                    <p className="font-semibold text-gray-900">
+                                        {contact.name}
+                                    </p>
 
-                                        <p className="mt-0.5 text-sm text-gray-500">
-                                            {contact.position}
-                                        </p>
+                                    <p className="mt-0.5 text-sm text-gray-500">
+                                        {contact.position}
+                                    </p>
 
-                                        <p className="mt-1 text-sm font-semibold tracking-wide text-[#315b30]">
-                                            {formatPhoneNumber(
-                                                contact.phone,
-                                            )}
-                                        </p>
-                                    </div>
-
-                                    <a
-                                        href={`tel:${contact.phone}`}
-                                        className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#b9cfb5] bg-white px-4 text-sm font-semibold text-[#315b30] transition hover:bg-[#edf4ea]"
-                                    >
-                                        <PhoneIcon />
-                                        Call
-                                    </a>
+                                    <p className="mt-1 text-sm font-semibold tracking-wide text-[#315b30]">
+                                        {formatPhoneNumber(contact.phone)}
+                                    </p>
                                 </div>
-                            ),
-                        )}
+
+                                <a
+                                    href={`tel:${contact.phone}`}
+                                    className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#b9cfb5] bg-white px-4 text-sm font-semibold text-[#315b30] transition hover:bg-[#edf4ea]"
+                                >
+                                    <PhoneIcon />
+                                    Call
+                                </a>
+                            </div>
+                        ))}
                     </div>
                 </section>
             )}
-
-            {/* ==========================================================
-                REQUEST FORM
-            ========================================================== */}
 
             <div className="border-t border-gray-100 pt-5">
                 <h3 className="text-base font-semibold text-gray-900">
@@ -720,8 +614,7 @@ function TanodAssistanceForm({
                 </h3>
 
                 <p className="mt-1 text-sm leading-5 text-gray-500">
-                    For non-urgent concerns, you can also send a
-                    request through KaBarangay.
+                    For non-urgent concerns, you can also send a request through KaBarangay.
                 </p>
             </div>
 
@@ -736,36 +629,15 @@ function TanodAssistanceForm({
                 <select
                     id="tanod-concern"
                     value={concernType}
-                    onChange={(event) =>
-                        setConcernType(
-                            event.target.value,
-                        )
-                    }
+                    onChange={(e) => setConcernType(e.target.value)}
                     className="min-h-12 w-full rounded-xl border border-gray-300 bg-white px-3 text-base text-gray-800 outline-none transition focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15 sm:text-sm"
                 >
-                    <option value="">
-                        Select concern
-                    </option>
-
-                    <option value="noise">
-                        Noise disturbance
-                    </option>
-
-                    <option value="conflict">
-                        Neighborhood conflict
-                    </option>
-
-                    <option value="suspicious">
-                        Suspicious activity
-                    </option>
-
-                    <option value="assistance">
-                        Assistance needed
-                    </option>
-
-                    <option value="other">
-                        Other concern
-                    </option>
+                    <option value="">Select concern</option>
+                    <option value="noise">Noise disturbance</option>
+                    <option value="conflict">Neighborhood conflict</option>
+                    <option value="suspicious">Suspicious activity</option>
+                    <option value="assistance">Assistance needed</option>
+                    <option value="other">Other concern</option>
                 </select>
             </div>
 
@@ -781,11 +653,7 @@ function TanodAssistanceForm({
                     id="tanod-location"
                     type="text"
                     value={location}
-                    onChange={(event) =>
-                        setLocation(
-                            event.target.value,
-                        )
-                    }
+                    onChange={(e) => setLocation(e.target.value)}
                     placeholder="Enter purok, street, or nearby landmark"
                     className="min-h-12 w-full rounded-xl border border-gray-300 bg-white px-3 text-base text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15 sm:text-sm"
                 />
@@ -803,11 +671,7 @@ function TanodAssistanceForm({
                     id="tanod-details"
                     rows={4}
                     value={details}
-                    onChange={(event) =>
-                        setDetails(
-                            event.target.value,
-                        )
-                    }
+                    onChange={(e) => setDetails(e.target.value)}
                     placeholder="Describe the concern clearly..."
                     className="w-full resize-y rounded-xl border border-gray-300 bg-white p-3 text-base text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15 sm:text-sm"
                 />
@@ -830,60 +694,28 @@ function TanodAssistanceForm({
                     Send Request
                 </button>
             </div>
-
         </div>
     );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Phone Number Formatter
-|--------------------------------------------------------------------------
-*/
-
 function formatPhoneNumber(phone: string) {
-    if (
-        phone.length === 11 &&
-        phone.startsWith('09')
-    ) {
-        return `${phone.slice(0, 4)} ${phone.slice(
-            4,
-            7,
-        )} ${phone.slice(7)}`;
+    if (phone.length === 11 && phone.startsWith('09')) {
+        return `${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}`;
     }
-
     return phone;
 }
 
-/*
-|--------------------------------------------------------------------------
-| Emergency Panel
-|--------------------------------------------------------------------------
-*/
-
-function EmergencyPanel({
-    onCancel,
-}: {
-    onCancel: () => void;
-}) {
-    const [expandedCategory, setExpandedCategory] =
-        useState<string>('City Emergency');
+function EmergencyPanel({ onCancel }: { onCancel: () => void }) {
+    const [expandedCategory, setExpandedCategory] = useState<string>('City Emergency');
 
     return (
         <div className="space-y-5">
-
-            <div
-                role="alert"
-                className="rounded-xl border border-red-200 bg-red-50 p-4"
-            >
+            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4">
                 <p className="text-sm font-semibold text-red-800">
                     Need urgent help?
                 </p>
-
                 <p className="mt-1 text-sm leading-6 text-red-700">
-                    Tap a phone number below to call. These contacts
-                    are based on the Puerto Princesa City hotline
-                    poster provided for this project.
+                    Tap a phone number below to call.
                 </p>
             </div>
 
@@ -891,10 +723,8 @@ function EmergencyPanel({
                 <h3 className="text-base font-semibold text-gray-900">
                     Quick Call
                 </h3>
-
                 <p className="mt-1 text-sm leading-5 text-gray-500">
-                    Common emergency contacts are placed first for
-                    easier access.
+                    Common emergency contacts are placed first.
                 </p>
 
                 <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -904,21 +734,18 @@ function EmergencyPanel({
                         subtitle="Puerto Princesa City - 911"
                         phone="09277972009"
                     />
-
                     <EmergencyQuickCall
                         icon="🚑"
                         title="Ambulance"
                         subtitle="HERO"
                         phone="09504912599"
                     />
-
                     <EmergencyQuickCall
                         icon="🔥"
                         title="Fire"
                         subtitle="PPC BFP"
                         phone="09649452971"
                     />
-
                     <EmergencyQuickCall
                         icon="👮"
                         title="Police"
@@ -933,124 +760,74 @@ function EmergencyPanel({
                     All Emergency Contacts
                 </h3>
 
-                <p className="mt-1 text-sm leading-5 text-gray-500">
-                    Open a category to view all listed numbers.
-                </p>
-
                 <div className="mt-3 space-y-2">
-                    {emergencyCategories.map(
-                        (category) => {
-                            const contacts =
-                                emergencyContacts.filter(
-                                    (contact) =>
-                                        contact.category ===
-                                        category,
-                                );
+                    {emergencyCategories.map((category) => {
+                        const contacts = emergencyContacts.filter((c) => c.category === category);
+                        const isOpen = expandedCategory === category;
 
-                            const isOpen =
-                                expandedCategory ===
-                                category;
-
-                            return (
-                                <div
-                                    key={category}
-                                    className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                        return (
+                            <div key={category} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                                <button
+                                    type="button"
+                                    onClick={() => setExpandedCategory(isOpen ? '' : category)}
+                                    className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-gray-50"
+                                    aria-expanded={isOpen}
                                 >
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setExpandedCategory(
-                                                isOpen
-                                                    ? ''
-                                                    : category,
-                                            )
-                                        }
-                                        className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-gray-50"
-                                        aria-expanded={isOpen}
-                                    >
-                                        <span className="flex items-center gap-3">
-                                            <span className="text-lg">
-                                                {emergencyCategoryIcon(
-                                                    category,
-                                                )}
-                                            </span>
-
-                                            <span>
-                                                <span className="block text-sm font-semibold text-gray-900">
-                                                    {category}
-                                                </span>
-
-                                                <span className="block text-xs text-gray-500">
-                                                    {contacts.length}{' '}
-                                                    contact
-                                                    {contacts.length > 1
-                                                        ? 's'
-                                                        : ''}
-                                                </span>
-                                            </span>
+                                    <span className="flex items-center gap-3">
+                                        <span className="text-lg">
+                                            {emergencyCategoryIcon(category)}
                                         </span>
 
-                                        <span
-                                            className={`text-gray-400 transition-transform ${
-                                                isOpen
-                                                    ? 'rotate-90'
-                                                    : ''
-                                            }`}
-                                        >
-                                            <ChevronRightIcon />
+                                        <span>
+                                            <span className="block text-sm font-semibold text-gray-900">
+                                                {category}
+                                            </span>
+                                            <span className="block text-xs text-gray-500">
+                                                {contacts.length} contact{contacts.length > 1 ? 's' : ''}
+                                            </span>
                                         </span>
-                                    </button>
+                                    </span>
 
-                                    {isOpen && (
-                                        <div className="border-t border-gray-100 bg-gray-50/60 p-2">
-                                            {contacts.map(
-                                                (contact) => (
-                                                    <div
-                                                        key={contact.id}
-                                                        className="mb-2 flex flex-col gap-3 rounded-lg bg-white p-3 last:mb-0 sm:flex-row sm:items-center sm:justify-between"
-                                                    >
-                                                        <div className="min-w-0">
-                                                            <p className="text-sm font-semibold text-gray-900">
-                                                                {contact.agency}
-                                                            </p>
+                                    <span className={`text-gray-400 transition-transform ${isOpen ? 'rotate-90' : ''}`}>
+                                        <ChevronRightIcon />
+                                    </span>
+                                </button>
 
-                                                            <p className="mt-0.5 text-xs text-gray-500">
-                                                                {contact.label}
-                                                            </p>
+                                {isOpen && (
+                                    <div className="border-t border-gray-100 bg-gray-50/60 p-2">
+                                        {contacts.map((contact) => (
+                                            <div
+                                                key={contact.id}
+                                                className="mb-2 flex flex-col gap-3 rounded-lg bg-white p-3 last:mb-0 sm:flex-row sm:items-center sm:justify-between"
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900">
+                                                        {contact.agency}
+                                                    </p>
+                                                    <p className="mt-0.5 text-xs text-gray-500">
+                                                        {contact.label}
+                                                    </p>
+                                                    <p className="mt-1 text-sm font-bold tracking-wide text-red-700">
+                                                        {formatPhoneNumber(contact.phone)}
+                                                    </p>
+                                                </div>
 
-                                                            <p className="mt-1 text-sm font-bold tracking-wide text-red-700">
-                                                                {formatPhoneNumber(
-                                                                    contact.phone,
-                                                                )}
-                                                            </p>
-                                                        </div>
-
-                                                        <a
-                                                            href={`tel:${contact.phone}`}
-                                                            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-800"
-                                                        >
-                                                            <PhoneIcon />
-                                                            Call
-                                                        </a>
-                                                    </div>
-                                                ),
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        },
-                    )}
+                                                <a
+                                                    href={`tel:${contact.phone}`}
+                                                    className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-800"
+                                                >
+                                                    <PhoneIcon />
+                                                    Call
+                                                </a>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             </section>
-
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                <p className="text-xs leading-5 text-amber-800 sm:text-sm">
-                    Hotline numbers can change. Later, these will be
-                    managed from the barangay/admin side instead of
-                    being hardcoded in the Resident Dashboard.
-                </p>
-            </div>
 
             <div className="flex justify-end pt-1">
                 <button
@@ -1061,7 +838,6 @@ function EmergencyPanel({
                     Close
                 </button>
             </div>
-
         </div>
     );
 }
@@ -1107,9 +883,7 @@ function EmergencyQuickCall({
     );
 }
 
-function emergencyCategoryIcon(
-    category: string,
-) {
+function emergencyCategoryIcon(category: string) {
     switch (category) {
         case 'City Emergency':
             return '🆘';
@@ -1127,12 +901,6 @@ function emergencyCategoryIcon(
             return '☎️';
     }
 }
-
-/*
-|--------------------------------------------------------------------------
-| Modal
-|--------------------------------------------------------------------------
-*/
 
 function ModalContainer({
     title,
@@ -1154,20 +922,13 @@ function ModalContainer({
             aria-modal="true"
             aria-labelledby="resident-dashboard-modal-title"
             onMouseDown={(event) => {
-                if (
-                    event.target ===
-                    event.currentTarget
-                ) {
+                if (event.target === event.currentTarget) {
                     onClose();
                 }
             }}
         >
             <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl sm:max-w-xl">
-
-                {/* MODAL HEADER */}
-
                 <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-100 bg-white p-5 sm:p-6">
-
                     <div className="flex min-w-0 items-start gap-3">
                         {icon}
 
@@ -1193,40 +954,21 @@ function ModalContainer({
                     >
                         <CloseIcon />
                     </button>
-
                 </div>
-
-                {/* SCROLLABLE MODAL CONTENT */}
 
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                     <div className="p-5 sm:p-6">
                         {children}
                     </div>
                 </div>
-
             </div>
         </div>
     );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Icons
-|--------------------------------------------------------------------------
-*/
-
 function CertificateIcon() {
     return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-6 w-6"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
             <path d="M14 3v5h4" />
             <path d="M9 13h6" />
@@ -1237,16 +979,7 @@ function CertificateIcon() {
 
 function ComplaintIcon() {
     return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-6 w-6"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 3v18" />
             <path d="M5 7h14" />
             <path d="m7 7-3 6h6L7 7Z" />
@@ -1258,16 +991,7 @@ function ComplaintIcon() {
 
 function AnnouncementIcon() {
     return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-5 w-5"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M4 13V9a2 2 0 0 1 2-2h3l8-3v14l-8-3H6a2 2 0 0 1-2-2Z" />
             <path d="M8 15l1 5h3l-1-5" />
             <path d="M20 8v6" />
@@ -1277,16 +1001,7 @@ function AnnouncementIcon() {
 
 function ShieldIcon() {
     return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-6 w-6"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6Z" />
             <path d="m9 12 2 2 4-4" />
         </svg>
@@ -1295,16 +1010,7 @@ function ShieldIcon() {
 
 function EmergencyIcon() {
     return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-6 w-6"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 3v3" />
             <path d="M5.6 5.6 7.7 7.7" />
             <path d="M3 12h3" />
@@ -1319,16 +1025,7 @@ function EmergencyIcon() {
 
 function PhoneIcon() {
     return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-5 w-5"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M5 4h3l2 5-2 2a16 16 0 0 0 5 5l2-2 5 2v3a2 2 0 0 1-2 2C10 21 3 14 3 6a2 2 0 0 1 2-2Z" />
         </svg>
     );
@@ -1336,16 +1033,7 @@ function PhoneIcon() {
 
 function ChevronRightIcon() {
     return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-5 w-5"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m9 18 6-6-6-6" />
         </svg>
     );
@@ -1353,15 +1041,7 @@ function ChevronRightIcon() {
 
 function CloseIcon() {
     return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-5 w-5"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            aria-hidden="true"
-        >
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M6 6l12 12" />
             <path d="M18 6 6 18" />
         </svg>

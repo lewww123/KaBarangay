@@ -38,13 +38,23 @@ export default function Dashboard() {
                 </div>
 
                 {/* STATISTICS */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
 
                     <StatCard
                         title="Residents"
                         value="8"
                         subtitle="Registered"
                         href="/admin/residents"
+                        openMenu={openMenu}
+                        setOpenMenu={setOpenMenu}
+                    />
+
+                    {/* ANNOUNCEMENT APPROVALS STAT CARD */}
+                    <StatCard
+                        title="Announcements"
+                        value="2"
+                        subtitle="Pending approval"
+                        href="/admin/announcements/approvals"
                         openMenu={openMenu}
                         setOpenMenu={setOpenMenu}
                     />
@@ -116,6 +126,14 @@ export default function Dashboard() {
 
                         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
 
+                            {/* ANNOUNCEMENT MODULE ROW */}
+                            <SectorRow
+                                icon="📢"
+                                title="Announcement Approvals"
+                                description="Pending & reviewed announcements"
+                                href="/admin/announcements/approvals"
+                            />
+
                             <SectorRow
                                 icon="▣"
                                 title="Barangay Certificates"
@@ -174,6 +192,14 @@ export default function Dashboard() {
                         </div>
 
                         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+
+                            <Notification
+                                icon="📢"
+                                title="New announcement pending approval"
+                                description="Announcement Approvals"
+                                time="Today"
+                                href="/admin/announcements/approvals"
+                            />
 
                             <Notification
                                 icon="!"
@@ -238,7 +264,14 @@ export default function Dashboard() {
 
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+                        <ActivityCard
+                            title="Pending Approvals"
+                            value="2"
+                            subtitle="Announcements awaiting review"
+                            href="/admin/announcements/approvals"
+                        />
 
                         <ActivityCard
                             title="Open Cases"

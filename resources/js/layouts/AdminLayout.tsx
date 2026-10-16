@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 type AdminPage =
     | 'overview'
+    | 'announcements'
     | 'residents'
     | 'qr-scanner'
     | 'sectors'
@@ -70,6 +71,14 @@ export default function AdminLayout({
                             icon="⌂"
                             label="Overview"
                             active={active === 'overview'}
+                        />
+
+                        {/* ANNOUNCEMENT APPROVALS TAB */}
+                        <SidebarLink
+                            href="/admin/announcements/approvals"
+                            icon="📢"
+                            label="Announcements"
+                            active={active === 'announcements'}
                         />
 
                         <SidebarLink

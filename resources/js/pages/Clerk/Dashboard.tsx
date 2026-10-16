@@ -22,10 +22,19 @@ const CERTIFICATE_FEES: Record<string, string> = {
     'Sari-sari Store': '100',
 };
 
+// TODO: Pwede mo na itong burahin kapag kinuha niyo na ang data mula sa Laravel backend (database)
+// PALITAN ANG LUMANG SIGNATORIES NITO:
 const SIGNATORIES = [
     { name: 'HON. JENNIFER CALINGAO TRINIDAD', title: 'Punong Barangay' },
-    { name: 'HON. MARIA CLARA', title: 'Barangay Kagawad' },
-    { name: 'PEDRO PENDUKO', title: 'Barangay Secretary' },
+    { name: 'HON. FLORIDA VIGONTE-DANGAN', title: 'Barangay Kagawad' },
+    { name: 'HON. EDITA TACAL-CENA', title: 'Barangay Kagawad' },
+    { name: 'HON. WILMA IGNACIO-PORTO', title: 'Barangay Kagawad' },
+    { name: 'HON. ARNOLD ECOBEZA IGNACIO', title: 'Barangay Kagawad' },
+    { name: 'HON. FE HERRERA-ACOMPAÑADO', title: 'Barangay Kagawad' },
+    { name: 'HON. MARIVIC BALBUTIN-ABADIANO', title: 'Barangay Kagawad' },
+    { name: 'HON. DIVINA TABANG GALIVO', title: 'Barangay Kagawad' },
+    { name: 'MARICEL A. LUCERO ', title: 'Barangay Secretary' }, 
+
 ];
 
 export default function Dashboard({ auth }: { auth: { user: User } }) {
@@ -305,7 +314,7 @@ export default function Dashboard({ auth }: { auth: { user: User } }) {
                                                         </div>
                                                         <div>
                                                             <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Resident Name</label>
-                                                            <input type="text" value={data.resident_name} onChange={e => setData('resident_name', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                            <input type="text" value={data.resident_name} onChange={e => setData('resident_name', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm uppercase" />
                                                         </div>
                                                     </div>
 
@@ -325,16 +334,16 @@ export default function Dashboard({ auth }: { auth: { user: User } }) {
                                                             {data.certificate_type === 'Tricycle' && (
                                                                 <div>
                                                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Franchise No.</label>
-                                                                    <input type="text" value={data.franchise_no} onChange={e => setData('franchise_no', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <input type="text" value={data.franchise_no} onChange={e => setData('franchise_no', e.target.value.toUpperCase())} required className="w-full px-3 py-2 border rounded-md text-sm uppercase" />
                                                                 </div>
                                                             )}
                                                             <div>
                                                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Business Name</label>
-                                                                <input type="text" value={data.business_name} onChange={e => setData('business_name', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                <input type="text" value={data.business_name} onChange={e => setData('business_name', e.target.value.toUpperCase())} required className="w-full px-3 py-2 border rounded-md text-sm uppercase" />
                                                             </div>
                                                             <div>
                                                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Business Address</label>
-                                                                <input type="text" value={data.business_address} onChange={e => setData('business_address', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                <input type="text" value={data.business_address} onChange={e => setData('business_address', e.target.value.toUpperCase())} required className="w-full px-3 py-2 border rounded-md text-sm uppercase" />
                                                             </div>
                                                         </div>
                                                     )}
@@ -346,7 +355,25 @@ export default function Dashboard({ auth }: { auth: { user: User } }) {
                                                         </div>
                                                         <div>
                                                             <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Purpose</label>
-                                                            <input type="text" value={data.purpose} onChange={e => setData('purpose', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                            {/* BAGONG PURPOSE FIELD WITH DATALIST AT ALL CAPS */}
+                                                            <input 
+                                                                list="common-purposes"
+                                                                type="text" 
+                                                                value={data.purpose} 
+                                                                onChange={e => setData('purpose', e.target.value.toUpperCase())} 
+                                                                required 
+                                                                placeholder="Select or type purpose"
+                                                                className="w-full px-3 py-2 border rounded-md text-sm uppercase" 
+                                                            />
+                                                            <datalist id="common-purposes">
+                                                                <option value="EMPLOYMENT" />
+                                                                <option value="SCHOLARSHIP" />
+                                                                <option value="FINANCIAL ASSISTANCE" />
+                                                                <option value="MEDICAL ASSISTANCE" />
+                                                                <option value="BANK REQUIREMENTS" />
+                                                                <option value="SCHOOL ENROLLMENT" />
+                                                                <option value="BURIAL ASSISTANCE" />
+                                                            </datalist>
                                                         </div>
                                                     </div>
 
