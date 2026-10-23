@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\CertificateTemplates;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +42,14 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'info' => fn () => $request->session()->get('info'),
+            ],
+            // Certificate types and whether an approved template is available.
+            // Drives the "Coming Soon" state in the clerk certificate form.
+            'certificateTypes' => fn () => CertificateTemplates::options(),
         ];
     }
 }

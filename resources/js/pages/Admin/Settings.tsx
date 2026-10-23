@@ -2,12 +2,14 @@ import { Head } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 
-export default function Settings() {
-    const [barangayName, setBarangayName] = useState('Barangay San Jose');
-    const [barangayCode, setBarangayCode] = useState('SJ');
-    const [municipality, setMunicipality] = useState(
-        'Puerto Princesa City',
-    );
+type Props = {
+    barangay?: {
+        name?: string | null;
+    };
+};
+
+export default function Settings({ barangay }: Props) {
+    const barangayName = barangay?.name ?? null;
 
     const [adminName, setAdminName] = useState(
         'San Jose Administrator',
@@ -27,16 +29,6 @@ export default function Settings() {
 
     const [profileMessage, setProfileMessage] = useState('');
     const [passwordMessage, setPasswordMessage] = useState('');
-
-    const handleBarangaySave = (event: FormEvent) => {
-        event.preventDefault();
-
-        setProfileMessage('Barangay settings saved.');
-
-        window.setTimeout(() => {
-            setProfileMessage('');
-        }, 3000);
-    };
 
     const handleAccountSave = (event: FormEvent) => {
         event.preventDefault();
@@ -115,64 +107,28 @@ export default function Settings() {
                         </p>
                     </div>
 
-                    <form
-                        onSubmit={handleBarangaySave}
-                        className="rounded-lg border border-gray-200 bg-white"
-                    >
+                    <div className="rounded-lg border border-gray-200 bg-white">
                         <div className="grid grid-cols-1 gap-5 p-5 md:grid-cols-2">
-                            <FormField label="Barangay Name">
-                                <input
-                                    type="text"
-                                    value={barangayName}
-                                    onChange={(event) =>
-                                        setBarangayName(event.target.value)
-                                    }
-                                    className="form-control"
-                                    required
-                                />
-                            </FormField>
+                            <div>
+                                <p className="mb-1.5 text-xs font-medium text-gray-700">
+                                    Barangay Name
+                                </p>
 
-                            <FormField label="Barangay Code">
-                                <input
-                                    type="text"
-                                    value={barangayCode}
-                                    onChange={(event) =>
-                                        setBarangayCode(
-                                            event.target.value.toUpperCase(),
-                                        )
-                                    }
-                                    maxLength={10}
-                                    className="form-control"
-                                    required
-                                />
-                            </FormField>
-
-                            <div className="md:col-span-2">
-                                <FormField label="City / Municipality">
-                                    <input
-                                        type="text"
-                                        value={municipality}
-                                        onChange={(event) =>
-                                            setMunicipality(
-                                                event.target.value,
-                                            )
-                                        }
-                                        className="form-control"
-                                        required
-                                    />
-                                </FormField>
+                                <div className="flex min-h-[42px] items-center rounded-md border border-gray-200 bg-[#fafaf7] px-3">
+                                    <span className="text-sm text-gray-800">
+                                        {barangayName ?? 'Not available'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="flex justify-end border-t border-gray-100 px-5 py-4">
-                            <button
-                                type="submit"
-                                className="rounded-md bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#315b30]"
-                            >
-                                Save Barangay Settings
-                            </button>
+                        <div className="border-t border-gray-100 px-5 py-3">
+                            <p className="text-[11px] leading-5 text-gray-400">
+                                Barangay information is managed by the system
+                                and cannot be edited here.
+                            </p>
                         </div>
-                    </form>
+                    </div>
                 </section>
 
                 {/* ADMIN ACCOUNT */}
@@ -391,6 +347,41 @@ export default function Settings() {
                         />
                     </div>
                 </section>
+
+                {/* DATA EXPORT */}
+                <section className="mt-6">
+                    <div className="mb-4">
+                        <h2 className="text-base font-semibold text-gray-800">
+                            Data Export
+                        </h2>
+
+                        <p className="mt-1 text-xs text-gray-500">
+                            Download a CSV copy of your barangay records
+                        </p>
+                    </div>
+
+                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                        <ExportRow
+                            title="Residents List"
+                            description="Registered residents of this barangay as a CSV file."
+                            href="/admin/settings/export/residents"
+                        />
+
+                        <ExportRow
+                            title="Staff List"
+                            description="Staff accounts of this barangay as a CSV file."
+                            href="/admin/settings/export/staff"
+                        />
+
+                        <ExportRow
+                            title="Barangay Data Export (JSON)"
+                            description="Barangay-scoped data export as a JSON file. Not a restore-verified backup; credentials and uploaded document files are excluded."
+                            href="/admin/settings/export/backup"
+                            actionLabel="Download Data"
+                            last
+                        />
+                    </div>
+                </section>
             </AdminLayout>
         </>
     );
@@ -414,6 +405,47 @@ function FormField({
             </label>
 
             {children}
+        </div>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Export Row                                                                 */
+/* -------------------------------------------------------------------------- */
+
+function ExportRow({
+    title,
+    description,
+    href,
+    actionLabel = 'Export CSV',
+    last = false,
+}: {
+    title: string;
+    description: string;
+    href: string;
+    actionLabel?: string;
+    last?: boolean;
+}) {
+    return (
+        <div
+            className={`flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
+                !last ? 'border-b border-gray-100' : ''
+            }`}
+        >
+            <div>
+                <p className="text-sm font-medium text-gray-800">{title}</p>
+
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-gray-500">
+                    {description}
+                </p>
+            </div>
+
+            <a
+                href={href}
+                className="shrink-0 rounded-md border border-[#3f6f3d] px-4 py-2 text-sm font-medium text-[#3f6f3d] transition hover:bg-[#edf4ea]"
+            >
+                {actionLabel}
+            </a>
         </div>
     );
 }

@@ -1,19 +1,9 @@
 import { Head } from '@inertiajs/react';
 
-interface Resident {
-    name: string | null;
-    residentId: string | null;
-    barangay: string | null;
-    city: string | null;
-    province: string | null;
-    classification: string | null;
-    status: string | null;
-}
-
 interface Verification {
     valid: boolean;
     message: string;
-    resident: Resident | null;
+    barangay: string | null;
 }
 
 interface Props {
@@ -23,8 +13,6 @@ interface Props {
 export default function VerifyResident({
     verification,
 }: Props) {
-    const resident = verification.resident;
-
     return (
         <>
             <Head title="Resident Verification" />
@@ -54,7 +42,7 @@ export default function VerifyResident({
                         <div className="px-6 py-7">
 
                             {/* Valid QR */}
-                            {verification.valid && resident ? (
+                            {verification.valid ? (
                                 <>
                                     <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-center">
                                         <p className="text-sm font-medium text-green-800">
@@ -67,81 +55,23 @@ export default function VerifyResident({
                                         </p>
                                     </div>
 
-                                    {/* Resident Information */}
-                                    <div className="space-y-4">
-
-                                        {/* Name */}
-                                        <div>
-                                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                                Resident Name
-                                            </p>
-
-                                            <p className="mt-1 text-lg font-semibold text-gray-900">
-                                                {resident.name || 'Not available'}
-                                            </p>
-                                        </div>
-
-                                        {/* Resident ID */}
-                                        <div className="border-t border-gray-100 pt-4">
-                                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                                Resident ID
-                                            </p>
-
-                                            <p className="mt-1 font-semibold text-gray-900">
-                                                {resident.residentId || 'Not available'}
-                                            </p>
-                                        </div>
-
-                                        {/* Classification */}
-                                        <div className="border-t border-gray-100 pt-4">
-                                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                                Classification
-                                            </p>
-
-                                            <div className="mt-2 inline-flex rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
-                                                {resident.classification ||
-                                                    'Regular Resident'}
-                                            </div>
-                                        </div>
-
-                                        {/* Barangay */}
-                                        <div className="border-t border-gray-100 pt-4">
+                                    {verification.barangay && (
+                                        <div className="border-t border-gray-100 pt-4 text-center">
                                             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                                                 Barangay
                                             </p>
 
                                             <p className="mt-1 font-semibold text-gray-900">
-                                                {resident.barangay || 'Not available'}
+                                                {verification.barangay}
                                             </p>
                                         </div>
+                                    )}
 
-                                        {/* Location */}
-                                        <div className="border-t border-gray-100 pt-4">
-                                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                                Location
-                                            </p>
-
-                                            <p className="mt-1 text-sm text-gray-700">
-                                                {resident.city || 'Not available'}
-                                                {resident.province
-                                                    ? `, ${resident.province}`
-                                                    : ''}
-                                            </p>
-                                        </div>
-
-                                        {/* Status */}
-                                        <div className="border-t border-gray-100 pt-4">
-                                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                                Status
-                                            </p>
-
-                                            <div className="mt-2 inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
-                                                <span className="mr-2 h-2 w-2 rounded-full bg-green-500" />
-                                                {resident.status?.toUpperCase() ||
-                                                    'ACTIVE'}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <p className="mt-6 text-center text-xs leading-5 text-gray-500">
+                                        For privacy, personal details are not
+                                        displayed on this public verification
+                                        page.
+                                    </p>
                                 </>
                             ) : (
                                 /* Invalid QR */

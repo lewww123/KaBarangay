@@ -9,6 +9,7 @@ type ResidentPage =
     | 'announcements'
     | 'disbursement'
     | 'charter'
+    | 'chatbot'
     | 'profile'
     | 'settings'
     | 'about';
@@ -421,6 +422,14 @@ function ResidentNavigation({
                         icon={<CharterIcon />}
                         label="Citizen's Charter"
                         active={active === 'charter'}
+                        onClick={onNavigate}
+                    />
+
+                    <ResidentLink
+                        href="/resident/chatbot"
+                        icon={<ChatSmallIcon />}
+                        label="Assistant Guide"
+                        active={active === 'chatbot'}
                         onClick={onNavigate}
                     />
 

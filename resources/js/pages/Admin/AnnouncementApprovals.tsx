@@ -21,6 +21,7 @@ interface AnnouncementItem {
     target_audience: string;
     approval_status: 'pending' | 'approved' | 'rejected';
     is_published: boolean;
+    revision_token: string;
     rejection_reason?: string | null;
     event_start_at?: string | null;
     location?: string | null;
@@ -47,14 +48,23 @@ interface Props {
 
 type TabType = 'pending' | 'approved' | 'rejected' | 'all';
 
+type ApprovalForm = {
+    rejection_reason: string;
+    revision_token: string;
+    approval?: string;
+};
+
 export default function AnnouncementApprovals({ announcements = [] }: Props) {
     const [activeTab, setActiveTab] = useState<TabType>('pending');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementItem | null>(null);
     const [rejectingAnnouncement, setRejectingAnnouncement] = useState<AnnouncementItem | null>(null);
+    const [approvingId, setApprovingId] = useState<number | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<ApprovalForm>({
         rejection_reason: '',
+        revision_token: '',
     });
 
     const pendingCount = announcements.filter((a) => a.approval_status === 'pending').length;
@@ -71,17 +81,59 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
         return matchesTab && matchesSearch;
     });
 
-    const handleApprove = (id: number) => {
-        if (confirm('Are you sure you want to approve and publish this announcement?')) {
-            router.post(`/admin/announcements/${id}/approve`);
+    const handleApprove = (announcement: AnnouncementItem) => {
+        if (processing || approvingId !== null) {
+            return;
         }
+
+        if (!confirm('Are you sure you want to approve and publish this announcement?')) {
+            return;
+        }
+
+        setActionError(null);
+        setApprovingId(announcement.id);
+
+        router.post(
+            `/admin/announcements/${announcement.id}/approve`,
+            { revision_token: announcement.revision_token },
+            {
+                preserveScroll: true,
+                onError: (formErrors) => {
+                    setActionError(
+                        typeof formErrors.approval === 'string'
+                            ? formErrors.approval
+                            : typeof formErrors.revision_token === 'string'
+                              ? formErrors.revision_token
+                              : 'Unable to approve this announcement. Please refresh and try again.',
+                    );
+                },
+                onFinish: () => setApprovingId(null),
+            },
+        );
+    };
+
+    const openRejectModal = (announcement: AnnouncementItem) => {
+        clearErrors();
+        setActionError(null);
+        setData({
+            rejection_reason: '',
+            revision_token: announcement.revision_token,
+        });
+        setRejectingAnnouncement(announcement);
+    };
+
+    const closeRejectModal = () => {
+        setRejectingAnnouncement(null);
+        clearErrors();
+        reset();
     };
 
     const handleRejectSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!rejectingAnnouncement) return;
+        if (!rejectingAnnouncement || processing || approvingId !== null) return;
 
         post(`/admin/announcements/${rejectingAnnouncement.id}/reject`, {
+            preserveScroll: true,
             onSuccess: () => {
                 setRejectingAnnouncement(null);
                 reset();
@@ -119,6 +171,22 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
                         </span>
                     </div>
                 </div>
+
+                {actionError && (
+                    <div
+                        role="alert"
+                        className="fixed top-4 right-4 z-50 flex max-w-md items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-lg"
+                    >
+                        <p>{actionError}</p>
+                        <button
+                            type="button"
+                            onClick={() => setActionError(null)}
+                            className="rounded-md px-2 py-0.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                )}
 
                 {/* TABS NAVIGATION */}
                 <div className="border-b border-gray-200 bg-white px-4 pt-3 rounded-xl shadow-sm">
@@ -283,17 +351,21 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
                                             <>
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleApprove(item.id)}
-                                                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-xs font-semibold text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                                    onClick={() => handleApprove(item)}
+                                                    disabled={processing || approvingId !== null}
+                                                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-xs font-semibold text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     <CheckIcon />
-                                                    Approve & Publish
+                                                    {approvingId === item.id
+                                                        ? 'Approving...'
+                                                        : 'Approve & Publish'}
                                                 </button>
 
                                                 <button
                                                     type="button"
-                                                    onClick={() => setRejectingAnnouncement(item)}
-                                                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-red-300 bg-white px-4 text-xs font-semibold text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                                                    onClick={() => openRejectModal(item)}
+                                                    disabled={processing || approvingId !== null}
+                                                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-red-300 bg-white px-4 text-xs font-semibold text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     <XIcon />
                                                     Reject
@@ -347,21 +419,27 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
                                 )}
                             </div>
 
+                            {(errors.approval || errors.revision_token) && (
+                                <div
+                                    role="alert"
+                                    className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800"
+                                >
+                                    {errors.approval || errors.revision_token}
+                                </div>
+                            )}
+
                             <div className="flex justify-end gap-2 pt-2">
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setRejectingAnnouncement(null);
-                                        reset();
-                                    }}
+                                    onClick={closeRejectModal}
                                     className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={processing}
-                                    className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                                    disabled={processing || approvingId !== null}
+                                    className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {processing ? 'Rejecting...' : 'Confirm Rejection'}
                                 </button>

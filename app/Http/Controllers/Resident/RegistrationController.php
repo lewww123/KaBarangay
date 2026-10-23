@@ -9,6 +9,7 @@ use App\Models\Purok;
 use App\Models\RegistrationDocument;
 use App\Models\ResidentRegistration;
 use App\Models\Sector;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -280,6 +281,27 @@ class RegistrationController extends Controller
                         'We could not complete your registration. Please try again.',
                 ]);
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Audit: registration submitted
+        |--------------------------------------------------------------------------
+        |
+        | Public registration has no staff/User identity, so actor_id stays null.
+        | The barangay is taken from the persisted registration record, never
+        | from client input, and no personal data is recorded.
+        |
+        */
+
+        AuditLogger::record(
+            'resident_registration.submitted',
+            $registration->barangay_id,
+            null,
+            'resident_registration',
+            $registration->id,
+            [],
+            $request->ip(),
+        );
 
         return redirect()
             ->route(

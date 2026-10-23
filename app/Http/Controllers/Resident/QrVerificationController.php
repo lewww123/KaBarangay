@@ -19,7 +19,6 @@ class QrVerificationController extends Controller
             ->whereNull('revoked_at')
             ->with([
                 'resident.barangay',
-                'resident.sectors',
             ])
             ->first();
 
@@ -51,7 +50,7 @@ class QrVerificationController extends Controller
                         'message' =>
                             'This QR code is invalid or no longer active.',
 
-                        'resident' => null,
+                        'barangay' => null,
                     ],
                 ]
             );
@@ -61,20 +60,16 @@ class QrVerificationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Resident Classification
-        |--------------------------------------------------------------------------
-        */
-
-        $classification = $resident->sectors->isEmpty()
-            ? 'Regular Resident'
-            : $resident->sectors
-                ->pluck('name')
-                ->implode(' • ');
-
-        /*
-        |--------------------------------------------------------------------------
         | Valid QR
         |--------------------------------------------------------------------------
+        |
+        | This page is public and is opened by anyone who scans a resident's QR
+        | code, so it deliberately exposes only the minimum needed to confirm
+        | that the credential belongs to an active resident: the validity flag,
+        | a human-readable message, and the issuing barangay. Resident-identifying
+        | fields (name, resident number), sector classification, home location
+        | and record status are intentionally not returned here.
+        |
         */
 
         return Inertia::render(
@@ -86,28 +81,8 @@ class QrVerificationController extends Controller
                     'message' =>
                         'Resident verified successfully.',
 
-                    'resident' => [
-                        'name' =>
-                            $resident->full_name,
-
-                        'residentId' =>
-                            $resident->resident_number,
-
-                        'barangay' =>
-                            $resident->barangay?->name,
-
-                        'city' =>
-                            $resident->barangay?->city_municipality,
-
-                        'province' =>
-                            $resident->barangay?->province,
-
-                        'classification' =>
-                            $classification,
-
-                        'status' =>
-                            $resident->status,
-                    ],
+                    'barangay' =>
+                        $resident->barangay?->name,
                 ],
             ]
         );

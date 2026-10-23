@@ -2,94 +2,32 @@ import { Head } from '@inertiajs/react';
 import AdminLayout from '@/layouts/AdminLayout';
 
 type PurokRecord = {
+    id: number;
     name: string;
     total: number;
     seniors: number;
     pwd: number;
 };
 
-const totalResidents = 8;
-const seniorCitizens = 2;
-const pwdMembers = 4;
-const estimatedFamilies = 5;
-const luponCases = 5;
+type PopulationStats = {
+    totalResidents: number;
+    seniorCitizens: number;
+    pwdMembers: number;
+    seniorAndPwd: number;
+    regularResidents: number;
+    inactiveResidents: number;
+    pendingRegistrations: number;
+    rejectedRegistrations: number;
+};
 
-const puroks: PurokRecord[] = [
-    {
-        name: 'Bagong Pag-asa',
-        total: 0,
-        seniors: 0,
-        pwd: 0,
-    },
-    {
-        name: 'Masunurin',
-        total: 1,
-        seniors: 0,
-        pwd: 1,
-    },
-    {
-        name: 'Maligaya',
-        total: 1,
-        seniors: 1,
-        pwd: 1,
-    },
-    {
-        name: 'Matapat',
-        total: 0,
-        seniors: 0,
-        pwd: 0,
-    },
-    {
-        name: 'Matiyaga',
-        total: 0,
-        seniors: 0,
-        pwd: 0,
-    },
-    {
-        name: 'Pagkakaisa',
-        total: 1,
-        seniors: 0,
-        pwd: 0,
-    },
-    {
-        name: 'Masigla',
-        total: 0,
-        seniors: 0,
-        pwd: 0,
-    },
-    {
-        name: 'Masikap I',
-        total: 3,
-        seniors: 1,
-        pwd: 1,
-    },
-    {
-        name: 'Masikap II',
-        total: 0,
-        seniors: 0,
-        pwd: 0,
-    },
-    {
-        name: 'Mapagmahal',
-        total: 2,
-        seniors: 0,
-        pwd: 1,
-    },
-    {
-        name: 'Masayahin',
-        total: 0,
-        seniors: 0,
-        pwd: 0,
-    },
-    {
-        name: 'Masagana',
-        total: 0,
-        seniors: 0,
-        pwd: 0,
-    },
-];
+type Props = {
+    stats: PopulationStats;
+    puroks: PurokRecord[];
+};
 
-export default function Population() {
+export default function Population({ stats, puroks }: Props) {
+    const hasPopulation = stats.totalResidents > 0;
+
     return (
         <>
             <Head title="Population Monitoring" />
@@ -110,32 +48,31 @@ export default function Population() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <SummaryCard
                         title="Total Residents"
-                        value={totalResidents}
+                        value={stats.totalResidents}
                         type="residents"
                     />
 
                     <SummaryCard
                         title="Senior Citizens"
-                        value={seniorCitizens}
+                        value={stats.seniorCitizens}
                         type="senior"
                     />
 
                     <SummaryCard
                         title="PWD Members"
-                        value={pwdMembers}
+                        value={stats.pwdMembers}
                         type="pwd"
                     />
 
                     <SummaryCard
-                        title="Est. Families"
-                        value={estimatedFamilies}
-                        type="families"
+                        title="Regular Residents"
+                        value={stats.regularResidents}
+                        type="regular"
                     />
                 </div>
 
                 {/* MAIN GRID */}
                 <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-
                     {/* PUROK BREAKDOWN */}
                     <section>
                         <h2 className="mb-3 text-lg font-semibold text-[#315b30]">
@@ -158,17 +95,17 @@ export default function Population() {
                                     <tbody>
                                         {puroks.map((purok) => {
                                             const percentage =
-                                                totalResidents > 0
+                                                stats.totalResidents > 0
                                                     ? Math.round(
                                                           (purok.total /
-                                                              totalResidents) *
+                                                              stats.totalResidents) *
                                                               100,
                                                       )
                                                     : 0;
 
                                             return (
                                                 <tr
-                                                    key={purok.name}
+                                                    key={purok.id}
                                                     className="border-b border-[#eee9e2] last:border-0"
                                                 >
                                                     <td className="px-4 py-4 text-sm font-semibold text-gray-800">
@@ -209,6 +146,13 @@ export default function Population() {
                                     </tbody>
                                 </table>
                             </div>
+
+                            {puroks.length === 0 && (
+                                <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                    No puroks have been defined for this
+                                    barangay yet.
+                                </p>
+                            )}
                         </div>
                     </section>
 
@@ -220,37 +164,77 @@ export default function Population() {
 
                         <div className="rounded-xl border border-[#d9d0c3] bg-white p-4">
                             <DistributionRow
-                                label="General Residents"
-                                value={totalResidents}
-                                max={totalResidents}
+                                label="Total Residents"
+                                value={stats.totalResidents}
+                                max={stats.totalResidents}
                                 type="general"
                             />
 
                             <DistributionRow
+                                label="Regular Residents (no sector)"
+                                value={stats.regularResidents}
+                                max={stats.totalResidents}
+                                type="regular"
+                            />
+
+                            <DistributionRow
                                 label="Senior Citizens"
-                                value={seniorCitizens}
-                                max={totalResidents}
+                                value={stats.seniorCitizens}
+                                max={stats.totalResidents}
                                 type="senior"
                             />
 
                             <DistributionRow
                                 label="PWD Members"
-                                value={pwdMembers}
-                                max={totalResidents}
+                                value={stats.pwdMembers}
+                                max={stats.totalResidents}
                                 type="pwd"
-                            />
-
-                            <DistributionRow
-                                label="Lupon Cases"
-                                value={luponCases}
-                                max={totalResidents}
-                                type="lupon"
                                 last
                             />
+
+                            <p className="mt-3 text-xs text-gray-400">
+                                Senior and PWD membership can overlap
+                                ({stats.seniorAndPwd} resident
+                                {stats.seniorAndPwd === 1 ? '' : 's'} in both),
+                                so category counts are not mutually exclusive.
+                            </p>
+                        </div>
+
+                        {/* EXCLUDED FROM POPULATION */}
+                        <div className="mt-4 rounded-xl border border-[#d9d0c3] bg-[#fafaf7] p-4">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-[#a7846b]">
+                                Not Counted as Population
+                            </h3>
+
+                            <p className="mt-1 text-xs text-gray-400">
+                                Only active permanent residents are included in
+                                the totals above.
+                            </p>
+
+                            <dl className="mt-3 space-y-2">
+                                <ExcludedRow
+                                    label="Inactive residents"
+                                    value={stats.inactiveResidents}
+                                />
+                                <ExcludedRow
+                                    label="Pending applications"
+                                    value={stats.pendingRegistrations}
+                                />
+                                <ExcludedRow
+                                    label="Rejected applications"
+                                    value={stats.rejectedRegistrations}
+                                />
+                            </dl>
                         </div>
                     </section>
-
                 </div>
+
+                {!hasPopulation && (
+                    <p className="mt-5 rounded-xl border border-[#d9d0c3] bg-white px-5 py-4 text-sm text-gray-400">
+                        No active permanent residents have been recorded for
+                        this barangay yet.
+                    </p>
+                )}
             </AdminLayout>
         </>
     );
@@ -267,17 +251,13 @@ function SummaryCard({
 }: {
     title: string;
     value: number;
-    type: 'residents' | 'senior' | 'pwd' | 'families';
+    type: 'residents' | 'senior' | 'pwd' | 'regular';
 }) {
     const styles = {
-        residents:
-            'border-[#3db85a] bg-[#dff0e2] text-[#315b30]',
-        senior:
-            'border-[#579fea] bg-[#dcecff] text-[#0d4d91]',
-        pwd:
-            'border-[#e4ad25] bg-[#fff2c9] text-[#8a6500]',
-        families:
-            'border-[#b8a38d] bg-[#eee6dc] text-[#765236]',
+        residents: 'border-[#3db85a] bg-[#dff0e2] text-[#315b30]',
+        senior: 'border-[#579fea] bg-[#dcecff] text-[#0d4d91]',
+        pwd: 'border-[#e4ad25] bg-[#fff2c9] text-[#8a6500]',
+        regular: 'border-[#b8a38d] bg-[#eee6dc] text-[#765236]',
     };
 
     return (
@@ -286,9 +266,7 @@ function SummaryCard({
                 {title}
             </p>
 
-            <p className="mt-2 text-2xl font-semibold">
-                {value}
-            </p>
+            <p className="mt-2 text-2xl font-semibold">{value}</p>
         </div>
     );
 }
@@ -297,11 +275,7 @@ function SummaryCard({
 /* Table Head                                                                 */
 /* -------------------------------------------------------------------------- */
 
-function TableHead({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+function TableHead({ children }: { children: React.ReactNode }) {
     return (
         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#a7846b]">
             {children}
@@ -310,7 +284,7 @@ function TableHead({
 }
 
 /* -------------------------------------------------------------------------- */
-/* Distribution Row                                                          */
+/* Distribution Row                                                           */
 /* -------------------------------------------------------------------------- */
 
 function DistributionRow({
@@ -323,42 +297,33 @@ function DistributionRow({
     label: string;
     value: number;
     max: number;
-    type: 'general' | 'senior' | 'pwd' | 'lupon';
+    type: 'general' | 'regular' | 'senior' | 'pwd';
     last?: boolean;
 }) {
-    const percentage =
-        max > 0
-            ? Math.min((value / max) * 100, 100)
-            : 0;
+    const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0;
 
     const barStyles = {
         general: 'bg-[#3f6f3d]',
+        regular: 'bg-[#9b8065]',
         senior: 'bg-[#73bf61]',
-        pwd: 'bg-[#9b8065]',
-        lupon: 'bg-[#ed7614]',
+        pwd: 'bg-[#e4ad25]',
     };
 
     const valueStyles = {
         general: 'text-[#315b30]',
+        regular: 'text-[#8e755c]',
         senior: 'text-[#63aa53]',
-        pwd: 'text-[#8e755c]',
-        lupon: 'text-[#dd6b12]',
+        pwd: 'text-[#8a6500]',
     };
 
     return (
-        <div
-            className={`py-3 ${
-                !last ? 'border-b border-gray-100' : ''
-            }`}
-        >
+        <div className={`py-3 ${!last ? 'border-b border-gray-100' : ''}`}>
             <div className="mb-1.5 flex items-center justify-between gap-3">
                 <span className="text-xs font-medium text-gray-700">
                     {label}
                 </span>
 
-                <span
-                    className={`text-xs font-semibold ${valueStyles[type]}`}
-                >
+                <span className={`text-xs font-semibold ${valueStyles[type]}`}>
                     {value}
                 </span>
             </div>
@@ -366,11 +331,22 @@ function DistributionRow({
             <div className="h-2 overflow-hidden rounded-full bg-[#e8e1d7]">
                 <div
                     className={`h-full rounded-full ${barStyles[type]}`}
-                    style={{
-                        width: `${percentage}%`,
-                    }}
+                    style={{ width: `${percentage}%` }}
                 />
             </div>
+        </div>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Excluded Row                                                               */
+/* -------------------------------------------------------------------------- */
+
+function ExcludedRow({ label, value }: { label: string; value: number }) {
+    return (
+        <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs text-gray-600">{label}</dt>
+            <dd className="text-xs font-semibold text-gray-700">{value}</dd>
         </div>
     );
 }

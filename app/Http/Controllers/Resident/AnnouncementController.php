@@ -5,41 +5,68 @@ namespace App\Http\Controllers\Resident;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\Resident;
+use App\Support\AnnouncementType;
+use Illuminate\Database\Eloquent\Builder;
 use Inertia\Inertia;
 
 class AnnouncementController extends Controller
 {
     public function index()
     {
-        $residentId = session('resident_id');
-        $resident = Resident::with('sectors')->find($residentId);
+        $resident = $this->currentResident();
 
-        // Kunin ang sectors o status ng residente
-        $sectorSlugs = $resident ? $resident->sectors->pluck('slug')->toArray() : [];
-
-        // Kukunin LANG ang APPROVED at PUBLISHED announcements para sa barangay ng residente
-        $announcements = Announcement::with(['author:id,name', 'sector:id,name'])
-            ->where('approval_status', 'approved')
-            ->where('is_published', true)
-            ->where(function ($query) use ($sectorSlugs, $resident) {
-                // Always show 'All Residents' announcements
-                $query->where('target_audience', 'all');
-
-                // Kung Senior Citizen ang residente, ipakita rin ang para sa kanila
-                if (in_array('senior-citizen', $sectorSlugs) || ($resident && $resident->is_senior)) {
-                    $query->orWhere('target_audience', 'senior_citizens');
-                }
-
-                // Kung PWD ang residente, ipakita rin ang para sa kanila
-                if (in_array('pwd', $sectorSlugs) || ($resident && $resident->is_pwd)) {
-                    $query->orWhere('target_audience', 'pwd');
-                }
-            })
+        $announcements = $this->visibleAnnouncements($resident)
             ->latest()
-            ->get();
+            ->get()
+            ->map(fn (Announcement $announcement) => [
+                ...$announcement->toArray(),
+                'type' => AnnouncementType::for($announcement),
+            ]);
 
         return Inertia::render('Resident/Announcements', [
             'announcements' => $announcements,
         ]);
+    }
+
+    public function show(Announcement $announcement)
+    {
+        $resident = $this->currentResident();
+
+        $announcement = $this->visibleAnnouncements($resident)
+            ->whereKey($announcement->getKey())
+            ->firstOrFail();
+
+        return Inertia::render('Resident/AnnouncementDetails', [
+            'announcement' => [
+                ...$announcement->toArray(),
+                'type' => AnnouncementType::for($announcement),
+            ],
+        ]);
+    }
+
+    private function currentResident(): Resident
+    {
+        return Resident::with('sectors')->findOrFail(session('resident_id'));
+    }
+
+    private function visibleAnnouncements(Resident $resident): Builder
+    {
+        $sectorSlugs = $resident->sectors->pluck('slug')->toArray();
+
+        return Announcement::with(['author:id,name', 'sector:id,name'])
+            ->where('approval_status', 'approved')
+            ->where('is_published', true)
+            ->where('barangay_id', $resident->barangay_id)
+            ->where(function (Builder $query) use ($sectorSlugs) {
+                $query->where('target_audience', 'all');
+
+                if (in_array('senior', $sectorSlugs, true)) {
+                    $query->orWhere('target_audience', 'senior_citizens');
+                }
+
+                if (in_array('pwd', $sectorSlugs, true)) {
+                    $query->orWhere('target_audience', 'pwd');
+                }
+            });
     }
 }

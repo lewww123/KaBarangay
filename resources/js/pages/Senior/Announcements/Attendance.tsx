@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import SeniorLayout from '@/layouts/SeniorLayout';
 
@@ -37,6 +37,26 @@ export default function SeniorAttendanceSheet({ announcement, attendances = [], 
     const [qrInput, setQrInput] = useState('');
     const [scanMessage, setScanMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const [activeTab, setActiveTab] = useState<'claimed' | 'present'>('claimed');
+    // Advances only when a QR scan attempt finishes or the target tab changes,
+    // so the scan field is focused again without stealing it on other edits.
+    const [scanEvent, setScanEvent] = useState(0);
+    const qrInputRef = useRef<HTMLInputElement | null>(null);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scanner focus
+    |--------------------------------------------------------------------------
+    |
+    | A handheld 2D scanner types into whatever has focus, so the QR field
+    | has to hold the focus again after every scan attempt and whenever the
+    | target tab changes. The counter makes repeated identical results still
+    | restore the focus, and preventScroll keeps the page from jumping.
+    |
+    */
+
+    useEffect(() => {
+        qrInputRef.current?.focus({ preventScroll: true });
+    }, [scanEvent, activeTab]);
 
     const { data, setData, post, processing, reset } = useForm({
         resident_id: '',
@@ -56,30 +76,34 @@ export default function SeniorAttendanceSheet({ announcement, attendances = [], 
             cleanToken = parts[parts.length - 1];
         }
 
-        fetch(`/api/qr/verify-token?token=${cleanToken}`)
+        fetch(`/api/qr/verify-token?token=${encodeURIComponent(cleanToken)}&announcement_id=${announcement.id}`)
             .then(async (res) => {
                 const json = await res.json();
-                if (res.ok && json.resident) {
+                if (res.ok && json.resident && json.qr_proof) {
                     router.post(`/senior/announcements/${announcement.id}/attendance/mark`, {
                         resident_id: json.resident.id,
                         status: activeTab,
                         method: 'qr_scanner',
+                        qr_proof: json.qr_proof,
                     }, {
                         preserveScroll: true,
                         onSuccess: () => {
                             setScanMessage({ text: `Tagumpay! Na-record si ${json.resident.last_name}, ${json.resident.first_name} sa ${activeTab.toUpperCase()}.`, type: 'success' });
                             setQrInput('');
+                            setScanEvent((event) => event + 1);
                             router.reload({ only: ['attendances'] });
                         },
                     });
                 } else {
                     setScanMessage({ text: json.message || 'Mali o expired ang QR code token.', type: 'error' });
                     setQrInput('');
+                    setScanEvent((event) => event + 1);
                 }
             })
             .catch(() => {
                 setScanMessage({ text: 'Nabigong i-verify ang QR code. Subukang muli.', type: 'error' });
                 setQrInput('');
+                setScanEvent((event) => event + 1);
             });
     };
 
@@ -150,6 +174,7 @@ export default function SeniorAttendanceSheet({ announcement, attendances = [], 
                                 <div className="space-y-1.5">
                                     <label className="block text-xs font-bold text-gray-700">QR Token Input</label>
                                     <input
+                                        ref={qrInputRef}
                                         type="text"
                                         value={qrInput}
                                         onChange={(e) => setQrInput(e.target.value)}

@@ -7,6 +7,7 @@ type AdminPage =
     | 'residents'
     | 'qr-scanner'
     | 'sectors'
+    | 'certificates'
     | 'staff'
     | 'population'
     | 'audit-log'

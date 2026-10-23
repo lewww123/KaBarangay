@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureStaffRole;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResidentAuth;
 use Illuminate\Foundation\Application;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register custom middleware aliases.
         $middleware->alias([
             'resident.auth' => ResidentAuth::class,
+            'role' => EnsureStaffRole::class,
         ]);
 
         $middleware->web(append: [
@@ -32,8 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) =>
-                $request->is('api/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
     })
     ->create();

@@ -2,25 +2,58 @@
 
 namespace App\Http\Controllers\Senior;
 
+use App\Http\Controllers\Concerns\ManagesAnnouncementAttendance;
+use App\Http\Controllers\Concerns\RecordsAnnouncementApprovalActivity;
+use App\Http\Controllers\Concerns\ValidatesAnnouncementEventDetails;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\AnnouncementAttendance;
-use App\Models\Resident;
+use App\Support\AnnouncementType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class AnnouncementController extends Controller
 {
+    use ManagesAnnouncementAttendance;
+    use RecordsAnnouncementApprovalActivity;
+    use ValidatesAnnouncementEventDetails;
+
     public function index(Request $request)
     {
         $announcements = Announcement::where('target_audience', 'senior_citizens')
             ->where('barangay_id', $request->user()->barangay_id)
             ->with('author:id,name')
             ->latest()
-            ->get();
+            ->get()
+            ->map(fn (Announcement $announcement) => [
+                ...$announcement->toArray(),
+                'type' => AnnouncementType::for($announcement),
+            ]);
 
         return Inertia::render('Senior/Announcements/Index', [
             'announcements' => $announcements,
+            'user' => [
+                'name' => $request->user()->name,
+                'staff_id' => $request->user()->staff_id,
+            ],
+        ]);
+    }
+
+    public function show(Request $request, Announcement $announcement)
+    {
+        if ($announcement->target_audience !== 'senior_citizens' || $announcement->barangay_id !== $request->user()->barangay_id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $announcement->load('author:id,name');
+
+        return Inertia::render('Senior/Announcements/Show', [
+            'announcement' => [
+                ...$announcement->toArray(),
+                'type' => AnnouncementType::for($announcement),
+            ],
             'user' => [
                 'name' => $request->user()->name,
                 'staff_id' => $request->user()->staff_id,
@@ -35,18 +68,39 @@ class AnnouncementController extends Controller
             'content' => 'required|string',
             'category' => 'required|string',
             'requires_attendance' => 'boolean',
-            'event_start_at' => 'nullable|date',
-            'location' => 'nullable|string|max:255',
+            'event_start_at' => ['nullable', 'date', Rule::requiredIf($this->eventDetailsRequired($request))],
+            'location' => ['nullable', 'string', 'max:255', Rule::requiredIf($this->eventDetailsRequired($request))],
         ]);
 
-        Announcement::create([
-            ...$validated,
-            'barangay_id' => $request->user()->barangay_id,
-            'target_audience' => 'senior_citizens',
-            'created_by' => $request->user()->id,
-            'approval_status' => 'pending',
-            'is_published' => false,
-        ]);
+        $announcement = DB::transaction(function () use ($validated, $request) {
+            $announcement = Announcement::create([
+                ...$validated,
+                'barangay_id' => $request->user()->barangay_id,
+                'target_audience' => 'senior_citizens',
+                'created_by' => $request->user()->id,
+                'approval_status' => 'pending',
+                'is_published' => false,
+            ]);
+
+            $this->logAnnouncementApproval(
+                $announcement,
+                $request->user()->id,
+                'created',
+                null,
+                'pending',
+            );
+
+            return $announcement;
+        });
+
+        $this->recordAnnouncementAudit(
+            $announcement,
+            $request->user()->id,
+            'announcement.created',
+            null,
+            $announcement->approval_status,
+            $request->ip(),
+        );
 
         return redirect()->back()->with('success', 'Senior Citizen announcement submitted for admin approval.');
     }
@@ -62,14 +116,38 @@ class AnnouncementController extends Controller
             'content' => 'required|string',
             'category' => 'required|string',
             'requires_attendance' => 'boolean',
-            'event_start_at' => 'nullable|date',
-            'location' => 'nullable|string|max:255',
+            'event_start_at' => ['nullable', 'date', Rule::requiredIf($this->eventDetailsRequired($request))],
+            'location' => ['nullable', 'string', 'max:255', Rule::requiredIf($this->eventDetailsRequired($request))],
         ]);
 
-        $announcement->update([
-            ...$validated,
-            'approval_status' => 'pending',
-        ]);
+        $previousStatus = $announcement->approval_status;
+
+        DB::transaction(function () use ($announcement, $validated, $request, $previousStatus) {
+            // An edited or resubmitted announcement must not remain public until
+            // an administrator approves it again.
+            $announcement->update([
+                ...$validated,
+                'approval_status' => 'pending',
+                'is_published' => false,
+            ]);
+
+            $this->logAnnouncementApproval(
+                $announcement,
+                $request->user()->id,
+                'resubmitted',
+                $previousStatus,
+                'pending',
+            );
+        });
+
+        $this->recordAnnouncementAudit(
+            $announcement,
+            $request->user()->id,
+            'announcement.resubmitted',
+            $previousStatus,
+            $announcement->approval_status,
+            $request->ip(),
+        );
 
         return redirect()->back()->with('success', 'Announcement updated and resubmitted for approval.');
     }
@@ -80,7 +158,19 @@ class AnnouncementController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        $announcementId = $announcement->id;
+        $barangayId = $announcement->barangay_id;
+        $previousStatus = $announcement->approval_status;
+
         $announcement->delete();
+
+        $this->recordAnnouncementDeletionAudit(
+            $announcementId,
+            $barangayId,
+            $request->user()->id,
+            $previousStatus,
+            $request->ip(),
+        );
 
         return redirect()->back()->with('success', 'Announcement deleted successfully.');
     }
@@ -91,16 +181,16 @@ class AnnouncementController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        $this->ensureAttendanceIsOpen($announcement);
+
         $attendances = AnnouncementAttendance::with(['resident' => function ($query) {
-                $query->select('id', 'first_name', 'last_name', 'middle_name', 'suffix', 'resident_number');
-            }])
+            $query->select('id', 'first_name', 'last_name', 'middle_name', 'suffix', 'resident_number');
+        }])
             ->where('announcement_id', $announcement->id)
             ->latest()
             ->get();
 
-        $residents = Resident::where('barangay_id', $request->user()->barangay_id)
-            ->where('status', 'active')
-            ->orderBy('last_name')
+        $residents = $this->eligibleResidentsQuery($announcement, $request->user()->barangay_id)
             ->get(['id', 'first_name', 'last_name', 'middle_name', 'suffix', 'resident_number']);
 
         return Inertia::render('Senior/Announcements/Attendance', [
@@ -116,27 +206,33 @@ class AnnouncementController extends Controller
 
     public function markAttendance(Request $request, Announcement $announcement)
     {
+        if ($announcement->target_audience !== 'senior_citizens' || $announcement->barangay_id !== $request->user()->barangay_id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $this->ensureAttendanceIsOpen($announcement);
+
         $validated = $request->validate([
             'resident_id' => 'required|exists:residents,id',
             'status' => 'required|in:present,claimed,absent',
-            'method' => 'nullable|string',
+            'method' => ['nullable', 'string', Rule::in(self::ATTENDANCE_METHODS)],
+            'qr_proof' => ['nullable', 'string'],
         ]);
 
-        $resident = Resident::where('id', $validated['resident_id'])
-            ->where('barangay_id', $request->user()->barangay_id)
-            ->firstOrFail();
+        $resident = $this->findEligibleResident(
+            $announcement,
+            (int) $validated['resident_id'],
+            $request->user()->barangay_id,
+        );
 
-        // I-save ang record nang hiwalay para sa bawat status (Present at Claimed)
-        AnnouncementAttendance::updateOrCreate(
-            [
-                'announcement_id' => $announcement->id,
-                'resident_id' => $resident->id,
-                'status' => $validated['status'],
-            ],
-            [
-                'method' => $validated['method'] ?? 'manual',
-                'attended_at' => now(),
-            ]
+        $this->ensureQrProofIsValid($request, $announcement, $resident, $validated['method'] ?? null);
+
+        $this->recordAttendance(
+            $announcement,
+            $resident,
+            $validated['status'],
+            $validated['method'] ?? null,
+            $request->user()->id,
         );
 
         return redirect()->back();

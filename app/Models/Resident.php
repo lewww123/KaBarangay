@@ -69,6 +69,9 @@ class Resident extends Model
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * @return BelongsTo<Purok, $this>
+     */
     public function purok(): BelongsTo
     {
         return $this->belongsTo(Purok::class);

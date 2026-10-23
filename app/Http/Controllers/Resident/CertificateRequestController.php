@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\CertificateRequest;
 use App\Models\Resident;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -199,13 +200,13 @@ class CertificateRequestController extends Controller
                 ->exists()
         );
 
-        DB::transaction(function () use (
+        $certificateRequest = DB::transaction(function () use (
             $resident,
             $certificate,
             $validated,
             $reference
         ) {
-            CertificateRequest::create([
+            return CertificateRequest::create([
                 'barangay_id' => $resident->barangay_id,
                 'resident_id' => $resident->id,
                 'certificate_id' => $certificate->id,
@@ -225,6 +226,32 @@ class CertificateRequestController extends Controller
                 'submitted_at' => now(),
             ]);
         });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Audit: certificate request created
+        |--------------------------------------------------------------------------
+        |
+        | Resident submissions have no staff/User identity, so actor_id stays
+        | null. The barangay comes from the persisted resident record and the
+        | certificate was validated against that same barangay, so a request
+        | can never be logged against a foreign barangay. Only the system
+        | reference and workflow status are recorded.
+        |
+        */
+
+        AuditLogger::record(
+            'certificate_request.created',
+            $resident->barangay_id,
+            null,
+            'certificate_request',
+            $certificateRequest->id,
+            [
+                'entity_reference' => $reference,
+                'new_status' => $certificateRequest->status,
+            ],
+            $request->ip(),
+        );
 
         return redirect()
             ->route('resident.certificates')

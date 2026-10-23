@@ -38,7 +38,7 @@ return new class extends Migration
             $table->foreignId('resident_id')->constrained('residents')->cascadeOnDelete();
 
             $table->string('status', 30)->default('expected'); // expected, present, claimed, absent
-            $table->string('method', 20)->nullable(); // qr_scan, manual
+            $table->string('method', 20)->nullable(); // qr_scanner, manual
             $table->timestamp('attended_at')->nullable();
             $table->text('notes')->nullable();
             $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();

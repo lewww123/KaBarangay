@@ -2,6 +2,7 @@ import { Link, router } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
 type ClerkPage =
+    | 'overview'
     | 'certificates'
     | 'announcements'
     | 'disbursements';
@@ -62,11 +63,18 @@ export default function ClerkLayout({
                         Clerk Access
                     </p>
 
-                    {/* MAIN NAVIGATION (Certificates, Announcements, Disbursements) */}
+                    {/* MAIN NAVIGATION (Overview, Certificates, Announcements, Disbursements) */}
                     <nav className="grid grid-cols-3 gap-1 lg:block lg:space-y-1">
 
                         <SidebarLink
                             href="/clerk/dashboard"
+                            icon="🏠"
+                            label="Overview"
+                            active={active === 'overview'}
+                        />
+
+                        <SidebarLink
+                            href="/clerk/certificates"
                             icon="📜"
                             label="Certificates"
                             active={active === 'certificates'}

@@ -34,6 +34,18 @@ class CertificateSeeder extends Seeder
                 'requires_business_details' => false,
             ],
             [
+                'code' => 'delayed-psa-registration',
+                'name' => 'Delayed PSA Registration',
+                'fee' => 50,
+                'description' => 'Certification for residents who need to register their birth with PSA.',
+                'requirements' => [
+                    'Approved KaBarangay resident account',
+                    'Verified resident information',
+                    'Confirmed date of birth, sex, purok, and parents\' details',
+                ],
+                'requires_business_details' => false,
+            ],
+            [
                 'code' => 'barangay-clearance',
                 'name' => 'Barangay Clearance',
                 'fee' => 0,
@@ -136,7 +148,7 @@ class CertificateSeeder extends Seeder
         }
 
         $this->command?->info(
-            'Successfully seeded 8 certificate types for '
+            'Successfully seeded 9 certificate types for '
             . $barangays->count()
             . ' barangay(s).'
         );

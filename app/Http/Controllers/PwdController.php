@@ -14,15 +14,17 @@ class PwdController extends Controller
     {
         $user = $request->user();
 
-        if (! in_array($user->role, ['pwd_staff', 'admin'])) {
+        if (! in_array($user->role, ['pwd', 'pwd_staff', 'admin'])) {
             abort(403, 'Unauthorized access to PWD Sector Portal.');
         }
 
         $pwdResidentsCount = Resident::where('status', 'active')
+            ->where('barangay_id', $user->barangay_id)
             ->whereHas('sectors', fn ($s) => $s->where('slug', 'pwd')->orWhere('name', 'LIKE', '%PWD%'))
             ->count();
 
-        $pwdAnnouncements = Announcement::where('target_audience', 'pwd');
+        $pwdAnnouncements = Announcement::where('barangay_id', $user->barangay_id)
+            ->where('target_audience', 'pwd');
 
         return Inertia::render('Pwd/Dashboard', [
             'userName' => $user->name,

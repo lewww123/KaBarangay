@@ -22,12 +22,26 @@ class SeniorController extends Controller
         return Inertia::render('Senior/Dashboard', [
             'userName' => $user->name,
             'stats' => [
-                'totalResidents' => Resident::where('status', 'active')->count(),
-                'totalAnnouncements' => Announcement::where('target_audience', 'senior_citizens')->count(),
-                'pendingAnnouncements' => Announcement::where('target_audience', 'senior_citizens')->where('approval_status', 'pending')->count(),
-                'approvedAnnouncements' => Announcement::where('target_audience', 'senior_citizens')->where('approval_status', 'approved')->count(),
+                'totalResidents' => Resident::where('status', 'active')
+                    ->where('barangay_id', $user->barangay_id)
+                    ->count(),
+                'totalAnnouncements' => Announcement::where('barangay_id', $user->barangay_id)
+                    ->where('target_audience', 'senior_citizens')
+                    ->count(),
+                'pendingAnnouncements' => Announcement::where('barangay_id', $user->barangay_id)
+                    ->where('target_audience', 'senior_citizens')
+                    ->where('approval_status', 'pending')
+                    ->count(),
+                'approvedAnnouncements' => Announcement::where('barangay_id', $user->barangay_id)
+                    ->where('target_audience', 'senior_citizens')
+                    ->where('approval_status', 'approved')
+                    ->count(),
             ],
-            'recentAnnouncements' => Announcement::where('target_audience', 'senior_citizens')->latest()->take(5)->get(),
+            'recentAnnouncements' => Announcement::where('barangay_id', $user->barangay_id)
+                ->where('target_audience', 'senior_citizens')
+                ->latest()
+                ->take(5)
+                ->get(),
         ]);
     }
 }

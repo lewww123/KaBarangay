@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import ResidentLayout from '@/layouts/ResidentLayout';
 
 interface AnnouncementItem {
@@ -7,6 +7,7 @@ interface AnnouncementItem {
     content: string;
     category: string;
     target_audience: string;
+    type?: 'event' | 'informational';
     event_start_at?: string | null;
     location?: string | null;
     created_at: string;
@@ -72,7 +73,12 @@ export default function Announcements({ announcements = [] }: Props) {
                                 </div>
 
                                 <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
-                                    {item.title}
+                                    <Link
+                                        href={`/resident/announcements/${item.id}`}
+                                        className="hover:text-[#3f6f3d]"
+                                    >
+                                        {item.title}
+                                    </Link>
                                 </h2>
 
                                 <p className="mt-2.5 whitespace-pre-line text-sm leading-relaxed text-gray-600 sm:text-base">
@@ -99,11 +105,22 @@ export default function Announcements({ announcements = [] }: Props) {
                                     </div>
                                 )}
 
-                                {item.author?.name && (
-                                    <p className="mt-3 text-xs text-gray-400">
-                                        Posted by: <span className="font-medium text-gray-600">{item.author.name}</span>
-                                    </p>
-                                )}
+                                <div className="mt-4 flex items-center justify-between gap-3">
+                                    {item.author?.name ? (
+                                        <p className="text-xs text-gray-400">
+                                            Posted by: <span className="font-medium text-gray-600">{item.author.name}</span>
+                                        </p>
+                                    ) : (
+                                        <span />
+                                    )}
+
+                                    <Link
+                                        href={`/resident/announcements/${item.id}`}
+                                        className="shrink-0 text-xs font-semibold text-[#3f6f3d] hover:text-[#315b30]"
+                                    >
+                                        View details
+                                    </Link>
+                                </div>
                             </article>
                         ))
                     )}

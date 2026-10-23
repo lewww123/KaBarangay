@@ -5,15 +5,27 @@ namespace App\Http\Controllers;
 use App\Models\Barangay;
 use App\Models\Resident;
 use App\Models\User;
+use App\Support\AuditLogger;
+use App\Support\LoginAttemptRecorder;
+use App\Support\LoginIdentifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class AuthController extends Controller
 {
+    /**
+     * Resident-specific limiter: 5 attempts per 600 seconds (Batch E5.3).
+     */
+    private const RESIDENT_MAX_ATTEMPTS = 5;
+
+    private const RESIDENT_DECAY_SECONDS = 600;
+
     /*
     |--------------------------------------------------------------------------
     | Barangay Selection
@@ -99,6 +111,16 @@ class AuthController extends Controller
         $barangayId = $request->session()->get('selected_barangay_id');
 
         if (! $barangayId) {
+            // Unresolved barangay: recorded with a null barangay_id so it
+            // stays out of every ordinary barangay admin's view.
+            LoginAttemptRecorder::record(
+                LoginAttemptRecorder::ACTOR_STAFF,
+                LoginAttemptRecorder::CHANNEL_DEPARTMENT,
+                LoginAttemptRecorder::STATUS_FAILED,
+                identifier: $validated['username'],
+                ipAddress: $request->ip(),
+            );
+
             return redirect()
                 ->route('barangay.select')
                 ->withErrors([
@@ -122,6 +144,23 @@ class AuthController extends Controller
             ->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
+            $auditBarangayId = $this->sessionBarangayIdForAudit($request);
+
+            LoginAttemptRecorder::record(
+                LoginAttemptRecorder::ACTOR_STAFF,
+                LoginAttemptRecorder::CHANNEL_DEPARTMENT,
+                LoginAttemptRecorder::STATUS_FAILED,
+                identifier: $validated['username'],
+                barangayId: $auditBarangayId,
+                ipAddress: $request->ip(),
+            );
+
+            AuditLogger::record(
+                'login.failed',
+                barangayId: $auditBarangayId,
+                ipAddress: $request->ip(),
+            );
+
             return back()
                 ->withErrors([
                     'login' => 'Invalid department credentials.',
@@ -133,6 +172,13 @@ class AuthController extends Controller
             'login_department' => $validated['department'],
             'department_username' => $validated['username'],
         ]);
+
+        RateLimiter::clear(
+            LoginIdentifier::middlewareKey(
+                'login-department',
+                LoginIdentifier::identifierKey('department', $validated['username'])
+            )
+        );
 
         return redirect()->route('staff.login');
     }
@@ -207,6 +253,23 @@ class AuthController extends Controller
             ->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
+            $auditBarangayId = $this->sessionBarangayIdForAudit($request);
+
+            LoginAttemptRecorder::record(
+                LoginAttemptRecorder::ACTOR_STAFF,
+                LoginAttemptRecorder::CHANNEL_STAFF,
+                LoginAttemptRecorder::STATUS_FAILED,
+                identifier: $validated['staff_id'],
+                barangayId: $auditBarangayId,
+                ipAddress: $request->ip(),
+            );
+
+            AuditLogger::record(
+                'login.failed',
+                barangayId: $auditBarangayId,
+                ipAddress: $request->ip(),
+            );
+
             return back()
                 ->withErrors([
                     'login' => 'Invalid staff credentials.',
@@ -216,6 +279,30 @@ class AuthController extends Controller
 
         /* Authenticate Staff */
         Auth::login($user);
+
+        LoginAttemptRecorder::record(
+            LoginAttemptRecorder::ACTOR_STAFF,
+            LoginAttemptRecorder::CHANNEL_STAFF,
+            LoginAttemptRecorder::STATUS_SUCCESS,
+            identifier: $validated['staff_id'],
+            barangayId: $user->barangay_id,
+            userId: $user->id,
+            ipAddress: $request->ip(),
+        );
+
+        AuditLogger::record(
+            'login.success',
+            barangayId: $user->barangay_id,
+            actorId: $user->id,
+            ipAddress: $request->ip(),
+        );
+
+        RateLimiter::clear(
+            LoginIdentifier::middlewareKey(
+                'login-staff',
+                LoginIdentifier::identifierKey('staff', $validated['staff_id'])
+            )
+        );
 
         /* Prevent session fixation after successful login */
         $request->session()->regenerate();
@@ -232,7 +319,9 @@ class AuthController extends Controller
             'clerk' => redirect()->route('clerk.dashboard'),
             'senior', 'senior_staff' => redirect()->route('senior.dashboard'),
             'pwd', 'pwd_staff' => redirect()->route('pwd.dashboard'),
-            default => redirect()->route('admin.dashboard'),
+            'lupon' => redirect()->route('lupon.dashboard'),
+            default => redirect()->route('barangay.select')
+                ->with('info', 'No portal is available for your account role.'),
         };
     }
 
@@ -271,6 +360,22 @@ class AuthController extends Controller
             ->first();
 
         if (! $barangay) {
+            LoginAttemptRecorder::record(
+                LoginAttemptRecorder::ACTOR_RESIDENT,
+                LoginAttemptRecorder::CHANNEL_RESIDENT,
+                LoginAttemptRecorder::STATUS_FAILED,
+                identifier: $validated['identifier'],
+                barangayId: (int) $validated['barangay_id'],
+                ipAddress: $request->ip(),
+            );
+
+            AuditLogger::record(
+                'login.failed',
+                barangayId: (int) $validated['barangay_id'],
+                entityType: 'resident_login',
+                ipAddress: $request->ip(),
+            );
+
             return back()
                 ->withErrors([
                     'barangay_id' => 'The selected barangay is not available.',
@@ -300,6 +405,70 @@ class AuthController extends Controller
             ! $resident->account->is_active ||
             ! Hash::check($validated['password'], $resident->account->password)
         ) {
+            // Resident-specific limiter (Batch E5.3), Option B: a resolved
+            // resident is counted regardless of account state or password
+            // correctness so the response never reveals whether the account
+            // exists or is active. Unresolved residents skip the limiter and
+            // rely on the E4 identifier/IP limits.
+            if ($resident !== null) {
+                $residentKey = LoginIdentifier::residentKey($resident->id);
+
+                $residentLimited = false;
+
+                try {
+                    if (RateLimiter::tooManyAttempts($residentKey, self::RESIDENT_MAX_ATTEMPTS)) {
+                        $residentLimited = true;
+                    } else {
+                        RateLimiter::hit($residentKey, self::RESIDENT_DECAY_SECONDS);
+                    }
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+
+                if ($residentLimited) {
+                    LoginAttemptRecorder::record(
+                        LoginAttemptRecorder::ACTOR_RESIDENT,
+                        LoginAttemptRecorder::CHANNEL_RESIDENT,
+                        LoginAttemptRecorder::STATUS_RATE_LIMITED,
+                        identifier: $validated['identifier'],
+                        barangayId: $barangay->id,
+                        residentId: $resident->id,
+                        ipAddress: $request->ip(),
+                    );
+
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'message' => 'Too many login attempts. Please wait before trying again.',
+                        ], 429);
+                    }
+
+                    return back()
+                        ->withErrors([
+                            'login' => 'Too many login attempts. Please wait before trying again.',
+                        ])
+                        ->withInput([
+                            'barangay_id' => $validated['barangay_id'],
+                            'identifier' => $validated['identifier'],
+                        ]);
+                }
+            }
+
+            LoginAttemptRecorder::record(
+                LoginAttemptRecorder::ACTOR_RESIDENT,
+                LoginAttemptRecorder::CHANNEL_RESIDENT,
+                LoginAttemptRecorder::STATUS_FAILED,
+                identifier: $validated['identifier'],
+                barangayId: $barangay->id,
+                ipAddress: $request->ip(),
+            );
+
+            AuditLogger::record(
+                'login.failed',
+                barangayId: $barangay->id,
+                entityType: 'resident_login',
+                ipAddress: $request->ip(),
+            );
+
             return back()
                 ->withErrors([
                     'login' => 'Invalid resident credentials.',
@@ -322,6 +491,39 @@ class AuthController extends Controller
         $resident->account->update([
             'last_login_at' => now(),
         ]);
+
+        LoginAttemptRecorder::record(
+            LoginAttemptRecorder::ACTOR_RESIDENT,
+            LoginAttemptRecorder::CHANNEL_RESIDENT,
+            LoginAttemptRecorder::STATUS_SUCCESS,
+            identifier: $validated['identifier'],
+            barangayId: $resident->barangay_id,
+            residentId: $resident->id,
+            ipAddress: $request->ip(),
+        );
+
+        AuditLogger::record(
+            'login.success',
+            barangayId: $resident->barangay_id,
+            entityType: 'resident_login',
+            ipAddress: $request->ip(),
+        );
+
+        RateLimiter::clear(
+            LoginIdentifier::middlewareKey(
+                'login-resident',
+                LoginIdentifier::identifierKey('resident', $validated['identifier'])
+            )
+        );
+
+        // Clear only the resident-specific counter for this resolved resident.
+        // The raw controller-managed key is used directly (not middlewareKey),
+        // and the E4 identifier/IP counters are left untouched.
+        try {
+            RateLimiter::clear(LoginIdentifier::residentKey($resident->id));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
 
         return redirect()->route('resident.dashboard');
     }
@@ -351,5 +553,25 @@ class AuthController extends Controller
         return response()->json([
             'barangays' => $barangays,
         ]);
+    }
+
+    private function sessionBarangayIdForAudit(Request $request): ?int
+    {
+        $barangayId = $request->session()->get('selected_barangay_id');
+
+        if (is_string($barangayId) && ctype_digit($barangayId)) {
+            $barangayId = (int) $barangayId;
+        }
+
+        if (! is_int($barangayId)) {
+            return null;
+        }
+
+        $isPermitted = Barangay::query()
+            ->where('id', $barangayId)
+            ->where('is_active', true)
+            ->exists();
+
+        return $isPermitted ? $barangayId : null;
     }
 }

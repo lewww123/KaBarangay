@@ -35,6 +35,19 @@ class Announcement extends Model
         'reviewed_at' => 'datetime',
     ];
 
+    public function revisionToken(): string
+    {
+        $attributes = $this->getAttributes();
+
+        ksort($attributes, SORT_STRING);
+
+        return hash_hmac(
+            'sha256',
+            json_encode($attributes, JSON_THROW_ON_ERROR),
+            (string) config('app.key'),
+        );
+    }
+
     protected static function booted()
     {
         static::addGlobalScope('barangay', function (Builder $builder) {
