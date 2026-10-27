@@ -18,6 +18,7 @@ type ProfileData = {
     civilStatus: string;
     mobileNumber: string;
     email: string;
+    emailVerified: boolean;
     purok: string;
     barangay: string;
     city: string;
@@ -63,6 +64,9 @@ export default function Profile() {
         useState<Notification | null>(null);
 
     const [savingContact, setSavingContact] =
+        useState(false);
+
+    const [resendingVerification, setResendingVerification] =
         useState(false);
 
     const [showQrModal, setShowQrModal] =
@@ -199,6 +203,11 @@ export default function Profile() {
                         ...current,
                         mobileNumber,
                         email,
+                        emailVerified:
+                            email.trim().toLowerCase() ===
+                            current.email.trim().toLowerCase()
+                                ? current.emailVerified
+                                : false,
                     }));
 
                     setEditingContact(false);
@@ -225,6 +234,45 @@ export default function Profile() {
 
                 onFinish: () => {
                     setSavingContact(false);
+                },
+            },
+        );
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Resend Email Verification
+    |--------------------------------------------------------------------------
+    */
+
+    const resendEmailVerification = () => {
+        setResendingVerification(true);
+
+        router.post(
+            '/resident/email/verification/resend',
+            {},
+            {
+                preserveScroll: true,
+
+                onSuccess: () => {
+                    showNotification(
+                        'success',
+                        'Verification sent.',
+                        'Check your email for the verification link.',
+                    );
+                },
+
+                onError: () => {
+                    showNotification(
+                        'error',
+                        'Unable to resend.',
+                        'Wait a minute and try again.',
+                    );
+                },
+
+                onFinish: () => {
+                    setResendingVerification(false);
                 },
             },
         );
@@ -504,6 +552,30 @@ export default function Profile() {
                                         'Not provided'
                                     }
                                 />
+
+                                {profile.email && (
+                                    profile.emailVerified ? (
+                                        <p className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                                            Email verified
+                                        </p>
+                                    ) : (
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <p className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
+                                                Email not verified
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={resendEmailVerification}
+                                                disabled={resendingVerification}
+                                                className="text-xs font-semibold text-[#3f6f3d] hover:underline disabled:opacity-60"
+                                            >
+                                                {resendingVerification
+                                                    ? 'Sending...'
+                                                    : 'Resend verification'}
+                                            </button>
+                                        </div>
+                                    )
+                                )}
 
                             </div>
 

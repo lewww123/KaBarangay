@@ -10,6 +10,8 @@ use Illuminate\Validation\Rules\Password;
 
 class StoreResidentRegistrationRequest extends FormRequest
 {
+    private ?string $registrationQrToken = null;
+
     public function authorize(): bool
     {
         // Public resident registration.
@@ -18,6 +20,16 @@ class StoreResidentRegistrationRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        // Keep the optional QR token in memory only. It is intentionally removed
+        // from the request input before validation failures can flash it to the
+        // session or include it in old-input data.
+        $qrToken = $this->request->get('qr_token');
+        $this->registrationQrToken = is_string($qrToken)
+            ? trim($qrToken)
+            : null;
+        $this->request->remove('qr_token');
+        $this->query->remove('qr_token');
+
         $mobile = preg_replace('/[^0-9]/', '', (string) $this->mobile);
 
         // Convert +639XXXXXXXXX / 639XXXXXXXXX to 09XXXXXXXXX.
@@ -43,6 +55,11 @@ class StoreResidentRegistrationRequest extends FormRequest
                 array_unique((array) $this->input('sectors', []))
             ),
         ]);
+    }
+
+    public function registrationQrToken(): ?string
+    {
+        return $this->registrationQrToken;
     }
 
     public function rules(): array

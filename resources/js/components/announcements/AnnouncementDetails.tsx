@@ -1,17 +1,29 @@
 import { Link } from '@inertiajs/react';
+import AnnouncementImportanceBadge from '@/components/announcements/AnnouncementImportanceBadge';
+import {
+    formatApprovalStatusLabel,
+    formatAttendanceSetting,
+    formatAudienceLabel,
+    isEventAnnouncement,
+} from '@/components/announcements/announcement';
 
 export interface AnnouncementDetailsRecord {
     id: number;
     title: string;
     content: string;
     category: string;
+    importance?: string | null;
     target_audience: string;
     type?: 'event' | 'informational';
     approval_status?: 'pending' | 'approved' | 'rejected';
     rejection_reason?: string | null;
     requires_attendance?: boolean;
+    attendance_available?: boolean;
     event_start_at?: string | null;
     location?: string | null;
+    completed_at?: string | null;
+    completed_by?: number | null;
+    completer?: { name: string } | null;
     created_at: string;
     author?: { name: string } | null;
 }
@@ -21,6 +33,9 @@ interface AnnouncementDetailsProps {
     backHref: string;
     attendanceHref?: string | null;
     showApprovalStatus?: boolean;
+    showAttendanceSetting?: boolean;
+    showImportance?: boolean;
+    showCompletion?: boolean;
 }
 
 export default function AnnouncementDetails({
@@ -28,8 +43,11 @@ export default function AnnouncementDetails({
     backHref,
     attendanceHref,
     showApprovalStatus = false,
+    showAttendanceSetting = false,
+    showImportance = false,
+    showCompletion = false,
 }: AnnouncementDetailsProps) {
-    const isEvent = announcement.type === 'event';
+    const isEvent = isEventAnnouncement(announcement);
 
     return (
         <div className="space-y-5">
@@ -53,6 +71,12 @@ export default function AnnouncementDetails({
                             >
                                 {isEvent ? 'Event' : 'Informational Update'}
                             </span>
+
+                            {showImportance && (
+                                <AnnouncementImportanceBadge
+                                    importance={announcement.importance}
+                                />
+                            )}
 
                             <span className="inline-flex rounded bg-gray-100 px-2.5 py-1 text-[10px] font-bold tracking-wider text-gray-600 uppercase">
                                 {formatCategoryLabel(announcement.category)}
@@ -83,7 +107,9 @@ export default function AnnouncementDetails({
                                 announcement.approval_status,
                             )}`}
                         >
-                            {announcement.approval_status}
+                            {formatApprovalStatusLabel(
+                                announcement.approval_status,
+                            )}
                         </span>
                     )}
                 </div>
@@ -188,6 +214,19 @@ export default function AnnouncementDetails({
                                     </dd>
                                 </div>
 
+                                {showAttendanceSetting && isEvent && (
+                                    <div>
+                                        <dt className="font-semibold text-gray-500">
+                                            Attendance
+                                        </dt>
+                                        <dd className="mt-0.5 text-gray-800">
+                                            {formatAttendanceSetting(
+                                                announcement,
+                                            )}
+                                        </dd>
+                                    </div>
+                                )}
+
                                 {announcement.author?.name && (
                                     <div>
                                         <dt className="font-semibold text-gray-500">
@@ -200,6 +239,21 @@ export default function AnnouncementDetails({
                                 )}
                             </dl>
                         </div>
+
+                        {showCompletion && announcement.completed_at && (
+                            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800">
+                                <p className="font-bold uppercase">Done</p>
+                                <p className="mt-1">
+                                    Completed{' '}
+                                    {formatDateTime(announcement.completed_at)}
+                                </p>
+                                {announcement.completer?.name && (
+                                    <p className="mt-1">
+                                        Marked by {announcement.completer.name}
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         {attendanceHref && (
                             <Link
@@ -234,17 +288,6 @@ function formatCategoryLabel(category: string) {
     }
 
     return category.replace(/_/g, ' ');
-}
-
-function formatAudienceLabel(audience: string) {
-    switch (audience) {
-        case 'senior_citizens':
-            return 'Senior Citizens';
-        case 'pwd':
-            return 'PWD';
-        default:
-            return 'All Residents';
-    }
 }
 
 function formatDateTime(dateString: string) {

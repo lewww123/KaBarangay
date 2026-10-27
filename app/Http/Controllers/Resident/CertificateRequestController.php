@@ -7,11 +7,16 @@ use App\Models\Certificate;
 use App\Models\CertificateRequest;
 use App\Models\Resident;
 use App\Support\AuditLogger;
+use App\Support\CertificateRequestDetails;
+use App\Support\CertificateTemplates;
+use App\Support\DelayedPsaCertificate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,6 +31,7 @@ class CertificateRequestController extends Controller
             ->with([
                 'barangay',
                 'sectors',
+                'purok',
             ])
             ->where('id', session('resident_id'))
             ->where('status', 'active')
@@ -38,14 +44,27 @@ class CertificateRequestController extends Controller
             ->orderBy('name')
             ->get()
             ->map(function (Certificate $certificate) {
+                $type = CertificateRequestDetails::typeForCertificate($certificate);
+
                 return [
                     'id' => (string) $certificate->id,
                     'name' => $certificate->name,
                     'fee' => (float) $certificate->fee,
                     'description' => $certificate->description ?? '',
                     'requirements' => $certificate->requirements ?? [],
-                    'requiresBusinessDetails' =>
+                    'requiresBusinessDetails' => CertificateRequestDetails::requiresBusinessDetails(
+                        $type,
                         (bool) $certificate->requires_business_details,
+                    ),
+                    'certificateType' => $type,
+                    'fixedPurpose' => CertificateRequestDetails::fixedPurpose($type),
+                    'detailsFields' => CertificateRequestDetails::fieldsForType($type),
+                    // Requestability follows the active catalog. A missing
+                    // generation template does not prevent an active service
+                    // from accepting a Resident request.
+                    'available' => $type !== null,
+                    'templateAvailable' => $type !== null
+                        && CertificateTemplates::isAvailable($type),
                 ];
             })
             ->values();
@@ -58,6 +77,14 @@ class CertificateRequestController extends Controller
             ->latest('created_at')
             ->get()
             ->map(function (CertificateRequest $request) {
+                $payload = CertificateRequestDetails::decode(
+                    $request->additional_details,
+                );
+                $type = $payload['type']
+                    ?? CertificateRequestDetails::typeForCertificate(
+                        $request->certificate,
+                    );
+
                 return [
                     'id' => $request->id,
                     'reference' => $request->reference,
@@ -72,7 +99,12 @@ class CertificateRequestController extends Controller
                     )?->format('F j, Y') ?? '',
                     'businessName' => $request->business_name,
                     'businessAddress' => $request->business_address,
-                    'additionalDetails' => $request->additional_details,
+                    'additionalDetails' => $payload['notes'],
+                    'details' => CertificateRequestDetails::displayRows(
+                        $type,
+                        $payload['fields'],
+                    ),
+                    'adminNote' => $request->admin_note,
                 ];
             })
             ->values();
@@ -88,13 +120,15 @@ class CertificateRequestController extends Controller
                     'suffix' => $resident->suffix,
                     'full_name' => $resident->full_name,
                     'resident_number' => $resident->resident_number,
+                    'birthdate' => $resident->birthdate?->format('Y-m-d'),
+                    'sex' => $resident->sex,
+                    'purok' => $resident->purok?->name,
 
                     'barangay' => [
                         'id' => $resident->barangay?->id,
                         'name' => $resident->barangay?->name,
                         'code' => $resident->barangay?->code,
-                        'city_municipality' =>
-                            $resident->barangay?->city_municipality,
+                        'city_municipality' => $resident->barangay?->city_municipality,
                         'province' => $resident->barangay?->province,
                     ],
 
@@ -125,7 +159,7 @@ class CertificateRequestController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
-        $validated = $request->validate([
+        $certificateInput = $request->validate([
             'certificate_id' => [
                 'required',
                 'integer',
@@ -139,61 +173,71 @@ class CertificateRequestController extends Controller
                             ->where('is_active', true);
                     }),
             ],
-
-            'purpose' => [
-                'required',
-                'string',
-                'max:500',
-            ],
-
-            'business_name' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'business_address' => [
-                'nullable',
-                'string',
-                'max:1000',
-            ],
-
-            'additional_details' => [
-                'nullable',
-                'string',
-                'max:2000',
-            ],
         ]);
 
         // Confirm the selected certificate belongs to the resident's barangay.
         $certificate = Certificate::query()
             ->where('barangay_id', $resident->barangay_id)
             ->where('is_active', true)
-            ->findOrFail($validated['certificate_id']);
+            ->findOrFail($certificateInput['certificate_id']);
 
-        // Business certificates require a business name and address.
-        if ($certificate->requires_business_details) {
-            $request->validate([
-                'business_name' => [
-                    'required',
-                    'string',
-                    'max:255',
-                ],
+        $certificateType = CertificateRequestDetails::typeForCertificate(
+            $certificate,
+        );
 
-                'business_address' => [
-                    'required',
-                    'string',
-                    'max:1000',
-                ],
+        if ($certificateType === null) {
+            throw ValidationException::withMessages([
+                'certificate_id' => 'This certificate is not supported for requests yet. Please contact the barangay office.',
             ]);
         }
+
+        $fixedPurpose = CertificateRequestDetails::fixedPurpose($certificateType);
+        $requiresBusinessDetails =
+            CertificateRequestDetails::requiresBusinessDetails(
+                $certificateType,
+                (bool) $certificate->requires_business_details,
+            );
+
+        $validated = $request->validate(
+            CertificateRequestDetails::validationRules(
+                $certificateType,
+                $requiresBusinessDetails,
+            ),
+        );
+
+        $details = CertificateRequestDetails::normalizeDetails(
+            $certificateType,
+            $validated['details'] ?? [],
+        );
+
+        if ($certificateType === DelayedPsaCertificate::TYPE
+            && isset($details['residency_start_year'])) {
+            $birthdate = $resident->birthdate;
+            $earliestYear = DelayedPsaCertificate::earliestResidencyYear(
+                $birthdate === null ? null : Carbon::instance($birthdate),
+            );
+
+            if ((int) $details['residency_start_year'] < $earliestYear) {
+                throw ValidationException::withMessages([
+                    'details.residency_start_year' => 'The residency start year cannot be earlier than the resident\'s birth year.',
+                ]);
+            }
+        }
+
+        $purpose = $fixedPurpose
+            ?? ($validated['purpose'] ?? null);
+        $additionalDetails = CertificateRequestDetails::encode(
+            $certificateType,
+            $details,
+            $validated['additional_details'] ?? null,
+        );
 
         // Generate a unique reference number.
         do {
             $reference = 'CERT-'
-                . now()->format('Y')
-                . '-'
-                . Str::upper(Str::random(8));
+                .now()->format('Y')
+                .'-'
+                .Str::upper(Str::random(8));
         } while (
             CertificateRequest::query()
                 ->where('reference', $reference)
@@ -204,6 +248,8 @@ class CertificateRequestController extends Controller
             $resident,
             $certificate,
             $validated,
+            $purpose,
+            $additionalDetails,
             $reference
         ) {
             return CertificateRequest::create([
@@ -211,18 +257,15 @@ class CertificateRequestController extends Controller
                 'resident_id' => $resident->id,
                 'certificate_id' => $certificate->id,
                 'reference' => $reference,
-                'purpose' => $validated['purpose'],
+                'purpose' => $purpose,
 
                 // Use the fee saved in the database.
                 'fee' => $certificate->fee,
 
                 'status' => 'Pending',
-                'business_name' =>
-                    $validated['business_name'] ?? null,
-                'business_address' =>
-                    $validated['business_address'] ?? null,
-                'additional_details' =>
-                    $validated['additional_details'] ?? null,
+                'business_name' => $validated['business_name'] ?? null,
+                'business_address' => $validated['business_address'] ?? null,
+                'additional_details' => $additionalDetails,
                 'submitted_at' => now(),
             ]);
         });

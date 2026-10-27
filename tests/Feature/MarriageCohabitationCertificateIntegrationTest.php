@@ -440,7 +440,11 @@ class MarriageCohabitationCertificateIntegrationTest extends TestCase
 
     public function test_marriage_frontend_collects_the_partner_details_and_hides_the_purpose_and_signatory_inputs(): void
     {
-        $source = (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx'));
+        $source = (string) preg_replace(
+            '/\s+/',
+            ' ',
+            (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx')),
+        );
 
         // The Marriage detail block exists and is rendered for that type.
         $this->assertStringContainsString("const MARRIAGE_TYPE = 'Marriage Cohabitation';", $source);

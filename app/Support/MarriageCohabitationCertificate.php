@@ -17,8 +17,8 @@ use Throwable;
  * The certificate is rendered from `storage/app/templates/marriage.docx`,
  * whose merge fields are fixed. The template states its own purpose ("for
  * Marriage Purposes") and carries its own Punong Barangay / Officer on Duty
- * signature blocks, so the generic purpose and signatory inputs are not part
- * of this certificate.
+ * signature blocks. The purpose is fixed by the template; the selected
+ * published signatory is inserted into its literal marker and title label.
  *
  * The resident identity on the certificate (full name, age, purok) comes from
  * the linked resident profile only. A client-supplied name, age, or purok is
@@ -42,8 +42,8 @@ class MarriageCohabitationCertificate
      *
      * `resident’s_name`, `partner’s_full_name`, and `partner’s_age` use a
      * curly apostrophe (U+2019); they must match the DOCX exactly. The
-     * template carries no control number, purpose, signatory, or fee merge
-     * field, so those values are not part of this contract.
+     * current DOCX also contains a literal single-braced signatory marker,
+     * which is filled in the generated copy after PHPWord processing.
      *
      * @var array<int, string>
      */

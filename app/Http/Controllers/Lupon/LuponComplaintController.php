@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Lupon;
 
 use App\Http\Controllers\Controller;
 use App\Models\LuponComplaint;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -75,7 +76,10 @@ class LuponComplaintController extends Controller
         }
 
         $complaints = $query
-            ->with('resident:id,first_name,middle_name,last_name,suffix,resident_number')
+            ->with([
+                'resident:id,first_name,middle_name,last_name,suffix,resident_number',
+                'case:id,complaint_id,case_number,phase,status',
+            ])
             ->latest('created_at')
             ->get()
             ->map(function (LuponComplaint $complaint) {
@@ -105,6 +109,12 @@ class LuponComplaintController extends Controller
                         $complaint->submitted_at
                         ?? $complaint->created_at
                     )?->format('F j, Y') ?? '',
+                    'case' => $complaint->case ? [
+                        'id' => $complaint->case->id,
+                        'caseNumber' => $complaint->case->case_number,
+                        'phase' => $complaint->case->phase,
+                        'status' => $complaint->case->status,
+                    ] : null,
                 ];
             })
             ->values();
@@ -194,6 +204,21 @@ class LuponComplaintController extends Controller
         }
 
         $complaint->update($attributes);
+
+        AuditLogger::record(
+            event: 'lupon_complaint.status_updated',
+            barangayId: $user->barangay_id,
+            actorId: $user->id,
+            entityType: 'lupon_complaint',
+            entityId: $complaint->id,
+            context: [
+                'action' => 'status_updated',
+                'entity_reference' => $complaint->reference,
+                'previous_status' => $currentStatus,
+                'new_status' => $status,
+            ],
+            ipAddress: $request->ip()
+        );
 
         return redirect()->back()->with('success', 'Complaint status updated.');
     }

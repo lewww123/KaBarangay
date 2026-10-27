@@ -1066,6 +1066,24 @@ export default function Login() {
 
 
 
+                                <p className="mt-4 text-xs leading-5 text-gray-500">
+
+                                    Already registered by your barangay?{' '}
+
+                                    <Link
+
+                                        href="/resident/claim"
+
+                                        className="font-semibold text-[#3f6f3d] hover:underline"
+
+                                    >
+
+                                        Claim your existing account
+
+                                    </Link>
+
+                                </p>
+
                             </div>
 
 

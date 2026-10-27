@@ -5,7 +5,11 @@ type ClerkPage =
     | 'overview'
     | 'certificates'
     | 'announcements'
-    | 'disbursements';
+    | 'updates'
+    | 'programs'
+    | 'disbursements'
+    | 'citizen-charter'
+    | 'org-chart';
 
 type ClerkLayoutProps = {
     children: ReactNode;
@@ -63,8 +67,8 @@ export default function ClerkLayout({
                         Clerk Access
                     </p>
 
-                    {/* MAIN NAVIGATION (Overview, Certificates, Announcements, Disbursements) */}
-                    <nav className="grid grid-cols-3 gap-1 lg:block lg:space-y-1">
+                    {/* MAIN NAVIGATION */}
+                    <nav className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:block lg:space-y-1">
 
                         <SidebarLink
                             href="/clerk/dashboard"
@@ -81,10 +85,17 @@ export default function ClerkLayout({
                         />
 
                         <SidebarLink
-                            href="/clerk/announcements"
-                            icon="📢"
-                            label="Announcements"
-                            active={active === 'announcements'}
+                            href="/clerk/updates"
+                            icon="U"
+                            label="Updates"
+                            active={active === 'updates'}
+                        />
+
+                        <SidebarLink
+                            href="/clerk/programs"
+                            icon="P"
+                            label="Programs"
+                            active={active === 'programs'}
                         />
 
                         <SidebarLink
@@ -92,6 +103,20 @@ export default function ClerkLayout({
                             icon="💰"
                             label="Disbursements"
                             active={active === 'disbursements'}
+                        />
+
+                        <SidebarLink
+                            href="/clerk/citizen-charter"
+                            icon="📋"
+                            label="Citizen's Charter"
+                            active={active === 'citizen-charter'}
+                        />
+
+                        <SidebarLink
+                            href="/clerk/org-chart"
+                            icon="▥"
+                            label="Org Chart"
+                            active={active === 'org-chart'}
                         />
 
                     </nav>

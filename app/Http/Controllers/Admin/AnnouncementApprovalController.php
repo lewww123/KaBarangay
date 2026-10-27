@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Concerns\RecordsAnnouncementApprovalActivity;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
+use App\Models\AnnouncementApprovalLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -30,11 +31,49 @@ class AnnouncementApprovalController extends Controller
             ->map(fn (Announcement $announcement) => [
                 ...$announcement->toArray(),
                 'revision_token' => $announcement->revisionToken(),
+                'publication' => $this->currentPublication($announcement),
             ]);
 
         return Inertia::render('Admin/AnnouncementApprovals', [
             'announcements' => $announcements,
         ]);
+    }
+
+    /**
+     * Resolve the publication event that matches the announcement's current
+     * public state. Approval logs are authoritative when present; the
+     * announcement review columns only cover legacy rows without a log.
+     *
+     * @return array{published_at: string|null, published_by: string|null}|null
+     */
+    private function currentPublication(Announcement $announcement): ?array
+    {
+        if (! $announcement->is_published || $announcement->approval_status !== 'approved') {
+            return null;
+        }
+
+        $latestStateLog = $announcement->approvalLogs
+            ->first(fn (AnnouncementApprovalLog $log) => $log->action !== 'completed');
+
+        if ($latestStateLog !== null) {
+            if ($latestStateLog->action !== 'approved' || $latestStateLog->new_status !== 'approved') {
+                return null;
+            }
+
+            return [
+                'published_at' => $latestStateLog->created_at?->toIso8601String(),
+                'published_by' => $latestStateLog->actor?->name,
+            ];
+        }
+
+        if ($announcement->reviewed_at === null && $announcement->reviewer === null) {
+            return null;
+        }
+
+        return [
+            'published_at' => $announcement->reviewed_at?->toIso8601String(),
+            'published_by' => $announcement->reviewer?->name,
+        ];
     }
 
     public function approve(Request $request, Announcement $announcement)
@@ -169,6 +208,12 @@ class AnnouncementApprovalController extends Controller
      */
     private function ensureReviewable(Announcement $announcement): void
     {
+        if ($announcement->completed_at !== null) {
+            throw ValidationException::withMessages([
+                'approval' => 'Completed announcements cannot be approved or rejected.',
+            ]);
+        }
+
         if ($announcement->approval_status !== self::REVIEWABLE_STATUS) {
             throw ValidationException::withMessages([
                 'approval' => 'Only announcements pending review can be approved or rejected.',

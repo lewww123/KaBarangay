@@ -1,5 +1,23 @@
 import { useState } from 'react';
 import { Head, Link, useForm, router } from '@inertiajs/react';
+import AnnouncementAttendanceOption from '@/components/announcements/AnnouncementAttendanceOption';
+import AnnouncementImportanceBadge from '@/components/announcements/AnnouncementImportanceBadge';
+import AnnouncementLifecycleTabs from '@/components/announcements/AnnouncementLifecycleTabs';
+import AnnouncementReviewSummary from '@/components/announcements/AnnouncementReviewSummary';
+import MarkAnnouncementDoneButton from '@/components/announcements/MarkAnnouncementDoneButton';
+import {
+    ANNOUNCEMENT_IMPORTANCE_OPTIONS,
+    attendanceUrl,
+    canMarkAnnouncementDone,
+    formatAnnouncementPostedAt,
+    formatApprovalStatusLabel,
+    formatAnnouncementType,
+    isAttendanceAvailable,
+    isEventAnnouncement,
+    toBoolean,
+    type AnnouncementTab,
+    type AnnouncementTabCounts,
+} from '@/components/announcements/announcement';
 import SeniorLayout from '@/layouts/SeniorLayout';
 import { toDateTimeLocalValue } from '@/lib/utils';
 
@@ -8,36 +26,60 @@ interface Announcement {
     title: string;
     content: string;
     category: string;
+    importance?: string | null;
     type?: 'event' | 'informational';
     approval_status: 'pending' | 'approved' | 'rejected';
+    is_published: boolean;
     rejection_reason?: string | null;
     requires_attendance: boolean;
+    attendance_available?: boolean;
     event_start_at?: string | null;
     location?: string | null;
+    completed_at?: string | null;
+    completed_by?: number | null;
+    completer?: { name: string } | null;
     created_at: string;
 }
 
+type AnnouncementKind = 'auto' | 'update' | 'program';
+
 interface Props {
     announcements: Announcement[];
+    activeTab: AnnouncementTab;
+    tabCounts: AnnouncementTabCounts;
+    kind?: AnnouncementKind;
     user?: {
         name?: string;
         staff_id?: string;
     };
 }
 
-export default function SeniorAnnouncementsIndex({ announcements = [], user }: Props) {
+export default function SeniorAnnouncementsIndex({
+    announcements,
+    activeTab,
+    tabCounts,
+    kind = 'auto',
+    user,
+}: Props) {
+    const isUpdate = kind === 'update';
+    const isProgram = kind === 'program';
+    const basePath = isUpdate ? '/senior/updates' : isProgram ? '/senior/programs' : '/senior/announcements';
+    const forcedFormType = isUpdate ? 'informational' : isProgram ? 'event' : null;
+
     const [showModal, setShowModal] = useState(false);
     const [editingItem, setEditingItem] = useState<Announcement | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
-    const [formType, setFormType] = useState<'event' | 'informational'>('informational');
+    const [formType, setFormType] = useState<'event' | 'informational'>(forcedFormType ?? 'informational');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedType, setSelectedType] = useState('ALL');
     const [selectedCategory, setSelectedCategory] = useState('ALL');
+    const [selectedImportance, setSelectedImportance] = useState('ALL');
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         title: '',
         content: '',
-        category: 'General',
+        category: isProgram ? 'Event' : 'General',
+        importance: 'normal',
         requires_attendance: false,
         event_start_at: '',
         location: '',
@@ -45,25 +87,41 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
 
     const openCreateModal = () => {
         setEditingItem(null);
-        setFormType('informational');
+        setFormType(forcedFormType ?? 'informational');
         reset();
+        if (isProgram) {
+            setData('category', 'Event');
+        }
         setShowModal(true);
     };
 
     const openEditModal = (item: Announcement) => {
-        const type = item.type ?? (item.category === 'Event' || item.requires_attendance ? 'event' : 'informational');
+        if (item.completed_at) {
+            return;
+        }
+
+        const type = isEventAnnouncement(item) ? 'event' : 'informational';
 
         setEditingItem(item);
-        setFormType(type);
+        setFormType(forcedFormType ?? type);
         setData({
             title: item.title,
             content: item.content,
-            category: item.category || 'General',
-            requires_attendance: item.requires_attendance || false,
+            category: isProgram ? 'Event' : isUpdate && item.category === 'Event' ? 'General' : item.category || 'General',
+            importance: item.importance || 'normal',
+            requires_attendance: isProgram ? toBoolean(item.requires_attendance) : false,
             event_start_at: toDateTimeLocalValue(item.event_start_at),
             location: item.location || '',
         });
         setShowModal(true);
+    };
+
+    const handleTabChange = (tab: AnnouncementTab) => {
+        router.get(
+            basePath,
+            { tab },
+            { preserveScroll: true, preserveState: true, replace: true },
+        );
     };
 
     const handleTypeChange = (type: 'event' | 'informational') => {
@@ -82,16 +140,12 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
 
     const handleCategoryChange = (category: string) => {
         setData('category', category);
-
-        if (formType === 'event' && category !== 'Event') {
-            setData('requires_attendance', true);
-        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (editingItem) {
-            put(`/senior/announcements/${editingItem.id}`, {
+            put(`${basePath}/${editingItem.id}`, {
                 onSuccess: () => {
                     reset();
                     setShowModal(false);
@@ -99,7 +153,7 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                 },
             });
         } else {
-            post('/senior/announcements', {
+            post(basePath, {
                 onSuccess: () => {
                     reset();
                     setShowModal(false);
@@ -109,31 +163,47 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
     };
 
     const handleDelete = (id: number) => {
-        router.delete(`/senior/announcements/${id}`, {
+        router.delete(`${basePath}/${id}`, {
             onSuccess: () => setDeletingId(null),
         });
     };
 
-    const attendanceLocked = formType === 'event' && data.category !== 'Event';
+    const reviewType = isEventAnnouncement(data) ? 'event' : 'informational';
 
     const filteredAnnouncements = announcements.filter((item) => {
         const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.content.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = selectedCategory === 'ALL' || item.category === selectedCategory;
-        const matchesType = selectedType === 'ALL' || (item.type ?? 'informational') === selectedType;
-        return matchesSearch && matchesCategory && matchesType;
+        const matchesImportance =
+            selectedImportance === 'ALL' ||
+            (item.importance || 'normal') === selectedImportance;
+        const matchesType =
+            selectedType === 'ALL' ||
+            (isEventAnnouncement(item) ? 'event' : 'informational') === selectedType;
+        return (
+            matchesSearch &&
+            matchesCategory &&
+            matchesImportance &&
+            matchesType
+        );
     });
 
     return (
-        <SeniorLayout active="announcements" user={user}>
-            <Head title="Senior Sector Announcements" />
+        <SeniorLayout active={isUpdate ? 'updates' : isProgram ? 'programs' : 'announcements'} user={user}>
+            <Head title={isUpdate ? 'Senior Citizens Updates' : isProgram ? 'Senior Citizens Programs' : 'Senior Sector Announcements'} />
 
             <div className="space-y-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 bg-white p-4 sm:p-5 rounded-lg shadow-sm">
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900">Senior Citizens Sector Announcements</h1>
+                        <h1 className="text-xl font-bold text-gray-900">
+                            {isUpdate ? 'Senior Citizens Updates' : isProgram ? 'Senior Citizens Programs' : 'Senior Citizens Sector Announcements'}
+                        </h1>
                         <p className="text-xs text-gray-500">
-                            Create, update, and manage announcements for the Senior Citizens sector.
+                            {isUpdate
+                                ? 'Publish informational notices and advisories for Senior Citizens.'
+                                : isProgram
+                                  ? 'Create and manage scheduled Senior Citizens activities and attendance.'
+                                  : 'Create, update, and manage announcements for the Senior Citizens sector.'}
                         </p>
                     </div>
 
@@ -142,30 +212,44 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                         onClick={openCreateModal}
                         className="inline-flex items-center justify-center gap-2 rounded-md bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-[#315b30]"
                     >
-                        + Create Senior Announcement
+                        {isUpdate ? '+ Publish Update' : isProgram ? '+ Create Program' : '+ Create Senior Announcement'}
                     </button>
                 </div>
+
+                {!isUpdate && (
+                    <div className="rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm">
+                        <AnnouncementLifecycleTabs
+                            activeTab={activeTab}
+                            counts={tabCounts}
+                            onChange={handleTabChange}
+                        />
+                    </div>
+                )}
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white p-3.5 rounded-lg border border-gray-200 shadow-sm">
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search announcements..."
+                        placeholder={isUpdate ? 'Search updates...' : 'Search announcements...'}
                         className="w-full sm:w-72 rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
                     />
 
                     <div className="flex flex-wrap items-center gap-2">
-                        <label className="text-xs font-medium text-gray-500">Type:</label>
-                        <select
-                            value={selectedType}
-                            onChange={(e) => setSelectedType(e.target.value)}
-                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
-                        >
-                            <option value="ALL">All Types</option>
-                            <option value="event">Events</option>
-                            <option value="informational">Informational Updates</option>
-                        </select>
+                        {!isUpdate && (
+                            <>
+                                <label className="text-xs font-medium text-gray-500">Type:</label>
+                                <select
+                                    value={selectedType}
+                                    onChange={(e) => setSelectedType(e.target.value)}
+                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                                >
+                                    <option value="ALL">All Types</option>
+                                    <option value="event">Events</option>
+                                    <option value="informational">Informational Updates</option>
+                                </select>
+                            </>
+                        )}
 
                         <label className="ml-2 text-xs font-medium text-gray-500">Category:</label>
                         <select
@@ -177,7 +261,21 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                             <option value="General">General</option>
                             <option value="Pension">Social Pension</option>
                             <option value="Health">Health & Wellness</option>
-                            <option value="Event">Senior Event</option>
+                            {!isUpdate && <option value="Event">Senior Event</option>}
+                        </select>
+
+                        <label className="ml-2 text-xs font-medium text-gray-500">Importance:</label>
+                        <select
+                            value={selectedImportance}
+                            onChange={(e) => setSelectedImportance(e.target.value)}
+                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                        >
+                            <option value="ALL">All Importance</option>
+                            {ANNOUNCEMENT_IMPORTANCE_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
                         </select>
                     </div>
                 </div>
@@ -190,16 +288,17 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                                     <th className="px-5 py-3">Title</th>
                                     <th className="px-5 py-3">Type</th>
                                     <th className="px-5 py-3">Category</th>
+                                    <th className="px-5 py-3">Importance</th>
                                     <th className="px-5 py-3">Status</th>
-                                    <th className="px-5 py-3">Event Date</th>
+                                    <th className="px-5 py-3">{isUpdate ? 'Posted' : 'Event Date'}</th>
                                     <th className="px-5 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {filteredAnnouncements.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="p-8 text-center text-sm text-gray-500">
-                                            No Senior Citizen announcements found.
+                                        <td colSpan={7} className="p-8 text-center text-sm text-gray-500">
+                                            No Senior Citizen announcements found in this tab.
                                         </td>
                                     </tr>
                                 ) : (
@@ -217,11 +316,11 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                                             </td>
                                             <td className="px-5 py-3.5">
                                                 <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
-                                                    (item.type ?? 'informational') === 'event'
+                                                    isEventAnnouncement(item)
                                                         ? 'bg-purple-100 text-purple-800'
                                                         : 'bg-slate-100 text-slate-600'
                                                 }`}>
-                                                    {(item.type ?? 'informational') === 'event' ? 'Event' : 'Update'}
+                                                    {formatAnnouncementType(item)}
                                                 </span>
                                             </td>
                                             <td className="px-5 py-3.5">
@@ -230,38 +329,75 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                                                 </span>
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <span className={`rounded px-2.5 py-1 text-xs font-bold uppercase ${
-                                                    item.approval_status === 'approved'
-                                                        ? 'bg-emerald-100 text-emerald-800'
-                                                        : item.approval_status === 'rejected'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-amber-100 text-amber-800'
-                                                }`}>
-                                                    {item.approval_status}
-                                                </span>
+                                                <AnnouncementImportanceBadge
+                                                    importance={item.importance}
+                                                />
+                                            </td>
+                                            <td className="px-5 py-3.5">
+                                                {item.completed_at ? (
+                                                    <div className="flex flex-col items-start gap-1">
+                                                        <span className="rounded bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800 uppercase">
+                                                            {isUpdate ? 'Completed' : 'Done'}
+                                                        </span>
+                                                        {isUpdate && (
+                                                            <span className="text-[10px] text-gray-500">
+                                                                {formatApprovalStatusLabel(item.approval_status)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className={`rounded px-2.5 py-1 text-xs font-bold uppercase ${
+                                                        item.approval_status === 'approved'
+                                                            ? 'bg-emerald-100 text-emerald-800'
+                                                            : item.approval_status === 'rejected'
+                                                            ? 'bg-red-100 text-red-800'
+                                                            : 'bg-amber-100 text-amber-800'
+                                                    }`}>
+                                                        {formatApprovalStatusLabel(item.approval_status)}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-5 py-3.5 text-xs text-gray-500">
-                                                {item.event_start_at ? item.event_start_at : 'N/A'}
+                                                {isUpdate
+                                                    ? formatAnnouncementPostedAt(item.created_at)
+                                                    : item.event_start_at ? item.event_start_at : 'N/A'}
                                             </td>
                                             <td className="px-5 py-3.5 text-right space-x-2">
                                                 <Link
-                                                    href={`/senior/announcements/${item.id}`}
+                                                    href={`${basePath}/${item.id}`}
                                                     className="inline-flex rounded border border-[#cbdcc6] bg-[#f4f8f2] px-2.5 py-1 text-xs font-medium text-[#3f6f3d] hover:bg-[#e8f1e4]"
                                                 >
                                                     Details
                                                 </Link>
-                                                {item.approval_status === 'approved' && item.requires_attendance && (
+                                                {isAttendanceAvailable(item) && (
                                                     <Link
-                                                        href={`/senior/announcements/${item.id}/attendance`}
+                                                        href={attendanceUrl('senior', item.id)}
                                                         className="inline-flex rounded bg-[#3f6f3d] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#315b30]"
                                                     >
                                                         Attendance
                                                     </Link>
                                                 )}
+                                                {isUpdate && item.approval_status === 'approved' && item.is_published && !item.completed_at ? (
+                                                    <MarkAnnouncementDoneButton
+                                                        portal="senior"
+                                                        announcementId={item.id}
+                                                        title={item.title}
+                                                        kind="update"
+                                                        className="rounded border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                                                    />
+                                                ) : !isUpdate && canMarkAnnouncementDone(item) ? (
+                                                    <MarkAnnouncementDoneButton
+                                                        portal="senior"
+                                                        announcementId={item.id}
+                                                        title={item.title}
+                                                        className="rounded border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                                                    />
+                                                ) : null}
                                                 <button
                                                     type="button"
                                                     onClick={() => openEditModal(item)}
-                                                    className="inline-flex rounded border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                                                    disabled={Boolean(item.completed_at)}
+                                                    className="inline-flex rounded border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     Edit
                                                 </button>
@@ -286,7 +422,9 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                         <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl space-y-4">
                             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                                 <h2 className="text-base font-bold text-gray-900">
-                                    {editingItem ? 'Edit Senior Announcement' : 'New Senior Announcement'}
+                                    {editingItem
+                                        ? isUpdate ? 'Edit Senior Update' : isProgram ? 'Edit Senior Program' : 'Edit Senior Announcement'
+                                        : isUpdate ? 'New Senior Update' : isProgram ? 'New Senior Program' : 'New Senior Announcement'}
                                 </h2>
                                 <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
                             </div>
@@ -316,7 +454,7 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                                     {errors.content && <p className="mt-1 text-xs text-red-500">{errors.content}</p>}
                                 </div>
 
-                                <div>
+                                {!forcedFormType && <div>
                                     <label className="block text-xs font-bold text-gray-700">Announcement Type</label>
                                     <div className="mt-1 grid grid-cols-2 gap-2">
                                         <button
@@ -348,9 +486,9 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                                             </span>
                                         </button>
                                     </div>
-                                </div>
+                                </div>}
 
-                                <div>
+                                {!isProgram && <div>
                                     <label className="block text-xs font-bold text-gray-700">Category</label>
                                     <select
                                         value={data.category}
@@ -362,6 +500,22 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                                         <option value="Health">Health & Wellness</option>
                                         {formType === 'event' && <option value="Event">Senior Event</option>}
                                     </select>
+                                </div>}
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700">Importance</label>
+                                    <select
+                                        value={data.importance}
+                                        onChange={(e) => setData('importance', e.target.value)}
+                                        className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                    >
+                                        {ANNOUNCEMENT_IMPORTANCE_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.importance && <p className="mt-1 text-xs text-red-500">{errors.importance}</p>}
                                 </div>
 
                                 {formType === 'event' && (
@@ -392,28 +546,23 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                                             </div>
                                         </div>
 
-                                        <div className="flex items-start gap-2 pt-1">
-                                            <input
-                                                type="checkbox"
-                                                id="req_att_snr"
-                                                checked={data.category === 'Event' ? data.requires_attendance : true}
-                                                onChange={(e) => setData('requires_attendance', e.target.checked)}
-                                                disabled={attendanceLocked}
-                                                className="mt-0.5 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d] disabled:opacity-60"
-                                            />
-                                            <div>
-                                                <label htmlFor="req_att_snr" className="text-xs font-semibold text-gray-700">
-                                                    Requires QR Attendance / Aid Claiming Sheet
-                                                </label>
-                                                {attendanceLocked && (
-                                                    <p className="mt-0.5 text-[10px] text-gray-500">
-                                                        Required for event categories that are not named Event.
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <AnnouncementAttendanceOption
+                                            id="req_att_snr"
+                                            checked={data.requires_attendance}
+                                            onChange={(checked) =>
+                                                setData('requires_attendance', checked)
+                                            }
+                                        />
                                     </>
                                 )}
+
+                                <AnnouncementReviewSummary
+                                    type={reviewType}
+                                    audience="senior_citizens"
+                                    requiresAttendance={data.requires_attendance}
+                                    willResubmit={Boolean(editingItem) && !isUpdate}
+                                    directPublish={isUpdate}
+                                />
 
                                 <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
                                     <button
@@ -426,9 +575,18 @@ export default function SeniorAnnouncementsIndex({ announcements = [], user }: P
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#315b30]"
+                                        aria-busy={processing}
+                                        className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
                                     >
-                                        {editingItem ? 'Update Announcement' : 'Submit for Approval'}
+                                        {processing
+                                            ? 'Submitting...'
+                                            : isUpdate
+                                              ? editingItem ? 'Republish Update' : 'Publish Update'
+                                              : isProgram
+                                                ? editingItem ? 'Resubmit Program' : 'Submit Program for Approval'
+                                                : editingItem
+                                                  ? 'Update Announcement'
+                                                  : 'Submit for Approval'}
                                     </button>
                                 </div>
                             </form>

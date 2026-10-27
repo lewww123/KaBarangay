@@ -3,15 +3,17 @@ import type { ReactNode } from 'react';
 
 type AdminPage =
     | 'overview'
-    | 'announcements'
     | 'residents'
     | 'qr-scanner'
     | 'sectors'
+    | 'sector-applications'
     | 'certificates'
     | 'staff'
     | 'population'
     | 'audit-log'
     | 'reports'
+    | 'org-chart'
+    | 'emergency-numbers'
     | 'settings';
 
 type AdminLayoutProps = {
@@ -74,14 +76,6 @@ export default function AdminLayout({
                             active={active === 'overview'}
                         />
 
-                        {/* ANNOUNCEMENT APPROVALS TAB */}
-                        <SidebarLink
-                            href="/admin/announcements/approvals"
-                            icon="📢"
-                            label="Announcements"
-                            active={active === 'announcements'}
-                        />
-
                         <SidebarLink
                             href="/admin/residents"
                             icon="♙"
@@ -89,19 +83,11 @@ export default function AdminLayout({
                             active={active === 'residents'}
                         />
 
-                        {/* QR SCANNER */}
-                        <SidebarLink
-                            href="/admin/qr-scanner"
-                            icon="▦"
-                            label="QR Scanner"
-                            active={active === 'qr-scanner'}
-                        />
-
                         <SidebarLink
                             href="/admin/sectors"
                             icon="▣"
                             label="Sectors"
-                            active={active === 'sectors'}
+                            active={active === 'sectors' || active === 'sector-applications'}
                         />
 
                         <SidebarLink
@@ -130,6 +116,20 @@ export default function AdminLayout({
                             icon="▤"
                             label="Reports"
                             active={active === 'reports'}
+                        />
+
+                        <SidebarLink
+                            href="/admin/org-chart"
+                            icon="▥"
+                            label="Org Chart"
+                            active={active === 'org-chart'}
+                        />
+
+                        <SidebarLink
+                            href="/admin/emergency-numbers"
+                            icon="☎"
+                            label="Emergency Numbers"
+                            active={active === 'emergency-numbers'}
                         />
 
                         <SidebarLink

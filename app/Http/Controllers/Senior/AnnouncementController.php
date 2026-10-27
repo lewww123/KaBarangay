@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Senior;
 
 use App\Http\Controllers\Concerns\ManagesAnnouncementAttendance;
+use App\Http\Controllers\Concerns\ManagesAnnouncementCompletion;
 use App\Http\Controllers\Concerns\RecordsAnnouncementApprovalActivity;
 use App\Http\Controllers\Concerns\ValidatesAnnouncementEventDetails;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\AnnouncementAttendance;
+use App\Support\AnnouncementLifecycle;
 use App\Support\AnnouncementType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,23 +19,42 @@ use Inertia\Inertia;
 class AnnouncementController extends Controller
 {
     use ManagesAnnouncementAttendance;
+    use ManagesAnnouncementCompletion;
     use RecordsAnnouncementApprovalActivity;
     use ValidatesAnnouncementEventDetails;
 
-    public function index(Request $request)
+    public function index(Request $request, string $kind = 'auto')
     {
-        $announcements = Announcement::where('target_audience', 'senior_citizens')
-            ->where('barangay_id', $request->user()->barangay_id)
-            ->with('author:id,name')
+        $kind = in_array($kind, ['update', 'program'], true) ? $kind : 'auto';
+
+        $query = Announcement::where('target_audience', 'senior_citizens')
+            ->where('barangay_id', $request->user()->barangay_id);
+
+        if ($kind === 'update') {
+            AnnouncementType::applyUpdateFilter($query);
+        } elseif ($kind === 'program') {
+            AnnouncementType::applyProgramFilter($query);
+        }
+
+        $activeTab = $kind === 'update'
+            ? AnnouncementLifecycle::TAB_ALL
+            : AnnouncementLifecycle::normalizeTab($request->query('tab'));
+
+        $announcements = AnnouncementLifecycle::applyTab(clone $query, $activeTab)
+            ->with(['author:id,name', 'completer:id,name'])
             ->latest()
             ->get()
             ->map(fn (Announcement $announcement) => [
                 ...$announcement->toArray(),
+                'attendance_available' => $announcement->attendanceIsAvailable(),
                 'type' => AnnouncementType::for($announcement),
             ]);
 
         return Inertia::render('Senior/Announcements/Index', [
             'announcements' => $announcements,
+            'kind' => $kind,
+            'activeTab' => $activeTab,
+            'tabCounts' => AnnouncementLifecycle::counts($query),
             'user' => [
                 'name' => $request->user()->name,
                 'staff_id' => $request->user()->staff_id,
@@ -41,19 +62,23 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    public function show(Request $request, Announcement $announcement)
+    public function show(Request $request, Announcement $announcement, string $kind = 'auto')
     {
         if ($announcement->target_audience !== 'senior_citizens' || $announcement->barangay_id !== $request->user()->barangay_id) {
             abort(403, 'Unauthorized action.');
         }
+        abort_unless(AnnouncementType::matchesKind($announcement, $kind), 404);
 
-        $announcement->load('author:id,name');
+        $announcement->load(['author:id,name', 'completer:id,name']);
+        $kind = in_array($kind, ['update', 'program'], true) ? $kind : 'auto';
 
         return Inertia::render('Senior/Announcements/Show', [
             'announcement' => [
                 ...$announcement->toArray(),
+                'attendance_available' => $announcement->attendanceIsAvailable(),
                 'type' => AnnouncementType::for($announcement),
             ],
+            'kind' => $kind,
             'user' => [
                 'name' => $request->user()->name,
                 'staff_id' => $request->user()->staff_id,
@@ -61,33 +86,51 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, string $kind = 'auto')
     {
+        $kind = in_array($kind, ['update', 'program'], true) ? $kind : 'auto';
+        $requiresEvent = $kind === 'program' || ($kind === 'auto' && $this->eventDetailsRequired($request));
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'category' => 'required|string',
+            'importance' => ['sometimes', 'required', 'string', Rule::in(Announcement::IMPORTANCE_LEVELS)],
             'requires_attendance' => 'boolean',
-            'event_start_at' => ['nullable', 'date', Rule::requiredIf($this->eventDetailsRequired($request))],
-            'location' => ['nullable', 'string', 'max:255', Rule::requiredIf($this->eventDetailsRequired($request))],
+            'event_start_at' => ['nullable', 'date', Rule::requiredIf($requiresEvent)],
+            'location' => ['nullable', 'string', 'max:255', Rule::requiredIf($requiresEvent)],
         ]);
 
-        $announcement = DB::transaction(function () use ($validated, $request) {
+        if ($kind === 'update') {
+            $validated['category'] = $validated['category'] === 'Event' ? 'General' : $validated['category'];
+            $validated['requires_attendance'] = false;
+            $validated['event_start_at'] = null;
+            $validated['location'] = null;
+        } elseif ($kind === 'program') {
+            $validated['category'] = 'Event';
+        }
+
+        $isDirectUpdate = $kind === 'update';
+
+        $announcement = DB::transaction(function () use ($validated, $request, $isDirectUpdate) {
             $announcement = Announcement::create([
                 ...$validated,
                 'barangay_id' => $request->user()->barangay_id,
                 'target_audience' => 'senior_citizens',
                 'created_by' => $request->user()->id,
-                'approval_status' => 'pending',
-                'is_published' => false,
+                'approval_status' => $isDirectUpdate ? 'approved' : 'pending',
+                'is_published' => $isDirectUpdate,
+                'reviewed_by' => $isDirectUpdate ? $request->user()->id : null,
+                'reviewed_at' => $isDirectUpdate ? now() : null,
             ]);
 
             $this->logAnnouncementApproval(
                 $announcement,
                 $request->user()->id,
-                'created',
+                $isDirectUpdate ? 'approved' : 'created',
                 null,
-                'pending',
+                $announcement->approval_status,
+                $isDirectUpdate ? 'Update published directly by sector staff.' : null,
             );
 
             return $announcement;
@@ -96,67 +139,103 @@ class AnnouncementController extends Controller
         $this->recordAnnouncementAudit(
             $announcement,
             $request->user()->id,
-            'announcement.created',
+            $isDirectUpdate ? 'announcement.published' : 'announcement.created',
             null,
             $announcement->approval_status,
             $request->ip(),
         );
 
-        return redirect()->back()->with('success', 'Senior Citizen announcement submitted for admin approval.');
+        return redirect()->back()->with(
+            'success',
+            $isDirectUpdate
+                ? 'Senior Citizen sector update published immediately.'
+                : 'Senior Citizen sector program submitted for admin approval.'
+        );
     }
 
-    public function update(Request $request, Announcement $announcement)
+    public function update(Request $request, Announcement $announcement, string $kind = 'auto')
     {
         if ($announcement->target_audience !== 'senior_citizens' || $announcement->barangay_id !== $request->user()->barangay_id) {
             abort(403, 'Unauthorized action.');
         }
+        abort_unless(AnnouncementType::matchesKind($announcement, $kind), 404);
+
+        $this->ensureAnnouncementIsEditable($announcement);
+
+        $kind = in_array($kind, ['update', 'program'], true) ? $kind : 'auto';
+        $requiresEvent = $kind === 'program' || ($kind === 'auto' && $this->eventDetailsRequired($request));
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'category' => 'required|string',
+            'importance' => ['sometimes', 'required', 'string', Rule::in(Announcement::IMPORTANCE_LEVELS)],
             'requires_attendance' => 'boolean',
-            'event_start_at' => ['nullable', 'date', Rule::requiredIf($this->eventDetailsRequired($request))],
-            'location' => ['nullable', 'string', 'max:255', Rule::requiredIf($this->eventDetailsRequired($request))],
+            'event_start_at' => ['nullable', 'date', Rule::requiredIf($requiresEvent)],
+            'location' => ['nullable', 'string', 'max:255', Rule::requiredIf($requiresEvent)],
         ]);
 
-        $previousStatus = $announcement->approval_status;
+        if ($kind === 'update') {
+            $validated['category'] = $validated['category'] === 'Event' ? 'General' : $validated['category'];
+            $validated['requires_attendance'] = false;
+            $validated['event_start_at'] = null;
+            $validated['location'] = null;
+        } elseif ($kind === 'program') {
+            $validated['category'] = 'Event';
+        }
 
-        DB::transaction(function () use ($announcement, $validated, $request, $previousStatus) {
-            // An edited or resubmitted announcement must not remain public until
-            // an administrator approves it again.
+        $isDirectUpdate = $kind === 'update';
+        $previousStatus = $announcement->approval_status;
+        $newStatus = $isDirectUpdate ? 'approved' : 'pending';
+
+        DB::transaction(function () use ($announcement, $validated, $request, $previousStatus, $isDirectUpdate, $newStatus) {
             $announcement->update([
                 ...$validated,
-                'approval_status' => 'pending',
-                'is_published' => false,
+                'approval_status' => $newStatus,
+                'is_published' => $isDirectUpdate,
+                'rejection_reason' => $isDirectUpdate ? null : $announcement->rejection_reason,
+                'reviewed_by' => $isDirectUpdate ? $request->user()->id : null,
+                'reviewed_at' => $isDirectUpdate ? now() : null,
             ]);
 
             $this->logAnnouncementApproval(
                 $announcement,
                 $request->user()->id,
-                'resubmitted',
+                $isDirectUpdate ? 'approved' : 'resubmitted',
                 $previousStatus,
-                'pending',
+                $newStatus,
+                $isDirectUpdate ? 'Update republished directly by sector staff.' : null,
             );
         });
 
         $this->recordAnnouncementAudit(
             $announcement,
             $request->user()->id,
-            'announcement.resubmitted',
+            $isDirectUpdate ? 'announcement.published' : 'announcement.resubmitted',
             $previousStatus,
-            $announcement->approval_status,
+            $newStatus,
             $request->ip(),
         );
 
-        return redirect()->back()->with('success', 'Announcement updated and resubmitted for approval.');
+        return redirect()->back()->with(
+            'success',
+            $isDirectUpdate
+                ? 'Senior Citizen sector update republished immediately.'
+                : 'Senior Citizen sector program updated and resubmitted for approval.'
+        );
     }
 
-    public function destroy(Request $request, Announcement $announcement)
+    public function destroy(Request $request, Announcement $announcement, string $kind = 'auto')
     {
         if ($announcement->target_audience !== 'senior_citizens' || $announcement->barangay_id !== $request->user()->barangay_id) {
             abort(403, 'Unauthorized action.');
         }
+        abort_unless(AnnouncementType::matchesKind($announcement, $kind), 404);
+        abort_if(
+            $announcement->completed_at !== null && AnnouncementType::isInformational($announcement),
+            409,
+            'Completed updates cannot be deleted.',
+        );
 
         $announcementId = $announcement->id;
         $barangayId = $announcement->barangay_id;
@@ -204,6 +283,37 @@ class AnnouncementController extends Controller
         ]);
     }
 
+    public function markDone(Request $request, Announcement $announcement)
+    {
+        if ($announcement->target_audience !== 'senior_citizens' || $announcement->barangay_id !== $request->user()->barangay_id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $result = $this->completeAnnouncement(
+            $announcement,
+            $request->user()->id,
+            $request->ip(),
+        );
+
+        return redirect()->back()->with($result['tone'], $result['message']);
+    }
+
+    public function markUpdateDone(Request $request, Announcement $announcement)
+    {
+        if ($announcement->target_audience !== 'senior_citizens' || $announcement->barangay_id !== $request->user()->barangay_id) {
+            abort(403, 'Unauthorized action.');
+        }
+        abort_unless(AnnouncementType::isInformational($announcement), 404);
+
+        $result = $this->completeInformationalUpdate(
+            $announcement,
+            $request->user()->id,
+            $request->ip(),
+        );
+
+        return redirect()->back()->with($result['tone'], $result['message']);
+    }
+
     public function markAttendance(Request $request, Announcement $announcement)
     {
         if ($announcement->target_audience !== 'senior_citizens' || $announcement->barangay_id !== $request->user()->barangay_id) {
@@ -227,7 +337,7 @@ class AnnouncementController extends Controller
 
         $this->ensureQrProofIsValid($request, $announcement, $resident, $validated['method'] ?? null);
 
-        $this->recordAttendance(
+        $result = $this->recordAttendance(
             $announcement,
             $resident,
             $validated['status'],
@@ -235,6 +345,6 @@ class AnnouncementController extends Controller
             $request->user()->id,
         );
 
-        return redirect()->back();
+        return $this->attendanceResponse($result);
     }
 }

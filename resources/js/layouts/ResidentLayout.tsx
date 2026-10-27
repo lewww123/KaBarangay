@@ -1,4 +1,10 @@
 import KaBarangayAssistant from '@/components/resident/KaBarangayAssistant';
+import {
+    applyResidentSettings,
+    readResidentSettings,
+    RESIDENT_SETTINGS_EVENT,
+} from '@/lib/residentSettings';
+import type { ResidentSettings } from '@/lib/residentSettings';
 import { Link, router } from '@inertiajs/react';
 import { ReactNode, useEffect, useState } from 'react';
 
@@ -6,9 +12,12 @@ type ResidentPage =
     | 'home'
     | 'certificates'
     | 'lupon'
+    | 'sectors'
     | 'announcements'
+    | 'updates'
     | 'disbursement'
     | 'charter'
+    | 'org-chart'
     | 'chatbot'
     | 'profile'
     | 'settings'
@@ -24,6 +33,53 @@ export default function ResidentLayout({
     active = 'home',
 }: ResidentLayoutProps) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Apply Resident Appearance and Accessibility Settings
+    |--------------------------------------------------------------------------
+    */
+
+    useEffect(() => {
+        const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+
+        const applyCurrentSettings = () => {
+            applyResidentSettings(readResidentSettings(), colorScheme.matches);
+        };
+
+        const handleSettingsEvent = (event: Event) => {
+            const detail =
+                event instanceof CustomEvent
+                    ? (event.detail as ResidentSettings | undefined)
+                    : undefined;
+
+            applyResidentSettings(
+                detail ?? readResidentSettings(),
+                colorScheme.matches,
+            );
+        };
+
+        const handleColorSchemeChange = () => {
+            applyCurrentSettings();
+        };
+
+        applyCurrentSettings();
+
+        window.addEventListener(RESIDENT_SETTINGS_EVENT, handleSettingsEvent);
+        window.addEventListener('storage', handleSettingsEvent);
+
+        colorScheme.addEventListener('change', handleColorSchemeChange);
+
+        return () => {
+            window.removeEventListener(
+                RESIDENT_SETTINGS_EVENT,
+                handleSettingsEvent,
+            );
+            window.removeEventListener('storage', handleSettingsEvent);
+
+            colorScheme.removeEventListener('change', handleColorSchemeChange);
+        };
+    }, []);
 
     /*
     |--------------------------------------------------------------------------
@@ -70,9 +126,7 @@ export default function ResidentLayout({
     */
 
     const handleLogout = () => {
-        const confirmed = window.confirm(
-            'Are you sure you want to log out?',
-        );
+        const confirmed = window.confirm('Are you sure you want to log out?');
 
         if (!confirmed) {
             return;
@@ -83,24 +137,19 @@ export default function ResidentLayout({
 
     return (
         <div className="min-h-screen bg-[#f7f6f0] text-gray-800">
-
             {/* ============================================================
                 TOP HEADER
             ============================================================ */}
 
             <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between bg-[#3f6f3d] px-3 py-3 text-white shadow-sm sm:px-5 lg:px-6">
-
                 {/* LEFT SIDE */}
 
                 <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-
                     {/* MOBILE MENU BUTTON */}
 
                     <button
                         type="button"
-                        onClick={() =>
-                            setMobileMenuOpen((current) => !current)
-                        }
+                        onClick={() => setMobileMenuOpen((current) => !current)}
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/10 transition hover:bg-white/20 active:scale-95 lg:hidden"
                         aria-label="Open navigation menu"
                     >
@@ -116,7 +165,6 @@ export default function ResidentLayout({
                     {/* TITLE */}
 
                     <div className="min-w-0">
-
                         <p className="truncate text-base font-semibold sm:text-lg">
                             KaBarangay
                         </p>
@@ -124,9 +172,7 @@ export default function ResidentLayout({
                         <p className="truncate text-[11px] text-white/80 sm:text-xs">
                             Barangay San Jose
                         </p>
-
                     </div>
-
                 </div>
 
                 {/* RIGHT SIDE */}
@@ -135,25 +181,16 @@ export default function ResidentLayout({
                     href="/resident/profile"
                     className="flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1.5 transition hover:bg-white/10 sm:gap-3 sm:px-2"
                 >
-
                     <div className="hidden text-right sm:block">
+                        <p className="text-sm font-medium">My Account</p>
 
-                        <p className="text-sm font-medium">
-                            My Account
-                        </p>
-
-                        <p className="text-xs text-white/75">
-                            Resident
-                        </p>
-
+                        <p className="text-xs text-white/75">Resident</p>
                     </div>
 
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#315b30]">
                         <ProfileIcon />
                     </div>
-
                 </Link>
-
             </header>
 
             {/* ============================================================
@@ -161,18 +198,15 @@ export default function ResidentLayout({
             ============================================================ */}
 
             <div className="flex">
-
                 {/* ========================================================
                     DESKTOP SIDEBAR
                 ======================================================== */}
 
                 <aside className="sticky top-16 hidden h-[calc(100vh-64px)] w-64 shrink-0 overflow-y-auto border-r border-gray-200 bg-white lg:block">
-
                     <ResidentNavigation
                         active={active}
                         onLogout={handleLogout}
                     />
-
                 </aside>
 
                 {/* ========================================================
@@ -193,19 +227,14 @@ export default function ResidentLayout({
                 ======================================================== */}
 
                 <aside
-                    className={`fixed bottom-0 left-0 top-16 z-50 w-[86%] max-w-[330px] overflow-y-auto bg-white shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
-                        mobileMenuOpen
-                            ? 'translate-x-0'
-                            : '-translate-x-full'
+                    className={`fixed top-16 bottom-0 left-0 z-50 w-[86%] max-w-[330px] overflow-y-auto bg-white shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
+                        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
                     }`}
                 >
-
                     {/* DRAWER HEADER */}
 
                     <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-5 py-4">
-
                         <div>
-
                             <p className="text-base font-semibold text-gray-800">
                                 Resident Services
                             </p>
@@ -213,7 +242,6 @@ export default function ResidentLayout({
                             <p className="mt-0.5 text-sm text-gray-500">
                                 KaBarangay
                             </p>
-
                         </div>
 
                         <button
@@ -224,7 +252,6 @@ export default function ResidentLayout({
                         >
                             <CloseIcon />
                         </button>
-
                     </div>
 
                     <ResidentNavigation
@@ -233,7 +260,6 @@ export default function ResidentLayout({
                         onLogout={handleLogout}
                         mobile
                     />
-
                 </aside>
 
                 {/* ========================================================
@@ -241,13 +267,10 @@ export default function ResidentLayout({
                 ======================================================== */}
 
                 <main className="min-w-0 flex-1">
-
                     <div className="mx-auto w-full max-w-[1500px] p-4 pb-5 sm:p-6 lg:p-8">
                         {children}
                     </div>
-
                 </main>
-
             </div>
 
             {/* ============================================================
@@ -260,10 +283,8 @@ export default function ResidentLayout({
                 MOBILE BOTTOM NAVIGATION
             ============================================================ */}
 
-            <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-gray-200 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.06)] lg:hidden">
-
+            <nav className="fixed right-0 bottom-0 left-0 z-30 border-t border-gray-200 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.06)] lg:hidden">
                 <div className="mx-auto grid max-w-lg grid-cols-4">
-
                     {/* HOME */}
 
                     <BottomNavItem
@@ -287,8 +308,8 @@ export default function ResidentLayout({
                     <BottomNavItem
                         href="/resident/announcements"
                         icon={<AnnouncementIcon />}
-                        label="News"
-                        active={active === 'announcements'}
+                        label="Announcements"
+                        active={active === 'announcements' || active === 'updates'}
                     />
 
                     {/* MORE */}
@@ -297,17 +318,12 @@ export default function ResidentLayout({
                         type="button"
                         onClick={() => setMobileMenuOpen(true)}
                         className={`flex min-h-[68px] flex-col items-center justify-center gap-1 px-1 py-2 transition active:bg-gray-50 ${
-                            mobileMenuOpen
-                                ? 'text-[#3f6f3d]'
-                                : 'text-gray-500'
+                            mobileMenuOpen ? 'text-[#3f6f3d]' : 'text-gray-500'
                         }`}
                     >
-
                         <span
                             className={`flex h-8 w-10 items-center justify-center rounded-full ${
-                                mobileMenuOpen
-                                    ? 'bg-[#e8f1e4]'
-                                    : ''
+                                mobileMenuOpen ? 'bg-[#e8f1e4]' : ''
                             }`}
                         >
                             <MoreIcon />
@@ -316,11 +332,8 @@ export default function ResidentLayout({
                         <span className="text-[11px] font-medium sm:text-xs">
                             More
                         </span>
-
                     </button>
-
                 </div>
-
             </nav>
 
             {/* ============================================================
@@ -328,7 +341,6 @@ export default function ResidentLayout({
             ============================================================ */}
 
             <div className="h-[76px] lg:hidden" />
-
         </div>
     );
 }
@@ -352,17 +364,13 @@ function ResidentNavigation({
 }) {
     return (
         <div className="px-3 py-5">
-
             {/* ============================================================
                 MAIN SERVICES
             ============================================================ */}
 
-            <NavigationTitle>
-                Main Services
-            </NavigationTitle>
+            <NavigationTitle>Main Services</NavigationTitle>
 
             <nav className="space-y-1">
-
                 <ResidentLink
                     href="/resident"
                     icon={<HomeIcon />}
@@ -388,10 +396,26 @@ function ResidentNavigation({
                 />
 
                 <ResidentLink
+                    href="/resident/sector-applications"
+                    icon={<SectorIcon />}
+                    label="Sector Services"
+                    active={active === 'sectors'}
+                    onClick={onNavigate}
+                />
+
+                <ResidentLink
                     href="/resident/announcements"
                     icon={<AnnouncementIcon />}
                     label="Announcements"
                     active={active === 'announcements'}
+                    onClick={onNavigate}
+                />
+
+                <ResidentLink
+                    href="/resident/updates"
+                    icon={<AnnouncementIcon />}
+                    label="Updates"
+                    active={active === 'updates'}
                     onClick={onNavigate}
                 />
 
@@ -402,7 +426,6 @@ function ResidentNavigation({
                     active={active === 'disbursement'}
                     onClick={onNavigate}
                 />
-
             </nav>
 
             {/* ============================================================
@@ -410,18 +433,22 @@ function ResidentNavigation({
             ============================================================ */}
 
             <div className="mt-7">
-
-                <NavigationTitle>
-                    Information
-                </NavigationTitle>
+                <NavigationTitle>Information</NavigationTitle>
 
                 <nav className="space-y-1">
-
                     <ResidentLink
                         href="/resident/citizen-charter"
                         icon={<CharterIcon />}
                         label="Citizen's Charter"
                         active={active === 'charter'}
+                        onClick={onNavigate}
+                    />
+
+                    <ResidentLink
+                        href="/resident/org-chart"
+                        icon={<OrgChartIcon />}
+                        label="Organizational Chart"
+                        active={active === 'org-chart'}
                         onClick={onNavigate}
                     />
 
@@ -432,9 +459,7 @@ function ResidentNavigation({
                         active={active === 'chatbot'}
                         onClick={onNavigate}
                     />
-
                 </nav>
-
             </div>
 
             {/* ============================================================
@@ -442,13 +467,9 @@ function ResidentNavigation({
             ============================================================ */}
 
             <div className="mt-7">
-
-                <NavigationTitle>
-                    Account
-                </NavigationTitle>
+                <NavigationTitle>Account</NavigationTitle>
 
                 <nav className="space-y-1">
-
                     <ResidentLink
                         href="/resident/profile"
                         icon={<ProfileIcon />}
@@ -472,9 +493,7 @@ function ResidentNavigation({
                         active={active === 'about'}
                         onClick={onNavigate}
                     />
-
                 </nav>
-
             </div>
 
             {/* ============================================================
@@ -482,23 +501,17 @@ function ResidentNavigation({
             ============================================================ */}
 
             <div className="mt-7 border-t border-gray-100 pt-4">
-
                 <button
                     type="button"
                     onClick={onLogout}
                     className="flex min-h-12 w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-base font-medium text-red-600 transition hover:bg-red-50 active:bg-red-100"
                 >
-
                     <span className="flex w-6 shrink-0 items-center justify-center">
                         <LogoutIcon />
                     </span>
 
-                    <span>
-                        Logout
-                    </span>
-
+                    <span>Logout</span>
                 </button>
-
             </div>
 
             {/* ============================================================
@@ -507,31 +520,24 @@ function ResidentNavigation({
 
             {mobile && (
                 <div className="mt-5 rounded-xl border border-[#dce8d8] bg-[#f4f8f2] p-4">
-
                     <div className="flex items-start gap-3">
-
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-[#3f6f3d]">
                             <ChatSmallIcon />
                         </div>
 
                         <div>
-
                             <p className="text-sm font-semibold text-[#3f6f3d]">
                                 Need help?
                             </p>
 
                             <p className="mt-1 text-sm leading-6 text-gray-600">
-                                Tap the chat button to talk to
-                                KaBarangay Assistant.
+                                Tap the chat button to talk to KaBarangay
+                                Assistant.
                             </p>
-
                         </div>
-
                     </div>
-
                 </div>
             )}
-
         </div>
     );
 }
@@ -542,13 +548,9 @@ function ResidentNavigation({
 |--------------------------------------------------------------------------
 */
 
-function NavigationTitle({
-    children,
-}: {
-    children: ReactNode;
-}) {
+function NavigationTitle({ children }: { children: ReactNode }) {
     return (
-        <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <p className="mb-2 px-4 text-xs font-semibold tracking-wide text-gray-400 uppercase">
             {children}
         </p>
     );
@@ -583,15 +585,11 @@ function ResidentLink({
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
             }`}
         >
-
             <span className="flex w-6 shrink-0 items-center justify-center">
                 {icon}
             </span>
 
-            <span className="min-w-0 flex-1">
-                {label}
-            </span>
-
+            <span className="min-w-0 flex-1">{label}</span>
         </Link>
     );
 }
@@ -617,17 +615,12 @@ function BottomNavItem({
         <Link
             href={href}
             className={`flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 transition active:bg-gray-50 ${
-                active
-                    ? 'text-[#3f6f3d]'
-                    : 'text-gray-500'
+                active ? 'text-[#3f6f3d]' : 'text-gray-500'
             }`}
         >
-
             <span
                 className={`flex h-8 w-10 items-center justify-center rounded-full ${
-                    active
-                        ? 'bg-[#e8f1e4]'
-                        : ''
+                    active ? 'bg-[#e8f1e4]' : ''
                 }`}
             >
                 {icon}
@@ -636,7 +629,6 @@ function BottomNavItem({
             <span className="max-w-full truncate px-1 text-[11px] font-medium sm:text-xs">
                 {label}
             </span>
-
         </Link>
     );
 }
@@ -704,6 +696,26 @@ function CertificateIcon() {
     );
 }
 
+function SectorIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-5 w-5"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+    );
+}
+
 function ComplaintIcon() {
     return (
         <svg
@@ -745,11 +757,7 @@ function AnnouncementIcon() {
 }
 
 function PesoIcon() {
-    return (
-        <span className="text-lg font-semibold leading-none">
-            ₱
-        </span>
-    );
+    return <span className="text-lg leading-none font-semibold">₱</span>;
 }
 
 function CharterIcon() {
@@ -764,16 +772,31 @@ function CharterIcon() {
             strokeLinejoin="round"
             aria-hidden="true"
         >
-            <rect
-                x="5"
-                y="3"
-                width="14"
-                height="18"
-                rx="2"
-            />
+            <rect x="5" y="3" width="14" height="18" rx="2" />
             <path d="M9 8h6" />
             <path d="M9 12h6" />
             <path d="M9 16h4" />
+        </svg>
+    );
+}
+
+function OrgChartIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-5 w-5"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <rect x="9" y="3" width="6" height="5" rx="1" />
+            <rect x="3" y="16" width="6" height="5" rx="1" />
+            <rect x="15" y="16" width="6" height="5" rx="1" />
+            <path d="M12 8v4" />
+            <path d="M6 16v-2h12v2" />
         </svg>
     );
 }
@@ -790,11 +813,7 @@ function ProfileIcon() {
             strokeLinejoin="round"
             aria-hidden="true"
         >
-            <circle
-                cx="12"
-                cy="8"
-                r="4"
-            />
+            <circle cx="12" cy="8" r="4" />
             <path d="M4 21c.8-4.2 3.5-6 8-6s7.2 1.8 8 6" />
         </svg>
     );
@@ -812,11 +831,7 @@ function SettingsIcon() {
             strokeLinejoin="round"
             aria-hidden="true"
         >
-            <circle
-                cx="12"
-                cy="12"
-                r="3"
-            />
+            <circle cx="12" cy="12" r="3" />
             <path d="M12 2.5v3" />
             <path d="M12 18.5v3" />
             <path d="M2.5 12h3" />
@@ -841,11 +856,7 @@ function InfoIcon() {
             strokeLinejoin="round"
             aria-hidden="true"
         >
-            <circle
-                cx="12"
-                cy="12"
-                r="9"
-            />
+            <circle cx="12" cy="12" r="9" />
             <path d="M12 11v6" />
             <path d="M12 7h.01" />
         </svg>
@@ -879,21 +890,9 @@ function MoreIcon() {
             className="h-5 w-5"
             aria-hidden="true"
         >
-            <circle
-                cx="5"
-                cy="12"
-                r="1.7"
-            />
-            <circle
-                cx="12"
-                cy="12"
-                r="1.7"
-            />
-            <circle
-                cx="19"
-                cy="12"
-                r="1.7"
-            />
+            <circle cx="5" cy="12" r="1.7" />
+            <circle cx="12" cy="12" r="1.7" />
+            <circle cx="19" cy="12" r="1.7" />
         </svg>
     );
 }

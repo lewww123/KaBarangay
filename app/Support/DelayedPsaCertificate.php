@@ -15,9 +15,9 @@ use RuntimeException;
  *
  * The certificate is rendered from `storage/app/templates/delayedpsa.docx`,
  * whose merge fields are fixed. The template states its own purpose
- * ("DELAYED REGISTRATION OF BIRTH") and carries its own Punong Barangay /
- * Officer on Duty signature blocks, so the generic purpose and signatory
- * inputs are not part of this certificate.
+ * ("DELAYED REGISTRATION OF BIRTH"). Its signatory is selected from the
+ * published barangay Organizational Chart, and the generated document uses
+ * that position's title in place of its fixed "Officer on duty" label.
  *
  * Values that belong to a registered resident (date of birth, sex, purok) are
  * taken from the linked resident profile; the clerk-entered value is only a
@@ -43,18 +43,15 @@ class DelayedPsaCertificate
      * @var array<int, string>
      */
     public const TEMPLATE_KEYS = [
-        'birth_place',
         'control_number',
         'current_date',
         'date_of_birth',
         "father\u{2019}s_name",
+        'gender',
         'mothers_maiden_name',
-        'nationality',
-        'parents_marriage_details',
         'purok',
-        'residency_period',
         "resident\u{2019}s_name",
-        'sex',
+        'signatory_name',
     ];
 
     /**
@@ -106,8 +103,9 @@ class DelayedPsaCertificate
             // input is not collected for this certificate.
             'purpose' => ['nullable', 'string', 'max:500'],
 
-            // The template carries its own signature blocks, so the generic
-            // signatory input is not collected for this certificate.
+            // The template carries its own signature block; the UI still lets
+            // the Clerk select a published signatory and its title is applied
+            // to the generated document copy.
             'signatory_name' => ['nullable', 'string', 'max:255'],
             'signatory_title' => ['nullable', 'string', 'max:255'],
 
@@ -197,7 +195,7 @@ class DelayedPsaCertificate
 
         return [
             'control_number' => self::text($validated['control_no'] ?? null),
-            'resident_name' => self::text($validated['resident_name'] ?? null),
+            'resident_name' => self::text($resident?->full_name ?? $validated['resident_name'] ?? null),
             'purok' => $purok,
             'date_of_birth' => $birthdate?->format('Y-m-d') ?? '',
             'sex' => $sex ?? '',
@@ -209,6 +207,7 @@ class DelayedPsaCertificate
                 $validated['parents_marriage_details'] ?? null
             ),
             'residency_start_year' => $residencyYear ?? 0,
+            'signatory_name' => self::text($validated['signatory_name'] ?? null),
         ];
     }
 
@@ -316,7 +315,7 @@ class DelayedPsaCertificate
             "resident\u{2019}s_name" => mb_strtoupper((string) $values['resident_name']),
             'purok' => mb_strtoupper((string) $values['purok']),
             'date_of_birth' => self::formatDateOfBirth($birthdate),
-            'sex' => (string) $values['sex'],
+            'gender' => (string) $values['sex'],
             'nationality' => mb_strtoupper((string) $values['nationality']),
             'birth_place' => mb_strtoupper((string) $values['birth_place']),
             "father\u{2019}s_name" => mb_strtoupper((string) $values['father_name']),
@@ -328,6 +327,7 @@ class DelayedPsaCertificate
                 (int) $values['residency_start_year']
             ),
             'current_date' => self::formatIssueDate(),
+            'signatory_name' => mb_strtoupper((string) ($values['signatory_name'] ?? '')),
         ];
     }
 

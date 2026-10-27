@@ -37,6 +37,7 @@ class ClerkOverviewTest extends TestCase
 
     public function test_clerk_overview_renders_real_backend_data(): void
     {
+        $otherBarangay = $this->createBarangay('Barangay Two', 'BRGY-TWO');
         $clerk = $this->createStaff($this->barangay, 'clerk', ['name' => 'Clerk Person']);
 
         $this->createResident($this->barangay, $this->purok, ['mobile' => '09170005001']);
@@ -44,23 +45,75 @@ class ClerkOverviewTest extends TestCase
             'title' => 'Approved One',
             'approval_status' => 'approved',
             'is_published' => true,
+            'created_at' => now()->subMinutes(3),
         ]);
         $this->createAnnouncement($this->barangay, [
             'title' => 'Pending One',
             'approval_status' => 'pending',
             'is_published' => false,
+            'created_at' => now()->subMinutes(2),
         ]);
+        $this->createAnnouncement($this->barangay, [
+            'title' => 'Approved but Unpublished',
+            'approval_status' => 'approved',
+            'is_published' => false,
+            'created_at' => now()->subMinute(),
+        ]);
+        $this->createAnnouncement($otherBarangay, [
+            'title' => 'Foreign Pending',
+            'approval_status' => 'pending',
+            'is_published' => false,
+        ]);
+        $this->createAnnouncement($otherBarangay, [
+            'title' => 'Foreign Approved',
+            'approval_status' => 'approved',
+            'is_published' => true,
+        ]);
+
+        $response = $this->actingAs($clerk)->get('/clerk/dashboard');
+
+        $response
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Clerk/Dashboard')
+                ->where('userName', 'Clerk Person')
+                ->where('stats.totalResidents', 1)
+                ->where('stats.totalAnnouncements', 3)
+                ->where('stats.approvedAnnouncements', 2)
+                ->where('stats.pendingAnnouncements', 1)
+                ->has('recentAnnouncements', 3)
+                ->where('recentAnnouncements.0.title', 'Approved but Unpublished'));
+
+        $this->assertSame(
+            ['Approved but Unpublished', 'Pending One', 'Approved One'],
+            collect($response->inertiaProps('recentAnnouncements'))->pluck('title')->all(),
+        );
+        $this->assertNotContains(
+            'Foreign Pending',
+            collect($response->inertiaProps('recentAnnouncements'))->pluck('title')->all(),
+        );
+    }
+
+    public function test_clerk_overview_with_missing_barangay_context_returns_no_tenant_data(): void
+    {
+        $otherBarangay = $this->createBarangay('Barangay Two', 'BRGY-TWO');
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $clerk->barangay_id = null;
+        $clerk->save();
+
+        $this->createAnnouncement($this->barangay, ['title' => 'Own Announcement']);
+        $this->createAnnouncement($otherBarangay, ['title' => 'Foreign Announcement']);
 
         $this->actingAs($clerk)
             ->get('/clerk/dashboard')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Clerk/Dashboard')
-                ->where('userName', 'Clerk Person')
-                ->where('stats.totalResidents', 1)
-                ->where('stats.approvedAnnouncements', 1)
-                ->where('stats.pendingAnnouncements', 1)
-                ->has('recentAnnouncements', 2));
+                ->where('stats.totalResidents', 0)
+                ->where('stats.totalAnnouncements', 0)
+                ->where('stats.pendingAnnouncements', 0)
+                ->where('stats.approvedAnnouncements', 0)
+                ->has('recentAnnouncements', 0));
     }
 
     public function test_clerk_overview_recent_announcements_expose_only_overview_fields(): void

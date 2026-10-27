@@ -87,6 +87,7 @@ export default function Register({ barangays, sectors }: Props) {
         sectors: [] as string[],
         mobile: '',
         email: '',
+        qr_token: '',
         password: '',
         password_confirmation: '',
         valid_id: null as File | null,
@@ -405,6 +406,7 @@ export default function Register({ barangays, sectors }: Props) {
 
                 scrollTop();
             },
+            onFinish: () => setData('qr_token', ''),
         });
     };
 
@@ -554,6 +556,8 @@ export default function Register({ barangays, sectors }: Props) {
                                     <IdentityVerificationStep
                                         isSenior={isSenior}
                                         isPwd={isPwd}
+                                        qrToken={data.qr_token}
+                                        onQrTokenChange={(value) => setData('qr_token', value)}
                                         validId={data.valid_id}
                                         liveIdentityPhoto={
                                             data.live_identity_photo
@@ -1175,6 +1179,8 @@ function SectorInformationStep({
 function IdentityVerificationStep({
     isSenior,
     isPwd,
+    qrToken,
+    onQrTokenChange,
     validId,
     liveIdentityPhoto,
     seniorProof,
@@ -1184,6 +1190,8 @@ function IdentityVerificationStep({
 }: {
     isSenior: boolean;
     isPwd: boolean;
+    qrToken: string;
+    onQrTokenChange: (value: string) => void;
     validId: File | null;
     liveIdentityPhoto: File | null;
     seniorProof: File | null;
@@ -1216,6 +1224,27 @@ function IdentityVerificationStep({
                         </p>
                     </div>
                 </div>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+                <label htmlFor="registration-qr-token" className="block text-sm font-semibold text-gray-800">
+                    Existing Resident QR token <span className="font-normal text-gray-500">(optional)</span>
+                </label>
+                <p className="mt-1 text-xs leading-5 text-gray-500">
+                    Enter the raw token from your existing KaBarangay Resident QR. It may help staff find a matching record, but it does not prove identity or link an account. You can continue without it.
+                </p>
+                <input
+                    id="registration-qr-token"
+                    type="text"
+                    value={qrToken}
+                    onChange={(event) => onQrTokenChange(event.target.value)}
+                    maxLength={69}
+                    autoComplete="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    className="mt-3 min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-[#3f6f3d] focus:outline-none focus:ring-2 focus:ring-[#3f6f3d]/20"
+                    placeholder="KBQR-…"
+                />
             </div>
 
             <div>
@@ -1346,7 +1375,7 @@ function AccountSecurityStep({
                         type="email"
                         value={data.email}
                         placeholder="name@example.com"
-                        helper="Optional"
+                        helper="Optional. Verify it to receive decision emails. Verification is not required for Admin approval."
                         error={errors('email')}
                         onChange={(value) => {
                             setData('email', value);

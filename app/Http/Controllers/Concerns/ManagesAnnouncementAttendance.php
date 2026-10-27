@@ -8,6 +8,8 @@ use App\Models\Resident;
 use App\Support\QrAttendanceProof;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -46,7 +48,7 @@ trait ManagesAnnouncementAttendance
      */
     protected function ensureAttendanceIsOpen(Announcement $announcement): void
     {
-        if ($announcement->approval_status !== 'approved' || ! $announcement->requires_attendance) {
+        if (! $announcement->attendanceIsAvailable()) {
             abort(403, 'Attendance cannot be recorded for this announcement.');
         }
     }
@@ -129,12 +131,20 @@ trait ManagesAnnouncementAttendance
     }
 
     /**
-     * Atomically create or update the attendance row for a resident.
+     * Create the attendance row for a resident without ever replacing an
+     * existing record.
      *
-     * The insert-or-update is performed by the database against the
-     * (announcement_id, resident_id) unique index, so concurrent manual and QR
-     * submissions resolve to a single logical record instead of raising a
-     * duplicate-key error.
+     * The read below is only a fast path for the common duplicate case. The
+     * database unique index on (announcement_id, resident_id) remains the
+     * authority for concurrent first submissions: if two requests both observe
+     * no existing row, exactly one insert succeeds and the other catches the
+     * unique-constraint violation, re-reads the winner, and reports a duplicate.
+     *
+     * Existing rows are intentionally never updated in this phase. In
+     * particular, a present row cannot be changed to claimed because the
+     * single status column would erase the original attendance metadata.
+     *
+     * @return array{outcome: string, message: string, tone: string}
      */
     protected function recordAttendance(
         Announcement $announcement,
@@ -142,11 +152,17 @@ trait ManagesAnnouncementAttendance
         string $status,
         ?string $method,
         ?int $verifiedBy,
-    ): void {
+    ): array {
+        $existing = $this->findAttendanceRecord($announcement, $resident);
+
+        if ($existing !== null) {
+            return $this->existingAttendanceOutcome($existing, $status);
+        }
+
         $now = now();
 
-        AnnouncementAttendance::upsert(
-            [[
+        try {
+            AnnouncementAttendance::create([
                 'barangay_id' => $announcement->barangay_id,
                 'announcement_id' => $announcement->id,
                 'resident_id' => $resident->id,
@@ -154,11 +170,78 @@ trait ManagesAnnouncementAttendance
                 'method' => $method ?? 'manual',
                 'attended_at' => $now,
                 'verified_by' => $verifiedBy,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]],
-            ['announcement_id', 'resident_id'],
-            ['status', 'method', 'attended_at', 'verified_by', 'updated_at'],
-        );
+            ]);
+        } catch (UniqueConstraintViolationException $exception) {
+            $existing = $this->findAttendanceRecord($announcement, $resident);
+
+            if ($existing === null) {
+                throw $exception;
+            }
+
+            return $this->existingAttendanceOutcome($existing, $status);
+        }
+
+        return [
+            'outcome' => 'recorded',
+            'message' => "Attendance recorded successfully for {$resident->full_name}.",
+            'tone' => 'success',
+        ];
+    }
+
+    /**
+     * Build the redirect payload for an attendance attempt.
+     *
+     * The structured outcome lets the frontend distinguish a new attendance
+     * from a duplicate without inferring anything from stale page props.
+     *
+     * @param  array{outcome: string, message: string, tone: string}  $result
+     */
+    protected function attendanceResponse(array $result): RedirectResponse
+    {
+        return redirect()->back()->with([
+            'attendance_outcome' => $result['outcome'],
+            $result['tone'] => $result['message'],
+        ]);
+    }
+
+    private function findAttendanceRecord(Announcement $announcement, Resident $resident): ?AnnouncementAttendance
+    {
+        return AnnouncementAttendance::query()
+            ->where('barangay_id', $announcement->barangay_id)
+            ->where('announcement_id', $announcement->id)
+            ->where('resident_id', $resident->id)
+            ->first();
+    }
+
+    /**
+     * @return array{outcome: string, message: string, tone: string}
+     */
+    private function existingAttendanceOutcome(AnnouncementAttendance $existing, string $requestedStatus): array
+    {
+        if ($existing->status === 'claimed') {
+            return [
+                'outcome' => 'already_claimed',
+                'message' => 'Already claimed. This attendee has already claimed their aid.',
+                'tone' => 'warning',
+            ];
+        }
+
+        if ($existing->status === 'present' && $requestedStatus === 'present') {
+            return [
+                'outcome' => 'already_present',
+                'message' => 'Already present. This attendee has already been scanned.',
+                'tone' => 'warning',
+            ];
+        }
+
+        return [
+            'outcome' => 'existing_record_conflict',
+            'message' => sprintf(
+                'This attendee already has an attendance record with status "%s". Changing it to "%s" would overwrite the original attendance details, which is not supported in this phase. No changes were made.',
+                $existing->status,
+                $requestedStatus,
+            ),
+            'tone' => 'warning',
+        ];
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Barangay;
 use App\Models\Certificate;
 use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
+use App\Models\OrgChartPosition;
 use App\Models\Purok;
 use App\Support\CertificateTemplates;
 use Illuminate\Contracts\Debug\ExceptionHandler;
@@ -46,6 +47,15 @@ class CertificateIssuanceGenerationTest extends TestCase
             'fee' => 300,
             'is_active' => true,
         ]);
+
+        $creator = $this->createStaff($this->barangay, 'clerk');
+        OrgChartPosition::create([
+            'barangay_id' => $this->barangay->id,
+            'title' => 'Punong Barangay',
+            'assigned_person' => 'HON. TEST',
+            'status' => 'published',
+            'created_by' => $creator->id,
+        ]);
     }
 
     public function test_successful_generation_persists_exactly_one_issuance_and_downloads(): void
@@ -64,6 +74,7 @@ class CertificateIssuanceGenerationTest extends TestCase
         $issuance = CertificateIssuance::query()->first();
         $this->assertSame('Juan Dela Cruz', $issuance->resident_name);
         $this->assertSame('Tricycle', $issuance->certificate_type);
+        $this->assertSame('CTRL-2026-0001', $issuance->control_no);
     }
 
     public function test_reference_format_is_issue_year_eight_alnum_and_unique(): void
@@ -73,7 +84,9 @@ class CertificateIssuanceGenerationTest extends TestCase
         $clerk = $this->createStaff($this->barangay, 'clerk');
 
         for ($i = 0; $i < 3; $i++) {
-            $this->actingAs($clerk)->post('/clerk/generate-certificate', $this->validPayload())->assertOk();
+            $this->actingAs($clerk)->post('/clerk/generate-certificate', $this->validPayload([
+                'control_no' => 'CTRL-2026-'.str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT),
+            ]))->assertOk();
         }
 
         $references = CertificateIssuance::query()->pluck('reference')->all();
@@ -84,6 +97,43 @@ class CertificateIssuanceGenerationTest extends TestCase
         foreach ($references as $reference) {
             $this->assertMatchesRegularExpression('/^ISSUE-\d{4}-[A-Z0-9]{8}$/', $reference);
         }
+    }
+
+    public function test_control_numbers_are_unique_within_a_barangay_but_may_repeat_across_barangays(): void
+    {
+        $this->requireTricycleTemplate();
+
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $payload = $this->validPayload(['control_no' => 'CTRL-2026-0088']);
+
+        $this->actingAs($clerk)
+            ->post('/clerk/generate-certificate', $payload)
+            ->assertOk();
+
+        $this->actingAs($clerk)
+            ->from('/clerk/certificates')
+            ->post('/clerk/generate-certificate', $payload)
+            ->assertRedirect('/clerk/certificates')
+            ->assertSessionHasErrors('control_no');
+
+        $otherBarangay = $this->createBarangay('Barangay Two', 'BRGY-TWO');
+        $otherClerk = $this->createStaff($otherBarangay, 'clerk');
+        OrgChartPosition::create([
+            'barangay_id' => $otherBarangay->id,
+            'title' => 'Punong Barangay',
+            'assigned_person' => 'HON. TEST',
+            'status' => 'published',
+            'created_by' => $otherClerk->id,
+        ]);
+
+        $this->actingAs($otherClerk)
+            ->post('/clerk/generate-certificate', $payload)
+            ->assertOk();
+
+        $this->assertSame(2, CertificateIssuance::query()->count());
+        $this->assertSame(2, CertificateIssuance::query()
+            ->where('control_no', 'CTRL-2026-0088')
+            ->count());
     }
 
     public function test_barangay_and_issuer_ids_come_from_the_authenticated_user(): void
@@ -104,6 +154,22 @@ class CertificateIssuanceGenerationTest extends TestCase
 
         $this->assertSame($this->barangay->id, $issuance->barangay_id);
         $this->assertSame($clerk->id, $issuance->issued_by);
+    }
+
+    public function test_unpublished_or_foreign_signatory_is_rejected(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $this->actingAs($clerk)
+            ->from('/clerk/certificates')
+            ->post('/clerk/generate-certificate', $this->validPayload([
+                'signatory_name' => 'Unapproved Person',
+                'signatory_title' => 'Punong Barangay',
+            ]))
+            ->assertRedirect('/clerk/certificates')
+            ->assertSessionHasErrors('signatory_name');
+
+        $this->assertSame(0, CertificateIssuance::query()->count());
     }
 
     public function test_linked_request_snapshots_the_trusted_fee(): void

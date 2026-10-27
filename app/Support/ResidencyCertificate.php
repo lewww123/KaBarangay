@@ -13,9 +13,8 @@ use RuntimeException;
  *
  * The certificate is rendered from `storage/app/templates/residency.docx`,
  * whose merge fields are fixed. The template states its own purpose ("PROOF OF
- * RESIDENCY.") and carries its own Punong Barangay / Officer on Duty
- * signature blocks, and it prints no control number, so the generic purpose,
- * signatory, and control number inputs are not part of this certificate.
+ * RESIDENCY.") and includes a signatory field sourced from the published
+ * barangay Organizational Chart.
  *
  * The resident identity on the certificate (full name, purok) comes from the
  * linked resident profile only. A client-supplied name or purok is never
@@ -42,9 +41,8 @@ class ResidencyCertificate
      *
      * `resident’s_name` uses a curly apostrophe (U+2019) and must match the
      * DOCX exactly. `residents_name` is the second, ASCII spelling of the same
-     * name. The template carries no control number, purpose, fee, signatory,
-     * or signatory title merge field, so those values are not part of this
-     * contract.
+     * name. The template also carries a signatory merge field populated from
+     * the published barangay Organizational Chart.
      *
      * @var array<int, string>
      */
@@ -53,6 +51,7 @@ class ResidencyCertificate
         "resident\u{2019}s_name",
         'purok',
         'residents_name',
+        'signatory_name',
         'years_of_residency',
     ];
 
@@ -77,9 +76,8 @@ class ResidencyCertificate
     /**
      * The validation rules that apply only to the Residency certificate.
      *
-     * The template prints its own purpose, carries its own signature blocks,
-     * and prints no control number, so those inputs are not collected for this
-     * certificate. The resident name and purok are taken from the linked
+     * The template prints its own purpose. Its signatory comes from the
+     * published barangay Organizational Chart. The resident name and purok are taken from the linked
      * resident profile, so the client-supplied values are not required either.
      *
      * @return array<string, mixed>
@@ -162,6 +160,7 @@ class ResidencyCertificate
                 self::YEARS_OF_RESIDENCY_MIN,
                 self::YEARS_OF_RESIDENCY_MAX
             ),
+            'signatory_name' => self::text($validated['signatory_name'] ?? null),
         ];
     }
 
@@ -220,6 +219,7 @@ class ResidencyCertificate
             'purok' => self::formatPurok((string) ($values['purok'] ?? '')),
             'years_of_residency' => (string) ($values['years_of_residency'] ?? ''),
             'current_date' => self::formatIssueDate(),
+            'signatory_name' => mb_strtoupper((string) ($values['signatory_name'] ?? '')),
         ];
     }
 

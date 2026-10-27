@@ -314,7 +314,7 @@ class SettingsController extends Controller
         $tables['announcements'] = $this->exportDirect(
             'announcements',
             $barangayId,
-            ['id', 'barangay_id', 'created_by', 'title', 'content', 'category', 'target_audience', 'target_sector_id', 'requires_attendance', 'event_start_at', 'location', 'is_published', 'approval_status', 'reviewed_by', 'reviewed_at', 'created_at', 'updated_at'],
+            ['id', 'barangay_id', 'created_by', 'title', 'content', 'category', 'importance', 'target_audience', 'target_sector_id', 'requires_attendance', 'event_start_at', 'location', 'is_published', 'approval_status', 'reviewed_by', 'reviewed_at', 'completed_at', 'completed_by', 'created_at', 'updated_at'],
         );
 
         $tables['announcement_attendances'] = $this->exportDirect(

@@ -1,66 +1,51 @@
-import { router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { router, useForm, usePage } from '@inertiajs/react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import {
+    defaultResidentSettings,
+    readResidentSettings,
+    RESIDENT_SETTINGS_EVENT,
+    SETTINGS_STORAGE_KEY,
+} from '@/lib/residentSettings';
+import type {
+    ResidentSettings,
+    TextSize,
+    ThemeMode,
+} from '@/lib/residentSettings';
 import ResidentLayout from '@/layouts/ResidentLayout';
 
-export type ThemeMode = 'light' | 'dark' | 'system';
-export type TextSize = 'default' | 'large' | 'extra-large';
+export type { ResidentSettings, TextSize, ThemeMode };
+export { defaultResidentSettings, SETTINGS_STORAGE_KEY };
 
-export type ResidentSettings = {
-    theme: ThemeMode;
-    textSize: TextSize;
+const CHAT_STORAGE_KEY = 'kabarangay_assistant_state';
 
-    largeControls: boolean;
-    highContrast: boolean;
-    reduceMotion: boolean;
-    simplifiedView: boolean;
+const CERTIFICATE_FLOW_KEY = 'kabarangay_certificate_flow';
 
-    announcementNotifications: boolean;
-    certificateNotifications: boolean;
-    luponNotifications: boolean;
-    disbursementNotifications: boolean;
-};
-
-export const SETTINGS_STORAGE_KEY =
-    'kabarangay_resident_settings';
-
-export const defaultResidentSettings: ResidentSettings = {
-    theme: 'light',
-    textSize: 'default',
-
-    largeControls: false,
-    highContrast: false,
-    reduceMotion: false,
-    simplifiedView: false,
-
-    announcementNotifications: true,
-    certificateNotifications: true,
-    luponNotifications: true,
-    disbursementNotifications: true,
-};
-
-const CHAT_STORAGE_KEY =
-    'kabarangay_assistant_state';
-
-const CERTIFICATE_FLOW_KEY =
-    'kabarangay_certificate_flow';
+const ASSISTANT_CLEARED_EVENT = 'kabarangay-assistant-cleared';
 
 export default function Settings() {
-    const [settings, setSettings] =
-        useState<ResidentSettings>(
-            defaultResidentSettings,
-        );
+    const { flash } = usePage<{
+        flash?: { success?: string | null };
+    }>().props;
 
-    const [loaded, setLoaded] =
-        useState(false);
+    const [settings, setSettings] = useState<ResidentSettings>(
+        defaultResidentSettings,
+    );
 
-    const [showSaved, setShowSaved] =
-        useState(false);
+    const [loaded, setLoaded] = useState(false);
 
-    const [showClearChat, setShowClearChat] =
-        useState(false);
+    const [showSaved, setShowSaved] = useState(false);
 
-    const [showPasswordModal, setShowPasswordModal] =
-        useState(false);
+    const [showClearChat, setShowClearChat] = useState(false);
+
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+    const initialSettingsLoad = useRef(true);
+
+    const passwordForm = useForm({
+        current_password: '',
+        password: '',
+        password_confirmation: '',
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -69,29 +54,7 @@ export default function Settings() {
     */
 
     useEffect(() => {
-        try {
-            const saved =
-                window.localStorage.getItem(
-                    SETTINGS_STORAGE_KEY,
-                );
-
-            if (saved) {
-                const parsed = JSON.parse(
-                    saved,
-                ) as Partial<ResidentSettings>;
-
-                setSettings({
-                    ...defaultResidentSettings,
-                    ...parsed,
-                });
-            }
-        } catch (error) {
-            console.error(
-                'Unable to load resident settings.',
-                error,
-            );
-        }
-
+        setSettings(readResidentSettings());
         setLoaded(true);
     }, []);
 
@@ -112,27 +75,26 @@ export default function Settings() {
                 JSON.stringify(settings),
             );
         } catch (error) {
-            console.error(
-                'Unable to save resident settings.',
-                error,
-            );
+            console.error('Unable to save resident settings.', error);
         }
 
         window.dispatchEvent(
-            new CustomEvent(
-                'kabarangay-settings-changed',
-                {
-                    detail: settings,
-                },
-            ),
+            new CustomEvent(RESIDENT_SETTINGS_EVENT, {
+                detail: settings,
+            }),
         );
+
+        if (initialSettingsLoad.current) {
+            initialSettingsLoad.current = false;
+
+            return;
+        }
 
         setShowSaved(true);
 
-        const timer =
-            window.setTimeout(() => {
-                setShowSaved(false);
-            }, 1000);
+        const timer = window.setTimeout(() => {
+            setShowSaved(false);
+        }, 1000);
 
         return () => {
             window.clearTimeout(timer);
@@ -145,9 +107,7 @@ export default function Settings() {
     |--------------------------------------------------------------------------
     */
 
-    const updateSetting = <
-        K extends keyof ResidentSettings,
-    >(
+    const updateSetting = <K extends keyof ResidentSettings>(
         key: K,
         value: ResidentSettings[K],
     ) => {
@@ -164,18 +124,15 @@ export default function Settings() {
     */
 
     const resetSettings = () => {
-        const confirmed =
-            window.confirm(
-                'Reset all accessibility and appearance settings?',
-            );
+        const confirmed = window.confirm(
+            'Reset all accessibility and appearance settings?',
+        );
 
         if (!confirmed) {
             return;
         }
 
-        setSettings(
-            defaultResidentSettings,
-        );
+        setSettings(defaultResidentSettings);
     };
 
     /*
@@ -186,21 +143,50 @@ export default function Settings() {
 
     const clearChatHistory = () => {
         try {
-            window.localStorage.removeItem(
-                CHAT_STORAGE_KEY,
-            );
+            window.localStorage.removeItem(CHAT_STORAGE_KEY);
 
-            window.localStorage.removeItem(
-                CERTIFICATE_FLOW_KEY,
-            );
+            window.localStorage.removeItem(CERTIFICATE_FLOW_KEY);
         } catch (error) {
-            console.error(
-                'Unable to clear chatbot history.',
-                error,
-            );
+            console.error('Unable to clear chatbot history.', error);
         }
 
+        window.dispatchEvent(new Event(ASSISTANT_CLEARED_EVENT));
+
         setShowClearChat(false);
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Change Password
+    |--------------------------------------------------------------------------
+    */
+
+    const openPasswordModal = () => {
+        passwordForm.reset();
+        passwordForm.clearErrors();
+        setShowPasswordModal(true);
+    };
+
+    const closePasswordModal = () => {
+        if (passwordForm.processing) {
+            return;
+        }
+
+        setShowPasswordModal(false);
+        passwordForm.reset();
+        passwordForm.clearErrors();
+    };
+
+    const submitPassword = (event: FormEvent) => {
+        event.preventDefault();
+
+        passwordForm.post('/resident/settings/password', {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowPasswordModal(false);
+                passwordForm.reset();
+            },
+        });
     };
 
     /*
@@ -210,10 +196,7 @@ export default function Settings() {
     */
 
     const handleLogout = () => {
-        const confirmed =
-            window.confirm(
-                'Are you sure you want to log out?',
-            );
+        const confirmed = window.confirm('Are you sure you want to log out?');
 
         if (!confirmed) {
             return;
@@ -225,17 +208,13 @@ export default function Settings() {
     return (
         <ResidentLayout active="settings">
             <div className="mx-auto w-full max-w-4xl">
-
                 {/* ========================================================
                     HEADER
                 ======================================================== */}
 
                 <div className="mb-6">
-
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-
                         <div className="min-w-0">
-
                             <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
                                 Settings
                             </h1>
@@ -244,26 +223,27 @@ export default function Settings() {
                                 Personalize KaBarangay for a more comfortable
                                 and accessible experience.
                             </p>
-
                         </div>
 
                         <div className="min-h-7">
-
                             {showSaved && (
                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-
                                     <CheckIcon />
-
                                     Changes saved
-
                                 </span>
                             )}
-
                         </div>
-
                     </div>
-
                 </div>
+
+                {flash?.success && (
+                    <div
+                        role="status"
+                        className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"
+                    >
+                        {flash.success}
+                    </div>
+                )}
 
                 {/* ========================================================
                     APPEARANCE
@@ -274,61 +254,33 @@ export default function Settings() {
                     title="Appearance"
                     description="Changes apply immediately across the Resident Portal."
                 >
-
                     <SettingLabel
                         title="Color theme"
                         description="Choose the appearance that is comfortable for your eyes."
                     />
 
                     <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
-
                         <ThemeButton
                             label="Light"
                             icon={<SunIcon />}
-                            selected={
-                                settings.theme ===
-                                'light'
-                            }
-                            onClick={() =>
-                                updateSetting(
-                                    'theme',
-                                    'light',
-                                )
-                            }
+                            selected={settings.theme === 'light'}
+                            onClick={() => updateSetting('theme', 'light')}
                         />
 
                         <ThemeButton
                             label="Dark"
                             icon={<MoonIcon />}
-                            selected={
-                                settings.theme ===
-                                'dark'
-                            }
-                            onClick={() =>
-                                updateSetting(
-                                    'theme',
-                                    'dark',
-                                )
-                            }
+                            selected={settings.theme === 'dark'}
+                            onClick={() => updateSetting('theme', 'dark')}
                         />
 
                         <ThemeButton
                             label="System"
                             icon={<SystemIcon />}
-                            selected={
-                                settings.theme ===
-                                'system'
-                            }
-                            onClick={() =>
-                                updateSetting(
-                                    'theme',
-                                    'system',
-                                )
-                            }
+                            selected={settings.theme === 'system'}
+                            onClick={() => updateSetting('theme', 'system')}
                         />
-
                     </div>
-
                 </SettingCard>
 
                 {/* ========================================================
@@ -336,13 +288,11 @@ export default function Settings() {
                 ======================================================== */}
 
                 <div className="mt-4">
-
                     <SettingCard
                         icon={<AccessibilityIcon />}
                         title="Accessibility"
                         description="Helpful options for seniors, PWD users, and residents who prefer easier controls."
                     >
-
                         {/* TEXT SIZE */}
 
                         <SettingLabel
@@ -351,52 +301,32 @@ export default function Settings() {
                         />
 
                         <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
-
                             <TextSizeButton
                                 label="Default"
                                 sampleClass="text-sm"
-                                selected={
-                                    settings.textSize ===
-                                    'default'
-                                }
+                                selected={settings.textSize === 'default'}
                                 onClick={() =>
-                                    updateSetting(
-                                        'textSize',
-                                        'default',
-                                    )
+                                    updateSetting('textSize', 'default')
                                 }
                             />
 
                             <TextSizeButton
                                 label="Large"
                                 sampleClass="text-lg"
-                                selected={
-                                    settings.textSize ===
-                                    'large'
-                                }
+                                selected={settings.textSize === 'large'}
                                 onClick={() =>
-                                    updateSetting(
-                                        'textSize',
-                                        'large',
-                                    )
+                                    updateSetting('textSize', 'large')
                                 }
                             />
 
                             <TextSizeButton
                                 label="Extra Large"
                                 sampleClass="text-xl"
-                                selected={
-                                    settings.textSize ===
-                                    'extra-large'
-                                }
+                                selected={settings.textSize === 'extra-large'}
                                 onClick={() =>
-                                    updateSetting(
-                                        'textSize',
-                                        'extra-large',
-                                    )
+                                    updateSetting('textSize', 'extra-large')
                                 }
                             />
-
                         </div>
 
                         <SectionDivider />
@@ -404,14 +334,9 @@ export default function Settings() {
                         <SwitchRow
                             title="Large Controls"
                             description="Makes buttons and important controls easier to tap."
-                            checked={
-                                settings.largeControls
-                            }
+                            checked={settings.largeControls}
                             onChange={(value) =>
-                                updateSetting(
-                                    'largeControls',
-                                    value,
-                                )
+                                updateSetting('largeControls', value)
                             }
                         />
 
@@ -420,14 +345,9 @@ export default function Settings() {
                         <SwitchRow
                             title="High Contrast"
                             description="Strengthens text, borders, and visual separation."
-                            checked={
-                                settings.highContrast
-                            }
+                            checked={settings.highContrast}
                             onChange={(value) =>
-                                updateSetting(
-                                    'highContrast',
-                                    value,
-                                )
+                                updateSetting('highContrast', value)
                             }
                         />
 
@@ -436,14 +356,9 @@ export default function Settings() {
                         <SwitchRow
                             title="Reduce Motion"
                             description="Minimizes animations and moving transitions."
-                            checked={
-                                settings.reduceMotion
-                            }
+                            checked={settings.reduceMotion}
                             onChange={(value) =>
-                                updateSetting(
-                                    'reduceMotion',
-                                    value,
-                                )
+                                updateSetting('reduceMotion', value)
                             }
                         />
 
@@ -452,19 +367,12 @@ export default function Settings() {
                         <SwitchRow
                             title="Simplified View"
                             description="Removes extra shadows and decorative effects for a cleaner interface."
-                            checked={
-                                settings.simplifiedView
-                            }
+                            checked={settings.simplifiedView}
                             onChange={(value) =>
-                                updateSetting(
-                                    'simplifiedView',
-                                    value,
-                                )
+                                updateSetting('simplifiedView', value)
                             }
                         />
-
                     </SettingCard>
-
                 </div>
 
                 {/* ========================================================
@@ -472,34 +380,29 @@ export default function Settings() {
                 ======================================================== */}
 
                 <div className="mt-4 rounded-2xl border border-[#d8e6d3] bg-[#f4f8f2] p-4 sm:p-5">
-
                     <div className="flex items-start gap-3">
-
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-[#3f6f3d]">
                             <EyeIcon />
                         </div>
 
                         <div className="min-w-0">
-
                             <p className="text-sm font-bold text-gray-900">
                                 Accessibility Preview
                             </p>
 
                             <p className="mt-1 text-sm leading-6 text-gray-600">
                                 This panel changes together with your settings.
-                                Try changing text size, contrast, or motion options.
+                                Try changing text size, contrast, or motion
+                                options.
                             </p>
 
                             <div className="mt-3 flex flex-wrap gap-2">
-
                                 <StatusChip
                                     label="Text"
                                     value={
-                                        settings.textSize ===
-                                        'default'
+                                        settings.textSize === 'default'
                                             ? 'Default'
-                                            : settings.textSize ===
-                                                'large'
+                                            : settings.textSize === 'large'
                                               ? 'Large'
                                               : 'Extra Large'
                                     }
@@ -531,13 +434,9 @@ export default function Settings() {
                                             : 'Normal'
                                     }
                                 />
-
                             </div>
-
                         </div>
-
                     </div>
-
                 </div>
 
                 {/* ========================================================
@@ -545,19 +444,15 @@ export default function Settings() {
                 ======================================================== */}
 
                 <div className="mt-4">
-
                     <SettingCard
                         icon={<BellIcon />}
                         title="Notifications"
                         description="Choose which resident updates you want to receive."
                     >
-
                         <SwitchRow
                             title="Announcements"
                             description="Barangay advisories, events, and important public notices."
-                            checked={
-                                settings.announcementNotifications
-                            }
+                            checked={settings.announcementNotifications}
                             onChange={(value) =>
                                 updateSetting(
                                     'announcementNotifications',
@@ -571,14 +466,9 @@ export default function Settings() {
                         <SwitchRow
                             title="Certificate Updates"
                             description="Changes to your certificate request status."
-                            checked={
-                                settings.certificateNotifications
-                            }
+                            checked={settings.certificateNotifications}
                             onChange={(value) =>
-                                updateSetting(
-                                    'certificateNotifications',
-                                    value,
-                                )
+                                updateSetting('certificateNotifications', value)
                             }
                         />
 
@@ -587,14 +477,9 @@ export default function Settings() {
                         <SwitchRow
                             title="Lupon Updates"
                             description="Complaint status and hearing schedule updates."
-                            checked={
-                                settings.luponNotifications
-                            }
+                            checked={settings.luponNotifications}
                             onChange={(value) =>
-                                updateSetting(
-                                    'luponNotifications',
-                                    value,
-                                )
+                                updateSetting('luponNotifications', value)
                             }
                         />
 
@@ -603,9 +488,7 @@ export default function Settings() {
                         <SwitchRow
                             title="Disbursement Alerts"
                             description="Know when you are included or when assistance is ready for claim."
-                            checked={
-                                settings.disbursementNotifications
-                            }
+                            checked={settings.disbursementNotifications}
                             onChange={(value) =>
                                 updateSetting(
                                     'disbursementNotifications',
@@ -614,8 +497,12 @@ export default function Settings() {
                             }
                         />
 
+                        <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                            These preferences are saved on this device. Push,
+                            email, and SMS notification delivery is not
+                            available in KaBarangay yet.
+                        </p>
                     </SettingCard>
-
                 </div>
 
                 {/* ========================================================
@@ -623,23 +510,18 @@ export default function Settings() {
                 ======================================================== */}
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
-
                     <SettingCard
                         icon={<PrivacyIcon />}
                         title="Privacy"
                         description="Manage locally stored information."
                     >
-
                         <ActionRow
                             title="KaBarangay Assistant History"
                             description="Delete the saved chatbot conversation on this device."
                             button="Clear"
                             danger
-                            onClick={() =>
-                                setShowClearChat(true)
-                            }
+                            onClick={() => setShowClearChat(true)}
                         />
-
                     </SettingCard>
 
                     <SettingCard
@@ -647,16 +529,11 @@ export default function Settings() {
                         title="Account & Security"
                         description="Manage your resident account."
                     >
-
                         <ActionRow
                             title="Change Password"
                             description="Update your resident account password."
                             button="Change"
-                            onClick={() =>
-                                setShowPasswordModal(
-                                    true,
-                                )
-                            }
+                            onClick={openPasswordModal}
                         />
 
                         <SectionDivider />
@@ -666,13 +543,9 @@ export default function Settings() {
                             description="Sign out of this resident account."
                             button="Log Out"
                             danger
-                            onClick={
-                                handleLogout
-                            }
+                            onClick={handleLogout}
                         />
-
                     </SettingCard>
-
                 </div>
 
                 {/* ========================================================
@@ -680,19 +553,14 @@ export default function Settings() {
                 ======================================================== */}
 
                 <div className="mt-5 flex justify-center sm:justify-end">
-
                     <button
                         type="button"
-                        onClick={
-                            resetSettings
-                        }
+                        onClick={resetSettings}
                         className="min-h-10 rounded-lg px-3 text-sm font-semibold text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
                     >
                         Reset accessibility settings
                     </button>
-
                 </div>
-
             </div>
 
             {/* ============================================================
@@ -700,14 +568,8 @@ export default function Settings() {
             ============================================================ */}
 
             {showClearChat && (
-                <Modal
-                    onClose={() =>
-                        setShowClearChat(false)
-                    }
-                >
-
+                <Modal onClose={() => setShowClearChat(false)}>
                     <div className="text-center">
-
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
                             <TrashIcon />
                         </div>
@@ -717,19 +579,14 @@ export default function Settings() {
                         </h2>
 
                         <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-gray-500">
-                            Your saved KaBarangay Assistant conversation
-                            on this device will be removed.
+                            Your saved KaBarangay Assistant conversation on this
+                            device will be removed.
                         </p>
 
                         <div className="mt-5 grid grid-cols-2 gap-3">
-
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setShowClearChat(
-                                        false,
-                                    )
-                                }
+                                onClick={() => setShowClearChat(false)}
                                 className="min-h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                             >
                                 Cancel
@@ -737,18 +594,13 @@ export default function Settings() {
 
                             <button
                                 type="button"
-                                onClick={
-                                    clearChatHistory
-                                }
+                                onClick={clearChatHistory}
                                 className="min-h-11 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-700"
                             >
                                 Clear
                             </button>
-
                         </div>
-
                     </div>
-
                 </Modal>
             )}
 
@@ -757,18 +609,10 @@ export default function Settings() {
             ============================================================ */}
 
             {showPasswordModal && (
-                <Modal
-                    onClose={() =>
-                        setShowPasswordModal(false)
-                    }
-                >
-
+                <Modal onClose={closePasswordModal}>
                     <div>
-
                         <div className="flex items-start justify-between gap-3">
-
                             <div>
-
                                 <h2 className="text-lg font-bold text-gray-900">
                                     Change Password
                                 </h2>
@@ -776,56 +620,80 @@ export default function Settings() {
                                 <p className="mt-1 text-sm leading-5 text-gray-500">
                                     Enter your current and new password.
                                 </p>
-
                             </div>
 
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setShowPasswordModal(
-                                        false,
-                                    )
-                                }
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100"
+                                onClick={closePasswordModal}
+                                disabled={passwordForm.processing}
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 disabled:opacity-50"
+                                aria-label="Close change password dialog"
                             >
                                 <CloseIcon />
                             </button>
-
                         </div>
 
-                        <div className="mt-5 space-y-4">
+                        <form onSubmit={submitPassword}>
+                            <div className="mt-5 space-y-4">
+                                <PasswordField
+                                    id="current-password"
+                                    label="Current Password"
+                                    autoComplete="current-password"
+                                    value={passwordForm.data.current_password}
+                                    onChange={(value) =>
+                                        passwordForm.setData(
+                                            'current_password',
+                                            value,
+                                        )
+                                    }
+                                    error={passwordForm.errors.current_password}
+                                />
 
-                            <PasswordField
-                                label="Current Password"
-                            />
+                                <PasswordField
+                                    id="new-password"
+                                    label="New Password"
+                                    autoComplete="new-password"
+                                    value={passwordForm.data.password}
+                                    onChange={(value) =>
+                                        passwordForm.setData('password', value)
+                                    }
+                                    error={passwordForm.errors.password}
+                                    hint="Use at least 8 characters."
+                                />
 
-                            <PasswordField
-                                label="New Password"
-                            />
+                                <PasswordField
+                                    id="confirm-new-password"
+                                    label="Confirm New Password"
+                                    autoComplete="new-password"
+                                    value={
+                                        passwordForm.data.password_confirmation
+                                    }
+                                    onChange={(value) =>
+                                        passwordForm.setData(
+                                            'password_confirmation',
+                                            value,
+                                        )
+                                    }
+                                    error={
+                                        passwordForm.errors
+                                            .password_confirmation
+                                    }
+                                />
+                            </div>
 
-                            <PasswordField
-                                label="Confirm New Password"
-                            />
-
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={() => {
-                                window.alert(
-                                    'Password updating will be connected when we implement resident authentication.',
-                                );
-                            }}
-                            className="mt-5 min-h-11 w-full rounded-xl bg-[#3f6f3d] px-4 text-sm font-semibold text-white transition hover:bg-[#315b30]"
-                        >
-                            Update Password
-                        </button>
-
+                            <button
+                                type="submit"
+                                disabled={passwordForm.processing}
+                                className="mt-5 min-h-11 w-full rounded-xl bg-[#3f6f3d] px-4 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {passwordForm.processing
+                                    ? 'Updating…'
+                                    : 'Update Password'}
+                            </button>
+                        </form>
                     </div>
-
                 </Modal>
             )}
-
         </ResidentLayout>
     );
 }
@@ -849,15 +717,12 @@ function SettingCard({
 }) {
     return (
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-
             <div className="flex items-start gap-3">
-
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f1e4] text-[#3f6f3d]">
                     {icon}
                 </div>
 
                 <div className="min-w-0">
-
                     <h2 className="text-base font-bold text-gray-900">
                         {title}
                     </h2>
@@ -865,15 +730,10 @@ function SettingCard({
                     <p className="mt-0.5 max-w-lg text-xs leading-5 text-gray-500 sm:text-sm">
                         {description}
                     </p>
-
                 </div>
-
             </div>
 
-            <div className="mt-5">
-                {children}
-            </div>
-
+            <div className="mt-5">{children}</div>
         </section>
     );
 }
@@ -893,15 +753,11 @@ function SettingLabel({
 }) {
     return (
         <div>
-
-            <p className="text-sm font-semibold text-gray-800">
-                {title}
-            </p>
+            <p className="text-sm font-semibold text-gray-800">{title}</p>
 
             <p className="mt-0.5 max-w-lg text-xs leading-5 text-gray-500">
                 {description}
             </p>
-
         </div>
     );
 }
@@ -925,11 +781,8 @@ function SwitchRow({
 }) {
     return (
         <div className="flex items-center justify-between gap-4 py-0.5">
-
             <div className="min-w-0 pr-2">
-
                 <div className="flex flex-wrap items-center gap-2">
-
                     <p className="text-sm font-semibold text-gray-800">
                         {title}
                     </p>
@@ -941,38 +794,29 @@ function SwitchRow({
                                 : 'bg-gray-100 text-gray-500'
                         }`}
                     >
-                        {checked
-                            ? 'ON'
-                            : 'OFF'}
+                        {checked ? 'ON' : 'OFF'}
                     </span>
-
                 </div>
 
                 <p className="mt-1 max-w-lg text-xs leading-5 text-gray-500">
                     {description}
                 </p>
-
             </div>
 
             <button
                 type="button"
                 role="switch"
                 aria-checked={checked}
-                onClick={() =>
-                    onChange(!checked)
-                }
+                onClick={() => onChange(!checked)}
                 className={`kb-setting-switch relative h-8 w-[54px] shrink-0 rounded-full border transition-all duration-200 ${
                     checked
                         ? 'border-[#3f6f3d] bg-[#3f6f3d] shadow-sm'
                         : 'border-gray-300 bg-gray-200'
                 }`}
             >
-
                 <span
                     className={`absolute top-[3px] flex h-6 w-6 items-center justify-center rounded-full bg-white shadow transition-transform duration-200 ${
-                        checked
-                            ? 'translate-x-[25px]'
-                            : 'translate-x-[3px]'
+                        checked ? 'translate-x-[25px]' : 'translate-x-[3px]'
                     }`}
                 >
                     {checked && (
@@ -981,9 +825,7 @@ function SwitchRow({
                         </span>
                     )}
                 </span>
-
             </button>
-
         </div>
     );
 }
@@ -1015,17 +857,13 @@ function ThemeButton({
                     : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
             }`}
         >
-
             <div className="flex flex-col items-center gap-2">
-
                 {icon}
 
                 <span className="text-xs font-semibold sm:text-sm">
                     {label}
                 </span>
-
             </div>
-
         </button>
     );
 }
@@ -1057,14 +895,10 @@ function TextSizeButton({
                     : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
             }`}
         >
-
             <div className="flex flex-col items-center justify-center">
-
                 <span
                     className={`font-bold ${
-                        selected
-                            ? 'text-[#315b30]'
-                            : 'text-gray-700'
+                        selected ? 'text-[#315b30]' : 'text-gray-700'
                     } ${sampleClass}`}
                 >
                     Aa
@@ -1073,9 +907,7 @@ function TextSizeButton({
                 <span className="mt-1 text-[10px] font-semibold text-gray-500 sm:text-xs">
                     {label}
                 </span>
-
             </div>
-
         </button>
     );
 }
@@ -1086,24 +918,12 @@ function TextSizeButton({
 |--------------------------------------------------------------------------
 */
 
-function StatusChip({
-    label,
-    value,
-}: {
-    label: string;
-    value: string;
-}) {
+function StatusChip({ label, value }: { label: string; value: string }) {
     return (
         <span className="inline-flex items-center gap-1 rounded-lg border border-[#dce8d8] bg-white px-2.5 py-1.5 text-xs">
+            <span className="text-gray-400">{label}:</span>
 
-            <span className="text-gray-400">
-                {label}:
-            </span>
-
-            <span className="font-semibold text-[#3f6f3d]">
-                {value}
-            </span>
-
+            <span className="font-semibold text-[#3f6f3d]">{value}</span>
         </span>
     );
 }
@@ -1129,17 +949,12 @@ function ActionRow({
 }) {
     return (
         <div className="flex items-center justify-between gap-4">
-
             <div className="min-w-0 pr-2">
-
-                <p className="text-sm font-semibold text-gray-800">
-                    {title}
-                </p>
+                <p className="text-sm font-semibold text-gray-800">{title}</p>
 
                 <p className="mt-1 text-xs leading-5 text-gray-500">
                     {description}
                 </p>
-
             </div>
 
             <button
@@ -1153,15 +968,12 @@ function ActionRow({
             >
                 {button}
             </button>
-
         </div>
     );
 }
 
 function SectionDivider() {
-    return (
-        <div className="my-4 border-t border-gray-100" />
-    );
+    return <div className="my-4 border-t border-gray-100" />;
 }
 
 /*
@@ -1171,23 +983,57 @@ function SectionDivider() {
 */
 
 function PasswordField({
+    id,
     label,
+    value,
+    onChange,
+    error,
+    autoComplete,
+    hint,
 }: {
+    id: string;
     label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    autoComplete: string;
+    hint?: string;
 }) {
     return (
         <div>
-
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+            <label
+                htmlFor={id}
+                className="mb-1.5 block text-sm font-semibold text-gray-700"
+            >
                 {label}
             </label>
 
             <input
+                id={id}
                 type="password"
-                placeholder="••••••••"
-                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 text-base text-gray-800 outline-none transition focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15 sm:text-sm"
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                autoComplete={autoComplete}
+                required
+                aria-invalid={Boolean(error)}
+                aria-describedby={
+                    error ? `${id}-error` : hint ? `${id}-hint` : undefined
+                }
+                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 text-base text-gray-800 transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15 sm:text-sm"
             />
 
+            {error ? (
+                <p
+                    id={`${id}-error`}
+                    className="mt-1 text-xs font-medium text-red-600"
+                >
+                    {error}
+                </p>
+            ) : hint ? (
+                <p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">
+                    {hint}
+                </p>
+            ) : null}
         </div>
     );
 }
@@ -1207,7 +1053,6 @@ function Modal({
 }) {
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-
             <button
                 type="button"
                 onClick={onClose}
@@ -1218,7 +1063,6 @@ function Modal({
             <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
                 {children}
             </div>
-
         </div>
     );
 }
@@ -1327,13 +1171,7 @@ function SecurityIcon() {
             strokeLinecap="round"
             strokeLinejoin="round"
         >
-            <rect
-                x="5"
-                y="10"
-                width="14"
-                height="10"
-                rx="2"
-            />
+            <rect x="5" y="10" width="14" height="10" rx="2" />
             <path d="M8 10V7a4 4 0 0 1 8 0v3" />
         </svg>
     );
@@ -1385,13 +1223,7 @@ function SystemIcon() {
             strokeLinecap="round"
             strokeLinejoin="round"
         >
-            <rect
-                x="3"
-                y="4"
-                width="18"
-                height="13"
-                rx="2"
-            />
+            <rect x="3" y="4" width="18" height="13" rx="2" />
             <path d="M8 21h8" />
             <path d="M12 17v4" />
         </svg>

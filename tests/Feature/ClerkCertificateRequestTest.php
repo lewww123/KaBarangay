@@ -6,8 +6,8 @@ use App\Models\Barangay;
 use App\Models\Certificate;
 use App\Models\CertificateRequest;
 use App\Models\Purok;
+use App\Support\CertificateRequestDetails;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Route;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
 
@@ -68,7 +68,7 @@ class ClerkCertificateRequestTest extends TestCase
                 ->where('requests.total', 1));
     }
 
-    public function test_admin_may_also_view_the_clerk_certificate_page(): void
+    public function test_admin_cannot_view_the_clerk_certificate_page(): void
     {
         $this->createRequest($this->barangay, $this->purok, $this->certificate, 'ADM-001');
 
@@ -76,8 +76,7 @@ class ClerkCertificateRequestTest extends TestCase
 
         $this->actingAs($admin)
             ->get('/clerk/certificates')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Clerk/Certificates')->has('requests.data', 1));
+            ->assertForbidden();
     }
 
     public function test_foreign_barangay_requests_never_appear(): void
@@ -384,23 +383,121 @@ class ClerkCertificateRequestTest extends TestCase
         $this->assertSame(['Barangay Clearance'], array_column($options, 'name'));
     }
 
-    public function test_clerk_has_no_request_status_update_route(): void
+    public function test_clerk_owns_status_updates_and_admin_route_is_removed(): void
     {
-        $request = $this->createRequest($this->barangay, $this->purok, $this->certificate, 'NO-UPDATE-001');
+        $request = $this->createRequest($this->barangay, $this->purok, $this->certificate, 'UPDATE-001');
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($clerk)
+            ->patchJson('/clerk/certificates/requests/'.$request->id.'/status', [
+                'status' => 'Processing',
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'Processing');
+
+        $this->assertSame('Processing', $request->refresh()->status);
+
+        $this->actingAs($admin)
+            ->put('/admin/certificates/'.$request->id.'/status', ['status' => 'Released'])
+            ->assertNotFound();
+
+        $this->assertSame('Processing', $request->refresh()->status);
+    }
+
+    public function test_clerk_can_revise_residency_years_and_original_value_is_preserved(): void
+    {
+        $residency = Certificate::create([
+            'barangay_id' => $this->barangay->id,
+            'code' => 'residency',
+            'name' => 'Certificate of Residency',
+            'fee' => 50,
+            'is_active' => true,
+        ]);
+
+        $request = $this->createRequest(
+            $this->barangay,
+            $this->purok,
+            $residency,
+            'REVISE-001',
+            [
+                'additional_details' => CertificateRequestDetails::encode(
+                    'Residency',
+                    ['years_of_residency' => '5'],
+                    'Resident note',
+                ),
+            ],
+        );
+
         $clerk = $this->createStaff($this->barangay, 'clerk');
 
         $this->actingAs($clerk)
-            ->put('/admin/certificates/'.$request->id.'/status', ['status' => 'Processing'])
-            ->assertStatus(403);
+            ->patchJson('/clerk/certificates/requests/'.$request->id, [
+                'details' => ['years_of_residency' => '7'],
+            ])
+            ->assertOk()
+            ->assertJsonPath('detail_values.years_of_residency', '7')
+            ->assertJsonPath('original_details.0.value', '5')
+            ->assertJsonPath('notes', 'Resident note');
 
-        $this->assertSame('Pending', $request->refresh()->status);
+        $decoded = CertificateRequestDetails::decode($request->refresh()->additional_details);
 
-        // The Clerk route group exposes no status-update endpoint of its own.
-        $clerkStatusRoutes = collect(Route::getRoutes()->getRoutes())
-            ->filter(fn ($route) => str_starts_with($route->uri(), 'clerk/certificates'))
-            ->reject(fn ($route) => in_array('GET', $route->methods(), true));
+        $this->assertSame('7', $decoded['fields']['years_of_residency']);
+        $this->assertSame('5', $decoded['original_fields']['years_of_residency']);
 
-        $this->assertTrue($clerkStatusRoutes->isEmpty(), 'Clerk certificates routes must be read-only.');
+        $this->actingAs($clerk)
+            ->patchJson('/clerk/certificates/requests/'.$request->id, [
+                'details' => ['years_of_residency' => '9'],
+            ])
+            ->assertOk();
+
+        $decoded = CertificateRequestDetails::decode($request->refresh()->additional_details);
+
+        $this->assertSame('9', $decoded['fields']['years_of_residency']);
+        $this->assertSame('5', $decoded['original_fields']['years_of_residency']);
+    }
+
+    public function test_clerk_detail_revision_validates_fields_and_scope(): void
+    {
+        $residency = Certificate::create([
+            'barangay_id' => $this->barangay->id,
+            'code' => 'residency',
+            'name' => 'Certificate of Residency',
+            'fee' => 50,
+            'is_active' => true,
+        ]);
+
+        $request = $this->createRequest(
+            $this->barangay,
+            $this->purok,
+            $residency,
+            'REVISE-002',
+            [
+                'additional_details' => CertificateRequestDetails::encode(
+                    'Residency',
+                    ['years_of_residency' => '5'],
+                    null,
+                ),
+            ],
+        );
+
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $this->actingAs($clerk)
+            ->patchJson('/clerk/certificates/requests/'.$request->id, [
+                'details' => ['years_of_residency' => '500'],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('details.years_of_residency');
+
+        $otherBarangay = $this->createBarangay('Barangay Two', 'BRGY-TWO');
+        $otherClerk = $this->createStaff($otherBarangay, 'clerk');
+
+        $this->actingAs($otherClerk)
+            ->patchJson('/clerk/certificates/requests/'.$request->id, [
+                'details' => ['years_of_residency' => '7'],
+            ])
+            ->assertNotFound();
     }
 
     public function test_qr_and_manual_entry_scanner_source_remains_intact(): void
@@ -554,6 +651,89 @@ class ClerkCertificateRequestTest extends TestCase
         $this->assertStringContainsString('All Records', $source);
         $this->assertStringNotContainsString('RES-SAMPLE', $source);
         $this->assertStringNotContainsString('LEWIN LAGUISMA', $source);
+    }
+
+    public function test_request_details_are_scoped_and_exclude_private_contact_fields(): void
+    {
+        $tricycle = Certificate::create([
+            'barangay_id' => $this->barangay->id,
+            'code' => 'TRICYCLE',
+            'name' => 'Tricycle',
+            'fee' => 300,
+            'is_active' => true,
+        ]);
+
+        $request = $this->createRequest(
+            $this->barangay,
+            $this->purok,
+            $tricycle,
+            'DETAIL-001',
+            [
+                'purpose' => 'Business Permit',
+                'business_name' => 'Juan Store',
+                'business_address' => 'Purok 1, Barangay One',
+                'additional_details' => CertificateRequestDetails::encode(
+                    'Tricycle',
+                    ['franchise_no' => 'FR-123'],
+                    'Please process this request.',
+                ),
+            ],
+            [
+                'first_name' => 'Juan',
+                'last_name' => 'Dela Cruz',
+                'mobile' => '09179998888',
+                'email' => 'juan@example.com',
+            ],
+        );
+
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $response = $this->actingAs($clerk)->get('/clerk/certificates/requests/'.$request->id);
+
+        $response->assertOk()
+            ->assertJsonPath('reference', 'DETAIL-001')
+            ->assertJsonPath('certificate', 'Tricycle')
+            ->assertJsonPath('certificate_type', 'Tricycle')
+            ->assertJsonPath('resident.name', 'Juan Dela Cruz')
+            ->assertJsonPath('purpose', 'Business Permit')
+            ->assertJsonPath('fee', '300.00')
+            ->assertJsonPath('business_name', 'Juan Store')
+            ->assertJsonPath('business_address', 'Purok 1, Barangay One')
+            ->assertJsonPath('notes', 'Please process this request.')
+            ->assertJsonPath('details.0.label', 'Franchise No.')
+            ->assertJsonPath('details.0.value', 'FR-123');
+
+        $resident = $response->json('resident');
+        $this->assertArrayNotHasKey('mobile', $resident);
+        $this->assertArrayNotHasKey('email', $resident);
+        $this->assertNull($response->json('admin_note'));
+        $this->assertSame('Pending', $response->json('status'));
+        $this->assertContains('Processing', $response->json('allowed_statuses'));
+
+        $otherBarangay = $this->createBarangay('Barangay Two', 'BRGY-TWO');
+        $otherPurok = $this->createPurok($otherBarangay, 'Purok 2');
+        $otherCertificate = Certificate::create([
+            'barangay_id' => $otherBarangay->id,
+            'code' => 'BRGY-CLEARANCE',
+            'name' => 'Barangay Clearance',
+            'fee' => 50,
+            'is_active' => true,
+        ]);
+        $foreignRequest = $this->createRequest($otherBarangay, $otherPurok, $otherCertificate, 'DETAIL-FOREIGN');
+
+        $this->actingAs($clerk)
+            ->get('/clerk/certificates/requests/'.$foreignRequest->id)
+            ->assertNotFound();
+    }
+
+    public function test_request_details_require_a_clerk_or_admin_role(): void
+    {
+        $request = $this->createRequest($this->barangay, $this->purok, $this->certificate, 'DETAIL-ROLE');
+        $senior = $this->createStaff($this->barangay, 'senior');
+
+        $this->actingAs($senior)
+            ->get('/clerk/certificates/requests/'.$request->id)
+            ->assertStatus(403);
     }
 
     private function createRequest(

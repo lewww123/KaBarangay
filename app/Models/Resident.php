@@ -16,6 +16,8 @@ class Resident extends Model
         'barangay_id',
         'purok_id',
         'resident_number',
+        'source',
+        'created_by',
         'first_name',
         'middle_name',
         'last_name',
@@ -26,6 +28,7 @@ class Resident extends Model
         'address_line',
         'mobile',
         'email',
+        'email_verified_at',
         'status',
         'approved_at',
     ];
@@ -34,6 +37,7 @@ class Resident extends Model
     {
         return [
             'birthdate' => 'date',
+            'email_verified_at' => 'datetime',
             'approved_at' => 'datetime',
         ];
     }
@@ -50,6 +54,15 @@ class Resident extends Model
             ResidentRegistration::class,
             'resident_registration_id'
         );
+    }
+
+    /**
+     * Registrations explicitly matched to this official Resident. This is
+     * separate from the immutable originating registration relationship.
+     */
+    public function matchedRegistrations(): HasMany
+    {
+        return $this->hasMany(ResidentRegistration::class, 'matched_resident_id');
     }
 
     /*
@@ -120,6 +133,32 @@ class Resident extends Model
 
     /*
     |--------------------------------------------------------------------------
+    | Claims / Verification / Notifications
+    |--------------------------------------------------------------------------
+    */
+
+    public function claims(): HasMany
+    {
+        return $this->hasMany(ResidentClaim::class);
+    }
+
+    public function emailVerificationTokens(): HasMany
+    {
+        return $this->hasMany(ResidentEmailVerificationToken::class);
+    }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(ResidentNotification::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Full Name
     |--------------------------------------------------------------------------
     */
@@ -145,5 +184,16 @@ class Resident extends Model
     public function certificateRequests(): HasMany
     {
         return $this->hasMany(CertificateRequest::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sector Applications
+    |--------------------------------------------------------------------------
+    */
+
+    public function sectorApplications(): HasMany
+    {
+        return $this->hasMany(SectorApplication::class);
     }
 }

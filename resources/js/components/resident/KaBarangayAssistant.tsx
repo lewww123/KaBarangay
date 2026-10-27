@@ -71,6 +71,9 @@ const CHAT_STORAGE_KEY = 'kabarangay_assistant_state';
 
 const CERTIFICATE_FLOW_KEY = 'kabarangay_certificate_flow';
 
+const ASSISTANT_CLEARED_EVENT =
+    'kabarangay-assistant-cleared';
+
 /*
 |--------------------------------------------------------------------------
 | Certificate Data
@@ -346,6 +349,32 @@ export default function KaBarangayAssistant() {
         }
 
         setLoaded(true);
+    }, []);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reset When Settings Clears History
+    |--------------------------------------------------------------------------
+    */
+
+    useEffect(() => {
+        const handleHistoryCleared = () => {
+            setMessages(initialMessages);
+            setSelectedCertificateId(null);
+            setMessage('');
+        };
+
+        window.addEventListener(
+            ASSISTANT_CLEARED_EVENT,
+            handleHistoryCleared,
+        );
+
+        return () => {
+            window.removeEventListener(
+                ASSISTANT_CLEARED_EVENT,
+                handleHistoryCleared,
+            );
+        };
     }, []);
 
     /*

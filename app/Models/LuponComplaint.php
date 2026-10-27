@@ -59,4 +59,15 @@ class LuponComplaint extends Model
     {
         return $this->belongsTo(Resident::class);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Promoted Case
+    |--------------------------------------------------------------------------
+    */
+
+    public function case(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(LuponCase::class, 'complaint_id');
+    }
 }

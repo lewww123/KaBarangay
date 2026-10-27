@@ -4,6 +4,7 @@ namespace Tests\Concerns;
 
 use App\Models\Announcement;
 use App\Models\Barangay;
+use App\Models\DisbursementDocument;
 use App\Models\Purok;
 use App\Models\Resident;
 use App\Models\ResidentAccount;
@@ -122,6 +123,25 @@ trait CreatesBarangayFixtures
             'target_audience' => 'all',
             'approval_status' => 'approved',
             'is_published' => true,
+            ...$attributes,
+        ]);
+    }
+
+    private function createDisbursementDocument(Barangay $barangay, array $attributes = []): DisbursementDocument
+    {
+        return DisbursementDocument::create([
+            'barangay_id' => $barangay->id,
+            'title' => 'Test Disbursement Document',
+            'description' => null,
+            'disk' => 'local',
+            'path' => 'disbursement-documents/'.$barangay->id.'/'.Str::uuid().'.pdf',
+            'original_name' => 'payout.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 1024,
+            'sha256' => str_repeat('a', 64),
+            'is_published' => true,
+            'published_at' => now(),
+            'archived_at' => null,
             ...$attributes,
         ]);
     }

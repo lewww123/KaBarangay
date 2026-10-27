@@ -176,7 +176,7 @@ class QrCredentialRevocationTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/VerifyResident')
                 ->where('verification.valid', true)
-                ->where('verification.barangay', $this->barangay->name));
+                ->where('verification.barangay', null));
     }
 
     public function test_revoked_credential_fails_staff_token_resolution(): void

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Barangay;
+use App\Models\OrgChartPosition;
 use App\Support\CertificateTemplates;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -21,6 +22,14 @@ class CertificateGenerationTest extends TestCase
         $this->withoutVite();
 
         $this->barangay = $this->createBarangay('Barangay One', 'BRGY-ONE');
+        $creator = $this->createStaff($this->barangay, 'clerk');
+        OrgChartPosition::create([
+            'barangay_id' => $this->barangay->id,
+            'title' => 'Punong Barangay',
+            'assigned_person' => 'HON. TEST',
+            'status' => 'published',
+            'created_by' => $creator->id,
+        ]);
     }
 
     public function test_availability_flags_stay_in_sync_with_template_inventory(): void
@@ -40,6 +49,32 @@ class CertificateGenerationTest extends TestCase
             $available,
             'Available types must be a subset of the known certificate types.'
         );
+    }
+
+    public function test_generic_templates_match_their_approved_merge_field_contracts(): void
+    {
+        $types = ['Indigency', 'Scholarship Certificate', 'Tricycle'];
+        $checked = 0;
+
+        foreach ($types as $type) {
+            if (! CertificateTemplates::isAvailable($type)) {
+                continue;
+            }
+
+            $this->assertNotNull(
+                CertificateTemplates::genericTemplateKeys($type),
+                "The [{$type}] template has no approved merge-field contract."
+            );
+
+            CertificateTemplates::assertTemplateContract($type, CertificateTemplates::path($type));
+            $checked++;
+        }
+
+        if ($checked === 0) {
+            $this->markTestSkipped('No generic certificate templates are present in this environment.');
+        }
+
+        $this->assertGreaterThan(0, $checked);
     }
 
     public function test_clerk_certificates_page_exposes_template_availability(): void

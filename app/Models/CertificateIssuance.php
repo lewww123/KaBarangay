@@ -12,6 +12,7 @@ class CertificateIssuance extends Model
         'certificate_request_id',
         'resident_id',
         'reference',
+        'control_no',
         'certificate_type',
         'resident_name',
         'resident_number',

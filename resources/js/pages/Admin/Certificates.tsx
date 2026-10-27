@@ -1,17 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import AdminLayout from '@/layouts/AdminLayout';
+
+interface CertificateRequestDetailRow {
+    label: string;
+    value: string;
+}
 
 interface CertificateRequestRow {
     id: number;
     reference: string;
     certificate: string;
+    certificate_type?: string | null;
     resident: {
         name: string;
         resident_number?: string | null;
     };
     purpose: string;
     fee: number;
+    business_name?: string | null;
+    business_address?: string | null;
+    additional_details?: string | null;
+    details?: CertificateRequestDetailRow[];
     status: string;
     admin_note?: string | null;
     submitted_at: string;
@@ -81,14 +91,8 @@ export default function AdminCertificates({ requests, stats, statuses = [], filt
 
     const [filterStatus, setFilterStatus] = useState(filters?.status ?? '');
     const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
-    const [managingRequest, setManagingRequest] = useState<CertificateRequestRow | null>(null);
 
     const lastQueried = useRef((filters?.search ?? '').trim());
-
-    const { data, setData, put, processing, errors, reset, clearErrors } = useForm({
-        status: '',
-        admin_note: '',
-    });
 
     const hasFilters = searchQuery.trim() !== '' || filterStatus !== '';
 
@@ -159,32 +163,6 @@ export default function AdminCertificates({ requests, stats, statuses = [], filt
         reloadRequests({ search: '', status: '', page: 1 });
     };
 
-    const openManage = (request: CertificateRequestRow) => {
-        setManagingRequest(request);
-        clearErrors();
-        setData({
-            status: request.status,
-            admin_note: request.admin_note ?? '',
-        });
-    };
-
-    const closeManage = () => {
-        setManagingRequest(null);
-        reset();
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!managingRequest) return;
-
-        put(`/admin/certificates/${managingRequest.id}/status`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                closeManage();
-            },
-        });
-    };
-
     return (
         <AdminLayout active="certificates">
             <Head title="Certificate Requests" />
@@ -199,7 +177,7 @@ export default function AdminCertificates({ requests, stats, statuses = [], filt
                 <div>
                     <h1 className="text-2xl font-semibold text-gray-800">Certificate Requests</h1>
                     <p className="mt-1 text-sm text-gray-500">
-                        Track and update certificate requests submitted by residents.
+                        Monitor aggregate certificate request activity submitted by residents.
                     </p>
                 </div>
             </div>
@@ -269,13 +247,12 @@ export default function AdminCertificates({ requests, stats, statuses = [], filt
                                 <th className="px-5 py-3">Certificate</th>
                                 <th className="px-5 py-3">Fee</th>
                                 <th className="px-5 py-3">Status</th>
-                                <th className="px-5 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {rows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-sm text-gray-500">
+                                    <td colSpan={5} className="p-8 text-center text-sm text-gray-500">
                                         {hasFilters
                                             ? 'No requests match the current filters.'
                                             : 'No certificate requests found.'}
@@ -303,15 +280,6 @@ export default function AdminCertificates({ requests, stats, statuses = [], filt
                                                 {request.status}
                                             </span>
                                         </td>
-                                        <td className="px-5 py-3.5 text-right">
-                                            <button
-                                                type="button"
-                                                onClick={() => openManage(request)}
-                                                className="inline-flex rounded border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
-                                            >
-                                                Manage
-                                            </button>
-                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -322,68 +290,6 @@ export default function AdminCertificates({ requests, stats, statuses = [], filt
                 <Pagination paginator={paginator} onNavigate={navigateRequests} />
             </div>
 
-            {managingRequest && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-lg space-y-4 rounded-lg bg-white p-6 shadow-xl">
-                        <div className="flex items-start justify-between border-b border-gray-100 pb-3">
-                            <div>
-                                <h2 className="text-base font-bold text-gray-900">Update Request Status</h2>
-                                <p className="mt-0.5 font-mono text-xs text-gray-400">{managingRequest.reference}</p>
-                            </div>
-                            <button onClick={closeManage} className="text-gray-400 hover:text-gray-600">✕</button>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-700">Status</label>
-                                <select
-                                    value={data.status}
-                                    onChange={(e) => setData('status', e.target.value)}
-                                    className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
-                                >
-                                    {statuses.map((status) => (
-                                        <option key={status} value={status}>
-                                            {status}
-                                        </option>
-                                    ))}
-                                </select>
-                                {errors.status && <p className="mt-1 text-xs text-red-500">{errors.status}</p>}
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-gray-700">
-                                    Admin Note {data.status === 'Rejected' && <span className="text-red-500">(required when rejected)</span>}
-                                </label>
-                                <textarea
-                                    rows={3}
-                                    value={data.admin_note}
-                                    onChange={(e) => setData('admin_note', e.target.value)}
-                                    className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
-                                    placeholder="Optional note shown to the resident."
-                                />
-                                {errors.admin_note && <p className="mt-1 text-xs text-red-500">{errors.admin_note}</p>}
-                            </div>
-
-                            <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
-                                <button
-                                    type="button"
-                                    onClick={closeManage}
-                                    className="rounded-md border border-gray-300 px-4 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#315b30]"
-                                >
-                                    Save Status
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </AdminLayout>
     );
 }

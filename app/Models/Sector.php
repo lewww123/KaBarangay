@@ -61,4 +61,15 @@ class Sector extends Model
             'resident_sector'
         )->withTimestamps();
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sector Applications
+    |--------------------------------------------------------------------------
+    */
+
+    public function sectorApplications(): HasMany
+    {
+        return $this->hasMany(SectorApplication::class);
+    }
 }

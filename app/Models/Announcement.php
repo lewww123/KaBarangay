@@ -2,13 +2,27 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Announcement extends Model
 {
-    use HasFactory;
+    public const IMPORTANCE_LOW = 'low';
+
+    public const IMPORTANCE_NORMAL = 'normal';
+
+    public const IMPORTANCE_HIGH = 'high';
+
+    public const IMPORTANCE_URGENT = 'urgent';
+
+    public const IMPORTANCE_LEVELS = [
+        self::IMPORTANCE_LOW,
+        self::IMPORTANCE_NORMAL,
+        self::IMPORTANCE_HIGH,
+        self::IMPORTANCE_URGENT,
+    ];
 
     protected $fillable = [
         'barangay_id',
@@ -16,6 +30,7 @@ class Announcement extends Model
         'title',
         'content',
         'category',
+        'importance',
         'target_audience',
         'target_sector_id',
         'requires_attendance',
@@ -26,6 +41,8 @@ class Announcement extends Model
         'rejection_reason',
         'reviewed_by',
         'reviewed_at',
+        'completed_at',
+        'completed_by',
     ];
 
     protected $casts = [
@@ -33,7 +50,13 @@ class Announcement extends Model
         'is_published' => 'boolean',
         'event_start_at' => 'datetime',
         'reviewed_at' => 'datetime',
+        'completed_at' => 'datetime',
     ];
+
+    public function attendanceIsAvailable(): bool
+    {
+        return $this->approval_status === 'approved' && $this->requires_attendance === true;
+    }
 
     public function revisionToken(): string
     {
@@ -64,28 +87,53 @@ class Announcement extends Model
         });
     }
 
-    public function author()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function reviewer()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
-    public function sector()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function completer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by');
+    }
+
+    /**
+     * @return BelongsTo<Sector, $this>
+     */
+    public function sector(): BelongsTo
     {
         return $this->belongsTo(Sector::class, 'target_sector_id');
     }
 
-    public function attendances()
+    /**
+     * @return HasMany<AnnouncementAttendance, $this>
+     */
+    public function attendances(): HasMany
     {
         return $this->hasMany(AnnouncementAttendance::class);
     }
 
-    public function approvalLogs()
+    /**
+     * @return HasMany<AnnouncementApprovalLog, $this>
+     */
+    public function approvalLogs(): HasMany
     {
-        return $this->hasMany(AnnouncementApprovalLog::class)->latest();
+        return $this->hasMany(AnnouncementApprovalLog::class)
+            ->latest('created_at')
+            ->latest('id');
     }
 }

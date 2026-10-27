@@ -38,15 +38,15 @@ export default function PwdDashboard({ userName, stats, recentAnnouncements = []
                                 Welcome, {userName}!
                             </h1>
                             <p className="mt-1 text-sm text-gray-600">
-                                Post PWD sector announcements, monitor admin review, and record distribution QR attendance.
+                                Review sector applications, publish updates, manage programs, and record attendance.
                             </p>
                         </div>
 
                         <Link
-                            href="/pwd/announcements"
+                            href="/pwd/updates"
                             className="inline-flex items-center gap-2 rounded-xl bg-blue-800 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-900"
                         >
-                            + Post PWD Announcement
+                            View Updates
                         </Link>
                     </div>
                 </div>
@@ -64,7 +64,7 @@ export default function PwdDashboard({ userName, stats, recentAnnouncements = []
 
                     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                         <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                            Total Sector Announcements
+                            Updates & Programs
                         </span>
                         <p className="mt-2 text-3xl font-extrabold text-gray-900">
                             {stats.totalAnnouncements}
@@ -73,7 +73,7 @@ export default function PwdDashboard({ userName, stats, recentAnnouncements = []
 
                     <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm">
                         <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                            Pending Approval
+                            Programs Pending Approval
                         </span>
                         <p className="mt-2 text-3xl font-extrabold text-amber-900">
                             {stats.pendingAnnouncements}
@@ -82,7 +82,7 @@ export default function PwdDashboard({ userName, stats, recentAnnouncements = []
 
                     <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm">
                         <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-                            Approved & Published
+                            Published Updates & Programs
                         </span>
                         <p className="mt-2 text-3xl font-extrabold text-emerald-800">
                             {stats.approvedAnnouncements}
@@ -95,14 +95,14 @@ export default function PwdDashboard({ userName, stats, recentAnnouncements = []
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-lg font-bold text-gray-900">
-                                PWD Sector Announcements & Events
+                                PWD Sector Updates & Programs
                             </h2>
                             <p className="text-xs text-gray-500">
-                                Recent updates submitted for PWD sector residents.
+                                Recent updates and programs for PWD sector residents.
                             </p>
                         </div>
                         <Link
-                            href="/pwd/announcements"
+                            href="/pwd/updates"
                             className="text-xs font-bold text-blue-800 hover:underline"
                         >
                             View All →
@@ -123,7 +123,7 @@ export default function PwdDashboard({ userName, stats, recentAnnouncements = []
                                 {recentAnnouncements.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="p-8 text-center text-sm text-gray-500">
-                                            No announcements posted yet for PWD sector.
+                                            No updates or programs posted yet for the PWD sector.
                                         </td>
                                     </tr>
                                 ) : (

@@ -7,15 +7,42 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Schema;
 
 class ResidentRegistration extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::updating(function (self $registration): void {
+            if (! $registration->isDirty('email')) {
+                return;
+            }
+
+            if (Schema::hasColumn('resident_registrations', 'email_verified_at')) {
+                $registration->setAttribute('email_verified_at', null);
+            }
+
+            if (Schema::hasTable('resident_registration_email_verification_tokens')) {
+                ResidentRegistrationEmailVerificationToken::query()
+                    ->where('resident_registration_id', $registration->getKey())
+                    ->whereNull('consumed_at')
+                    ->update([
+                        'consumed_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+            }
+        });
+    }
+
     protected $fillable = [
         'public_id',
         'barangay_id',
         'purok_id',
+        'matched_resident_id',
+        'matched_at',
+        'matched_by',
         'first_name',
         'middle_name',
         'last_name',
@@ -46,6 +73,8 @@ class ResidentRegistration extends Model
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'last_resubmitted_at' => 'datetime',
+            'matched_at' => 'datetime',
+            'email_verified_at' => 'datetime',
         ];
     }
 
@@ -106,11 +135,12 @@ class ResidentRegistration extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Permanent Resident
+    | Originating Resident
     |--------------------------------------------------------------------------
     |
-    | Once this registration is approved, it can create exactly one
-    | permanent resident record.
+    | Historical lineage to a Resident originally created from this
+    | registration. Identity matching uses matchedResident() and must never
+    | rewrite this original relationship.
     |
     */
 
@@ -120,5 +150,34 @@ class ResidentRegistration extends Model
             Resident::class,
             'resident_registration_id'
         );
+    }
+
+    /**
+     * Official Resident selected by an administrator during registration review.
+     */
+    public function matchedResident(): BelongsTo
+    {
+        return $this->belongsTo(Resident::class, 'matched_resident_id');
+    }
+
+    public function qrCredential(): BelongsTo
+    {
+        return $this->belongsTo(ResidentQrCredential::class, 'qr_credential_id');
+    }
+
+    public function emailVerificationTokens(): HasMany
+    {
+        return $this->hasMany(
+            ResidentRegistrationEmailVerificationToken::class,
+            'resident_registration_id'
+        );
+    }
+
+    public function correctionCycles(): HasMany
+    {
+        return $this->hasMany(
+            ResidentRegistrationCorrectionCycle::class,
+            'resident_registration_id'
+        )->orderBy('cycle_number');
     }
 }

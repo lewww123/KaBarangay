@@ -1,7 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
-type PwdPage = 'dashboard' | 'announcements';
+type PwdPage = 'dashboard' | 'announcements' | 'updates' | 'programs' | 'residents' | 'applications';
 
 type PwdLayoutProps = {
     children: ReactNode;
@@ -70,10 +70,31 @@ export default function PwdLayout({
                         />
 
                         <SidebarLink
-                            href="/pwd/announcements"
-                            icon="📢"
-                            label="Announcements"
-                            active={active === 'announcements'}
+                            href="/pwd/residents"
+                            icon="👥"
+                            label="Members"
+                            active={active === 'residents'}
+                        />
+
+                        <SidebarLink
+                            href="/pwd/applications"
+                            icon="📝"
+                            label="Applications"
+                            active={active === 'applications'}
+                        />
+
+                        <SidebarLink
+                            href="/pwd/updates"
+                            icon="U"
+                            label="Updates"
+                            active={active === 'updates'}
+                        />
+
+                        <SidebarLink
+                            href="/pwd/programs"
+                            icon="P"
+                            label="Programs"
+                            active={active === 'programs'}
                         />
 
                     </nav>

@@ -10,10 +10,13 @@ use App\Models\RegistrationDocument;
 use App\Models\ResidentRegistration;
 use App\Models\Sector;
 use App\Support\AuditLogger;
+use App\Support\ResidentRegistrationEmailVerificationService;
+use App\Support\ResidentRegistrationQrMatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -102,9 +105,25 @@ class RegistrationController extends Controller
     */
 
     public function store(
-        StoreResidentRegistrationRequest $request
+        StoreResidentRegistrationRequest $request,
+        ResidentRegistrationEmailVerificationService $emailVerification,
+        ResidentRegistrationQrMatcher $qrMatcher,
     ): RedirectResponse {
         $validated = $request->validated();
+        $qrCredentialId = null;
+
+        try {
+            $qrCredentialId = $qrMatcher->resolveCredential(
+                $request->registrationQrToken(),
+                (int) $validated['barangay_id'],
+            )?->getKey();
+        } catch (Throwable $exception) {
+            // QR is advisory: a lookup issue must not reject the application.
+            // Do not include the submitted token or exception message in logs.
+            Log::warning('Unable to resolve optional Resident registration QR reference.', [
+                'exception' => $exception::class,
+            ]);
+        }
 
         $storedFiles = [];
 
@@ -113,6 +132,7 @@ class RegistrationController extends Controller
                 function () use (
                     $request,
                     $validated,
+                    $qrCredentialId,
                     &$storedFiles
                 ) {
                     /*
@@ -151,6 +171,14 @@ class RegistrationController extends Controller
                         'status' => 'pending',
                         'submitted_at' => now(),
                     ]);
+
+                    // The submitted QR value is only resolved to a credential
+                    // reference. The raw token is never persisted.
+                    if ($qrCredentialId !== null) {
+                        $registration->forceFill([
+                            'qr_credential_id' => $qrCredentialId,
+                        ])->save();
+                    }
 
                     /*
                     |--------------------------------------------------------------------------
@@ -274,6 +302,7 @@ class RegistrationController extends Controller
                         'live_identity_photo',
                         'senior_proof',
                         'pwd_proof',
+                        'qr_token',
                     ])
                 )
                 ->withErrors([
@@ -303,6 +332,12 @@ class RegistrationController extends Controller
             $request->ip(),
         );
 
+        // Email verification is an eligibility signal for future decision
+        // notices only. It does not gate administrative review or approval.
+        if ($registration->email !== null && trim($registration->email) !== '') {
+            $emailVerification->send($registration);
+        }
+
         return redirect()
             ->route(
                 'resident.registration.submitted',
@@ -319,26 +354,13 @@ class RegistrationController extends Controller
     public function submitted(
         string $publicId
     ): Response {
-        $registration = ResidentRegistration::query()
-            ->where('public_id', $publicId)
-            ->firstOrFail([
-                'public_id',
-                'status',
-                'submitted_at',
-            ]);
-
         return Inertia::render(
             'Resident/RegistrationPending',
             [
-                /*
-                | Intentionally return only non-sensitive
-                | registration information.
-                */
                 'registration' => [
-                    'reference' => $registration->public_id,
-                    'status' => $registration->status,
-                    'submitted_at' =>
-                        $registration->submitted_at?->toIso8601String(),
+                    // The public submission receipt echoes only the reference;
+                    // current application status is available after password access.
+                    'reference' => $publicId,
                 ],
             ]
         );

@@ -17,9 +17,7 @@ class QrVerificationController extends Controller
             ->where('token', $token)
             ->where('is_active', true)
             ->whereNull('revoked_at')
-            ->with([
-                'resident.barangay',
-            ])
+            ->with('resident')
             ->first();
 
         /*
@@ -56,19 +54,15 @@ class QrVerificationController extends Controller
             );
         }
 
-        $resident = $qrCredential->resident;
-
         /*
         |--------------------------------------------------------------------------
         | Valid QR
         |--------------------------------------------------------------------------
         |
         | This page is public and is opened by anyone who scans a resident's QR
-        | code, so it deliberately exposes only the minimum needed to confirm
-        | that the credential belongs to an active resident: the validity flag,
-        | a human-readable message, and the issuing barangay. Resident-identifying
-        | fields (name, resident number), sector classification, home location
-        | and record status are intentionally not returned here.
+        | code, so it returns only the validity result and a generic message.
+        | Resident-identifying fields and barangay/location information are
+        | intentionally not returned here.
         |
         */
 
@@ -79,10 +73,9 @@ class QrVerificationController extends Controller
                     'valid' => true,
 
                     'message' =>
-                        'Resident verified successfully.',
+                        'This credential is valid.',
 
-                    'barangay' =>
-                        $resident->barangay?->name,
+                    'barangay' => null,
                 ],
             ]
         );

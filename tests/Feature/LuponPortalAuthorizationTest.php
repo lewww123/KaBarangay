@@ -55,6 +55,7 @@ class LuponPortalAuthorizationTest extends TestCase
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)->get('/lupon/dashboard')->assertStatus(403);
+        $this->actingAs($admin)->get('/lupon/hearings')->assertStatus(403);
     }
 
     public function test_super_admin_is_denied_on_the_lupon_portal(): void
@@ -70,6 +71,7 @@ class LuponPortalAuthorizationTest extends TestCase
             $staff = $this->createStaff($this->barangay, $role);
 
             $this->actingAs($staff)->get('/lupon/dashboard')->assertStatus(403);
+            $this->actingAs($staff)->get('/lupon/hearings')->assertStatus(403);
         }
     }
 
@@ -172,14 +174,15 @@ class LuponPortalAuthorizationTest extends TestCase
             );
     }
 
-    public function test_dashboard_page_source_shows_the_approved_empty_state(): void
+    public function test_dashboard_page_links_to_existing_lupon_work_queues_without_mock_data(): void
     {
         $source = file_get_contents(resource_path('js/pages/Lupon/Dashboard.tsx'));
 
-        $this->assertStringContainsString(
-            'Lupon portal is ready for setup. Case management is not yet available.',
-            $source
-        );
+        foreach (['/lupon/complaints', '/lupon/cases', '/lupon/hearings', 'Lupon work queues'] as $expected) {
+            $this->assertStringContainsString($expected, $source);
+        }
+
+        $this->assertStringNotContainsString('Case management is not yet available.', $source);
 
         foreach (['initialComplaints', 'LUP-2026', 'Juan Dela Cruz'] as $forbidden) {
             $this->assertStringNotContainsString($forbidden, $source);

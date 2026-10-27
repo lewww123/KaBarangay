@@ -2,8 +2,23 @@ import { FormEvent, useMemo, useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import ResidentLayout from '@/layouts/ResidentLayout';
 
-type ComplaintTab = 'file' | 'complaints';
+type ComplaintTab = 'file' | 'complaints' | 'against';
 type FormStep = 'form' | 'review' | 'success';
+
+type ComplaintAgainstMe = {
+    id: number;
+    caseNumber: string;
+    caseType: string;
+    phase: string;
+    status: string;
+    filedDate: string;
+    complainantName: string;
+    nextHearing?: {
+        date: string;
+        time?: string | null;
+        venue: string;
+    } | null;
+};
 
 /**
  * Intake statuses only. Hearing, mediation, and case-management statuses are
@@ -27,6 +42,12 @@ type Complaint = {
     status: ComplaintStatus;
     luponNote?: string | null;
     submittedDate: string;
+    case?: {
+        id: number;
+        caseNumber: string;
+        phase: string;
+        status: string;
+    } | null;
 };
 
 type ComplaintForm = {
@@ -66,10 +87,17 @@ type PageProps = {
     resident: ResidentProps;
     complaintTypes: string[];
     complaints: Complaint[];
+    complaintsAgainstMe?: ComplaintAgainstMe[];
     flash?: { success?: string | null };
 };
 
-export default function Lupon({ resident, complaintTypes, complaints, flash }: PageProps) {
+export default function Lupon({
+    resident,
+    complaintTypes,
+    complaints,
+    complaintsAgainstMe = [],
+    flash,
+}: PageProps) {
     const [activeTab, setActiveTab] = useState<ComplaintTab>('file');
     const [step, setStep] = useState<FormStep>('form');
     const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -156,7 +184,7 @@ export default function Lupon({ resident, complaintTypes, complaints, flash }: P
                 )}
 
                 <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-sm">
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
                         <button
                             type="button"
                             onClick={() => {
@@ -186,7 +214,25 @@ export default function Lupon({ resident, complaintTypes, complaints, flash }: P
                                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                             }`}
                         >
-                            My Complaints
+                            My Complaints ({complaints.length})
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedComplaint(null);
+                                setShowTracking(false);
+                                setActiveTab('against');
+                                setStep('form');
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`min-h-11 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                                activeTab === 'against'
+                                    ? 'bg-[#3f6f3d] text-white shadow-sm'
+                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                            }`}
+                        >
+                            Complaints Against Me ({complaintsAgainstMe.length})
                         </button>
                     </div>
                 </div>
@@ -669,6 +715,78 @@ export default function Lupon({ resident, complaintTypes, complaints, flash }: P
                         )}
                     </>
                 )}
+
+                {activeTab === 'against' && (
+                    <div className="space-y-4">
+                        <div>
+                            <h2 className="text-base font-bold text-gray-900 sm:text-lg">Complaints Against Me</h2>
+                            <p className="mt-1 text-sm text-gray-500">
+                                Official Lupon cases where you have been named and staff-verified as a respondent.
+                            </p>
+                        </div>
+
+                        {complaintsAgainstMe.length > 0 ? (
+                            <div className="grid gap-4">
+                                {complaintsAgainstMe.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#3f6f3d]/50"
+                                    >
+                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                            <div className="space-y-1.5">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="text-base font-bold text-gray-900">{item.caseNumber}</span>
+                                                    <span className="rounded-full bg-[#e8f1e4] px-2.5 py-0.5 text-xs font-semibold text-[#3f6f3d]">
+                                                        {item.phase} Phase
+                                                    </span>
+                                                    <span className="rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                                                        {item.status}
+                                                    </span>
+                                                </div>
+
+                                                <p className="text-sm font-semibold text-gray-800">
+                                                    Nature of Dispute: {item.caseType}
+                                                </p>
+
+                                                <div className="mt-2 grid gap-1 text-xs text-gray-500 sm:grid-cols-2 sm:gap-x-8">
+                                                    <p>
+                                                        <span className="text-gray-400">Complainant:</span> {item.complainantName}
+                                                    </p>
+                                                    <p>
+                                                        <span className="text-gray-400">Filed Date:</span> {item.filedDate}
+                                                    </p>
+                                                    {item.nextHearing ? (
+                                                        <p className="sm:col-span-2 text-[#3f6f3d] font-medium">
+                                                            📅 Next Hearing: {item.nextHearing.date}
+                                                            {item.nextHearing.time && ` at ${item.nextHearing.time}`} ({item.nextHearing.venue})
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-gray-400 italic">No hearing scheduled yet</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <a
+                                                href={`/resident/lupon/cases/${item.id}`}
+                                                className="shrink-0 inline-flex items-center justify-center rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                            >
+                                                View Proceedings →
+                                            </a>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-dashed border-gray-300 bg-[#fafaf7] p-10 text-center">
+                                <span className="text-3xl">🛡️</span>
+                                <h3 className="mt-3 text-base font-semibold text-gray-800">No complaints against you</h3>
+                                <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-gray-500">
+                                    You have no active cases where you are named and verified as a respondent. If a case is filed and staff verifies your account, it will appear here.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </ResidentLayout>
     );
@@ -721,6 +839,27 @@ function ComplaintTracking({
                         {complaint.luponNote}
                     </p>
                 </SectionCard>
+            )}
+
+            {complaint.case && (
+                <div className="rounded-2xl border border-[#3f6f3d]/30 bg-[#f4f8f2] p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg">⚖️</span>
+                            <span className="font-bold text-gray-900">Case Created: {complaint.case.caseNumber}</span>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-600">
+                            This complaint has been officially promoted into a Lupon Case ({complaint.case.phase} Phase).
+                        </p>
+                    </div>
+
+                    <a
+                        href={`/resident/lupon/cases/${complaint.case.id}`}
+                        className="rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                    >
+                        View Case Proceedings →
+                    </a>
+                </div>
             )}
 
             <SectionCard>

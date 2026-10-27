@@ -3,20 +3,24 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Barangay;
+use App\Http\Requests\Admin\RequestResidentRegistrationCorrectionRequest;
 use App\Models\Purok;
 use App\Models\RegistrationDocument;
 use App\Models\Resident;
 use App\Models\ResidentAccount;
 use App\Models\ResidentQrCredential;
 use App\Models\ResidentRegistration;
+use App\Models\ResidentRegistrationCorrectionCycle;
 use App\Support\AuditLogger;
+use App\Support\ResidentRegistrationCorrectionPolicy;
+use App\Support\ResidentRegistrationQrMatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -80,45 +84,6 @@ class ResidentRegistrationController extends Controller
         |
         */
 
-        $registrationSearch = trim(
-            (string) $request->query('registration_search', '')
-        );
-
-        $pendingRegistrations = $this->registrationList(
-            $user->barangay_id,
-            $selectedPurokId,
-            'pending',
-            true,
-            'pending_page',
-            $registrationSearch
-        );
-
-        $needsCorrectionRegistrations = $this->registrationList(
-            $user->barangay_id,
-            $selectedPurokId,
-            'needs_correction',
-            true,
-            'needs_correction_page',
-            $registrationSearch
-        );
-
-        $rejectedRegistrations = $this->registrationList(
-            $user->barangay_id,
-            $selectedPurokId,
-            'rejected',
-            false,
-            'rejected_page',
-            $registrationSearch
-        );
-
-        $pendingCount = ResidentRegistration::query()
-            ->where('barangay_id', $user->barangay_id)
-            ->whereIn('status', [
-                'pending',
-                'needs_correction',
-            ])
-            ->count();
-
         /*
         |--------------------------------------------------------------------------
         | Permanent Resident Statistics
@@ -136,7 +101,7 @@ class ResidentRegistrationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Approved Residents
+        | Resident Directories
         |--------------------------------------------------------------------------
         |
         | The approved roster is paginated and searched on the server so the
@@ -149,69 +114,44 @@ class ResidentRegistrationController extends Controller
             (string) $request->query('resident_search', '')
         );
 
-        $residents = Resident::query()
-            ->with([
-                'purok:id,name',
-                'sectors:id,name,slug',
-                'account:id,resident_id,is_active',
-                'qrCredential:id,resident_id,is_active,revoked_at',
-            ])
-            ->where('barangay_id', $user->barangay_id)
-            ->when($selectedPurokId !== null, function ($query) use ($selectedPurokId) {
-                $query->where('purok_id', $selectedPurokId);
-            })
-            ->when($residentSearch !== '', function ($query) use ($residentSearch) {
-                $like = '%'.$residentSearch.'%';
+        $addedByAdmin = $this->residentList(
+            (int) $user->barangay_id,
+            $selectedPurokId,
+            $residentSearch,
+            'admin',
+            'added_page'
+        );
 
-                $query->where(function ($query) use ($like) {
-                    $query->where('resident_number', 'like', $like)
-                        ->orWhere('first_name', 'like', $like)
-                        ->orWhere('middle_name', 'like', $like)
-                        ->orWhere('last_name', 'like', $like)
-                        ->orWhere('mobile', 'like', $like)
-                        ->orWhere('email', 'like', $like)
-                        ->orWhereHas('purok', function ($query) use ($like) {
-                            $query->where('name', 'like', $like);
-                        });
-                });
-            })
-            ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->paginate(15)
-            ->withQueryString()
-            ->through(function (Resident $resident) {
-                return [
-                    'id' => $resident->id,
-                    'residentId' => $resident->resident_number,
-                    'fullName' => $resident->full_name,
-                    'sex' => $resident->sex,
-                    'purok' => $resident->purok?->name ?? '—',
-                    'sectors' => $resident->sectors
-                        ->map(function ($sector) {
-                            return [
-                                'id' => $sector->id,
-                                'name' => $sector->name,
-                                'slug' => $sector->slug,
-                            ];
-                        })
-                        ->values(),
-                    'status' => $resident->status,
-                    'accountActive' => (bool) (
-                        $resident->account?->is_active ?? false
-                    ),
-                    'qrStatus' => $this->resolveQrStatus($resident),
-                ];
-            });
+        $registrationSearch = trim((string) $request->query('registration_search', ''));
+        $pendingRegistrations = $this->registrationList(
+            (int) $user->barangay_id,
+            $selectedPurokId,
+            $registrationSearch,
+            'pending',
+            'pending_page'
+        );
+        $needsCorrectionRegistrations = $this->registrationList(
+            (int) $user->barangay_id,
+            $selectedPurokId,
+            $registrationSearch,
+            'needs_correction',
+            'needs_correction_page'
+        );
+        $rejectedRegistrations = $this->registrationList(
+            (int) $user->barangay_id,
+            $selectedPurokId,
+            $registrationSearch,
+            'rejected',
+            'rejected_page'
+        );
 
         /*
         |--------------------------------------------------------------------------
-        | All Residents (permanent residents + registration-only records)
+        | All Residents (verified records with linked online accounts)
         |--------------------------------------------------------------------------
         |
-        | A single, barangay-scoped, server-side paginated view that combines
-        | permanent residents with registrations that have not produced a
-        | resident yet. Duplicates are prevented by excluding any registration
-        | that already has a linked resident row.
+        | The directory intentionally excludes unverified records, applicants,
+        | and official Residents without an online account.
         |
         */
 
@@ -225,14 +165,12 @@ class ResidentRegistrationController extends Controller
             'allResidents' => $allResidents,
 
             'pendingRegistrations' => $pendingRegistrations,
-
             'needsCorrectionRegistrations' => $needsCorrectionRegistrations,
-
             'rejectedRegistrations' => $rejectedRegistrations,
 
             'puroks' => $puroks,
 
-            'residents' => $residents,
+            'addedByAdmin' => $addedByAdmin,
 
             'filters' => [
                 'resident_search' => $residentSearch,
@@ -243,7 +181,16 @@ class ResidentRegistrationController extends Controller
             'stats' => [
                 'totalResidents' => $totalResidents,
                 'activeResidents' => $activeResidents,
-                'pendingRegistrations' => $pendingCount,
+                'pendingRegistrations' => ResidentRegistration::query()
+                    ->where('barangay_id', $user->barangay_id)
+                    ->where('status', 'pending')
+                    ->count(),
+                'pendingClaims' => Schema::hasTable('resident_claims')
+                    ? DB::table('resident_claims')
+                        ->where('barangay_id', $user->barangay_id)
+                        ->where('status', 'pending')
+                        ->count()
+                    : 0,
             ],
         ]);
     }
@@ -277,6 +224,7 @@ class ResidentRegistrationController extends Controller
         return response()->json([
             'type' => 'resident',
             'data' => [
+                'id' => $resident->id,
                 'resident_number' => $resident->resident_number,
                 'first_name' => $resident->first_name,
                 'middle_name' => $resident->middle_name,
@@ -288,10 +236,13 @@ class ResidentRegistrationController extends Controller
                 'address_line' => $resident->address_line,
                 'mobile' => $resident->mobile,
                 'email' => $resident->email,
+                'email_verified' => $resident->email_verified_at !== null,
                 'status' => $resident->status,
+                'source' => $resident->source,
                 'approved_at' => $resident->approved_at?->format('Y-m-d'),
                 'barangay' => $resident->barangay?->name,
                 'purok' => $resident->purok?->name,
+                'account_exists' => $resident->account !== null,
                 'account_active' => (bool) (
                     $resident->account?->is_active ?? false
                 ),
@@ -303,7 +254,7 @@ class ResidentRegistrationController extends Controller
                     ])
                     ->values(),
             ],
-        ]);
+        ])->header('Cache-Control', 'private, no-store, max-age=0');
     }
 
     /**
@@ -325,12 +276,38 @@ class ResidentRegistrationController extends Controller
             404
         );
 
-        $registration->load([
+        $hasMatchColumns = Schema::hasColumn(
+            'resident_registrations',
+            'matched_resident_id'
+        );
+
+        $relations = [
             'barangay:id,name',
             'purok:id,name',
             'sectors.sector:id,name,slug',
-            'documents',
-        ]);
+            'documents.sector:id,slug',
+            'reviewer:id,name',
+            'correctionCycles.reviewer:id,name',
+            'resident.purok:id,name',
+            'resident.account:id,resident_id,is_active',
+        ];
+        if ($hasMatchColumns) {
+            $relations[] = 'matchedResident.purok:id,name';
+            $relations[] = 'matchedResident.account:id,resident_id,is_active';
+        }
+        $registration->load($relations);
+
+        $linkedResident = $hasMatchColumns ? $registration->matchedResident : null;
+        if ($linkedResident === null && $registration->status === 'approved') {
+            $linkedResident = $registration->resident;
+        }
+
+        if (
+            $linkedResident !== null &&
+            (int) $linkedResident->barangay_id !== (int) $registration->barangay_id
+        ) {
+            $linkedResident = null;
+        }
 
         return response()->json([
             'type' => 'registration',
@@ -348,6 +325,21 @@ class ResidentRegistrationController extends Controller
                 'email' => $registration->email,
                 'status' => $registration->status,
                 'review_notes' => $registration->review_notes,
+                'reviewer' => $registration->reviewer?->name,
+                'matched_at' => $hasMatchColumns
+                    ? $registration->matched_at?->format('Y-m-d H:i')
+                    : null,
+                'matched_resident' => $linkedResident ? [
+                    'id' => $linkedResident->id,
+                    'resident_number' => $linkedResident->resident_number,
+                    'full_name' => $linkedResident->full_name,
+                    'birthdate' => $linkedResident->birthdate?->format('Y-m-d'),
+                    'email' => $linkedResident->email,
+                    'status' => $linkedResident->status,
+                    'purok' => $linkedResident->purok?->name,
+                    'account_exists' => $linkedResident->account !== null,
+                    'account_active' => (bool) ($linkedResident->account?->is_active ?? false),
+                ] : null,
                 'submitted_at' => $registration->submitted_at?->format('Y-m-d'),
                 'reviewed_at' => $registration->reviewed_at?->format('Y-m-d'),
                 'last_resubmitted_at' => $registration->last_resubmitted_at
@@ -370,8 +362,117 @@ class ResidentRegistrationController extends Controller
                         )
                     )
                     ->values(),
+                'correction_cycles' => $registration->correctionCycles
+                    ->map(fn (ResidentRegistrationCorrectionCycle $cycle) => [
+                        'cycle_number' => $cycle->cycle_number,
+                        'instructions' => $cycle->instructions,
+                        'field_targets' => $cycle->field_targets,
+                        'document_targets' => $cycle->document_targets,
+                        'reviewer' => $cycle->reviewer?->name,
+                        'requested_at' => $cycle->requested_at?->format('Y-m-d H:i'),
+                        'resubmitted_at' => $cycle->resubmitted_at?->format('Y-m-d H:i'),
+                    ])
+                    ->values(),
             ],
+        ])->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
+    /**
+     * Search active official Residents in the application's barangay.
+     * Results are suggestions only; an administrator must select one explicitly.
+     */
+    public function matchingCandidates(
+        Request $request,
+        ResidentRegistration $registration,
+        ResidentRegistrationQrMatcher $qrMatcher,
+    ): JsonResponse {
+        abort_unless(
+            (int) $registration->barangay_id ===
+                (int) $request->user()->barangay_id,
+            404
+        );
+
+        abort_unless(
+            Schema::hasColumn('resident_registrations', 'matched_resident_id'),
+            503,
+            'Resident candidate linking is unavailable until the identity-linking schema update is applied.'
+        );
+
+        abort_unless(
+            $registration->status === 'pending' &&
+                $registration->matched_resident_id === null,
+            422
+        );
+
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:100'],
         ]);
+        $terms = preg_split('/\s+/', trim($validated['q'])) ?: [];
+
+        $candidates = Resident::query()
+            ->with(['purok:id,name', 'account:id,resident_id,is_active'])
+            ->where('barangay_id', $registration->barangay_id)
+            ->where('status', 'active')
+            ->where(function ($query) use ($terms) {
+                foreach ($terms as $term) {
+                    $like = '%'.Str::lower($term).'%';
+                    $query->where(function ($query) use ($like) {
+                        $query->whereRaw('LOWER(resident_number) LIKE ?', [$like])
+                            ->orWhereRaw('LOWER(first_name) LIKE ?', [$like])
+                            ->orWhereRaw('LOWER(middle_name) LIKE ?', [$like])
+                            ->orWhereRaw('LOWER(last_name) LIKE ?', [$like])
+                            ->orWhereRaw('LOWER(email) LIKE ?', [$like]);
+                    });
+                }
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->limit(20)
+            ->get()
+            ->map(fn (Resident $resident) => [
+                'id' => $resident->id,
+                'resident_number' => $resident->resident_number,
+                'full_name' => $resident->full_name,
+                'birthdate' => $resident->birthdate?->format('Y-m-d'),
+                'sex' => $resident->sex,
+                'purok' => $resident->purok?->name,
+                'email' => $resident->email,
+                'status' => $resident->status,
+                'account_exists' => $resident->account !== null,
+                'account_active' => (bool) ($resident->account?->is_active ?? false),
+                'qr_suggested' => false,
+            ])
+            ->values();
+
+        $qrResident = $qrMatcher->suggestedResident($registration);
+        if ($qrResident !== null) {
+            $qrSuggestion = [
+                'id' => $qrResident->id,
+                'resident_number' => $qrResident->resident_number,
+                'full_name' => $qrResident->full_name,
+                'birthdate' => $qrResident->birthdate?->format('Y-m-d'),
+                'sex' => $qrResident->sex,
+                'purok' => $qrResident->purok?->name,
+                'email' => $qrResident->email,
+                'status' => $qrResident->status,
+                'account_exists' => $qrResident->account !== null,
+                'account_active' => (bool) ($qrResident->account?->is_active ?? false),
+                'qr_suggested' => true,
+            ];
+
+            $existingIndex = $candidates->search(
+                fn (array $candidate) => $candidate['id'] === $qrResident->id
+            );
+            if ($existingIndex === false) {
+                $candidates->prepend($qrSuggestion);
+            } else {
+                $candidates->put($existingIndex, $qrSuggestion);
+            }
+        }
+
+        return response()
+            ->json(['data' => $candidates])
+            ->header('Cache-Control', 'private, no-store, max-age=0');
     }
 
     /*
@@ -421,6 +522,105 @@ class ResidentRegistrationController extends Controller
         );
     }
 
+    public function requestCorrection(
+        RequestResidentRegistrationCorrectionRequest $request,
+        ResidentRegistration $registration
+    ): RedirectResponse {
+        $user = $request->user();
+
+        abort_unless((int) $registration->barangay_id === (int) $user->barangay_id, 404);
+
+        $validated = $request->validated();
+        $fieldTargets = array_values($validated['field_targets'] ?? []);
+        $documentTargets = array_values($validated['document_targets'] ?? []);
+
+        try {
+            $cycle = DB::transaction(function () use (
+                $registration,
+                $user,
+                $fieldTargets,
+                $documentTargets,
+                $validated,
+            ): ResidentRegistrationCorrectionCycle {
+                $locked = ResidentRegistration::query()
+                    ->whereKey($registration->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                abort_unless(
+                    (int) $locked->barangay_id === (int) $user->barangay_id,
+                    404
+                );
+                abort_unless($locked->status === 'pending', 422);
+
+                $locked->load(['documents.sector:id,slug']);
+                $availableDocuments = ResidentRegistrationCorrectionPolicy::availableDocumentTargets(
+                    $locked->documents
+                );
+                if (array_diff($documentTargets, $availableDocuments) !== []) {
+                    throw ValidationException::withMessages([
+                        'document_targets' => 'One or more selected documents are no longer available for correction.',
+                    ]);
+                }
+
+                $nextCycleNumber = ((int) ResidentRegistrationCorrectionCycle::query()
+                    ->where('resident_registration_id', $locked->id)
+                    ->max('cycle_number')) + 1;
+                $snapshot = [];
+                foreach ($fieldTargets as $field) {
+                    $value = $locked->getAttribute($field);
+                    $snapshot[$field] = $value instanceof \DateTimeInterface
+                        ? $value->format('Y-m-d')
+                        : $value;
+                }
+
+                $requestedAt = now();
+                $cycle = $locked->correctionCycles()->create([
+                    'cycle_number' => $nextCycleNumber,
+                    'instructions' => trim($validated['instructions']),
+                    'field_targets' => $fieldTargets,
+                    'document_targets' => $documentTargets,
+                    'prior_field_snapshot' => $snapshot,
+                    'reviewer_id' => $user->id,
+                    'requested_at' => $requestedAt,
+                ]);
+
+                $locked->forceFill([
+                    'status' => 'needs_correction',
+                    'reviewed_by' => $user->id,
+                    'reviewed_at' => $requestedAt,
+                ])->save();
+
+                return $cycle;
+            });
+        } catch (QueryException $exception) {
+            $sqlState = $exception->errorInfo[0] ?? (string) $exception->getCode();
+            $message = strtolower($exception->getMessage());
+            if (
+                in_array($sqlState, ['23000', '23505'], true)
+                && str_contains($message, 'resident_reg_correction_cycle_unique')
+            ) {
+                throw ValidationException::withMessages([
+                    'correction' => 'A correction request was already recorded. Refresh the application before trying again.',
+                ]);
+            }
+
+            throw $exception;
+        }
+
+        AuditLogger::record(
+            'resident_registration.correction_requested',
+            $registration->barangay_id,
+            $user->id,
+            'resident_registration',
+            $registration->id,
+            ['cycle_number' => $cycle->cycle_number],
+            $request->ip(),
+        );
+
+        return back()->with('success', 'Correction instructions were sent to the applicant’s secure application page.');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Approve Resident Registration
@@ -449,266 +649,122 @@ class ResidentRegistrationController extends Controller
             404
         );
 
+        if (! Schema::hasColumn('resident_registrations', 'matched_resident_id')) {
+            throw ValidationException::withMessages([
+                'approval' => 'Resident linking is unavailable until the identity-linking schema update is applied. The application remains pending.',
+            ]);
+        }
+
         /*
         |--------------------------------------------------------------------------
         | Application Status
         |--------------------------------------------------------------------------
         */
 
-        abort_unless(
-            in_array(
-                $registration->status,
-                [
-                    'pending',
-                    'needs_correction',
-                ],
-                true
-            ),
-            422
-        );
+        abort_unless($registration->status === 'pending', 422);
 
+        $validated = $request->validate([
+            'resident_id' => ['required', 'integer'],
+        ]);
         $previousStatus = $registration->status;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Prevent Double Approval
-        |--------------------------------------------------------------------------
-        */
-
-        if ($registration->resident()->exists()) {
+        if ($registration->resident()->exists() || $registration->matched_resident_id !== null) {
             throw ValidationException::withMessages([
-                'approval' => 'This registration already has a permanent resident record.',
+                'approval' => 'This registration has already been linked to a Resident.',
             ]);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Check Existing Resident Contact Information
-        |--------------------------------------------------------------------------
-        |
-        | Fast, friendly pre-check. The authoritative check runs again inside
-        | the transaction (after the barangay row lock), so two concurrent
-        | approvals cannot both pass the per-barangay mobile/email uniqueness.
-        |
-        */
-
-        $this->assertResidentContactIsUnique($registration);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create Permanent Resident
-        |--------------------------------------------------------------------------
-        */
-
-        DB::transaction(function () use ($registration, $user) {
-
-            /*
-            |--------------------------------------------------------------------------
-            | Lock Registration
-            |--------------------------------------------------------------------------
-            |
-            | Prevent two approval requests from processing the same application
-            | at the same time.
-            |
-            */
-
+        $resident = DB::transaction(function () use ($registration, $user, $validated) {
             $lockedRegistration = ResidentRegistration::query()
                 ->whereKey($registration->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedRegistration->resident()->exists()) {
+            if (
+                $lockedRegistration->status !== 'pending' ||
+                $lockedRegistration->resident()->exists() ||
+                $lockedRegistration->matched_resident_id !== null
+            ) {
                 throw ValidationException::withMessages([
-                    'approval' => 'This registration has already been approved.',
+                    'approval' => 'This registration is no longer available for linking.',
                 ]);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Lock Barangay
-            |--------------------------------------------------------------------------
-            |
-            | This also helps prevent two approvals from generating the same
-            | resident number for the same barangay.
-            |
-            */
-
-            $barangay = Barangay::query()
-                ->whereKey($lockedRegistration->barangay_id)
+            $resident = Resident::query()
+                ->whereKey($validated['resident_id'])
+                ->where('barangay_id', $lockedRegistration->barangay_id)
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->first();
 
-            /*
-            |--------------------------------------------------------------------------
-            | Re-check Contact Uniqueness Under Lock
-            |--------------------------------------------------------------------------
-            |
-            | The barangay row is locked above, so approvals for the same
-            | barangay are serialized. Re-running the contact check here makes
-            | the per-barangay mobile/email uniqueness race-safe.
-            |
-            */
+            if (! $resident || $resident->status !== 'active') {
+                throw ValidationException::withMessages([
+                    'resident_id' => 'Select an active Resident from this barangay.',
+                ]);
+            }
 
-            $this->assertResidentContactIsUnique($lockedRegistration);
+            $hasAccount = ResidentAccount::query()
+                ->where('resident_id', $resident->id)
+                ->lockForUpdate()
+                ->exists();
 
-            /*
-            |--------------------------------------------------------------------------
-            | Generate Resident Number
-            |--------------------------------------------------------------------------
-            |
-            | Example:
-            |
-            | BSJ-RES-000001
-            | BSJ-RES-000002
-            |
-            */
+            if ($hasAccount) {
+                throw ValidationException::withMessages([
+                    'resident_id' => 'This Resident already has an account. Existing account credentials were not changed.',
+                ]);
+            }
 
-            $residentNumber = $this->generateResidentNumber(
-                $barangay->id,
-                $barangay->code
-            );
-
-            /*
-            |--------------------------------------------------------------------------
-            | Create Permanent Resident
-            |--------------------------------------------------------------------------
-            */
+            $registrationEmail = Str::lower(trim((string) $lockedRegistration->email));
+            $residentEmail = Str::lower(trim((string) $resident->email));
+            if ($registrationEmail === '' || $residentEmail === '' || $registrationEmail !== $residentEmail) {
+                throw ValidationException::withMessages([
+                    'resident_id' => 'The application email does not match the email on the selected Resident record.',
+                ]);
+            }
 
             try {
-                $resident = Resident::create([
-                    'public_id' => (string) Str::uuid(),
-
-                    'resident_registration_id' => $lockedRegistration->id,
-
-                    'barangay_id' => $lockedRegistration->barangay_id,
-
-                    'purok_id' => $lockedRegistration->purok_id,
-
-                    'resident_number' => $residentNumber,
-
-                    'first_name' => $lockedRegistration->first_name,
-
-                    'middle_name' => $lockedRegistration->middle_name,
-
-                    'last_name' => $lockedRegistration->last_name,
-
-                    'suffix' => $lockedRegistration->suffix,
-
-                    'birthdate' => $lockedRegistration->birthdate,
-
-                    'sex' => $lockedRegistration->sex,
-
-                    'civil_status' => $lockedRegistration->civil_status,
-
-                    'address_line' => $lockedRegistration->address_line,
-
-                    'mobile' => $lockedRegistration->mobile,
-
-                    'email' => $lockedRegistration->email,
-
-                    'status' => 'active',
-
-                    'approved_at' => now(),
+                ResidentAccount::create([
+                    'resident_id' => $resident->id,
+                    'password' => $lockedRegistration->password,
+                    'is_active' => true,
+                    'password_changed_at' => null,
+                    'last_login_at' => null,
                 ]);
             } catch (QueryException $exception) {
-                /*
-                |--------------------------------------------------------------------------
-                | Defensive Uniqueness Handling
-                |--------------------------------------------------------------------------
-                |
-                | The per-barangay mobile/email uniqueness is re-checked under
-                | the barangay row lock above. If a raw unique-constraint
-                | violation still occurs (for example on a database without
-                | row locking), surface a clear validation error instead of
-                | leaking a database exception.
-                |
-                */
-
-                if ($this->isResidentContactUniqueViolation($exception)) {
+                $sqlState = $exception->errorInfo[0] ?? (string) $exception->getCode();
+                $message = strtolower($exception->getMessage());
+                if (
+                    in_array($sqlState, ['23000', '23505'], true) &&
+                    str_contains($message, 'resident_accounts') &&
+                    str_contains($message, 'resident_id')
+                ) {
                     throw ValidationException::withMessages([
-                        'approval' => $this->residentContactConflictMessage(
-                            $exception
-                        ),
+                        'resident_id' => 'This Resident account was linked by another request. Refresh and review the record.',
                     ]);
                 }
-
                 throw $exception;
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Create Resident Login Account
-            |--------------------------------------------------------------------------
-            |
-            | IMPORTANT:
-            |
-            | The registration password is already hashed.
-            | Do NOT Hash::make() it again.
-            |
-            */
-
-            ResidentAccount::create([
-                'resident_id' => $resident->id,
-                'password' => $lockedRegistration->password,
-                'is_active' => true,
-                'password_changed_at' => null,
-                'last_login_at' => null,
-            ]);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Copy Approved Sectors
-            |--------------------------------------------------------------------------
-            |
-            | Regular Resident:
-            | No sector rows.
-            |
-            | Senior/PWD:
-            | Copy sector IDs from registration_sectors.
-            |
-            */
-
-            $sectorIds = $lockedRegistration
-                ->sectors()
+            $sectorIds = $lockedRegistration->sectors()
                 ->pluck('sector_id')
                 ->filter()
                 ->unique()
                 ->values()
                 ->all();
-
-            if (! empty($sectorIds)) {
-                $resident->sectors()->sync($sectorIds);
+            if ($sectorIds !== []) {
+                $resident->sectors()->syncWithoutDetaching($sectorIds);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Create QR Credential
-            |--------------------------------------------------------------------------
-            |
-            | QR stores only this random token, not resident personal data.
-            |
-            */
-
-            ResidentQrCredential::create([
-                'resident_id' => $resident->id,
-                'token' => 'KBQR-'.Str::random(64),
-                'is_active' => true,
-                'generated_at' => now(),
-                'revoked_at' => null,
-            ]);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Mark Application Approved
-            |--------------------------------------------------------------------------
-            */
-
-            $lockedRegistration->update([
+            $lockedRegistration->forceFill([
+                'matched_resident_id' => $resident->id,
+                'matched_at' => now(),
+                'matched_by' => $user->id,
                 'status' => 'approved',
                 'review_notes' => null,
                 'reviewed_by' => $user->id,
                 'reviewed_at' => now(),
-            ]);
+            ])->save();
+
+            return $resident;
         });
 
         AuditLogger::record(
@@ -724,9 +780,19 @@ class ResidentRegistrationController extends Controller
             $request->ip(),
         );
 
+        AuditLogger::record(
+            'resident_registration.matched',
+            $registration->barangay_id,
+            $user->id,
+            'resident_registration',
+            $registration->id,
+            ['entity_reference' => $resident->resident_number],
+            $request->ip(),
+        );
+
         return back()->with(
             'success',
-            'Resident registration approved successfully.'
+            'Registration approved and linked to '.$resident->resident_number.'.'
         );
     }
 
@@ -750,18 +816,8 @@ class ResidentRegistrationController extends Controller
             404
         );
 
-        // Only applications still under review can be rejected.
-        abort_unless(
-            in_array(
-                $registration->status,
-                [
-                    'pending',
-                    'needs_correction',
-                ],
-                true
-            ),
-            422
-        );
+        // Correction requests must be resubmitted to Pending before decision.
+        abort_unless($registration->status === 'pending', 422);
 
         $previousStatus = $registration->status;
 
@@ -774,12 +830,21 @@ class ResidentRegistrationController extends Controller
             ],
         ]);
 
-        $registration->update([
-            'status' => 'rejected',
-            'review_notes' => trim($validated['reason']),
-            'reviewed_by' => $user->id,
-            'reviewed_at' => now(),
-        ]);
+        DB::transaction(function () use ($registration, $validated, $user): void {
+            $lockedRegistration = ResidentRegistration::query()
+                ->whereKey($registration->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            abort_unless($lockedRegistration->status === 'pending', 422);
+
+            $lockedRegistration->update([
+                'status' => 'rejected',
+                'review_notes' => trim($validated['reason']),
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+            ]);
+        });
 
         /*
         |--------------------------------------------------------------------------
@@ -1148,83 +1213,6 @@ class ResidentRegistrationController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | Resident Contact Uniqueness
-    |--------------------------------------------------------------------------
-    */
-
-    /**
-     * Ensure no permanent resident in the same barangay already uses this
-     * registration's mobile number or email address.
-     *
-     * @throws ValidationException
-     */
-    private function assertResidentContactIsUnique(
-        ResidentRegistration $registration
-    ): void {
-        $mobileExists = Resident::query()
-            ->where('barangay_id', $registration->barangay_id)
-            ->where('mobile', $registration->mobile)
-            ->exists();
-
-        if ($mobileExists) {
-            throw ValidationException::withMessages([
-                'approval' => 'A permanent resident with this mobile number already exists in this barangay.',
-            ]);
-        }
-
-        if ($registration->email) {
-            $emailExists = Resident::query()
-                ->where('barangay_id', $registration->barangay_id)
-                ->whereRaw(
-                    'LOWER(email) = ?',
-                    [Str::lower($registration->email)]
-                )
-                ->exists();
-
-            if ($emailExists) {
-                throw ValidationException::withMessages([
-                    'approval' => 'A permanent resident with this email address already exists in this barangay.',
-                ]);
-            }
-        }
-    }
-
-    /**
-     * Determine whether a query exception is a per-barangay mobile/email
-     * unique-constraint violation on the `residents` table.
-     */
-    private function isResidentContactUniqueViolation(
-        QueryException $exception
-    ): bool {
-        $sqlState = $exception->errorInfo[0] ?? (string) $exception->getCode();
-
-        if (! in_array($sqlState, ['23000', '23505'], true)) {
-            return false;
-        }
-
-        $message = strtolower($exception->getMessage());
-
-        return str_contains($message, 'residents_barangay_mobile_unique')
-            || str_contains($message, 'residents_barangay_email_unique')
-            || str_contains($message, 'residents.mobile')
-            || str_contains($message, 'residents.email');
-    }
-
-    /**
-     * Human-readable message for a resident contact unique violation.
-     */
-    private function residentContactConflictMessage(
-        QueryException $exception
-    ): string {
-        if (str_contains(strtolower($exception->getMessage()), 'email')) {
-            return 'A permanent resident with this email address already exists in this barangay.';
-        }
-
-        return 'A permanent resident with this mobile number already exists in this barangay.';
-    }
-
-    /*
-    |--------------------------------------------------------------------------
     | QR Credential Uniqueness
     |--------------------------------------------------------------------------
     */
@@ -1254,178 +1242,6 @@ class ResidentRegistrationController extends Controller
             && str_contains($message, 'resident_id');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Generate Resident Number
-    |--------------------------------------------------------------------------
-    */
-
-    private function generateResidentNumber(
-        int $barangayId,
-        string $barangayCode
-    ): string {
-        $lastResidentNumber = Resident::query()
-            ->where('barangay_id', $barangayId)
-            ->orderByDesc('id')
-            ->value('resident_number');
-
-        $nextNumber = 1;
-
-        if (
-            $lastResidentNumber &&
-            preg_match(
-                '/(\d+)$/',
-                $lastResidentNumber,
-                $matches
-            )
-        ) {
-            $nextNumber = ((int) $matches[1]) + 1;
-        }
-
-        $code = strtoupper(
-            preg_replace(
-                '/[^A-Za-z0-9]/',
-                '',
-                $barangayCode
-            )
-        );
-
-        return sprintf(
-            '%s-RES-%06d',
-            $code,
-            $nextNumber
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Registration List Payloads
-    |--------------------------------------------------------------------------
-    */
-
-    /**
-     * Build the review-list payload for registrations in a single status,
-     * scoped to the admin's barangay and the selected purok.
-     *
-     * @return LengthAwarePaginator<int, array<string, mixed>>
-     */
-    private function registrationList(
-        int $barangayId,
-        ?int $purokId,
-        string $status,
-        bool $includeDocuments,
-        string $pageName,
-        string $search = ''
-    ): LengthAwarePaginator {
-        $relations = [
-            'barangay:id,name,code',
-            'purok:id,name',
-            'sectors.sector:id,name,slug',
-        ];
-
-        if ($includeDocuments) {
-            $relations[] = 'documents:id,resident_registration_id,sector_id,document_type,mime_type,file_size,verification_status';
-        }
-
-        return ResidentRegistration::query()
-            ->with($relations)
-            ->where('barangay_id', $barangayId)
-            ->when($purokId !== null, function ($query) use ($purokId) {
-                $query->where('purok_id', $purokId);
-            })
-            ->where('status', $status)
-            ->when($search !== '', function ($query) use ($search) {
-                $like = '%'.$search.'%';
-
-                $query->where(function ($query) use ($like) {
-                    $query->where('first_name', 'like', $like)
-                        ->orWhere('middle_name', 'like', $like)
-                        ->orWhere('last_name', 'like', $like)
-                        ->orWhere('suffix', 'like', $like)
-                        ->orWhere('mobile', 'like', $like)
-                        ->orWhere('email', 'like', $like)
-                        ->orWhere('public_id', 'like', $like)
-                        ->orWhereHas('purok', function ($query) use ($like) {
-                            $query->where('name', 'like', $like);
-                        })
-                        ->orWhereHas('barangay', function ($query) use ($like) {
-                            $query->where('name', 'like', $like);
-                        });
-                });
-            })
-            ->latest('submitted_at')
-            ->orderByDesc('id')
-            ->paginate(15, ['*'], $pageName)
-            ->withQueryString()
-            ->through(
-                fn (ResidentRegistration $registration) => $this->registrationListPayload(
-                    $registration,
-                    $includeDocuments
-                )
-            );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function registrationListPayload(
-        ResidentRegistration $registration,
-        bool $includeDocuments
-    ): array {
-        return [
-            'id' => $registration->id,
-            'reference' => $registration->public_id,
-
-            'first_name' => $registration->first_name,
-            'middle_name' => $registration->middle_name,
-            'last_name' => $registration->last_name,
-            'suffix' => $registration->suffix,
-
-            'birthdate' => $registration->birthdate?->format('Y-m-d'),
-
-            'sex' => $registration->sex,
-            'civil_status' => $registration->civil_status,
-            'address_line' => $registration->address_line,
-
-            'mobile' => $registration->mobile,
-            'email' => $registration->email,
-
-            'barangay' => $registration->barangay?->name,
-            'purok' => $registration->purok?->name,
-
-            'sectors' => $registration->sectors
-                ->map(fn ($registrationSector) => [
-                    'id' => $registrationSector->sector?->id,
-                    'name' => $registrationSector->sector?->name,
-                    'slug' => $registrationSector->sector?->slug,
-                ])
-                ->filter(fn ($sector) => $sector['id'])
-                ->values(),
-
-            'documents' => $includeDocuments
-                ? $registration->documents
-                    ->map(
-                        fn (RegistrationDocument $document) => $this->documentPayload(
-                            $document,
-                            $registration->id
-                        )
-                    )
-                    ->values()
-                : [],
-
-            'status' => $registration->status,
-
-            'submitted_at' => $registration->submitted_at?->format('Y-m-d'),
-
-            'review_notes' => $registration->review_notes,
-
-            'reviewed_at' => $registration->reviewed_at?->format('Y-m-d'),
-
-            'last_resubmitted_at' => $registration->last_resubmitted_at
-                ?->format('Y-m-d'),
-        ];
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -1440,6 +1256,9 @@ class ResidentRegistrationController extends Controller
             'mime_type' => $document->mime_type,
             'file_size' => $document->file_size,
             'verification_status' => $document->verification_status,
+            'sector_slug' => $document->sector?->slug,
+            'is_superseded' => $document->superseded_at !== null,
+            'superseded_at' => $document->superseded_at?->format('Y-m-d H:i'),
             'url' => route(
                 'admin.residents.documents.show',
                 [
@@ -1454,182 +1273,227 @@ class ResidentRegistrationController extends Controller
         ];
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | All Residents (unified, paginated)
-    |--------------------------------------------------------------------------
-    */
-
     /**
-     * Barangay-scoped, server-side paginated union of permanent residents and
-     * registration-only records (registrations that have not produced a
-     * resident yet).
-     *
-     * Only lightweight columns are unioned so the database performs the
-     * filtering, ordering and pagination; the page's rows are then hydrated
-     * with their relationships. This never loads the full dataset.
+     * Barangay-scoped registration review queue. Correction document choices
+     * are derived from current, unambiguous document records; the server still
+     * rechecks them under lock when an Admin submits a request.
      */
-    private function allResidents(
+    private function registrationList(
         int $barangayId,
         ?int $purokId,
-        string $search
+        string $search,
+        string $status,
+        string $pageName
     ): LengthAwarePaginator {
-        $residentRows = Resident::query()
-            ->where('residents.barangay_id', $barangayId)
-            ->select([
-                DB::raw("'resident' as record_type"),
-                'residents.id as record_id',
-                'residents.purok_id as purok_id',
-                'residents.first_name as first_name',
-                'residents.middle_name as middle_name',
-                'residents.last_name as last_name',
-                'residents.mobile as mobile',
-                'residents.email as email',
-                // CAST to a character type so this UNION column matches the
-                // uuid `reference` of the registrations branch on PostgreSQL.
-                DB::raw('CAST(residents.resident_number AS VARCHAR) as reference'),
-            ]);
-
-        $registrationRows = ResidentRegistration::query()
-            ->where('resident_registrations.barangay_id', $barangayId)
-            ->whereDoesntHave('resident')
-            ->select([
-                DB::raw("'registration' as record_type"),
-                'resident_registrations.id as record_id',
-                'resident_registrations.purok_id as purok_id',
-                'resident_registrations.first_name as first_name',
-                'resident_registrations.middle_name as middle_name',
-                'resident_registrations.last_name as last_name',
-                'resident_registrations.mobile as mobile',
-                'resident_registrations.email as email',
-                // `public_id` is a uuid column; cast it to text so the UNION
-                // column aligns with the residents branch's varchar reference.
-                DB::raw('CAST(resident_registrations.public_id AS VARCHAR) as reference'),
-            ]);
-
-        $paginator = DB::query()
-            ->fromSub($residentRows->unionAll($registrationRows), 'all_residents')
+        return ResidentRegistration::query()
+            ->with([
+                'barangay:id,name',
+                'purok:id,name',
+                'sectors.sector:id,name,slug',
+                'documents.sector:id,slug',
+            ])
+            ->where('barangay_id', $barangayId)
+            ->where('status', $status)
             ->when($purokId !== null, fn ($query) => $query->where('purok_id', $purokId))
-            ->when($search !== '', function ($query) use ($search) {
+            ->when($search !== '', function ($query) use ($search): void {
                 $like = '%'.$search.'%';
-
-                $query->where(function ($query) use ($like) {
-                    $query->where('first_name', 'like', $like)
+                $query->where(function ($query) use ($like): void {
+                    $query->where('public_id', 'like', $like)
+                        ->orWhere('first_name', 'like', $like)
                         ->orWhere('middle_name', 'like', $like)
                         ->orWhere('last_name', 'like', $like)
                         ->orWhere('mobile', 'like', $like)
                         ->orWhere('email', 'like', $like)
-                        ->orWhere('reference', 'like', $like);
+                        ->orWhereHas('purok', fn ($purok) => $purok->where('name', 'like', $like));
                 });
             })
-            ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->orderBy('record_type')
-            ->orderBy('record_id')
-            ->paginate(15, ['*'], 'all_page')
-            ->withQueryString();
-
-        $pageRows = $paginator->getCollection();
-
-        $residentIds = $pageRows
-            ->where('record_type', 'resident')
-            ->pluck('record_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-
-        $registrationIds = $pageRows
-            ->where('record_type', 'registration')
-            ->pluck('record_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-
-        $residents = Resident::query()
-            ->with([
-                'purok:id,name',
-                'sectors:id,name,slug',
-                'account:id,resident_id,is_active',
-                'qrCredential:id,resident_id,is_active,revoked_at',
-            ])
-            ->whereIn('id', $residentIds)
-            ->get()
-            ->keyBy('id');
-
-        $registrations = ResidentRegistration::query()
-            ->with([
-                'purok:id,name',
-                'sectors.sector:id,name,slug',
-            ])
-            ->whereIn('id', $registrationIds)
-            ->get()
-            ->keyBy('id');
-
-        $paginator->setCollection(
-            $pageRows->map(function ($row) use ($residents, $registrations) {
-                $id = (int) $row->record_id;
-
-                if ($row->record_type === 'resident') {
-                    $resident = $residents->get($id);
-
-                    if (! $resident) {
-                        return null;
-                    }
-
-                    return [
-                        'type' => 'resident',
-                        'id' => $resident->id,
-                        'reference' => $resident->resident_number,
-                        'fullName' => $resident->full_name,
-                        'sex' => $resident->sex,
-                        'purok' => $resident->purok?->name ?? '—',
-                        'sectors' => $resident->sectors
-                            ->map(fn ($sector) => [
-                                'id' => $sector->id,
-                                'name' => $sector->name,
-                                'slug' => $sector->slug,
-                            ])
-                            ->values(),
-                        'status' => $resident->status,
-                        'accountActive' => (bool) (
-                            $resident->account?->is_active ?? false
-                        ),
-                        'qrStatus' => $this->resolveQrStatus($resident),
-                    ];
-                }
-
-                $registration = $registrations->get($id);
-
-                if (! $registration) {
-                    return null;
-                }
-
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->paginate(15, ['*'], $pageName)
+            ->withQueryString()
+            ->through(function (ResidentRegistration $registration): array {
                 return [
-                    'type' => 'registration',
                     'id' => $registration->id,
                     'reference' => $registration->public_id,
-                    'fullName' => collect([
-                        $registration->first_name,
-                        $registration->middle_name,
-                        $registration->last_name,
-                        $registration->suffix,
-                    ])->filter()->implode(' '),
+                    'first_name' => $registration->first_name,
+                    'middle_name' => $registration->middle_name,
+                    'last_name' => $registration->last_name,
+                    'suffix' => $registration->suffix,
+                    'birthdate' => $registration->birthdate?->format('Y-m-d'),
                     'sex' => $registration->sex,
-                    'purok' => $registration->purok?->name ?? '—',
+                    'civil_status' => $registration->civil_status,
+                    'address_line' => $registration->address_line,
+                    'mobile' => $registration->mobile,
+                    'email' => $registration->email,
+                    'barangay' => $registration->barangay?->name,
+                    'purok' => $registration->purok?->name,
                     'sectors' => $registration->sectors
                         ->map(fn ($registrationSector) => [
                             'id' => $registrationSector->sector?->id,
                             'name' => $registrationSector->sector?->name,
                             'slug' => $registrationSector->sector?->slug,
                         ])
-                        ->filter(fn ($sector) => $sector['id'])
+                        ->filter(fn ($sector) => $sector['id'] !== null)
                         ->values(),
+                    'documents' => $registration->documents
+                        ->map(fn (RegistrationDocument $document) => $this->documentPayload(
+                            $document,
+                            $registration->id
+                        ))
+                        ->values(),
+                    'correction_field_options' => ResidentRegistrationCorrectionPolicy::FIELD_TARGETS,
+                    'correction_document_options' => ResidentRegistrationCorrectionPolicy::availableDocumentTargets(
+                        $registration->documents
+                    ),
                     'status' => $registration->status,
-                    'accountActive' => null,
-                    'qrStatus' => null,
+                    'submitted_at' => $registration->submitted_at?->format('Y-m-d'),
+                    'review_notes' => $registration->review_notes,
+                    'reviewed_at' => $registration->reviewed_at?->format('Y-m-d'),
+                    'last_resubmitted_at' => $registration->last_resubmitted_at?->format('Y-m-d'),
                 ];
-            })->filter()->values()
-        );
+            });
+    }
 
-        return $paginator;
+    /*
+    |--------------------------------------------------------------------------
+    | Resident directories (barangay-scoped, paginated)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Barangay-scoped, server-side paginated masterlist records.
+     *
+     * @param  'admin'|null  $source
+     */
+    private function residentList(
+        int $barangayId,
+        ?int $purokId,
+        string $search,
+        ?string $source,
+        string $pageName
+    ): LengthAwarePaginator {
+        return Resident::query()
+            ->with([
+                'purok:id,name',
+                'sectors:id,name,slug',
+                'account:id,resident_id,is_active',
+                'qrCredential:id,resident_id,is_active,revoked_at',
+            ])
+            ->where('barangay_id', $barangayId)
+            ->when($source !== null, fn ($query) => $query->where('source', $source))
+            ->when($purokId !== null, fn ($query) => $query->where('purok_id', $purokId))
+            ->when($search !== '', function ($query) use ($search) {
+                $like = '%'.$search.'%';
+
+                $query->where(function ($query) use ($like) {
+                    $query->where('resident_number', 'like', $like)
+                        ->orWhere('first_name', 'like', $like)
+                        ->orWhere('middle_name', 'like', $like)
+                        ->orWhere('last_name', 'like', $like)
+                        ->orWhere('mobile', 'like', $like)
+                        ->orWhere('email', 'like', $like)
+                        ->orWhereHas('purok', fn ($query) => $query->where('name', 'like', $like));
+                });
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->paginate(15, ['*'], $pageName)
+            ->withQueryString()
+            ->through(fn (Resident $resident) => [
+                'id' => $resident->id,
+                'residentId' => $resident->resident_number,
+                'fullName' => $resident->full_name,
+                'sex' => $resident->sex,
+                'purok' => $resident->purok?->name ?? '—',
+                'sectors' => $resident->sectors
+                    ->map(fn ($sector) => [
+                        'id' => $sector->id,
+                        'name' => $sector->name,
+                        'slug' => $sector->slug,
+                    ])
+                    ->values(),
+                'status' => $resident->status,
+                'source' => $resident->source,
+                'accountExists' => $resident->account !== null,
+                'accountActive' => (bool) ($resident->account?->is_active ?? false),
+                'emailVerified' => $resident->email_verified_at !== null,
+                'qrStatus' => $this->resolveQrStatus($resident),
+            ]);
+    }
+
+    /**
+     * All Residents means an active canonical Resident with an active account
+     * and an approved registration or legacy Claim association. Email
+     * verification is not qualification evidence.
+     */
+    private function allResidents(
+        int $barangayId,
+        ?int $purokId,
+        string $search
+    ): LengthAwarePaginator {
+        $hasClaimTable = Schema::hasTable('resident_claims');
+        $hasMatchColumn = Schema::hasColumn('resident_registrations', 'matched_resident_id');
+
+        return Resident::query()
+            ->with([
+                'purok:id,name',
+                'sectors:id,name,slug',
+                'account:id,resident_id,is_active',
+                'qrCredential:id,resident_id,is_active,revoked_at',
+            ])
+            ->where('barangay_id', $barangayId)
+            ->where('status', 'active')
+            ->whereHas('account', fn ($query) => $query->where('is_active', true))
+            ->where(function ($query) use ($hasClaimTable, $hasMatchColumn) {
+                $query->whereHas('registration', fn ($registration) => $registration
+                    ->where('status', 'approved')
+                    ->whereColumn('resident_registrations.barangay_id', 'residents.barangay_id'));
+
+                if ($hasMatchColumn) {
+                    $query->orWhereHas('matchedRegistrations', fn ($registration) => $registration
+                        ->where('status', 'approved')
+                        ->whereColumn('resident_registrations.barangay_id', 'residents.barangay_id'));
+                }
+
+                if ($hasClaimTable) {
+                    $query->orWhereHas('claims', fn ($claim) => $claim
+                        ->where('status', \App\Models\ResidentClaim::STATUS_APPROVED)
+                        ->whereColumn('resident_claims.barangay_id', 'residents.barangay_id'));
+                }
+            })
+            ->when($purokId !== null, fn ($query) => $query->where('purok_id', $purokId))
+            ->when($search !== '', function ($query) use ($search) {
+                $like = '%'.$search.'%';
+
+                $query->where(function ($query) use ($like) {
+                    $query->where('resident_number', 'like', $like)
+                        ->orWhere('first_name', 'like', $like)
+                        ->orWhere('middle_name', 'like', $like)
+                        ->orWhere('last_name', 'like', $like);
+                });
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->paginate(15, ['*'], 'all_page')
+            ->withQueryString()
+            ->through(fn (Resident $resident) => [
+                'type' => 'resident',
+                'id' => $resident->id,
+                'reference' => $resident->resident_number,
+                'fullName' => $resident->full_name,
+                'sex' => $resident->sex,
+                'purok' => $resident->purok?->name ?? '—',
+                'sectors' => $resident->sectors
+                    ->map(fn ($sector) => [
+                        'id' => $sector->id,
+                        'name' => $sector->name,
+                        'slug' => $sector->slug,
+                    ])
+                    ->values(),
+                'status' => $resident->status,
+                'accountActive' => (bool) ($resident->account?->is_active ?? false),
+                'qrStatus' => $this->resolveQrStatus($resident),
+            ]);
     }
 
     /*

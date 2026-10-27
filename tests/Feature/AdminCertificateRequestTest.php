@@ -72,70 +72,46 @@ class AdminCertificateRequestTest extends TestCase
                 ->where('stats.total', 1));
     }
 
-    public function test_admin_can_advance_status_and_records_timestamps(): void
+    public function test_admin_has_no_individual_status_update_route(): void
     {
         $request = $this->createRequest($this->barangay, $this->purok, $this->certificate, 'ADV-001');
-
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
             ->put('/admin/certificates/'.$request->id.'/status', ['status' => 'Processing'])
-            ->assertRedirect();
-
-        $request->refresh();
-
-        $this->assertSame('Processing', $request->status);
-        $this->assertNotNull($request->reviewed_at);
-        $this->assertNotNull($request->processing_at);
-    }
-
-    public function test_rejecting_requires_an_admin_note(): void
-    {
-        $request = $this->createRequest($this->barangay, $this->purok, $this->certificate, 'REJ-001');
-
-        $admin = $this->createStaff($this->barangay, 'admin');
-
-        $this->actingAs($admin)
-            ->put('/admin/certificates/'.$request->id.'/status', ['status' => 'Rejected'])
-            ->assertSessionHasErrors('admin_note');
+            ->assertNotFound();
 
         $this->assertSame('Pending', $request->refresh()->status);
+        $this->assertNull($request->reviewed_at);
+        $this->assertNull($request->processing_at);
     }
 
-    public function test_invalid_status_is_rejected(): void
+    public function test_admin_cannot_use_the_clerk_status_or_details_routes(): void
     {
-        $request = $this->createRequest($this->barangay, $this->purok, $this->certificate, 'INV-001');
-
+        $request = $this->createRequest($this->barangay, $this->purok, $this->certificate, 'ADV-002');
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
-            ->put('/admin/certificates/'.$request->id.'/status', ['status' => 'Bogus'])
-            ->assertSessionHasErrors('status');
+            ->patchJson('/clerk/certificates/requests/'.$request->id.'/status', [
+                'status' => 'Processing',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->patchJson('/clerk/certificates/requests/'.$request->id, [
+                'details' => [],
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->post('/clerk/generate-certificate', [])
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->get('/clerk/certificates/resident-details/'.$request->resident_id)
+            ->assertForbidden();
 
         $this->assertSame('Pending', $request->refresh()->status);
-    }
-
-    public function test_admin_cannot_update_another_barangays_request(): void
-    {
-        $otherBarangay = $this->createBarangay('Barangay Two', 'BRGY-TWO');
-        $otherPurok = $this->createPurok($otherBarangay, 'Purok 2');
-        $otherCertificate = Certificate::create([
-            'barangay_id' => $otherBarangay->id,
-            'code' => 'BRGY-CLEARANCE',
-            'name' => 'Barangay Clearance',
-            'fee' => 50,
-            'is_active' => true,
-        ]);
-
-        $foreignRequest = $this->createRequest($otherBarangay, $otherPurok, $otherCertificate, 'FOREIGN-001');
-
-        $admin = $this->createStaff($this->barangay, 'admin');
-
-        $this->actingAs($admin)
-            ->put('/admin/certificates/'.$foreignRequest->id.'/status', ['status' => 'Processing'])
-            ->assertStatus(403);
-
-        $this->assertSame('Pending', CertificateRequest::find($foreignRequest->id)->status);
     }
 
     public function test_index_returns_paginated_requests_at_fifteen_per_page(): void
@@ -574,9 +550,14 @@ class AdminCertificateRequestTest extends TestCase
             'id',
             'reference',
             'certificate',
+            'certificate_type',
             'resident',
             'purpose',
             'fee',
+            'business_name',
+            'business_address',
+            'additional_details',
+            'details',
             'status',
             'admin_note',
             'submitted_at',

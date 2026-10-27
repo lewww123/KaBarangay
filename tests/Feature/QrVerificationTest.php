@@ -16,7 +16,7 @@ use Tests\TestCase;
  *
  * The controller resolves an active, non-revoked credential bound to an active
  * resident, then renders Resident/VerifyResident with a minimal, non-identifying
- * `verification` prop: only `valid`, `message` and the issuing `barangay`.
+ * `verification` prop: only `valid`, a generic message, and no location data.
  * Invalid credentials/residents render the same component with valid=false
  * instead of returning an error status code, and never reveal resident details.
  */
@@ -59,8 +59,8 @@ class QrVerificationTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/VerifyResident')
                 ->where('verification.valid', true)
-                ->where('verification.message', 'Resident verified successfully.')
-                ->where('verification.barangay', $this->barangay->name)
+                ->where('verification.message', 'This credential is valid.')
+                ->where('verification.barangay', null)
                 ->missing('verification.resident')
                 ->missing('verification.name')
                 ->missing('verification.residentId')

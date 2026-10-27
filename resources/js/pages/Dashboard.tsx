@@ -1,33 +1,23 @@
 import { Head, Link } from '@inertiajs/react';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
-
-type StatCardProps = {
-    title: string;
-    value: string | number;
-    subtitle: string;
-    href?: string;
-    unavailable?: boolean;
-    dropdownContent?: ReactNode;
-};
-
-type SectorRowProps = {
-    icon: string;
-    title: string;
-    description: string;
-    href?: string;
-    last?: boolean;
-    unavailable?: boolean;
-};
 
 type DashboardProps = {
     stats?: {
         residents: number;
-        pendingAnnouncements: number;
-        activeStaff: number;
+        totalPrograms: number;
+        totalAnnouncements: number;
         puroks: number;
-        releasedCertificates: number;
+        cases?: number;
     };
+    announcements?: {
+        id: number;
+        title: string;
+        content: string;
+        category: string;
+        eventStartAt: string | null;
+        location: string | null;
+    }[];
     puroks?: { id: number; name: string }[];
     notifications?: {
         id: string;
@@ -38,7 +28,6 @@ type DashboardProps = {
         href: string;
     }[];
     activity?: {
-        pendingApprovals: number;
         activeStaff: number;
     };
 };
@@ -46,16 +35,17 @@ type DashboardProps = {
 export default function Dashboard({
     stats = {
         residents: 0,
-        pendingAnnouncements: 0,
-        activeStaff: 0,
+        totalPrograms: 0,
+        totalAnnouncements: 0,
         puroks: 0,
-        releasedCertificates: 0,
+        cases: 0,
     },
     puroks = [],
+    announcements = [],
     notifications = [],
-    activity = { pendingApprovals: 0, activeStaff: 0 },
+    activity = { activeStaff: 0 },
 }: DashboardProps) {
-    const [openMenu, setOpenMenu] = useState<string | null>(null);
+    const [puroksOpen, setPuroksOpen] = useState(false);
 
     return (
         <>
@@ -70,153 +60,48 @@ export default function Dashboard({
                     </h1>
 
                     <p className="mt-1 text-sm text-gray-500">
-                        System overview and barangay activity
+                        Barangay records and activity
                     </p>
                 </div>
 
                 {/* STATISTICS */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
-
-                    <StatCard
-                        title="Residents"
-                        value={stats.residents}
-                        subtitle="Registered"
-                        href="/admin/residents"
-                        openMenu={openMenu}
-                        setOpenMenu={setOpenMenu}
-                    />
-
-                    {/* ANNOUNCEMENT APPROVALS STAT CARD */}
-                    <StatCard
-                        title="Announcements"
-                        value={stats.pendingAnnouncements}
-                        subtitle="Pending approval"
-                        href="/admin/announcements/approvals"
-                        openMenu={openMenu}
-                        setOpenMenu={setOpenMenu}
-                    />
-
-                    <StatCard
-                        title="Staff"
-                        value={stats.activeStaff}
-                        subtitle="Active accounts"
-                        href="/admin/staff"
-                        openMenu={openMenu}
-                        setOpenMenu={setOpenMenu}
-                    />
-
-                    <StatCard
-                        title="Puroks"
-                        value={stats.puroks}
-                        subtitle="Total puroks"
-                        openMenu={openMenu}
-                        setOpenMenu={setOpenMenu}
-                        dropdownContent={puroks.length > 0 ? (
-                            <div className="max-h-48 overflow-auto">
-                                {puroks.map((p) => (
-                                    <div key={p.id} className="px-3 py-2 text-xs text-gray-700 border-b border-gray-50 last:border-b-0">
-                                        {p.name}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="px-3 py-2 text-xs text-gray-400">No puroks found</div>
-                        )}
-                    />
-
-                    {/* 
-                     * Issued Certificates (deferred destination)
-                     * Destination will be linked to the Sector page containing the Certificates section
-                     * in a future approved batch. Do not link to /admin/reports or /admin/certificates.
-                     */}
-                    <StatCard
-                        title="Issued Certificates"
-                        value={stats.releasedCertificates}
-                        subtitle="Completed (Released)"
-                        unavailable={true}
-                        openMenu={openMenu}
-                        setOpenMenu={setOpenMenu}
-                    />
-
-                    {/* Cases (no Lupon case data source available) */}
-                    <StatCard
-                        title="Cases"
-                        value="—"
-                        subtitle="Open cases (unavailable)"
-                        unavailable={true}
-                        openMenu={openMenu}
-                        setOpenMenu={setOpenMenu}
-                    />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <SummaryCard title="Residents" value={stats.residents} subtitle="Registered Residents" href="/admin/residents" />
+                    <PuroksSummaryCard value={stats.puroks} puroks={puroks} open={puroksOpen} onToggle={() => setPuroksOpen(!puroksOpen)} />
+                    <SummaryCard title="Cases" value={stats.cases ?? 0} subtitle="Lupon cases" href="/admin/sectors?tab=lupon" />
 
                 </div>
 
-                {/* SYSTEM OVERVIEW + NOTIFICATIONS */}
+                {/* BARANGAY ANNOUNCEMENTS + NOTIFICATIONS */}
                 <div className="mt-7 grid grid-cols-1 gap-6 xl:grid-cols-2">
 
-                    {/* SYSTEM OVERVIEW */}
+                    {/* BARANGAY ANNOUNCEMENTS */}
                     <section>
 
                         <div className="mb-4 flex items-center justify-between">
 
                             <div>
                                 <h2 className="text-base font-semibold text-gray-800">
-                                    System Overview
+                                    Barangay Announcements
                                 </h2>
 
                                 <p className="mt-1 text-xs text-gray-500">
-                                    Barangay service modules
+                                    Published announcements and programs
                                 </p>
                             </div>
 
-                            <Link
-                                href="/admin/reports"
-                                className="text-xs font-medium text-[#3f6f3d] hover:underline"
-                            >
-                                Reports
-                            </Link>
+                            <p className="text-xs font-medium text-[#3f6f3d]">
+                                Total Programs: {stats.totalPrograms} · Total Announcements: {stats.totalAnnouncements}
+                            </p>
 
                         </div>
 
                         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-
-                            {/* ANNOUNCEMENT MODULE ROW */}
-                            <SectorRow
-                                icon="📢"
-                                title="Announcement Approvals"
-                                description="Pending & reviewed announcements"
-                                href="/admin/announcements/approvals"
-                            />
-
-                            {/* Barangay Certificates destination deferred to Sector page with Certificates section */}
-                            <SectorRow
-                                icon="▣"
-                                title="Barangay Certificates"
-                                description="Certificates (destination deferred)"
-                                unavailable={true}
-                            />
-
-                            <SectorRow
-                                icon="⚖"
-                                title="Lupong Tagapamayapa"
-                                description="Cases & hearings (unavailable)"
-                                unavailable={true}
-                            />
-
-                            <SectorRow
-                                icon="♿"
-                                title="PWD"
-                                description="Registered PWD members (no member management page)"
-                                unavailable={true}
-                            />
-
-                            <SectorRow
-                                icon="♙"
-                                title="Senior Citizen"
-                                description="Registered senior citizens (no member management page)"
-                                unavailable={true}
-                                last
-                            />
-
+                            {announcements.length === 0 ? (
+                                <div className="px-5 py-10 text-center text-sm text-gray-400">No published announcements.</div>
+                            ) : announcements.map((announcement, index) => (
+                                <AnnouncementRow key={announcement.id} announcement={announcement} last={index === announcements.length - 1} />
+                            ))}
                         </div>
 
                     </section>
@@ -296,28 +181,12 @@ export default function Dashboard({
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-
-                        <ActivityCard
-                            title="Pending Approvals"
-                            value={activity.pendingApprovals.toString()}
-                            subtitle="Announcements awaiting review"
-                            href="/admin/announcements/approvals"
-                        />
-
-                        <ActivityCard
-                            title="Open Cases"
-                            value="—"
-                            subtitle="Lupong Tagapamayapa (unavailable)"
-                            unavailable={true}
-                        />
-
                         <ActivityCard
                             title="Active Staff"
                             value={activity.activeStaff.toString()}
                             subtitle="Currently active"
                             href="/admin/staff"
                         />
-
                     </div>
 
                 </section>
@@ -328,121 +197,56 @@ export default function Dashboard({
 }
 
 /* -------------------------------------------------------------------------- */
-/* Stat Card                                                                  */
+/* Summary Card                                                              */
 /* -------------------------------------------------------------------------- */
+function SummaryCard({ title, value, subtitle, href }: { title: string; value: string | number; subtitle: string; href: string }) {
+    return (
+        <Link href={href} className="rounded-lg bg-[#3f6f3d] p-5 text-white shadow-sm transition hover:bg-[#355f33]">
+            <p className="text-xs font-medium uppercase tracking-wide text-white/80">{title}</p>
+            <p className="mt-4 text-3xl font-semibold">{value}</p>
+            <p className="mt-1 text-xs text-white/70">{subtitle}</p>
+        </Link>
+    );
+}
 
-function StatCard({
-    title,
-    value,
-    subtitle,
-    href,
-    unavailable = false,
-    dropdownContent,
-    openMenu,
-    setOpenMenu,
-}: StatCardProps & {
-    openMenu: string | null;
-    setOpenMenu: (value: string | null) => void;
-}) {
-    const menuKey = title.toLowerCase();
-    const isPuroks = title === 'Puroks';
-    const canNavigate = !unavailable && !!href;
-    const hasDropdown = !!dropdownContent;
-    const isOpen = openMenu === menuKey;
-    const toggleMenu = () =>
-        setOpenMenu(isOpen ? null : menuKey);
-
+function PuroksSummaryCard({ value, puroks, open, onToggle }: { value: number; puroks: { id: number; name: string }[]; open: boolean; onToggle: () => void }) {
     return (
         <div className="relative rounded-lg bg-[#3f6f3d] p-5 text-white shadow-sm">
-
-            <div className="flex items-start justify-between">
-
-                <p className="text-xs font-medium uppercase tracking-wide text-white/80">
-                    {title}
-                </p>
-
-                <div className="relative">
-
-                    <button
-                        type="button"
-                        onClick={toggleMenu}
-                        aria-expanded={isOpen}
-                        aria-haspopup="true"
-                        aria-label={`${title} actions`}
-                        className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs hover:bg-white/20"
-                    >
-                        ⋮
-                    </button>
-
-                    {isOpen && (
-                        <div className="absolute right-0 z-20 mt-2 min-w-[10rem] rounded-md border border-gray-200 bg-white py-1 text-gray-700 shadow-lg">
-                            {isPuroks && dropdownContent ? (
-                                <div>{dropdownContent}</div>
-                            ) : canNavigate && href ? (
-                                <Link
-                                    href={href}
-                                    onClick={() => setOpenMenu(null)}
-                                    className="block px-3 py-2 text-xs hover:bg-gray-100"
-                                >
-                                    View Details
-                                </Link>
-                            ) : (
-                                <div className="px-3 py-2 text-xs text-gray-400">
-                                    Unavailable
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                </div>
-
-            </div>
-
-            {canNavigate && href ? (
-                <Link href={href} className="block">
-                    <p className="mt-4 text-3xl font-semibold">
-                        {value}
-                    </p>
-
-                    <p className="mt-1 text-xs text-white/70">
-                        {subtitle}
-                    </p>
-                </Link>
-            ) : hasDropdown ? (
-                <button
-                    type="button"
-                    onClick={toggleMenu}
-                    aria-expanded={isOpen}
-                    aria-haspopup="true"
-                    className="block w-full cursor-pointer text-left"
-                >
-                    <span className="mt-4 block text-3xl font-semibold">
-                        {value}
-                    </span>
-
-                    <span className="mt-1 block text-xs text-white/70">
-                        {subtitle}
-                    </span>
-                </button>
-            ) : (
-                <div className="block">
-                    <p className="mt-4 text-3xl font-semibold">
-                        {value}
-                    </p>
-
-                    <p className="mt-1 text-xs text-white/70">
-                        {subtitle}
-                    </p>
+            <button type="button" onClick={onToggle} aria-expanded={open} className="block w-full text-left">
+                <p className="text-xs font-medium uppercase tracking-wide text-white/80">Puroks</p>
+                <p className="mt-4 text-3xl font-semibold">{value}</p>
+                <p className="mt-1 text-xs text-white/70">Total Puroks · View list</p>
+            </button>
+            {open && (
+                <div className="absolute inset-x-3 top-full z-20 mt-2 max-h-48 overflow-auto rounded-md border border-gray-200 bg-white py-1 text-xs text-gray-700 shadow-lg">
+                    {puroks.length ? puroks.map((purok) => (
+                        <div key={purok.id} className="border-b border-gray-50 px-3 py-2 last:border-0">{purok.name}</div>
+                    )) : <div className="px-3 py-2 text-gray-400">No puroks found</div>}
                 </div>
             )}
-
         </div>
     );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Notification                                                               */
-/* -------------------------------------------------------------------------- */
+function AnnouncementRow({ announcement, last }: { announcement: NonNullable<DashboardProps['announcements']>[number]; last: boolean }) {
+    const [expanded, setExpanded] = useState(false);
+    return (
+        <article className={`px-5 py-4 ${!last ? 'border-b border-gray-100' : ''}`}>
+            <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800">{announcement.title}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                        {announcement.category}{announcement.eventStartAt ? ` · ${announcement.eventStartAt}` : ''}{announcement.location ? ` · ${announcement.location}` : ''}
+                    </p>
+                </div>
+                <button type="button" onClick={() => setExpanded(!expanded)} className="shrink-0 text-xs font-medium text-[#3f6f3d] hover:underline" aria-expanded={expanded}>
+                    {expanded ? 'Hide details' : 'View details'}
+                </button>
+            </div>
+            {expanded && <p className="mt-3 whitespace-pre-line text-sm text-gray-600">{announcement.content}</p>}
+        </article>
+    );
+}
 
 function Notification({
     icon,
@@ -459,174 +263,34 @@ function Notification({
     href: string;
     last?: boolean;
 }) {
-    return (
-        <Link
-            href={href}
-            className={`flex items-center justify-between gap-4 px-4 py-4 transition hover:bg-gray-50 ${
-                !last ? 'border-b border-gray-100' : ''
-            }`}
-        >
-
-            <div className="flex min-w-0 items-center gap-3">
-
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#edf4ea] text-sm font-semibold text-[#3f6f3d]">
-                    {icon}
-                </div>
-
-                <div className="min-w-0">
-
-                    <p className="truncate text-sm font-medium text-gray-800">
-                        {title}
-                    </p>
-
-                    <p className="mt-0.5 text-xs text-gray-500">
-                        {description}
-                    </p>
-
-                </div>
-
-            </div>
-
-            <span className="shrink-0 text-[10px] text-gray-400">
-                {time}
-            </span>
-
-        </Link>
-    );
+    return <Link href={href} className={`flex items-center justify-between gap-4 px-4 py-4 transition hover:bg-gray-50 ${!last ? 'border-b border-gray-100' : ''}`}><div className="flex min-w-0 items-center gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#edf4ea] text-sm font-semibold text-[#3f6f3d]">{icon}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-gray-800">{title}</p><p className="mt-0.5 text-xs text-gray-500">{description}</p></div></div><span className="shrink-0 text-[10px] text-gray-400">{time}</span></Link>;
 }
-
-/* -------------------------------------------------------------------------- */
-/* System Overview Row                                                        */
-/* -------------------------------------------------------------------------- */
-
-function SectorRow({
-    icon,
-    title,
-    description,
-    href,
-    last = false,
-    unavailable = false,
-}: SectorRowProps) {
-    const canNavigate = !unavailable && !!href;
-
-    if (!canNavigate) {
-        return (
-            <div
-                className={`flex items-center justify-between gap-4 px-5 py-4 ${
-                    !last ? 'border-b border-gray-100' : ''
-                }`}
-            >
-                <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#edf4ea] text-sm text-[#3f6f3d]">
-                        {icon}
-                    </div>
-                    <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-gray-800">
-                            {title}
-                        </p>
-                        <p className="truncate text-xs text-gray-500">
-                            {description}
-                        </p>
-                    </div>
-                </div>
-                <span className="shrink-0 text-xs font-medium text-gray-400">
-                    Unavailable
-                </span>
-            </div>
-        );
-    }
-
-    return (
-        <Link
-            href={href as string}
-            className={`flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-gray-50 ${
-                !last ? 'border-b border-gray-100' : ''
-            }`}
-        >
-
-            <div className="flex min-w-0 items-center gap-3">
-
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#edf4ea] text-sm text-[#3f6f3d]">
-                    {icon}
-                </div>
-
-                <div className="min-w-0">
-
-                    <p className="truncate text-sm font-medium text-gray-800">
-                        {title}
-                    </p>
-
-                    <p className="truncate text-xs text-gray-500">
-                        {description}
-                    </p>
-
-                </div>
-
-            </div>
-
-            <span className="shrink-0 text-xs font-medium text-[#3f6f3d]">
-                View
-            </span>
-
-        </Link>
-    );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Activity Card                                                              */
-/* -------------------------------------------------------------------------- */
 
 function ActivityCard({
     title,
     value,
     subtitle,
     href,
-    unavailable = false,
 }: {
     title: string;
     value: string;
     subtitle: string;
-    href?: string;
-    unavailable?: boolean;
+    href: string;
 }) {
-    const canNavigate = !unavailable && !!href;
-
-    if (!canNavigate) {
-        return (
-            <div className="rounded-lg border border-gray-200 bg-white p-5">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                    {title}
-                </p>
-
-                <p className="mt-3 text-3xl font-semibold text-gray-800">
-                    {value}
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                    {subtitle}
-                </p>
-            </div>
-        );
-    }
-
     return (
         <Link
-            href={href as string}
+            href={href}
             className="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-[#3f6f3d] hover:shadow-sm"
         >
-
             <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
                 {title}
             </p>
-
             <p className="mt-3 text-3xl font-semibold text-gray-800">
                 {value}
             </p>
-
             <p className="mt-1 text-xs text-gray-500">
                 {subtitle}
             </p>
-
         </Link>
     );
 }

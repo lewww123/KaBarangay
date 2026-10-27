@@ -21,6 +21,18 @@ type RequestStatus =
     | 'Released'
     | 'Rejected';
 
+type CertificateField = {
+    key: string;
+    label: string;
+    type: 'text' | 'number';
+    kind: 'text' | 'integer' | 'numeric';
+    required: boolean;
+    min?: number;
+    max?: number;
+    default?: string;
+    placeholder?: string;
+};
+
 type Certificate = {
     id: string;
     name: string;
@@ -28,6 +40,16 @@ type Certificate = {
     description: string;
     requirements: string[];
     requiresBusinessDetails?: boolean;
+    certificateType?: string | null;
+    fixedPurpose?: string | null;
+    detailsFields?: CertificateField[];
+    available: boolean;
+    templateAvailable: boolean;
+};
+
+type CertificateRequestDetailsRow = {
+    label: string;
+    value: string;
 };
 
 type CertificateRequest = {
@@ -41,6 +63,8 @@ type CertificateRequest = {
     businessName?: string;
     businessAddress?: string;
     additionalDetails?: string;
+    details?: CertificateRequestDetailsRow[];
+    adminNote?: string | null;
 };
 
 interface PageProps {
@@ -48,6 +72,9 @@ interface PageProps {
         id: number;
         full_name: string;
         resident_number: string;
+        birthdate: string | null;
+        sex: string | null;
+        purok: string | null;
         barangay: {
             id: number;
             name: string;
@@ -61,6 +88,16 @@ interface PageProps {
 }
 
 const CERTIFICATE_FLOW_KEY = 'kabarangay_certificate_flow';
+
+function defaultDetails(certificate?: Certificate): Record<string, string> {
+    const values: Record<string, string> = {};
+
+    certificate?.detailsFields?.forEach((field) => {
+        values[field.key] = field.default ?? '';
+    });
+
+    return values;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -79,6 +116,7 @@ export default function Certificates({ resident, certificates, requests, errors 
     const [additionalDetails, setAdditionalDetails] = useState('');
     const [businessName, setBusinessName] = useState('');
     const [businessAddress, setBusinessAddress] = useState('');
+    const [details, setDetails] = useState<Record<string, string>>({});
     
     // UI State
     const [submittedRequest, setSubmittedRequest] = useState<CertificateRequest | null>(null);
@@ -104,16 +142,17 @@ export default function Certificates({ resident, certificates, requests, errors 
 
             if (parsed.source !== 'chatbot' || !parsed.certificateId) return;
 
-            const certificateExists = certificates.some(
-                (certificate) => certificate.id === parsed.certificateId
+            const certificate = certificates.find(
+                (item) => item.id === parsed.certificateId,
             );
 
-            if (!certificateExists) {
+            if (!certificate?.available) {
                 window.localStorage.removeItem(CERTIFICATE_FLOW_KEY);
                 return;
             }
 
             setCertificateId(parsed.certificateId);
+            setDetails(defaultDetails(certificate));
             setActiveTab('request');
             setStep('form');
             setCameFromAssistant(true);
@@ -133,6 +172,30 @@ export default function Certificates({ resident, certificates, requests, errors 
         [certificateId, certificates]
     );
 
+    const effectivePurpose =
+        selectedCertificate?.fixedPurpose ?? (purpose === 'Other' ? otherPurpose : purpose);
+
+    const detailsFields = selectedCertificate?.detailsFields ?? [];
+
+    const detailsComplete = detailsFields.every(
+        (field) => !field.required || (details[field.key] ?? '').trim() !== '',
+    );
+
+    const handleCertificateChange = (nextCertificateId: string) => {
+        const nextCertificate = certificates.find(
+            (certificate) => certificate.id === nextCertificateId,
+        );
+
+        if (!nextCertificate?.available) {
+            return;
+        }
+
+        setCertificateId(nextCertificateId);
+        setDetails(defaultDetails(nextCertificate));
+        setBusinessName('');
+        setBusinessAddress('');
+    };
+
     /*
     |--------------------------------------------------------------------------
     | Reset
@@ -146,6 +209,7 @@ export default function Certificates({ resident, certificates, requests, errors 
         setAdditionalDetails('');
         setBusinessName('');
         setBusinessAddress('');
+        setDetails({});
         setSubmittedRequest(null);
         setStep('form');
     };
@@ -159,9 +223,10 @@ export default function Certificates({ resident, certificates, requests, errors 
     const handleContinue = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (!selectedCertificate || !purpose) return;
-        if (purpose === 'Other' && !otherPurpose.trim()) return;
+        if (!selectedCertificate?.available || !effectivePurpose.trim()) return;
+        if (!selectedCertificate.fixedPurpose && purpose === 'Other' && !otherPurpose.trim()) return;
         if (selectedCertificate.requiresBusinessDetails && (!businessName.trim() || !businessAddress.trim())) return;
+        if (!detailsComplete) return;
 
         setStep('review');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -174,17 +239,16 @@ export default function Certificates({ resident, certificates, requests, errors 
     */
 
     const handleSubmitRequest = () => {
-        if (!selectedCertificate || processing) return;
+        if (!selectedCertificate?.available || processing) return;
         setProcessing(true);
-
-        const finalPurpose = purpose === 'Other' ? otherPurpose : purpose;
 
         router.post('/resident/certificates', {
             certificate_id: selectedCertificate.id,
-            purpose: finalPurpose,
+            purpose: effectivePurpose,
             business_name: businessName || undefined,
             business_address: businessAddress || undefined,
             additional_details: additionalDetails || undefined,
+            details,
         }, {
             preserveScroll: true,
             onSuccess: (page: any) => {
@@ -312,6 +376,9 @@ export default function Certificates({ resident, certificates, requests, errors 
                                         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                                             <InfoItem label="Resident Name" value={resident.full_name} />
                                             <InfoItem label="KaBarangay ID" value={resident.resident_number} />
+                                            {resident.purok && <InfoItem label="Purok" value={resident.purok} />}
+                                            {resident.birthdate && <InfoItem label="Date of Birth" value={resident.birthdate} />}
+                                            {resident.sex && <InfoItem label="Sex" value={resident.sex} />}
                                             <div className="sm:col-span-2">
                                                 <InfoItem label="Barangay" value={`${resident.barangay.name}, ${resident.barangay.city_municipality}`} />
                                             </div>
@@ -333,18 +400,19 @@ export default function Certificates({ resident, certificates, requests, errors 
                                             <select
                                                 id="certificate"
                                                 value={certificateId}
-                                                onChange={(event) => {
-                                                    setCertificateId(event.target.value);
-                                                    setBusinessName('');
-                                                    setBusinessAddress('');
-                                                }}
+                                                onChange={(event) => handleCertificateChange(event.target.value)}
                                                 className={inputClass}
                                                 required
                                             >
                                                 <option value="">Select certificate</option>
                                                 {certificates.map((certificate) => (
-                                                    <option key={certificate.id} value={certificate.id}>
+                                                    <option
+                                                        key={certificate.id}
+                                                        value={certificate.id}
+                                                        disabled={!certificate.available}
+                                                    >
                                                         {certificate.name}
+                                                        {!certificate.available ? ' (Unavailable)' : ''}
                                                     </option>
                                                 ))}
                                             </select>
@@ -356,7 +424,18 @@ export default function Certificates({ resident, certificates, requests, errors 
                                             <div className="mt-4 rounded-xl bg-[#f7f8f5] p-4">
                                                 <p className="text-base font-semibold text-gray-800">{selectedCertificate.name}</p>
                                                 <p className="mt-1 text-sm leading-6 text-gray-500">{selectedCertificate.description}</p>
-                                                
+
+                                                {!selectedCertificate.available && (
+                                                    <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-800">
+                                                        This certificate is currently unavailable. Please choose another certificate type.
+                                                    </p>
+                                                )}
+                                                {selectedCertificate.available && !selectedCertificate.templateAvailable && (
+                                                    <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                                        This active service can accept requests. Certificate generation is not available yet; the barangay office may need to complete processing after its template is provisioned.
+                                                    </div>
+                                                )}
+
                                                 {selectedCertificate.requirements?.length > 0 && (
                                                     <div className="mt-4">
                                                         <p className="text-sm font-semibold text-gray-700">Requirements</p>
@@ -382,46 +461,63 @@ export default function Certificates({ resident, certificates, requests, errors 
                                             </div>
                                         )}
 
-                                        {/* PURPOSE */}
-                                        <div className="mt-5">
-                                            <label htmlFor="purpose" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
-                                                Purpose *
-                                            </label>
-                                            <select
-                                                id="purpose"
-                                                value={purpose}
-                                                onChange={(event) => setPurpose(event.target.value)}
-                                                className={inputClass}
-                                                required
-                                            >
-                                                <option value="">Select purpose</option>
-                                                <option value="Employment">Employment</option>
-                                                <option value="School Requirement">School Requirement</option>
-                                                <option value="Government Requirement">Government Requirement</option>
-                                                <option value="Financial Assistance">Financial Assistance</option>
-                                                <option value="Business">Business</option>
-                                                <option value="Personal">Personal</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                            {errors.purpose && <p className="mt-2 text-sm text-red-600">{errors.purpose}</p>}
-                                        </div>
-
-                                        {/* OTHER PURPOSE */}
-                                        {purpose === 'Other' && (
-                                            <div className="mt-5">
-                                                <label htmlFor="otherPurpose" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
-                                                    Please specify *
-                                                </label>
-                                                <input
-                                                    id="otherPurpose"
-                                                    type="text"
-                                                    value={otherPurpose}
-                                                    onChange={(event) => setOtherPurpose(event.target.value)}
-                                                    placeholder="Enter purpose"
-                                                    className={inputClass}
-                                                    required
-                                                />
+                                        {/* FIXED PURPOSE */}
+                                        {selectedCertificate?.fixedPurpose && (
+                                            <div className="mt-5 rounded-lg border border-[#d7e3d4] bg-[#edf4ea] p-4">
+                                                <p className="text-sm font-medium text-gray-600">Purpose</p>
+                                                <p className="mt-1 text-base font-semibold text-gray-800">
+                                                    {selectedCertificate.fixedPurpose}
+                                                </p>
+                                                <p className="mt-1 text-xs leading-5 text-gray-500">
+                                                    This certificate uses a fixed purpose set by the barangay.
+                                                </p>
                                             </div>
+                                        )}
+
+                                        {/* PURPOSE */}
+                                        {!selectedCertificate?.fixedPurpose && (
+                                            <>
+                                                <div className="mt-5">
+                                                    <label htmlFor="purpose" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
+                                                        Purpose *
+                                                    </label>
+                                                    <select
+                                                        id="purpose"
+                                                        value={purpose}
+                                                        onChange={(event) => setPurpose(event.target.value)}
+                                                        className={inputClass}
+                                                        required
+                                                    >
+                                                        <option value="">Select purpose</option>
+                                                        <option value="Employment">Employment</option>
+                                                        <option value="School Requirement">School Requirement</option>
+                                                        <option value="Government Requirement">Government Requirement</option>
+                                                        <option value="Financial Assistance">Financial Assistance</option>
+                                                        <option value="Business">Business</option>
+                                                        <option value="Personal">Personal</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                    {errors.purpose && <p className="mt-2 text-sm text-red-600">{errors.purpose}</p>}
+                                                </div>
+
+                                                {/* OTHER PURPOSE */}
+                                                {purpose === 'Other' && (
+                                                    <div className="mt-5">
+                                                        <label htmlFor="otherPurpose" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
+                                                            Please specify *
+                                                        </label>
+                                                        <input
+                                                            id="otherPurpose"
+                                                            type="text"
+                                                            value={otherPurpose}
+                                                            onChange={(event) => setOtherPurpose(event.target.value)}
+                                                            placeholder="Enter purpose"
+                                                            className={inputClass}
+                                                            required
+                                                        />
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
 
                                         {/* BUSINESS DETAILS */}
@@ -458,6 +554,60 @@ export default function Certificates({ resident, certificates, requests, errors 
                                                         />
                                                         {errors.business_address && <p className="mt-2 text-sm text-red-600">{errors.business_address}</p>}
                                                     </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* CERTIFICATE-SPECIFIC DETAILS */}
+                                        {detailsFields.length > 0 && (
+                                            <div className="mt-6 border-t border-gray-100 pt-6">
+                                                <h3 className="text-base font-semibold text-gray-800">
+                                                    {selectedCertificate?.certificateType ?? 'Certificate'} Information
+                                                </h3>
+                                                <p className="mt-1 text-sm text-gray-500">
+                                                    These details are printed on the certificate. Please review them carefully.
+                                                </p>
+                                                <div className="mt-4 space-y-4">
+                                                    {detailsFields.map((field) => (
+                                                        <div key={field.key}>
+                                                            <label
+                                                                htmlFor={`detail-${field.key}`}
+                                                                className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                            >
+                                                                {field.label}
+                                                                {field.required && ' *'}
+                                                            </label>
+                                                            <input
+                                                                id={`detail-${field.key}`}
+                                                                type={field.type}
+                                                                value={details[field.key] ?? ''}
+                                                                onChange={(event) => {
+                                                                    const value = event.target.value;
+                                                                    setDetails((current) => ({
+                                                                        ...current,
+                                                                        [field.key]: value,
+                                                                    }));
+                                                                }}
+                                                                min={field.min}
+                                                                max={field.max}
+                                                                step={
+                                                                    field.type === 'number'
+                                                                        ? field.kind === 'numeric'
+                                                                            ? '0.01'
+                                                                            : '1'
+                                                                        : undefined
+                                                                }
+                                                                placeholder={field.placeholder}
+                                                                className={inputClass}
+                                                                required={field.required}
+                                                            />
+                                                            {errors[`details.${field.key}`] && (
+                                                                <p className="mt-2 text-sm text-red-600">
+                                                                    {errors[`details.${field.key}`]}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
@@ -503,15 +653,25 @@ export default function Certificates({ resident, certificates, requests, errors 
                                         <ReviewRow label="Resident" value={resident.full_name} />
                                         <ReviewRow label="KaBarangay ID" value={resident.resident_number} />
                                         <ReviewRow label="Certificate" value={selectedCertificate.name} />
-                                        <ReviewRow label="Purpose" value={purpose === 'Other' ? otherPurpose : purpose} />
-                                        
+                                        <ReviewRow label="Purpose" value={effectivePurpose} />
+
                                         {selectedCertificate.requiresBusinessDetails && (
                                             <>
                                                 <ReviewRow label="Business Name" value={businessName} />
                                                 <ReviewRow label="Business Address" value={businessAddress} />
                                             </>
                                         )}
-                                        
+
+                                        {detailsFields.map((field) =>
+                                            (details[field.key] ?? '').trim() !== '' ? (
+                                                <ReviewRow
+                                                    key={field.key}
+                                                    label={field.label}
+                                                    value={details[field.key]}
+                                                />
+                                            ) : null,
+                                        )}
+
                                         {additionalDetails && (
                                             <ReviewRow label="Additional Details" value={additionalDetails} />
                                         )}
@@ -708,11 +868,25 @@ function RequestDetailsModal({ request, onClose }: { request: CertificateRequest
                             />
                             {request.businessName && <InfoItem label="Business Name" value={request.businessName} />}
                             {request.businessAddress && <InfoItem label="Business Address" value={request.businessAddress} />}
+                            {request.details?.map((detail) => (
+                                <InfoItem key={detail.label} label={detail.label} value={detail.value} />
+                            ))}
                         </div>
                         {request.additionalDetails && (
                             <>
                                 <div className="my-4 border-t border-gray-200" />
                                 <InfoItem label="Additional Details" value={request.additionalDetails} />
+                            </>
+                        )}
+                        {request.adminNote && (
+                            <>
+                                <div className="my-4 border-t border-gray-200" />
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                    <p className="text-sm font-semibold text-amber-800">Barangay Note</p>
+                                    <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-amber-900">
+                                        {request.adminNote}
+                                    </p>
+                                </div>
                             </>
                         )}
                         <div className="my-4 border-t border-gray-200" />
@@ -790,12 +964,22 @@ function RequestTracker({ status }: { status: RequestStatus }) {
         );
     }
 
-    const steps =
-        status === 'For Payment'
-            ? ['Submitted', 'Reviewed', 'For Payment', 'Processing', 'Ready for Claim', 'Released']
-            : ['Submitted', 'Reviewed', 'Processing', 'Ready for Claim', 'Released'];
+    // Only show statuses the request has actually reached. There is no
+    // standalone "Reviewed" status, and a payment step is omitted unless the
+    // request is currently waiting for payment.
+    const steps = ['Submitted'];
 
-    const currentStep = getCurrentStep(status, steps);
+    if (status === 'For Payment') {
+        steps.push('For Payment');
+    } else if (status === 'Processing') {
+        steps.push('Processing');
+    } else if (status === 'Ready for Claim') {
+        steps.push('Processing', 'Ready for Claim');
+    } else if (status === 'Released') {
+        steps.push('Processing', 'Ready for Claim', 'Released');
+    }
+
+    const currentStep = steps.length - 1;
 
     return (
         <div>
@@ -919,16 +1103,6 @@ function TrackerIcon({ step, completed }: { step: string; completed: boolean }) 
         );
     }
 
-    if (step === 'Reviewed') {
-        return (
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="10" cy="10" r="5" />
-                <path d="m14 14 5 5" />
-                <path d="m7.5 10 1.5 1.5 3-3" />
-            </svg>
-        );
-    }
-
     if (step === 'For Payment') {
         return <span className="text-sm font-bold leading-none">₱</span>;
     }
@@ -1003,15 +1177,6 @@ function CurrentStatusIcon({ status }: { status: RequestStatus }) {
 | Tracker Logic
 |--------------------------------------------------------------------------
 */
-
-function getCurrentStep(status: RequestStatus, steps: string[]) {
-    if (status === 'Pending') return 0;
-    if (status === 'For Payment') return steps.indexOf('For Payment');
-    if (status === 'Processing') return steps.indexOf('Processing');
-    if (status === 'Ready for Claim') return steps.indexOf('Ready for Claim');
-    if (status === 'Released') return steps.indexOf('Released');
-    return 0;
-}
 
 /*
 |--------------------------------------------------------------------------

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import ClerkLayout from '@/layouts/ClerkLayout';
+
+type AttendanceStatus = 'present' | 'claimed' | 'absent';
+type AttendanceTab = 'present' | 'claimed';
+type FeedbackTone = 'success' | 'warning' | 'error' | 'info';
+type AttendanceOutcome = 'recorded' | 'already_present' | 'already_claimed' | 'existing_record_conflict';
 
 interface Resident {
     id: number;
@@ -14,7 +19,7 @@ interface Resident {
 interface AttendanceItem {
     id: number;
     resident: Resident;
-    status: 'present' | 'claimed' | 'absent';
+    status: AttendanceStatus;
     method: string;
     attended_at: string;
 }
@@ -26,6 +31,28 @@ interface Announcement {
     location?: string;
 }
 
+interface QrVerificationResponse {
+    resident?: {
+        id?: number;
+        full_name?: string;
+        resident_number?: string;
+    };
+    qr_proof?: string | null;
+    message?: string;
+}
+
+interface AttendanceFlash {
+    success?: string | null;
+    warning?: string | null;
+    error?: string | null;
+    info?: string | null;
+    attendance_outcome?: AttendanceOutcome | null;
+}
+
+interface InertiaPageProps {
+    flash?: AttendanceFlash;
+}
+
 interface Props {
     announcement: Announcement;
     attendances: AttendanceItem[];
@@ -33,14 +60,147 @@ interface Props {
     user?: { name?: string; staff_id?: string; department?: string };
 }
 
-export default function ClerkAttendanceSheet({ announcement, attendances = [], residents = [], user }: Props) {
+const feedbackToneClasses: Record<FeedbackTone, string> = {
+    success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    warning: 'border-amber-200 bg-amber-50 text-amber-900',
+    error: 'border-red-200 bg-red-50 text-red-800',
+    info: 'border-sky-200 bg-sky-50 text-sky-800',
+};
+
+const feedbackDotClasses: Record<FeedbackTone, string> = {
+    success: 'bg-emerald-500',
+    warning: 'bg-amber-500',
+    error: 'bg-red-500',
+    info: 'bg-sky-500',
+};
+
+function normalizeQrToken(rawToken: string): string {
+    const trimmed = rawToken.trim();
+
+    if (!trimmed || !trimmed.includes('/')) {
+        return trimmed;
+    }
+
+    const parts = trimmed.split('/').filter(Boolean);
+
+    return parts[parts.length - 1] ?? '';
+}
+
+function attendanceFeedbackFromPage(page: { props: Record<string, unknown> }): { text: string; type: Exclude<FeedbackTone, 'info'> } | null {
+    const props = page.props as InertiaPageProps & Record<string, unknown>;
+    const flash = props.flash;
+    const outcome = flash?.attendance_outcome;
+    const message = outcome === 'recorded'
+        ? flash?.success
+        : (flash?.warning ?? flash?.info ?? flash?.error);
+
+    if (!message?.trim()) {
+        return null;
+    }
+
+    if (outcome === 'recorded') {
+        return { text: message, type: 'success' };
+    }
+
+    if (outcome === 'already_present' || outcome === 'already_claimed' || outcome === 'existing_record_conflict') {
+        return { text: message, type: 'warning' };
+    }
+
+    return null;
+}
+
+function extractServerMessage(data: string | Record<string, unknown>): string | undefined {
+    if (typeof data !== 'object' || data === null) {
+        return undefined;
+    }
+
+    const message = data.message;
+
+    return typeof message === 'string' && message.trim() !== '' ? message : undefined;
+}
+
+function verificationErrorMessage(status: number, serverMessage?: string): string {
+    if (serverMessage?.trim()) {
+        return serverMessage;
+    }
+
+    if (status === 401 || status === 419) {
+        return 'Nag-expire ang session. I-refresh ang page at mag-login muli.';
+    }
+
+    if (status === 403) {
+        return 'Wala kang pahintulot na gawin ang aksyong ito.';
+    }
+
+    if (status === 404) {
+        return 'Hindi makita ang residente o hindi aktibo ang account.';
+    }
+
+    if (status === 422) {
+        return 'Mali, expired, o hindi kabilang sa event ang QR code.';
+    }
+
+    if (status === 429) {
+        return 'Masyadong maraming scan. Maghintay sandali bago subukan muli.';
+    }
+
+    return 'Hindi ma-verify ang QR code. Subukang muli.';
+}
+
+function recordingErrorMessage(status: number, serverMessage?: string): string {
+    if (serverMessage?.trim()) {
+        return serverMessage;
+    }
+
+    if (status === 401 || status === 419) {
+        return 'Nag-expire ang session. I-refresh ang page at mag-login muli.';
+    }
+
+    if (status === 403) {
+        return 'Hindi awtorisado ang aksyon o hindi kasama sa event ang residente.';
+    }
+
+    if (status === 404) {
+        return 'Hindi makita ang residente o announcement.';
+    }
+
+    if (status === 422) {
+        return 'Hindi tinanggap ang attendance. Subukang muli.';
+    }
+
+    if (status === 429) {
+        return 'Masyadong maraming scan. Maghintay sandali bago subukan muli.';
+    }
+
+    return 'May problema sa server. Subukang muli.';
+}
+
+function firstValidationError(errors: Record<string, string | string[]>): string | undefined {
+    for (const value of Object.values(errors)) {
+        if (Array.isArray(value) && value.length > 0) {
+            return value[0];
+        }
+
+        if (typeof value === 'string' && value !== '') {
+            return value;
+        }
+    }
+
+    return undefined;
+}
+
+export default function ClerkAttendanceSheet({ announcement, attendances, residents = [], user }: Props) {
     const [qrInput, setQrInput] = useState('');
-    const [scanMessage, setScanMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-    const [activeTab, setActiveTab] = useState<'claimed' | 'present'>('claimed');
-    // Advances only when a QR scan attempt finishes or the target tab changes,
+    const [feedback, setFeedback] = useState<{ text: string; type: Exclude<FeedbackTone, 'info'> } | null>(null);
+    const [activeTab, setActiveTab] = useState<AttendanceTab>('present');
+    const [manualResidentId, setManualResidentId] = useState('');
+    const [isProcessingScan, setIsProcessingScan] = useState(false);
+    const [manualProcessing, setManualProcessing] = useState(false);
+    // Advances only when a scan attempt finishes or the target tab changes,
     // so the scan field is focused again without stealing it on other edits.
     const [scanEvent, setScanEvent] = useState(0);
     const qrInputRef = useRef<HTMLInputElement | null>(null);
+    const operationInFlightRef = useRef(false);
 
     /*
     |--------------------------------------------------------------------------
@@ -58,65 +218,235 @@ export default function ClerkAttendanceSheet({ announcement, attendances = [], r
         qrInputRef.current?.focus({ preventScroll: true });
     }, [scanEvent, activeTab]);
 
-    const { data, setData, post, processing, reset } = useForm({
-        resident_id: '',
-        status: 'claimed',
-        method: 'manual',
-    });
+    const processingLabel = isProcessingScan
+        ? 'Vine-verify at itinatala ang QR attendance...'
+        : manualProcessing
+          ? 'Itinatala ang manual attendance...'
+          : null;
+    const statusTone: FeedbackTone | undefined = processingLabel ? 'info' : feedback?.type;
+    const statusText = processingLabel ?? feedback?.text;
 
-    const handleQrScanSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setScanMessage(null);
-
-        let cleanToken = qrInput.trim();
-        if (!cleanToken) return;
-
-        if (cleanToken.includes('/')) {
-            const parts = cleanToken.split('/');
-            cleanToken = parts[parts.length - 1];
-        }
-
-        fetch(`/api/qr/verify-token?token=${encodeURIComponent(cleanToken)}&announcement_id=${announcement.id}`)
-            .then(async (res) => {
-                const json = await res.json();
-                if (res.ok && json.resident && json.qr_proof) {
-                    router.post(`/clerk/announcements/${announcement.id}/attendance/mark`, {
-                        resident_id: json.resident.id,
-                        status: activeTab,
-                        method: 'qr_scanner',
-                        qr_proof: json.qr_proof,
-                    }, {
-                        preserveScroll: true,
-                        onSuccess: () => {
-                            setScanMessage({ text: `Naitala ang pagdalo ni ${json.resident.last_name}, ${json.resident.first_name} bilang ${activeTab.toUpperCase()}.`, type: 'success' });
-                            setQrInput('');
-                            setScanEvent((event) => event + 1);
-                            router.reload({ only: ['attendances'] });
-                        },
-                    });
-                } else {
-                    setScanMessage({ text: json.message || 'Mali o expired ang QR code token.', type: 'error' });
-                    setQrInput('');
-                    setScanEvent((event) => event + 1);
-                }
-            })
-            .catch(() => {
-                setScanMessage({ text: 'Nabigong i-verify ang QR code. Subukang muli.', type: 'error' });
-                setQrInput('');
-                setScanEvent((event) => event + 1);
-            });
+    const resetScanState = () => {
+        setIsProcessingScan(false);
+        operationInFlightRef.current = false;
+        setScanEvent((event) => event + 1);
     };
 
-    const handleManualSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        data.status = activeTab;
-        post(`/clerk/announcements/${announcement.id}/attendance/mark`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                reset('resident_id');
-                router.reload({ only: ['attendances'] });
-            },
-        });
+    const submitScan = async () => {
+        if (operationInFlightRef.current) {
+            return;
+        }
+
+        const token = normalizeQrToken(qrInput);
+
+        if (!token) {
+            setFeedback({ text: 'Walang QR token na na-scan. Subukang muli.', type: 'warning' });
+            setScanEvent((event) => event + 1);
+            return;
+        }
+
+        const targetStatus = activeTab;
+        const markUrl = `/clerk/announcements/${announcement.id}/attendance/mark`;
+
+        setQrInput('');
+        setFeedback(null);
+        setIsProcessingScan(true);
+        operationInFlightRef.current = true;
+
+        let response: Response;
+
+        try {
+            response = await fetch(
+                `/api/qr/verify-token?token=${encodeURIComponent(token)}&announcement_id=${announcement.id}`,
+                { headers: { Accept: 'application/json' } },
+            );
+        } catch {
+            setFeedback({ text: 'Nabigong i-verify ang QR code dahil sa network. Subukang muli.', type: 'error' });
+            resetScanState();
+            return;
+        }
+
+        let payload: QrVerificationResponse | null = null;
+
+        try {
+            payload = (await response.json()) as QrVerificationResponse;
+        } catch {
+            payload = null;
+        }
+
+        const residentId = payload?.resident?.id;
+        const qrProof = payload?.qr_proof;
+
+        if (!response.ok || typeof residentId !== 'number' || typeof qrProof !== 'string' || qrProof === '') {
+            setFeedback({
+                text: `Hindi na-verify ang QR code. ${verificationErrorMessage(response.status, payload?.message)}`,
+                type: 'error',
+            });
+            resetScanState();
+            return;
+        }
+
+        let outcomeSettled = false;
+
+        try {
+            router.post(markUrl, {
+                resident_id: residentId,
+                status: targetStatus,
+                method: 'qr_scanner',
+                qr_proof: qrProof,
+            }, {
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    if (outcomeSettled) return;
+
+                    outcomeSettled = true;
+                    const serverFeedback = attendanceFeedbackFromPage(page);
+
+                    if (serverFeedback) {
+                        setFeedback(serverFeedback);
+                    }
+
+                    setQrInput('');
+                    router.reload({ only: ['attendances'] });
+                },
+                onError: (errors) => {
+                    if (outcomeSettled) return;
+
+                    outcomeSettled = true;
+                    const message = firstValidationError(errors);
+                    setFeedback({
+                        text: `Hindi naitala ang attendance.${message ? ` ${message}` : ' Subukang muli.'}`,
+                        type: 'error',
+                    });
+                },
+                onHttpException: (error) => {
+                    if (outcomeSettled) return false;
+
+                    outcomeSettled = true;
+                    const message = recordingErrorMessage(error.status, extractServerMessage(error.data));
+                    setFeedback({ text: `Hindi naitala ang attendance. ${message}`, type: 'error' });
+
+                    return false;
+                },
+                onNetworkError: () => {
+                    if (outcomeSettled) return false;
+
+                    outcomeSettled = true;
+                    setFeedback({
+                        text: 'Hindi matiyak kung naitala ang attendance dahil sa network. I-check ang listahan bago mag-scan muli.',
+                        type: 'warning',
+                    });
+
+                    return false;
+                },
+                onFinish: () => {
+                    if (!outcomeSettled) {
+                        outcomeSettled = true;
+                        setFeedback({
+                            text: 'Hindi matiyak kung naitala ang attendance. I-check ang listahan bago mag-scan muli.',
+                            type: 'warning',
+                        });
+                    }
+
+                    resetScanState();
+                },
+            });
+        } catch {
+            setFeedback({ text: 'Hindi naipadala ang attendance. Subukang muli.', type: 'error' });
+            resetScanState();
+        }
+    };
+
+    const submitManual = () => {
+        if (operationInFlightRef.current) {
+            return;
+        }
+
+        const residentId = Number(manualResidentId);
+
+        if (!Number.isInteger(residentId) || residentId <= 0) {
+            setFeedback({ text: 'Pumili muna ng residente bago itala ang manual attendance.', type: 'warning' });
+            return;
+        }
+
+        const targetStatus = activeTab;
+        const markUrl = `/clerk/announcements/${announcement.id}/attendance/mark`;
+
+        setFeedback(null);
+        setManualProcessing(true);
+        operationInFlightRef.current = true;
+
+        let outcomeSettled = false;
+
+        try {
+            router.post(markUrl, {
+                resident_id: residentId,
+                status: targetStatus,
+                method: 'manual',
+            }, {
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    if (outcomeSettled) return;
+
+                    outcomeSettled = true;
+                    const serverFeedback = attendanceFeedbackFromPage(page);
+
+                    if (serverFeedback) {
+                        setFeedback(serverFeedback);
+                    }
+
+                    setManualResidentId('');
+                    setScanEvent((event) => event + 1);
+                    router.reload({ only: ['attendances'] });
+                },
+                onError: (errors) => {
+                    if (outcomeSettled) return;
+
+                    outcomeSettled = true;
+                    const message = firstValidationError(errors);
+                    setFeedback({
+                        text: `Hindi naitala ang attendance.${message ? ` ${message}` : ' Subukang muli.'}`,
+                        type: 'error',
+                    });
+                },
+                onHttpException: (error) => {
+                    if (outcomeSettled) return false;
+
+                    outcomeSettled = true;
+                    const message = recordingErrorMessage(error.status, extractServerMessage(error.data));
+                    setFeedback({ text: `Hindi naitala ang attendance. ${message}`, type: 'error' });
+
+                    return false;
+                },
+                onNetworkError: () => {
+                    if (outcomeSettled) return false;
+
+                    outcomeSettled = true;
+                    setFeedback({
+                        text: 'Hindi matiyak kung naitala ang attendance dahil sa network. I-check ang listahan bago subukan muli.',
+                        type: 'warning',
+                    });
+
+                    return false;
+                },
+                onFinish: () => {
+                    if (!outcomeSettled) {
+                        outcomeSettled = true;
+                        setFeedback({
+                            text: 'Hindi matiyak kung naitala ang attendance. I-check ang listahan bago subukan muli.',
+                            type: 'warning',
+                        });
+                    }
+
+                    setManualProcessing(false);
+                    operationInFlightRef.current = false;
+                },
+            });
+        } catch {
+            setFeedback({ text: 'Hindi naipadala ang attendance. Subukang muli.', type: 'error' });
+            setManualProcessing(false);
+            operationInFlightRef.current = false;
+        }
     };
 
     const filteredAttendances = attendances.filter(item => {
@@ -152,6 +482,21 @@ export default function ClerkAttendanceSheet({ announcement, attendances = [], r
                     </a>
                 </div>
 
+                {statusText && statusTone && (
+                    <div
+                        role={statusTone === 'error' ? 'alert' : 'status'}
+                        aria-live="polite"
+                        aria-atomic="true"
+                        className={`flex items-start gap-2.5 rounded-xl border p-3.5 text-xs font-bold ${feedbackToneClasses[statusTone]}`}
+                    >
+                        <span
+                            className={`mt-1 h-2 w-2 shrink-0 rounded-full ${feedbackDotClasses[statusTone]} ${statusTone === 'info' ? 'animate-pulse' : ''}`}
+                            aria-hidden="true"
+                        />
+                        <span>{statusText}</span>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
                     <div className="lg:col-span-7 rounded-xl border border-gray-200/80 bg-white p-6 shadow-sm flex flex-col justify-between space-y-4">
                         <div className="space-y-4">
@@ -167,36 +512,45 @@ export default function ClerkAttendanceSheet({ announcement, attendances = [], r
                                 </div>
                             </div>
 
-                            <form onSubmit={handleQrScanSubmit} className="space-y-3 pt-1">
+                            <form
+                                onSubmit={(event) => {
+                                    event.preventDefault();
+                                    void submitScan();
+                                }}
+                                className="space-y-3 pt-1"
+                            >
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold text-gray-700">QR Token Input</label>
+                                    <label htmlFor="qr-token-input" className="block text-xs font-bold text-gray-700">QR Token Input</label>
                                     <input
+                                        id="qr-token-input"
                                         ref={qrInputRef}
                                         type="text"
                                         value={qrInput}
-                                        onChange={(e) => setQrInput(e.target.value)}
+                                        onChange={(event) => setQrInput(event.target.value)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') {
+                                                event.preventDefault();
+                                                void submitScan();
+                                            }
+                                        }}
+                                        readOnly={isProcessingScan || manualProcessing}
                                         placeholder={`I-scan para itala bilang ${activeTab}...`}
-                                        className="w-full rounded-lg border border-gray-300 p-3 text-xs outline-none focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] bg-gray-50/50 font-mono"
+                                        className="w-full rounded-lg border border-gray-300 p-3 text-xs outline-none focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] bg-gray-50/50 font-mono read-only:cursor-wait read-only:bg-gray-100"
                                         autoFocus
                                     />
+                                    <p className="text-[11px] text-gray-500">
+                                        I-scan lang ang QR code. Awtomatikong vine-verify at itinatala kapag nakumpleto ng scanner ang entry.
+                                    </p>
                                 </div>
                                 <button
                                     type="submit"
-                                    className="w-full rounded-lg bg-[#3f6f3d] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30]"
+                                    disabled={isProcessingScan || manualProcessing}
+                                    className="w-full rounded-lg bg-[#3f6f3d] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-wait disabled:opacity-70"
                                 >
-                                    Prosesuhin ang QR Scan ({activeTab.toUpperCase()})
+                                    {isProcessingScan ? 'Vine-verify at itinatala...' : `Prosesuhin ang QR Scan (${activeTab.toUpperCase()})`}
                                 </button>
                             </form>
                         </div>
-
-                        {scanMessage && (
-                            <div className={`p-3.5 rounded-lg text-xs font-bold flex items-center gap-2 ${
-                                scanMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
-                            }`}>
-                                <span>{scanMessage.type === 'success' ? '✅' : '⚠️'}</span>
-                                <span>{scanMessage.text}</span>
-                            </div>
-                        )}
                     </div>
 
                     <div className="lg:col-span-5 rounded-xl border border-gray-200/80 bg-white p-6 shadow-sm flex flex-col justify-between space-y-4">
@@ -207,17 +561,25 @@ export default function ClerkAttendanceSheet({ announcement, attendances = [], r
                                 </span>
                                 <div>
                                     <h3 className="text-sm font-bold text-gray-900">Manual Entry</h3>
-                                    <p className="text-xs text-gray-500">Mag-record nang walang QR.</p>
+                                    <p className="text-xs text-gray-500">Mag-record para sa <strong className="uppercase text-[#3f6f3d]">{activeTab}</strong> nang walang QR.</p>
                                 </div>
                             </div>
 
-                            <form onSubmit={handleManualSubmit} className="space-y-3 pt-1">
+                            <form
+                                onSubmit={(event) => {
+                                    event.preventDefault();
+                                    submitManual();
+                                }}
+                                className="space-y-3 pt-1"
+                            >
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold text-gray-700">Piliin ang Residente</label>
+                                    <label htmlFor="manual-resident" className="block text-xs font-bold text-gray-700">Piliin ang Residente</label>
                                     <select
-                                        value={data.resident_id}
-                                        onChange={(e) => setData('resident_id', e.target.value)}
-                                        className="w-full rounded-lg border border-gray-300 p-2.5 text-xs outline-none focus:border-[#3f6f3d] bg-white"
+                                        id="manual-resident"
+                                        value={manualResidentId}
+                                        onChange={(event) => setManualResidentId(event.target.value)}
+                                        disabled={isProcessingScan || manualProcessing}
+                                        className="w-full rounded-lg border border-gray-300 p-2.5 text-xs outline-none focus:border-[#3f6f3d] bg-white disabled:cursor-wait disabled:bg-gray-100"
                                         required
                                     >
                                         <option value="">-- Pumili ng Residente --</option>
@@ -227,14 +589,17 @@ export default function ClerkAttendanceSheet({ announcement, attendances = [], r
                                             </option>
                                         ))}
                                     </select>
+                                    <p className="text-[11px] text-gray-500">
+                                        Para sa rehistradong residente na walang ma-scan na QR code.
+                                    </p>
                                 </div>
 
                                 <button
                                     type="submit"
-                                    disabled={processing}
-                                    className="w-full rounded-lg bg-[#3f6f3d] py-3 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30]"
+                                    disabled={isProcessingScan || manualProcessing}
+                                    className="w-full rounded-lg bg-[#3f6f3d] py-3 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-wait disabled:opacity-70"
                                 >
-                                    Itala bilang {activeTab.toUpperCase()} Manually
+                                    {manualProcessing ? 'Itinatala...' : `Itala bilang ${activeTab.toUpperCase()} Manually`}
                                 </button>
                             </form>
                         </div>
@@ -246,26 +611,30 @@ export default function ClerkAttendanceSheet({ announcement, attendances = [], r
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
-                                onClick={() => setActiveTab('claimed')}
-                                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
-                                    activeTab === 'claimed'
-                                        ? 'bg-[#3f6f3d] text-white shadow-sm'
-                                        : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
-                                }`}
-                            >
-                                🎁 Aid Claimed / Naka-receive ({attendances.filter(i => i.status === 'claimed').length})
-                            </button>
-
-                            <button
-                                type="button"
                                 onClick={() => setActiveTab('present')}
-                                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
+                                disabled={isProcessingScan || manualProcessing}
+                                aria-pressed={activeTab === 'present'}
+                                className={`px-4 py-2 rounded-lg text-xs font-bold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'present'
                                         ? 'bg-[#3f6f3d] text-white shadow-sm'
                                         : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
                                 }`}
                             >
                                 📋 Event Present / Dumalo ({attendances.filter(i => i.status === 'present').length})
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('claimed')}
+                                disabled={isProcessingScan || manualProcessing}
+                                aria-pressed={activeTab === 'claimed'}
+                                className={`px-4 py-2 rounded-lg text-xs font-bold transition disabled:cursor-wait disabled:opacity-60 ${
+                                    activeTab === 'claimed'
+                                        ? 'bg-[#3f6f3d] text-white shadow-sm'
+                                        : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+                                }`}
+                            >
+                                🎁 Aid Claimed / Naka-receive ({attendances.filter(i => i.status === 'claimed').length})
                             </button>
                         </div>
                     </div>

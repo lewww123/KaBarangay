@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\CertificateRequest;
+use App\Models\LuponCase;
 use App\Models\Purok;
 use App\Models\Resident;
 use App\Models\ResidentRegistration;
 use App\Models\User;
+use App\Support\AnnouncementType;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -24,10 +27,12 @@ class DashboardController extends Controller
             ->where('barangay_id', $barangayId)
             ->where('status', 'active')
             ->count();
+        $totalPrograms = AnnouncementType::applyProgramFilter(
+            Announcement::query()->where('barangay_id', $barangayId),
+        )->count();
 
-        $pendingAnnouncements = Announcement::query()
+        $totalAnnouncements = Announcement::query()
             ->where('barangay_id', $barangayId)
-            ->where('approval_status', 'pending')
             ->count();
 
         $activeStaff = User::query()
@@ -40,43 +45,45 @@ class DashboardController extends Controller
             ->where('barangay_id', $barangayId)
             ->count();
 
-        $releasedCertificates = CertificateRequest::query()
-            ->where('barangay_id', $barangayId)
-            ->where('status', 'Released')
-            ->count();
-
         $puroks = Purok::query()
             ->where('barangay_id', $barangayId)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name'])
-            ->map(fn (Purok $purok) => [
-                'id' => $purok->id,
-                'name' => $purok->name,
+            ->map(fn (Purok $purok) => ['id' => $purok->id, 'name' => $purok->name])
+            ->values();
+
+        $openCases = 0;
+        try {
+            if (Schema::hasTable('lupon_cases')) {
+                $openCases = LuponCase::query()
+                    ->where('barangay_id', $barangayId)
+                    ->whereIn('status', ['Active', 'Under Mediation', 'Under Conciliation'])
+                    ->count();
+            }
+        } catch (\Throwable) {
+            $openCases = 0;
+        }
+
+        $announcements = Announcement::query()
+            ->where('barangay_id', $barangayId)
+            ->where('is_published', true)
+            ->where('approval_status', 'approved')
+            ->latest('event_start_at')
+            ->latest('created_at')
+            ->limit(5)
+            ->get(['id', 'title', 'content', 'category', 'event_start_at', 'location'])
+            ->map(fn (Announcement $announcement) => [
+                'id' => $announcement->id,
+                'title' => $announcement->title,
+                'content' => $announcement->content,
+                'category' => $announcement->category,
+                'eventStartAt' => $announcement->event_start_at?->format('M j, Y g:i A'),
+                'location' => $announcement->location,
             ])
             ->values();
 
         $notifications = [];
-
-        // Pending announcements (latest)
-        Announcement::query()
-            ->where('barangay_id', $barangayId)
-            ->where('approval_status', 'pending')
-            ->latest()
-            ->limit(3)
-            ->get()
-            ->each(function (Announcement $announcement) use (&$notifications) {
-                $notifications[] = [
-                    'id' => 'ann-'.$announcement->id,
-                    'icon' => '📢',
-                    'title' => 'Announcement awaiting approval',
-                    'description' => $announcement->title,
-                    'time' => $announcement->created_at
-                        ? Carbon::parse($announcement->created_at)->diffForHumans()
-                        : '',
-                    'href' => '/admin/announcements/approvals',
-                ];
-            });
 
         // Pending resident registrations (latest)
         ResidentRegistration::query()
@@ -131,15 +138,15 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'stats' => [
                 'residents' => $residents,
-                'pendingAnnouncements' => $pendingAnnouncements,
-                'activeStaff' => $activeStaff,
+                'totalPrograms' => $totalPrograms,
+                'totalAnnouncements' => $totalAnnouncements,
                 'puroks' => $puroksCount,
-                'releasedCertificates' => $releasedCertificates,
+                'cases' => $openCases,
             ],
             'puroks' => $puroks,
+            'announcements' => $announcements,
             'notifications' => $notifications,
             'activity' => [
-                'pendingApprovals' => $pendingAnnouncements,
                 'activeStaff' => $activeStaff,
             ],
         ]);

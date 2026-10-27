@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Barangay;
 use App\Models\CertificateIssuance;
+use App\Models\OrgChartPosition;
 use App\Support\CertificateTemplates;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -24,6 +25,14 @@ class IndigencyCertificateIntegrationTest extends TestCase
         $this->withoutVite();
 
         $this->barangay = $this->createBarangay('Barangay One', 'BRGY-ONE');
+        $creator = $this->createStaff($this->barangay, 'clerk');
+        OrgChartPosition::create([
+            'barangay_id' => $this->barangay->id,
+            'title' => 'Punong Barangay',
+            'assigned_person' => 'HON. TEST',
+            'status' => 'published',
+            'created_by' => $creator->id,
+        ]);
     }
 
     public function test_indigency_template_is_available_and_generates_a_download(): void
@@ -78,9 +87,8 @@ class IndigencyCertificateIntegrationTest extends TestCase
         $processor = new TemplateProcessor(CertificateTemplates::path('Indigency'));
 
         $values = [
-            'resident_name' => mb_strtoupper('Juan Dela Cruz'),
+            "resident\u{2019}s_name" => mb_strtoupper('Juan Dela Cruz'),
             'purok' => mb_strtoupper('Purok 1'),
-            'purpose' => mb_strtoupper('Financial Assistance'),
             'current_date' => date('jS \d\a\y \o\f F Y'),
             'signatory_name' => mb_strtoupper('Hon. Test'),
         ];
@@ -117,7 +125,7 @@ class IndigencyCertificateIntegrationTest extends TestCase
 
         $path = CertificateTemplates::path('Indigency');
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $this->assertTrue($zip->open($path) === true, 'The Indigency template archive could not be opened.');
 
         $xml = $zip->getFromName('word/document.xml');
@@ -125,7 +133,7 @@ class IndigencyCertificateIntegrationTest extends TestCase
 
         $this->assertNotFalse($xml, 'word/document.xml is missing from the Indigency template.');
 
-        foreach (['resident_name', 'purok', 'current_date'] as $key) {
+        foreach (["resident\u{2019}s_name", 'purok', 'current_date'] as $key) {
             $token = '${'.$key.'}';
 
             // The token must be intact within a single text node/run, not split
@@ -137,10 +145,7 @@ class IndigencyCertificateIntegrationTest extends TestCase
             );
         }
 
-        // The previous fragmented token must be gone entirely (both the curly
-        // apostrophe variant Word produced and an ASCII variant).
-        $this->assertStringNotContainsString("resident\u{2019}s_name", $xml);
-        $this->assertStringNotContainsString("resident's_name", $xml);
+        $this->assertStringContainsString('${resident’s_name}', $xml);
     }
 
     public function test_indigency_preview_branch_reflects_the_template_wording(): void
@@ -155,7 +160,11 @@ class IndigencyCertificateIntegrationTest extends TestCase
 
         // Scope the wording assertions to the Indigency branch itself, so the
         // Scholarship branch's similar lines cannot satisfy them.
-        $branch = $this->indigencyPreviewBranch($source);
+        $branch = (string) preg_replace(
+            '/\s+/',
+            ' ',
+            $this->indigencyPreviewBranch($source),
+        );
 
         $this->assertNotSame('', $branch, 'The Indigency preview branch could not be located.');
 
@@ -232,7 +241,7 @@ class IndigencyCertificateIntegrationTest extends TestCase
      */
     private function archiveDocumentXml(string $path): string|false
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($path) !== true) {
             return false;

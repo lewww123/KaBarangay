@@ -21,6 +21,12 @@ type Complaint = {
     status: ComplaintStatus;
     luponNote?: string | null;
     submittedDate: string;
+    case?: {
+        id: number;
+        caseNumber: string;
+        phase: string;
+        status: string;
+    } | null;
 };
 
 type PageProps = {
@@ -267,6 +273,33 @@ export default function LuponComplaints({
                                     onClick={() => submitStatus(selected, 'Rejected')}
                                     tone="red"
                                 />
+
+                                {selected.status === 'Accepted' && !selected.case && (
+                                    <button
+                                        type="button"
+                                        disabled={pendingAction}
+                                        onClick={() => {
+                                            if (confirm(`Promote complaint ${selected.reference} into an active Lupon Case?`)) {
+                                                setPendingAction(true);
+                                                router.post(`/lupon/complaints/${selected.id}/promote`, {}, {
+                                                    onFinish: () => setPendingAction(false),
+                                                });
+                                            }
+                                        }}
+                                        className="min-h-11 rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#315b30] disabled:opacity-40"
+                                    >
+                                        ⚖️ Promote to Case
+                                    </button>
+                                )}
+
+                                {selected.case && (
+                                    <a
+                                        href={`/lupon/cases/${selected.case.id}`}
+                                        className="min-h-11 inline-flex items-center rounded-xl border border-[#3f6f3d] bg-[#f0f6ee] px-5 py-2.5 text-sm font-semibold text-[#3f6f3d] transition hover:bg-[#e4efe1]"
+                                    >
+                                        📂 View Case {selected.case.caseNumber} →
+                                    </a>
+                                )}
                             </div>
 
                             <p className="mt-3 text-xs leading-5 text-gray-400">

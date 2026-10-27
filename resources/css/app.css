@@ -9,3 +9,213 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 }
+
+/* ==========================================================================
+   Resident portal preferences
+   Applied from localStorage through ResidentLayout. Kept here so the same
+   appearance is available on every resident page without changing markup.
+   ========================================================================== */
+
+html[data-resident-text-size='large'] {
+    font-size: 18px;
+}
+
+html[data-resident-text-size='extra-large'] {
+    font-size: 20px;
+}
+
+html.resident-large-controls button,
+html.resident-large-controls input:not([type='checkbox']):not([type='radio']),
+html.resident-large-controls select,
+html.resident-large-controls textarea {
+    min-height: 44px;
+}
+
+html.resident-large-controls button {
+    min-width: 44px;
+}
+
+html.resident-reduce-motion *,
+html.resident-reduce-motion *::before,
+html.resident-reduce-motion *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+}
+
+html.resident-simplified-view * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+html.resident-high-contrast:not([data-resident-theme='dark'])
+    [class~='text-gray-400'],
+html.resident-high-contrast:not([data-resident-theme='dark'])
+    [class~='text-gray-500'] {
+    color: #374151 !important;
+}
+
+html.resident-high-contrast:not([data-resident-theme='dark'])
+    [class~='text-gray-600'] {
+    color: #1f2937 !important;
+}
+
+html.resident-high-contrast:not([data-resident-theme='dark'])
+    [class~='border-gray-100'],
+html.resident-high-contrast:not([data-resident-theme='dark'])
+    [class~='border-gray-200'],
+html.resident-high-contrast:not([data-resident-theme='dark'])
+    [class~='border-gray-300'] {
+    border-color: #6b7280 !important;
+}
+
+html[data-resident-theme='dark'] {
+    color-scheme: dark;
+    background-color: #0b1220;
+}
+
+html[data-resident-theme='dark'] body {
+    background-color: #0b1220;
+    color: #e2e8f0;
+}
+
+html[data-resident-theme='dark'] [class~='bg-[#f7f6f0]'],
+html[data-resident-theme='dark'] [class~='bg-[#f4f8f2]'],
+html[data-resident-theme='dark'] [class~='bg-[#f7faf6]'],
+html[data-resident-theme='dark'] [class~='bg-[#edf4ea]'],
+html[data-resident-theme='dark'] [class~='bg-[#e8f1e4]'],
+html[data-resident-theme='dark'] [class~='bg-[#dcebd8]'] {
+    background-color: #111c2b !important;
+}
+
+html[data-resident-theme='dark'] [class~='bg-white'] {
+    background-color: #151f2e !important;
+}
+
+html[data-resident-theme='dark'] [class~='bg-gray-50'] {
+    background-color: #111a28 !important;
+}
+
+html[data-resident-theme='dark'] [class~='bg-gray-100'] {
+    background-color: #1e293b !important;
+}
+
+html[data-resident-theme='dark'] [class~='bg-gray-200'] {
+    background-color: #334155 !important;
+}
+
+html[data-resident-theme='dark'] [class~='bg-red-50'],
+html[data-resident-theme='dark'] [class~='bg-red-100'] {
+    background-color: #451a1a !important;
+}
+
+html[data-resident-theme='dark'] [class~='bg-amber-50'],
+html[data-resident-theme='dark'] [class~='bg-amber-100'] {
+    background-color: #422b12 !important;
+}
+
+html[data-resident-theme='dark'] [class~='bg-purple-100'] {
+    background-color: #2e1f4a !important;
+}
+
+html[data-resident-theme='dark'] [class~='bg-green-50'] {
+    background-color: #173225 !important;
+}
+
+html[data-resident-theme='dark'] [class~='bg-emerald-50'] {
+    background-color: #123328 !important;
+}
+
+html[data-resident-theme='dark'] [class~='text-gray-900'] {
+    color: #f8fafc !important;
+}
+
+html[data-resident-theme='dark'] [class~='text-gray-800'] {
+    color: #e2e8f0 !important;
+}
+
+html[data-resident-theme='dark'] [class~='text-gray-700'],
+html[data-resident-theme='dark'] [class~='text-gray-600'] {
+    color: #cbd5e1 !important;
+}
+
+html[data-resident-theme='dark'] [class~='text-gray-500'],
+html[data-resident-theme='dark'] [class~='text-gray-400'] {
+    color: #94a3b8 !important;
+}
+
+html[data-resident-theme='dark'] [class~='text-[#3f6f3d]'],
+html[data-resident-theme='dark'] [class~='text-[#315b30]'] {
+    color: #8dd694 !important;
+}
+
+html[data-resident-theme='dark'] [class~='text-red-600'],
+html[data-resident-theme='dark'] [class~='text-red-800'] {
+    color: #fca5a5 !important;
+}
+
+html[data-resident-theme='dark'] [class~='text-amber-800'] {
+    color: #fcd34d !important;
+}
+
+html[data-resident-theme='dark'] [class~='text-purple-800'] {
+    color: #d8b4fe !important;
+}
+
+html[data-resident-theme='dark'] [class~='text-green-700'],
+html[data-resident-theme='dark'] [class~='text-emerald-800'] {
+    color: #86efac !important;
+}
+
+html[data-resident-theme='dark'] [class~='border-gray-100'],
+html[data-resident-theme='dark'] [class~='border-gray-200'],
+html[data-resident-theme='dark'] [class~='border-gray-300'] {
+    border-color: #334155 !important;
+}
+
+html[data-resident-theme='dark'] [class~='border-[#d8e6d3]'],
+html[data-resident-theme='dark'] [class~='border-[#d6e3d2]'],
+html[data-resident-theme='dark'] [class~='border-[#dce8d8]'],
+html[data-resident-theme='dark'] [class~='border-[#cfddca]'] {
+    border-color: #365243 !important;
+}
+
+html[data-resident-theme='dark'] [class~='border-red-200'] {
+    border-color: #7f1d1d !important;
+}
+
+html[data-resident-theme='dark'] [class~='border-amber-200'] {
+    border-color: #92400e !important;
+}
+
+html[data-resident-theme='dark'] [class~='border-emerald-200'] {
+    border-color: #166534 !important;
+}
+
+html[data-resident-theme='dark'] input,
+html[data-resident-theme='dark'] select,
+html[data-resident-theme='dark'] textarea {
+    background-color: #0f1a29 !important;
+    color: #e2e8f0 !important;
+    border-color: #475569 !important;
+}
+
+html[data-resident-theme='dark'] input::placeholder,
+html[data-resident-theme='dark'] textarea::placeholder {
+    color: #64748b !important;
+}
+
+html[data-resident-theme='dark'] [class~='hover:bg-gray-50']:hover,
+html[data-resident-theme='dark'] [class~='hover:bg-gray-100']:hover {
+    background-color: #1e293b !important;
+}
+
+html[data-resident-theme='dark'].resident-high-contrast
+    [class~='border-gray-100'],
+html[data-resident-theme='dark'].resident-high-contrast
+    [class~='border-gray-200'],
+html[data-resident-theme='dark'].resident-high-contrast
+    [class~='border-gray-300'] {
+    border-color: #64748b !important;
+}

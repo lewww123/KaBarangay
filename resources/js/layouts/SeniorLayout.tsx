@@ -1,7 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
-type SeniorPage = 'dashboard' | 'announcements';
+type SeniorPage = 'dashboard' | 'announcements' | 'updates' | 'programs' | 'residents' | 'applications';
 
 type SeniorLayoutProps = {
     children: ReactNode;
@@ -70,10 +70,31 @@ export default function SeniorLayout({
                         />
 
                         <SidebarLink
-                            href="/senior/announcements"
-                            icon="📢"
-                            label="Announcements"
-                            active={active === 'announcements'}
+                            href="/senior/residents"
+                            icon="👥"
+                            label="Members"
+                            active={active === 'residents'}
+                        />
+
+                        <SidebarLink
+                            href="/senior/applications"
+                            icon="📝"
+                            label="Applications"
+                            active={active === 'applications'}
+                        />
+
+                        <SidebarLink
+                            href="/senior/updates"
+                            icon="U"
+                            label="Updates"
+                            active={active === 'updates'}
+                        />
+
+                        <SidebarLink
+                            href="/senior/programs"
+                            icon="P"
+                            label="Programs"
+                            active={active === 'programs'}
                         />
 
                     </nav>

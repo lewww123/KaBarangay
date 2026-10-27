@@ -1,34 +1,8 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 
-type SectorRecord = {
-    id: number;
-    name: string;
-    slug: string;
-    requires_proof: boolean;
-    is_active: boolean;
-    residents_count: number;
-    registration_sectors_count: number;
-    registration_documents_count: number;
-};
-
-type SectorForm = {
-    name: string;
-    slug: string;
-    requires_proof: boolean;
-    is_active: boolean;
-};
-
-type PwdMemberRecord = {
-    id: number;
-    resident_number: string;
-    name: string;
-    purok: string;
-    status: string;
-};
-
-type SeniorMemberRecord = {
+type MemberRecord = {
     id: number;
     resident_number: string;
     name: string;
@@ -75,16 +49,26 @@ type CertificateFilters = {
     search: string;
 };
 
+type LuponSummary = {
+    open: number;
+    closed: number;
+    total: number;
+};
+
 type Props = {
-    sectors: SectorRecord[];
     stats: {
-        total: number;
-        active: number;
+        total?: number;
+        active?: number;
+        sectorApplications: number;
+        generalMembers: number;
         pwdMembers: number;
         seniorMembers: number;
+        certificates: number;
+        openCases: number;
     };
-    pwdMembers: Paginator<PwdMemberRecord>;
-    seniorMembers: Paginator<SeniorMemberRecord>;
+    generalMembers: Paginator<MemberRecord>;
+    pwdMembers: Paginator<MemberRecord>;
+    seniorMembers: Paginator<MemberRecord>;
     puroks: PurokOption[];
     filters: MemberFilters;
     certificates: {
@@ -93,23 +77,21 @@ type Props = {
     };
     certificateRequests: Paginator<CertificateRequestRecord>;
     certificateFilters: CertificateFilters;
+    luponSummary?: LuponSummary;
+    initialTab?: string;
 };
 
-const emptyForm: SectorForm = {
-    name: '',
-    slug: '',
-    requires_proof: true,
-    is_active: true,
-};
-
-const referencesFor = (sector: SectorRecord) =>
-    sector.residents_count +
-    sector.registration_sectors_count +
-    sector.registration_documents_count;
+type ActiveTab =
+    | 'applications'
+    | 'general'
+    | 'pwd'
+    | 'senior'
+    | 'certificates'
+    | 'lupon';
 
 export default function Sectors({
-    sectors,
     stats,
+    generalMembers,
     pwdMembers,
     seniorMembers,
     puroks,
@@ -117,12 +99,21 @@ export default function Sectors({
     certificates,
     certificateRequests,
     certificateFilters,
+    luponSummary = { open: 0, closed: 0, total: 0 },
+    initialTab = 'general',
 }: Props) {
-    const [showModal, setShowModal] = useState(false);
-    const [editing, setEditing] = useState<SectorRecord | null>(null);
-    const [activeTab, setActiveTab] = useState<
-        'sectors' | 'pwd' | 'senior' | 'certificates' | 'lupon'
-    >('sectors');
+    const validInitialTab: ActiveTab = [
+        'applications',
+        'general',
+        'pwd',
+        'senior',
+        'certificates',
+        'lupon',
+    ].includes(initialTab)
+        ? (initialTab as ActiveTab)
+        : 'general';
+
+    const [activeTab, setActiveTab] = useState<ActiveTab>(validInitialTab);
 
     /*
      * Local mirrors of the server-applied filters. Seeded once from the
@@ -140,60 +131,26 @@ export default function Sectors({
         certificateFilters.search,
     );
 
-    const form = useForm<SectorForm>({ ...emptyForm });
-
-    const openEdit = (sector: SectorRecord) => {
-        setEditing(sector);
-        form.setData({
-            name: sector.name,
-            slug: sector.slug,
-            requires_proof: sector.requires_proof,
-            is_active: sector.is_active,
-        });
-        form.clearErrors();
-        setShowModal(true);
-    };
-
-    const closeModal = () => {
-        setShowModal(false);
-        setEditing(null);
-        form.reset();
-        form.clearErrors();
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        const options = {
-            preserveScroll: true,
-            onSuccess: () => closeModal(),
-        };
-
-        if (editing) {
-            form.put(`/admin/sectors/${editing.id}`, options);
-        }
-    };
-
     /*
-     * Server-side reload shared by both member rosters.
-     *
-     * Only the roster payloads, the headline counts, and the echoed filters
-     * are requested, so tab selection, an open modal, and scroll position all
-     * survive a search, filter, or page change.
+     * Server-side reload shared by all member rosters.
      */
     const reloadMembers = (params: Record<string, string | number>) => {
         router.get(
             '/admin/sectors',
             {
-                // Defaults come from the live local state; `params` is spread
-                // last so a caller can override one of them (for example the
-                // purok being changed in the same tick as the state update).
                 search: memberSearch.trim(),
                 purok: memberPurok,
+                tab: activeTab,
                 ...params,
             },
             {
-                only: ['pwdMembers', 'seniorMembers', 'stats', 'filters'],
+                only: [
+                    'generalMembers',
+                    'pwdMembers',
+                    'seniorMembers',
+                    'stats',
+                    'filters',
+                ],
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
@@ -202,7 +159,7 @@ export default function Sectors({
     };
 
     /*
-     * Drop both filters and restart both rosters at page 1.
+     * Drop both filters and restart all rosters at page 1.
      */
     const clearMemberFilters = () => {
         setMemberSearch('');
@@ -211,19 +168,20 @@ export default function Sectors({
         reloadMembers({
             search: '',
             purok: '',
+            general_page: 1,
             pwd_page: 1,
             senior_page: 1,
         });
     };
 
     /*
-     * Search and purok filtering always restart both rosters at page 1, so
-     * narrowing a filter can never strand the user beyond the last page.
+     * Search and purok filtering always restart all rosters at page 1.
      */
     const applyMemberFilters = (
         overrides: Record<string, string | number> = {},
     ) => {
         reloadMembers({
+            general_page: 1,
             pwd_page: 1,
             senior_page: 1,
             ...overrides,
@@ -239,38 +197,30 @@ export default function Sectors({
         event: React.ChangeEvent<HTMLSelectElement>,
     ) => {
         const purok = event.target.value;
-
         setMemberPurok(purok);
         applyMemberFilters({ purok });
     };
 
     /*
-     * Server-side pagination shared by both rosters. Only the roster the user
-     * is actually viewing advances; the other is reset to page 1 so its
-     * generated links stay consistent with the filters in effect.
+     * Server-side pagination shared by all three rosters.
      */
     const navigateMembersTo = (page: number) => {
-        const pagingPwd = activeTab === 'pwd';
-
         applyMemberFilters({
-            pwd_page: pagingPwd ? page : 1,
-            senior_page: pagingPwd ? 1 : page,
+            general_page: activeTab === 'general' ? page : 1,
+            pwd_page: activeTab === 'pwd' ? page : 1,
+            senior_page: activeTab === 'senior' ? page : 1,
         });
     };
 
     /*
      * Server-side reload for the read-only Certificates list.
-     *
-     * Only the terminal-request payload and the echoed search are requested, so
-     * the Released/Rejected restriction stays server-enforced and switching
-     * tabs, an in-progress member search, and scroll position all survive a
-     * search or page change.
      */
     const reloadCertificates = (params: Record<string, string | number> = {}) => {
         router.get(
             '/admin/sectors',
             {
                 cert_search: certificateSearch.trim(),
+                tab: 'certificates',
                 ...params,
             },
             {
@@ -282,10 +232,6 @@ export default function Sectors({
         );
     };
 
-    /*
-     * Search always restarts the list at page 1, so narrowing the filter can
-     * never strand the user beyond the last page.
-     */
     const submitCertificateSearch = (event: React.FormEvent) => {
         event.preventDefault();
         reloadCertificates({ cert_page: 1 });
@@ -312,18 +258,152 @@ export default function Sectors({
                         </h1>
 
                         <p className="mt-1 text-sm text-gray-500">
-                            Manage resident sector definitions
+                            Consolidated resident sector rosters and community records
                         </p>
                     </div>
                 </div>
 
+                {/* 6-CATEGORY DASHBOARD METRICS */}
+                <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                    {/* 1. Sector Applications */}
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('applications')}
+                        className={`rounded-lg border p-4 text-left transition-colors ${
+                            activeTab === 'applications'
+                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                        <p className="text-[11px] font-medium uppercase text-gray-400">
+                            Applications
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            {stats.sectorApplications}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-gray-500">
+                            Under Admin Review
+                        </p>
+                    </button>
+
+                    {/* 2. General Resident */}
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('general')}
+                        className={`rounded-lg border p-4 text-left transition-colors ${
+                            activeTab === 'general'
+                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                        <p className="text-[11px] font-medium uppercase text-gray-400">
+                            General Resident
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            {stats.generalMembers}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-gray-500">
+                            No sector affiliation
+                        </p>
+                    </button>
+
+                    {/* 3. PWD Members */}
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('pwd')}
+                        className={`rounded-lg border p-4 text-left transition-colors ${
+                            activeTab === 'pwd'
+                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                        <p className="text-[11px] font-medium uppercase text-gray-400">
+                            PWD Members
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            {stats.pwdMembers}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-gray-500">
+                            Verified PWD roster
+                        </p>
+                    </button>
+
+                    {/* 4. Senior Citizen Members */}
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('senior')}
+                        className={`rounded-lg border p-4 text-left transition-colors ${
+                            activeTab === 'senior'
+                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                        <p className="text-[11px] font-medium uppercase text-gray-400">
+                            Senior Citizen
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            {stats.seniorMembers}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-gray-500">
+                            Verified senior roster
+                        </p>
+                    </button>
+
+                    {/* 5. Certificates */}
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('certificates')}
+                        className={`rounded-lg border p-4 text-left transition-colors ${
+                            activeTab === 'certificates'
+                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                        <p className="text-[11px] font-medium uppercase text-gray-400">
+                            Certificates
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            {stats.certificates}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-gray-500">
+                            Released & Completed
+                        </p>
+                    </button>
+
+                    {/* 6. Lupon Cases */}
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('lupon')}
+                        className={`rounded-lg border p-4 text-left transition-colors ${
+                            activeTab === 'lupon'
+                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                        <p className="text-[11px] font-medium uppercase text-gray-400">
+                            Lupon Cases
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            {stats.openCases}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-gray-500">
+                            Active disputes
+                        </p>
+                    </button>
+                </div>
+
                 {/* SECTION TABS */}
                 <div className="mb-6 border-b border-gray-200">
-                    <nav className="-mb-px flex gap-6">
+                    <nav className="-mb-px flex gap-6 overflow-x-auto">
                         <SectionTab
-                            label="Sector Definitions"
-                            active={activeTab === 'sectors'}
-                            onClick={() => setActiveTab('sectors')}
+                            label="Sector Applications"
+                            active={activeTab === 'applications'}
+                            onClick={() => setActiveTab('applications')}
+                        />
+                        <SectionTab
+                            label="General Resident"
+                            active={activeTab === 'general'}
+                            onClick={() => setActiveTab('general')}
                         />
                         <SectionTab
                             label="PWD Members"
@@ -348,147 +428,61 @@ export default function Sectors({
                     </nav>
                 </div>
 
-                {activeTab === 'sectors' && (
-                    <>
-                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="rounded-lg bg-[#3f6f3d] p-5 text-white">
-                        <p className="text-xs uppercase text-white/80">
-                            Active Sectors
-                        </p>
+                {/* 1. SECTOR APPLICATIONS TAB */}
+                {activeTab === 'applications' && (
+                    <div className="space-y-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                                <p className="text-xs uppercase text-white/80">
+                                    Applications Under Review
+                                </p>
+                                <p className="mt-3 text-3xl font-semibold">
+                                    {stats.sectorApplications}
+                                </p>
+                                <p className="mt-1 text-xs text-white/70">
+                                    Sector applications pending Admin final decision
+                                </p>
+                            </div>
 
-                        <p className="mt-3 text-3xl font-semibold">
-                            {stats.active}
-                        </p>
+                            <Link
+                                href="/admin/sector-applications"
+                                className="inline-flex items-center gap-2 rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#345d33]"
+                            >
+                                Open Full Review Queue &rarr;
+                            </Link>
+                        </div>
 
-                        <p className="mt-1 text-xs text-white/70">
-                            Available for resident tagging
-                        </p>
+                        <div className="rounded-lg border border-gray-200 bg-white p-6">
+                            <h2 className="text-base font-semibold text-gray-800">
+                                Sector Application Processing
+                            </h2>
+                            <p className="mt-2 text-sm text-gray-600">
+                                Resident applications for sector classification (Senior Citizen, PWD, Solo Parent, etc.) undergo desk review before reaching the Admin final decision queue.
+                            </p>
+                            <div className="mt-4 flex items-center gap-3">
+                                <Link
+                                    href="/admin/sector-applications"
+                                    className="text-sm font-medium text-[#3f6f3d] hover:underline"
+                                >
+                                    Go to Sector Applications page to review and process submissions &rarr;
+                                </Link>
+                            </div>
+                        </div>
                     </div>
-
-                    <div className="rounded-lg border border-gray-200 bg-white p-5">
-                        <p className="text-xs uppercase text-gray-400">
-                            Total Sectors
-                        </p>
-
-                        <p className="mt-3 text-3xl font-semibold text-gray-800">
-                            {stats.total}
-                        </p>
-
-                        <p className="mt-1 text-xs text-gray-500">
-                            Sector definitions in the system
-                        </p>
-                    </div>
-                </div>
-
-                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[900px]">
-                            <thead className="bg-[#fafaf7]">
-                                <tr className="border-b border-gray-200">
-                                    <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                        NAME
-                                    </th>
-                                    <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                        SLUG
-                                    </th>
-                                    <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                        PROOF
-                                    </th>
-                                    <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                        STATUS
-                                    </th>
-                                    <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                        RESIDENTS
-                                    </th>
-                                    <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                        REFERENCED
-                                    </th>
-                                    <th className="px-5 py-3 text-right text-xs text-gray-400">
-                                        ACTION
-                                    </th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {sectors.map((sector) => (
-                                    <tr
-                                        key={sector.id}
-                                        className="border-b border-gray-100 last:border-0"
-                                    >
-                                        <td className="px-5 py-4 text-sm font-medium">
-                                            {sector.name}
-                                        </td>
-
-                                        <td className="px-5 py-4 text-sm text-gray-600">
-                                            {sector.slug}
-                                        </td>
-
-                                        <td className="px-5 py-4 text-sm text-gray-600">
-                                            {sector.requires_proof
-                                                ? 'Required'
-                                                : 'Not required'}
-                                        </td>
-
-                                        <td className="px-5 py-4">
-                                            <span
-                                                className={`rounded-full px-3 py-1 text-xs ${
-                                                    sector.is_active
-                                                        ? 'bg-[#edf4ea] text-[#3f6f3d]'
-                                                        : 'bg-gray-100 text-gray-500'
-                                                }`}
-                                            >
-                                                {sector.is_active
-                                                    ? 'Active'
-                                                    : 'Inactive'}
-                                            </span>
-                                        </td>
-
-                                        <td className="px-5 py-4 text-sm text-gray-600">
-                                            {sector.residents_count}
-                                        </td>
-
-                                        <td className="px-5 py-4 text-sm text-gray-600">
-                                            {referencesFor(sector)}
-                                        </td>
-
-                                        <td className="px-5 py-4 text-right">
-                                            <button
-                                                type="button"
-                                                onClick={() => openEdit(sector)}
-                                                className="text-xs font-medium text-[#3f6f3d] hover:underline"
-                                            >
-                                                Edit
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {sectors.length === 0 && (
-                        <p className="px-5 py-10 text-center text-sm text-gray-400">
-                            No sectors have been defined yet.
-                        </p>
-                    )}
-                    </div>
-                    </>
                 )}
 
-                {activeTab === 'senior' && (
+                {/* 2. GENERAL RESIDENT TAB */}
+                {activeTab === 'general' && (
                     <div className="space-y-4">
                         <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
                             <p className="text-xs uppercase text-white/80">
-                                Senior Citizens
+                                General Residents
                             </p>
-
                             <p className="mt-3 text-3xl font-semibold">
-                                {stats.seniorMembers}
+                                {stats.generalMembers}
                             </p>
-
                             <p className="mt-1 text-xs text-white/70">
-                                Residents tagged with the senior sector in your
-                                barangay
+                                Registered residents with no specific sector membership in your barangay
                             </p>
                         </div>
 
@@ -526,7 +520,7 @@ export default function Sectors({
                                     </thead>
 
                                     <tbody>
-                                        {seniorMembers.data.map((member) => (
+                                        {generalMembers.data.map((member) => (
                                             <tr
                                                 key={member.id}
                                                 className="border-b border-gray-100 last:border-0"
@@ -554,31 +548,29 @@ export default function Sectors({
                                 </table>
                             </div>
 
-                            {seniorMembers.data.length === 0 && (
+                            {generalMembers.data.length === 0 && (
                                 <p className="px-5 py-10 text-center text-sm text-gray-400">
                                     {memberSearch.trim() !== '' ||
                                     memberPurok !== ''
-                                        ? 'No senior citizens match the current filters.'
-                                        : 'No senior citizens have been recorded for this barangay yet.'}
+                                        ? 'No general residents match the current filters.'
+                                        : 'No general residents found for this barangay.'}
                                 </p>
                             )}
 
                             <MembersPagination
-                                paginator={seniorMembers}
+                                paginator={generalMembers}
                                 onNavigate={navigateMembersTo}
-                                label="senior citizens"
+                                label="general residents"
                             />
                         </div>
 
                         <p className="text-xs text-gray-400">
-                            Read-only list of residents tagged with the senior
-                            sector in your barangay, including inactive
-                            accounts. Contact details and documents are not
-                            shown here.
+                            Read-only list of verified residents who do not belong to any designated sector (such as Senior Citizen or PWD) in your barangay.
                         </p>
                     </div>
                 )}
 
+                {/* 3. PWD MEMBERS TAB */}
                 {activeTab === 'pwd' && (
                     <div className="space-y-4">
                         <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
@@ -683,6 +675,112 @@ export default function Sectors({
                     </div>
                 )}
 
+                {/* 4. SENIOR CITIZENS TAB */}
+                {activeTab === 'senior' && (
+                    <div className="space-y-4">
+                        <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                            <p className="text-xs uppercase text-white/80">
+                                Senior Citizens
+                            </p>
+
+                            <p className="mt-3 text-3xl font-semibold">
+                                {stats.seniorMembers}
+                            </p>
+
+                            <p className="mt-1 text-xs text-white/70">
+                                Residents tagged with the senior sector in your
+                                barangay
+                            </p>
+                        </div>
+
+                        <MembersToolbar
+                            searchValue={memberSearch}
+                            onSearchChange={setMemberSearch}
+                            onSearchSubmit={submitMemberSearch}
+                            purokValue={memberPurok}
+                            puroks={puroks}
+                            onPurokChange={changeMemberPurok}
+                            hasFilters={
+                                memberSearch.trim() !== '' || memberPurok !== ''
+                            }
+                            onClear={clearMemberFilters}
+                        />
+
+                        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[720px]">
+                                    <thead className="bg-[#fafaf7]">
+                                        <tr className="border-b border-gray-200">
+                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                RESIDENT NO.
+                                            </th>
+                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                NAME
+                                            </th>
+                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                PUROK
+                                            </th>
+                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                STATUS
+                                            </th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {seniorMembers.data.map((member) => (
+                                            <tr
+                                                key={member.id}
+                                                className="border-b border-gray-100 last:border-0"
+                                            >
+                                                <td className="px-5 py-4 text-sm text-gray-600">
+                                                    {member.resident_number}
+                                                </td>
+
+                                                <td className="px-5 py-4 text-sm font-medium">
+                                                    {member.name}
+                                                </td>
+
+                                                <td className="px-5 py-4 text-sm text-gray-600">
+                                                    {member.purok || '-'}
+                                                </td>
+
+                                                <td className="px-5 py-4">
+                                                    <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs text-[#3f6f3d]">
+                                                        {member.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {seniorMembers.data.length === 0 && (
+                                <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                    {memberSearch.trim() !== '' ||
+                                    memberPurok !== ''
+                                        ? 'No senior citizens match the current filters.'
+                                        : 'No senior citizens have been recorded for this barangay yet.'}
+                                </p>
+                            )}
+
+                            <MembersPagination
+                                paginator={seniorMembers}
+                                onNavigate={navigateMembersTo}
+                                label="senior citizens"
+                            />
+                        </div>
+
+                        <p className="text-xs text-gray-400">
+                            Read-only list of residents tagged with the senior
+                            sector in your barangay, including inactive
+                            accounts. Contact details and documents are not
+                            shown here.
+                        </p>
+                    </div>
+                )}
+
+                {/* 5. CERTIFICATES TAB */}
                 {activeTab === 'certificates' && (
                     <div className="space-y-4">
                         <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
@@ -851,132 +949,57 @@ export default function Sectors({
                     </div>
                 )}
 
+                {/* 6. LUPON CASES TAB */}
                 {activeTab === 'lupon' && (
-                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                        <div className="px-5 py-10 text-center">
-                            <h2 className="text-lg font-semibold text-gray-800">
-                                Lupon Cases
-                            </h2>
-
-                            <p className="mt-2 text-sm text-gray-500">
-                                Lupon case counts are unavailable because case
-                                records are not yet connected.
-                            </p>
-
-                            <p className="mt-4 text-xs text-gray-400">
-                                No case data source currently exists, so no
-                                counts are shown. Case management is not
-                                available from this page.
-                            </p>
-                        </div>
-                    </div>
-                )}
-
-                {showModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                        <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
-                            <div className="border-b border-gray-200 px-5 py-4">
-                                <h2 className="text-lg font-semibold">
-                                    Edit Sector
-                                </h2>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white">
+                                <p className="text-xs uppercase text-white/80">
+                                    Open / Active Cases
+                                </p>
+                                <p className="mt-3 text-3xl font-semibold">
+                                    {luponSummary.open}
+                                </p>
+                                <p className="mt-1 text-xs text-white/70">
+                                    Active, Under Mediation, or Conciliation
+                                </p>
                             </div>
 
-                            <form
-                                onSubmit={handleSubmit}
-                                className="space-y-4 p-5"
-                            >
-                                <div>
-                                    <input
-                                        value={form.data.name}
-                                        onChange={(e) =>
-                                            form.setData('name', e.target.value)
-                                        }
-                                        placeholder="Sector Name"
-                                        className="w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm"
-                                        required
-                                    />
+                            <div className="rounded-lg border border-gray-200 bg-white p-5">
+                                <p className="text-xs uppercase text-gray-400">
+                                    Resolved Cases
+                                </p>
+                                <p className="mt-3 text-3xl font-semibold text-gray-800">
+                                    {luponSummary.closed}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Settled, Dismissed, or Unresolved
+                                </p>
+                            </div>
 
-                                    {form.errors.name && (
-                                        <p className="mt-1 text-xs text-red-500">
-                                            {form.errors.name}
-                                        </p>
-                                    )}
-                                </div>
+                            <div className="rounded-lg border border-gray-200 bg-white p-5">
+                                <p className="text-xs uppercase text-gray-400">
+                                    Total Filed Cases
+                                </p>
+                                <p className="mt-3 text-3xl font-semibold text-gray-800">
+                                    {luponSummary.total}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                    All Lupon cases recorded for this barangay
+                                </p>
+                            </div>
+                        </div>
 
-                                <div>
-                                    <input
-                                        value={form.data.slug}
-                                        onChange={(e) =>
-                                            form.setData('slug', e.target.value)
-                                        }
-                                        placeholder="Slug (optional, auto-generated from name)"
-                                        disabled={!!editing}
-                                        className="w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm disabled:bg-gray-100 disabled:text-gray-400"
-                                    />
-
-                                    {editing && (
-                                        <p className="mt-1 text-xs text-gray-400">
-                                            The slug is fixed after creation.
-                                        </p>
-                                    )}
-
-                                    {form.errors.slug && (
-                                        <p className="mt-1 text-xs text-red-500">
-                                            {form.errors.slug}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <label className="flex items-center gap-2 text-sm text-gray-700">
-                                    <input
-                                        type="checkbox"
-                                        checked={form.data.requires_proof}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'requires_proof',
-                                                e.target.checked,
-                                            )
-                                        }
-                                        className="rounded border-gray-300"
-                                    />
-                                    Requires supporting proof
-                                </label>
-
-                                <label className="flex items-center gap-2 text-sm text-gray-700">
-                                    <input
-                                        type="checkbox"
-                                        checked={form.data.is_active}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'is_active',
-                                                e.target.checked,
-                                            )
-                                        }
-                                        className="rounded border-gray-300"
-                                    />
-                                    Active
-                                </label>
-
-                                <div className="flex justify-end gap-2 pt-2">
-                                    <button
-                                        type="button"
-                                        onClick={closeModal}
-                                        className="rounded-md border border-gray-300 px-4 py-2.5 text-sm"
-                                    >
-                                        Cancel
-                                    </button>
-
-                                    <button
-                                        type="submit"
-                                        disabled={form.processing}
-                                        className="rounded-md bg-[#3f6f3d] px-4 py-2.5 text-sm text-white disabled:opacity-50"
-                                    >
-                                        {form.processing
-                                            ? 'Saving...'
-                                            : 'Save Changes'}
-                                    </button>
-                                </div>
-                            </form>
+                        <div className="rounded-lg border border-gray-200 bg-white p-6">
+                            <h2 className="text-base font-semibold text-gray-800">
+                                Lupong Tagapamayapa Confidentiality Notice
+                            </h2>
+                            <p className="mt-2 text-sm text-gray-600">
+                                Under Republic Act No. 7160 (Local Government Code), Katarungang Pambarangay proceedings and case details are confidential to protect the parties involved. Detailed case records, hearing minutes, and amicable settlement terms are accessible only to authorized Lupon desk officers.
+                            </p>
+                            <p className="mt-3 text-xs text-gray-400">
+                                The Admin dashboard displays aggregate case statistics only. Direct mediation records are restricted to the Lupong Tagapamayapa portal.
+                            </p>
                         </div>
                     </div>
                 )}
@@ -1004,7 +1027,7 @@ function SectionTab({
         <button
             type="button"
             onClick={onClick}
-            className={`border-b-2 pb-3 text-sm font-medium ${
+            className={`whitespace-nowrap border-b-2 pb-3 text-sm font-medium transition-colors ${
                 active
                     ? 'border-[#3f6f3d] text-[#3f6f3d]'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
@@ -1019,11 +1042,6 @@ function SectionTab({
 |--------------------------------------------------------------------------
 | Member Roster Toolbar
 |--------------------------------------------------------------------------
-|
-| Shared by the PWD Members and Senior Citizens tabs. Both fields are URL
-| driven: submitting the search or picking a purok reloads only the roster
-| payloads, so the values survive pagination and a browser refresh.
-|
 */
 
 function MembersToolbar({

@@ -266,7 +266,7 @@ class LoginSuspiciousActivityTest extends TestCase
 
         $this->assertSame(
             0,
-            \App\Models\SuspiciousLoginAlert::query()->count(),
+            SuspiciousLoginAlert::query()->count(),
             'A different barangay must not see the alert.'
         );
     }
@@ -284,7 +284,7 @@ class LoginSuspiciousActivityTest extends TestCase
 
         $this->assertSame(
             0,
-            \App\Models\SuspiciousLoginAlert::query()->count(),
+            SuspiciousLoginAlert::query()->count(),
             'The null-blocking scope must hide alerts from unauthenticated reads.'
         );
     }
@@ -322,12 +322,9 @@ class LoginSuspiciousActivityTest extends TestCase
 
         // Only one live failed request is issued so the shared E4 limiter
         // (5 attempts / 10 minutes) still has budget for the valid login that
-        // follows. The remaining four failures are seeded directly so the
-        // detector still reaches its threshold and exercises the failing
-        // alert-writer path.
-        $this->login('SUS-FAILOPEN', 'wrong-password')
-            ->assertSessionHasErrors(['login' => 'Invalid resident credentials.']);
-
+        // follows. The other four failures are seeded directly so the live
+        // request crosses the threshold and exercises the failing alert-writer
+        // path.
         $failedHash = LoginIdentifier::fingerprint('SUS-FAILOPEN');
 
         for ($seed = 0; $seed < 4; $seed++) {
@@ -338,6 +335,9 @@ class LoginSuspiciousActivityTest extends TestCase
                 $this->barangay->id,
             );
         }
+
+        $this->login('SUS-FAILOPEN', 'wrong-password')
+            ->assertSessionHasErrors(['login' => 'Invalid resident credentials.']);
 
         // The five failed attempts are still recorded even though the alert
         // writer failed on every threshold-crossing evaluation.
@@ -355,7 +355,7 @@ class LoginSuspiciousActivityTest extends TestCase
         $this->login('SUS-FAILOPEN', 'password')
             ->assertRedirect(route('resident.dashboard'));
 
-        $this->assertAuthenticated();
+        $this->assertTrue((bool) $this->app['session']->get('resident_logged_in'));
         $this->assertSame(
             $resident->id,
             (int) $this->app['session']->get('resident_id')

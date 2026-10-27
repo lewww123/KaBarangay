@@ -4,30 +4,31 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CertificateRequest;
+use App\Models\LuponCase;
 use App\Models\Purok;
 use App\Models\Resident;
 use App\Models\Sector;
+use App\Models\SectorApplication;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SectorController extends Controller
 {
     /**
-     * Rows rendered per page for the PWD Members and Senior Citizens lists.
+     * Rows rendered per page for the General, PWD, and Senior member rosters.
      */
     private const MEMBERS_PER_PAGE = 15;
 
     /**
      * Independent pagination query parameters, so one list can change page
-     * without disturbing the other.
+     * without disturbing the others.
      */
+    private const GENERAL_PAGE_PARAM = 'general_page';
+
     private const PWD_PAGE_PARAM = 'pwd_page';
 
     private const SENIOR_PAGE_PARAM = 'senior_page';
@@ -38,28 +39,23 @@ class SectorController extends Controller
     private const CERTIFICATES_PER_PAGE = 15;
 
     /**
-     * Dedicated pagination query parameter for the Certificates list so it can
-     * page independently of the PWD and Senior rosters.
+     * Dedicated pagination query parameter for the Certificates list.
      */
     private const CERTIFICATE_PAGE_PARAM = 'cert_page';
 
     /**
-     * The only certificate request statuses an Admin may see under Sectors →
-     * Certificates. Per the approved monitoring definition these are the
-     * terminal statuses that are Released or Rejected. The allow-list is
-     * applied in the query builder, so the restriction holds on the backend
-     * regardless of the UI, search, or pagination inputs.
+     * Terminal statuses for certificate requests monitoring.
      */
     private const CERTIFICATE_MONITORING_STATUSES = ['Released', 'Rejected'];
 
     /**
-     * List every sector with its dependent-record counts.
-     *
-     * Sectors are global reference data: the `sectors` table has no
-     * `barangay_id`, so the listing is intentionally not barangay-scoped.
+     * Display the consolidated Sectors dashboard and member rosters.
      */
     public function index(Request $request): Response
     {
+        $barangayId = (int) $request->user()->barangay_id;
+        $filters = $this->resolveMemberFilters($request);
+
         $sectors = Sector::query()
             ->withCount([
                 'residents',
@@ -80,30 +76,7 @@ class SectorController extends Controller
             ])
             ->values();
 
-        /*
-        |--------------------------------------------------------------------------
-        | PWD Members and Senior Citizens (Barangay-Scoped, Read-Only)
-        |--------------------------------------------------------------------------
-        |
-        | Both rosters derive from the verified `resident_sector` pivot where the
-        | linked sector slug is the canonical `pwd` or `senior`. Both are
-        | restricted to the authenticated admin's barangay, both are paginated
-        | server-side on separate query parameters, and both share the same
-        | search and purok filter inputs.
-        |
-        | Active and inactive residents are both listed: these are membership
-        | rosters, not an approval queue, so a resident's account status is
-        | reported rather than used to hide them from their own sector list.
-        |
-        | The aggregate counts below are the unfiltered totals for each roster,
-        | so the headline figure always matches the full membership even while
-        | a search or filter is narrowing the visible page.
-        |
-        */
-
-        $barangayId = (int) $request->user()->barangay_id;
-        $filters = $this->resolveMemberFilters($request);
-
+        $generalMembers = $this->generalMemberPage($barangayId, self::GENERAL_PAGE_PARAM, $filters);
         $pwdMembers = $this->memberPage($barangayId, 'pwd', self::PWD_PAGE_PARAM, $filters);
         $seniorMembers = $this->memberPage($barangayId, 'senior', self::SENIOR_PAGE_PARAM, $filters);
 
@@ -111,30 +84,6 @@ class SectorController extends Controller
             ->where('barangay_id', $barangayId)
             ->orderBy('name')
             ->get(['id', 'name']);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Certificates (Barangay-Scoped, Read-Only Monitoring)
-        |--------------------------------------------------------------------------
-        |
-        | Per the approved definitions, both the Processed and Completed metrics
-        | count individual certificate requests whose current status is
-        | terminal, i.e. `Released` or `Rejected` (the canonical terminal
-        | statuses defined in Admin\CertificateRequestController). The count is
-        | all-time and is scoped to the authenticated admin's barangay.
-        |
-        | The same allow-list drives the read-only list below, which surfaces the
-        | individual terminal requests (never any other status) with search and
-        | pagination. The restriction is enforced in the query builder, not only
-        | by hiding rows in the UI. Certificate processing itself remains in the
-        | existing certificate workflow; this controller never writes request
-        | records and the tab exposes no write actions.
-        |
-        | The two approved definitions currently resolve to the same number, so
-        | a single aggregate serves both and the UI states that explicitly
-        | rather than presenting two identical figures as distinct measures.
-        |
-        */
 
         $certificateFilters = $this->resolveCertificateFilters($request);
         $certificateRequests = $this->certificateRequestPage($barangayId, $certificateFilters);
@@ -144,14 +93,60 @@ class SectorController extends Controller
             ->whereIn('status', self::CERTIFICATE_MONITORING_STATUSES)
             ->count();
 
+        $pendingSectorApplications = 0;
+        try {
+            if (Schema::hasTable('sector_applications')) {
+                $pendingSectorApplications = SectorApplication::query()
+                    ->where('barangay_id', $barangayId)
+                    ->where('status', 'under_admin_review')
+                    ->count();
+            }
+        } catch (\Throwable) {
+            $pendingSectorApplications = 0;
+        }
+
+        $openCases = 0;
+        $closedCases = 0;
+        $totalCases = 0;
+        try {
+            if (Schema::hasTable('lupon_cases')) {
+                $totalCases = LuponCase::query()
+                    ->where('barangay_id', $barangayId)
+                    ->count();
+
+                $openCases = LuponCase::query()
+                    ->where('barangay_id', $barangayId)
+                    ->whereIn('status', ['Active', 'Under Mediation', 'Under Conciliation'])
+                    ->count();
+
+                $closedCases = LuponCase::query()
+                    ->where('barangay_id', $barangayId)
+                    ->whereIn('status', ['Settled', 'Unresolved', 'Dismissed'])
+                    ->count();
+            }
+        } catch (\Throwable) {
+            $openCases = 0;
+            $closedCases = 0;
+            $totalCases = 0;
+        }
+
+        $requestedTab = (string) $request->query('tab', '');
+        $allowedTabs = ['applications', 'general', 'pwd', 'senior', 'certificates', 'lupon'];
+        $initialTab = in_array($requestedTab, $allowedTabs, true) ? $requestedTab : 'general';
+
         return Inertia::render('Admin/Sectors', [
             'sectors' => $sectors,
             'stats' => [
                 'total' => $sectors->count(),
                 'active' => $sectors->where('is_active', true)->count(),
+                'sectorApplications' => $pendingSectorApplications,
+                'generalMembers' => $this->generalMemberScope($barangayId)->count(),
                 'pwdMembers' => $this->memberScope($barangayId, 'pwd')->count(),
                 'seniorMembers' => $this->memberScope($barangayId, 'senior')->count(),
+                'certificates' => $processedCertificates,
+                'openCases' => $openCases,
             ],
+            'generalMembers' => $generalMembers,
             'pwdMembers' => $pwdMembers,
             'seniorMembers' => $seniorMembers,
             'puroks' => $puroks,
@@ -167,65 +162,13 @@ class SectorController extends Controller
             'certificateFilters' => [
                 'search' => $certificateFilters['search'],
             ],
-        ]);
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => [
-                'nullable',
-                'string',
-                'max:255',
-                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
-                Rule::unique('sectors', 'slug'),
+            'luponSummary' => [
+                'open' => $openCases,
+                'closed' => $closedCases,
+                'total' => $totalCases,
             ],
-            'requires_proof' => ['boolean'],
-            'is_active' => ['boolean'],
+            'initialTab' => $initialTab,
         ]);
-
-        $slug = $validated['slug'] ?? Str::slug($validated['name']);
-
-        if ($slug === '' || Sector::query()->where('slug', $slug)->exists()) {
-            throw ValidationException::withMessages([
-                'slug' => 'A unique slug could not be derived from this name; please provide one.',
-            ]);
-        }
-
-        Sector::create([
-            'name' => $validated['name'],
-            'slug' => $slug,
-            'requires_proof' => $validated['requires_proof'] ?? true,
-            'is_active' => $validated['is_active'] ?? true,
-        ]);
-
-        return back()->with('success', 'Sector created successfully.');
-    }
-
-    /**
-     * Update a sector's mutable attributes.
-     *
-     * `slug` is deliberately immutable after creation: the resident
-     * registration workflow resolves the Senior and PWD sectors by the
-     * canonical slugs `senior` and `pwd`, so renaming a slug could silently
-     * disable sector selection for residents.
-     */
-    public function update(Request $request, Sector $sector): RedirectResponse
-    {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'requires_proof' => ['boolean'],
-            'is_active' => ['boolean'],
-        ]);
-
-        $sector->update([
-            'name' => $validated['name'],
-            'requires_proof' => $validated['requires_proof'] ?? $sector->requires_proof,
-            'is_active' => $validated['is_active'] ?? $sector->is_active,
-        ]);
-
-        return back()->with('success', 'Sector updated successfully.');
     }
 
     /*
@@ -233,10 +176,51 @@ class SectorController extends Controller
     | Member roster query helpers
     |--------------------------------------------------------------------------
     |
-    | Shared by the PWD and Senior rosters so search, purok filtering,
-    | ordering, and pagination behave identically for both lists.
+    | Shared by the General, PWD, and Senior rosters so search, purok filtering,
+    | ordering, and pagination behave identically across all member lists.
     |
     */
+
+    /**
+     * The base scope for the general (regular) resident roster.
+     *
+     * Scoped to the authenticated admin's barangay and residents who do not belong
+     * to any sector (whereDoesntHave('sectors')).
+     */
+    private function generalMemberScope(int $barangayId): Builder
+    {
+        return Resident::query()
+            ->where('barangay_id', $barangayId)
+            ->whereDoesntHave('sectors');
+    }
+
+    /**
+     * Build one page of the general resident roster.
+     */
+    private function generalMemberPage(
+        int $barangayId,
+        string $pageParam,
+        array $filters,
+    ): LengthAwarePaginator {
+        $query = $this->generalMemberScope($barangayId);
+
+        $this->applyMemberFilters($query, $filters, $barangayId);
+
+        return $query
+            ->with('purok:id,name')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->orderBy('id')
+            ->paginate(self::MEMBERS_PER_PAGE, ['*'], $pageParam)
+            ->withQueryString()
+            ->through(fn (Resident $resident) => [
+                'id' => $resident->id,
+                'resident_number' => $resident->resident_number,
+                'name' => $resident->full_name,
+                'purok' => $resident->purok?->name ?? '',
+                'status' => $resident->status,
+            ]);
+    }
 
     /**
      * The base scope for a sector membership roster.
@@ -258,7 +242,7 @@ class SectorController extends Controller
      * Ordering is `last_name`, `first_name`, then `id` as a deterministic
      * tie-breaker, which keeps page boundaries stable for residents who share
      * the same name. `withQueryString()` carries the shared search and purok
-     * filters, plus the other roster's page parameter, onto every
+     * filters, plus other rosters' page parameters, onto every
      * generated pagination link.
      */
     private function memberPage(
@@ -394,10 +378,6 @@ class SectorController extends Controller
 
     /**
      * Normalise the `cert_search` query parameter for the Certificates list.
-     *
-     * Mirrors the member roster search: the value is trimmed and split into
-     * whitespace-separated tokens, and LIKE metacharacters are stripped so
-     * wildcard-only input cannot silently match every request.
      */
     private function resolveCertificateFilters(Request $request): array
     {
@@ -424,13 +404,6 @@ class SectorController extends Controller
 
     /**
      * Build one page of the read-only Certificates monitoring list.
-     *
-     * The base scope is always the authenticated admin's barangay AND a status
-     * in the Released/Rejected allow-list. Search tokens are ANDed and wrapped
-     * in their own grouped clause so their OR conditions can never widen the
-     * status or barangay restriction. Ordering is `updated_at` then `id` so the
-     * most recently processed request appears first and page boundaries stay
-     * stable.
      */
     private function certificateRequestPage(
         int $barangayId,
@@ -440,12 +413,6 @@ class SectorController extends Controller
             ->where('barangay_id', $barangayId)
             ->whereIn('status', self::CERTIFICATE_MONITORING_STATUSES);
 
-        /*
-        | The submitted search was made up entirely of LIKE metacharacters,
-        | which are stripped before matching. Nothing can match a search like
-        | that, so the list must come back empty rather than quietly falling
-        | back to the unfiltered terminal list.
-        */
         if ($filters['search'] !== '' && $filters['tokens'] === []) {
             $query->whereRaw('1 = 0');
         }

@@ -46,9 +46,10 @@ class BarangayIsolationTest extends TestCase
         $purok = $this->createPurok($this->barangay, 'Purok 1');
         $otherPurok = $this->createPurok($this->other, 'Purok 2');
 
-        $this->createResident($this->barangay, $purok, ['resident_number' => 'A-1', 'mobile' => '09171110001']);
+        $seniorResident = $this->createResident($this->barangay, $purok, ['resident_number' => 'A-1', 'mobile' => '09171110001']);
         $this->createResident($this->other, $otherPurok, ['resident_number' => 'B-1', 'mobile' => '09172220001']);
         $this->createResident($this->other, $otherPurok, ['resident_number' => 'B-2', 'mobile' => '09172220002']);
+        $this->assignSector($seniorResident, 'senior');
 
         $senior = $this->createStaff($this->barangay, 'senior');
 
@@ -86,6 +87,8 @@ class BarangayIsolationTest extends TestCase
             'approval_status' => 'pending',
             'is_published' => false,
         ]);
+
+        $this->travel(1)->second();
 
         $ownApproved = $this->createAnnouncement($this->barangay, [
             'title' => 'Own Senior Approved',

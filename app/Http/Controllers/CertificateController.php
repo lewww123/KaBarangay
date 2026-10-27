@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
+use App\Models\OrgChartPosition;
 use App\Models\Resident;
 use App\Support\AuditLogger;
+use App\Support\CertificateRequestDetails;
+use App\Support\CertificateRequestWorkflow;
 use App\Support\CertificateTemplates;
 use App\Support\DelayedPsaCertificate;
 use App\Support\MarriageCohabitationCertificate;
@@ -45,6 +48,26 @@ class CertificateController extends Controller
         // server-side user; client-supplied values are never trusted.
         $user = $request->user();
         $barangayId = $user->barangay_id;
+
+        abort_unless($barangayId !== null, 403);
+
+        if (filled($validated['signatory_name'] ?? null)) {
+            $signatory = OrgChartPosition::query()
+                ->where('barangay_id', $barangayId)
+                ->where('status', 'published')
+                ->where('assigned_person', $validated['signatory_name'])
+                ->where('title', $validated['signatory_title'] ?? '')
+                ->first();
+
+            if ($signatory === null) {
+                throw ValidationException::withMessages([
+                    'signatory_name' => 'Choose a currently published signatory from this barangay Organizational Chart.',
+                ]);
+            }
+
+            $validated['signatory_name'] = $signatory->assigned_person;
+            $validated['signatory_title'] = $signatory->title;
+        }
 
         $certType = $validated['certificate_type'];
 
@@ -102,6 +125,23 @@ class CertificateController extends Controller
             }
         }
 
+        // The remaining templates use the generic renderer, so their approved
+        // merge-field contracts live in the template registry. Reject a
+        // mis-provisioned template before anything is rendered.
+        if (! DelayedPsaCertificate::isType($certType)
+            && ! MarriageCohabitationCertificate::isType($certType)
+            && ! ResidencyCertificate::isType($certType)) {
+            try {
+                CertificateTemplates::assertTemplateContract($certType, $templatePath);
+            } catch (Throwable $exception) {
+                report($exception);
+
+                return back()->withErrors([
+                    'certificate_type' => "The {$certType} template is not correctly provisioned. Please contact the administrator.",
+                ]);
+            }
+        }
+
         // Resolve an optional registered resident for the snapshot, scoped to
         // the acting user's barangay. An unknown or foreign resident id is
         // treated as no registered resident rather than trusted.
@@ -110,8 +150,22 @@ class CertificateController extends Controller
             $resident = Resident::query()
                 ->with('purok:id,name')
                 ->where('barangay_id', $barangayId)
+                ->where('status', 'active')
                 ->whereKey($validated['resident_id'])
                 ->first();
+
+            if ($resident === null) {
+                throw ValidationException::withMessages([
+                    'resident_id' => 'Choose an active resident from your barangay or use manual entry.',
+                ]);
+            }
+        }
+
+        // A selected Resident is authoritative for identity and address
+        // fields. Manual entry remains available when no Resident is linked.
+        if ($resident !== null) {
+            $validated['resident_name'] = $resident->full_name;
+            $validated['purok'] = $resident->purok?->name ?? $validated['purok'] ?? null;
         }
 
         // Resolve an explicitly linked request. Only a request that belongs to
@@ -121,7 +175,7 @@ class CertificateController extends Controller
         $linkedRequest = null;
         if (! empty($validated['certificate_request_id'])) {
             $linkedRequest = CertificateRequest::query()
-                ->with('certificate:id,name')
+                ->with('certificate:id,name,code')
                 ->where('barangay_id', $barangayId)
                 ->whereKey($validated['certificate_request_id'])
                 ->first();
@@ -132,7 +186,33 @@ class CertificateController extends Controller
                 ]);
             }
 
-            if ($linkedRequest->certificate?->name !== $certType) {
+            $requestResident = Resident::query()
+                ->with('purok:id,name')
+                ->where('barangay_id', $barangayId)
+                ->where('status', 'active')
+                ->whereKey($linkedRequest->resident_id)
+                ->first();
+
+            if ($requestResident === null
+                || ($resident !== null && $resident->id !== $requestResident->id)) {
+                throw ValidationException::withMessages([
+                    'resident_id' => 'The selected request is not linked to the selected active resident in your barangay.',
+                ]);
+            }
+
+            $resident = $requestResident;
+
+            if (! in_array($linkedRequest->status, ['Processing', 'Needs Action', 'Pending'], true)) {
+                throw ValidationException::withMessages([
+                    'certificate_request_id' => "This certificate request cannot be issued while in {$linkedRequest->status} status.",
+                ]);
+            }
+
+            $linkedType = CertificateRequestDetails::typeForCertificate(
+                $linkedRequest->certificate,
+            );
+
+            if ($linkedType !== $certType) {
                 throw ValidationException::withMessages([
                     'certificate_request_id' => 'The selected request does not match the chosen certificate type.',
                 ]);
@@ -314,7 +394,7 @@ class CertificateController extends Controller
             'resident_name' => ['required', 'string', 'max:255'],
             'purok' => ['nullable', 'string', 'max:255'],
             'purpose' => ['required', 'string', 'max:500'],
-            'control_no' => ['required', 'string', 'max:100'],
+            'control_no' => ['required', 'string', 'regex:/^CTRL-\d{4}-\d{4}$/', 'max:100'],
             'fee' => ['required', 'numeric', 'min:0'],
             'resident_id' => ['nullable', 'integer'],
             'certificate_request_id' => ['nullable', 'integer'],
@@ -343,6 +423,20 @@ class CertificateController extends Controller
         if (ResidencyCertificate::isType($certType)) {
             $rules = array_merge($rules, ResidencyCertificate::validationRules());
         }
+
+        // The control number is an issuance identifier and is always stored.
+        // A selected signatory must match a published assignment in this
+        // barangay, regardless of whether the template uses its name/title.
+        $rules['control_no'] = [
+            'required',
+            'string',
+            'regex:/^CTRL-\d{4}-\d{4}$/',
+            'max:100',
+        ];
+        // Legacy submissions may omit a signatory; the current Clerk form
+        // requires a selected published assignment for newly issued docs.
+        $rules['signatory_name'] = ['nullable', 'string', 'max:255'];
+        $rules['signatory_title'] = ['nullable', 'string', 'max:255'];
 
         return $rules;
     }
@@ -375,45 +469,58 @@ class CertificateController extends Controller
             }
 
             $templateProcessor->saveAs($outputPath);
+            $this->replaceDocxSignatoryTitle($outputPath, $validated['signatory_title'] ?? null);
 
             return;
         }
 
         if (MarriageCohabitationCertificate::isType($certType)) {
             // The Marriage Cohabitation template has its own merge-field
-            // contract as well: it carries no control number, purpose, fee,
-            // or signatory field, so only the approved keys are written.
+            // contract: it carries no control number, purpose, or fee field.
+            // Its literal signatory marker is filled in the generated copy.
             foreach (MarriageCohabitationCertificate::templateValues($marriageDetails ?? []) as $key => $value) {
                 $templateProcessor->setValue($key, $value);
             }
 
             $templateProcessor->saveAs($outputPath);
+            $this->replaceLiteralDocxPlaceholder(
+                $outputPath,
+                '{signatory_name}',
+                mb_strtoupper((string) ($validated['signatory_name'] ?? '')),
+            );
+            $this->replaceDocxSignatoryTitle($outputPath, $validated['signatory_title'] ?? null);
 
             return;
         }
 
         if (ResidencyCertificate::isType($certType)) {
             // The Residency template has its own merge-field contract as well:
-            // it carries no control number, purpose, fee, or signatory field,
-            // so only the approved keys are written.
+            // it carries no control number, purpose, or fee field, so only the
+            // approved merge keys are written.
             foreach (ResidencyCertificate::templateValues($residencyDetails ?? []) as $key => $value) {
                 $templateProcessor->setValue($key, $value);
             }
 
             $templateProcessor->saveAs($outputPath);
+            $this->replaceDocxSignatoryTitle($outputPath, $validated['signatory_title'] ?? null);
 
             return;
         }
 
-        $templateProcessor->setValue('resident_name', mb_strtoupper($validated['resident_name']));
+        // Generic templates only contain the keys in their approved merge-field
+        // contracts. Write exactly those keys; control numbers, fees, and
+        // signatory titles are form/issuance metadata, not DOCX placeholders
+        // for these certificate types.
+        $residentNameKey = $certType === 'Tricycle'
+            ? 'resident_name'
+            : "resident\u{2019}s_name";
+        $templateProcessor->setValue($residentNameKey, mb_strtoupper($validated['resident_name']));
         $templateProcessor->setValue('purok', mb_strtoupper($validated['purok'] ?? ''));
-        $templateProcessor->setValue('purpose', mb_strtoupper($validated['purpose']));
-        $templateProcessor->setValue('control_no', $validated['control_no']);
+        if ($certType !== 'Indigency' || in_array('purpose', CertificateTemplates::genericTemplateKeys($certType) ?? [], true)) {
+            $templateProcessor->setValue('purpose', mb_strtoupper($validated['purpose']));
+        }
         $templateProcessor->setValue('current_date', date('jS \d\a\y \o\f F Y'));
-        $templateProcessor->setValue('fee', 'P '.number_format((float) $validated['fee'], 2));
-
         $templateProcessor->setValue('signatory_name', mb_strtoupper($validated['signatory_name'] ?? ''));
-        $templateProcessor->setValue('signatory_title', $validated['signatory_title'] ?? '');
 
         if ($certType === 'Tricycle' || $certType === 'Sari-sari Store') {
             $templateProcessor->setValue('franchise_no', mb_strtoupper($validated['franchise_no'] ?? 'N/A'));
@@ -425,16 +532,16 @@ class CertificateController extends Controller
             // The Scholarship template uses curly apostrophes (U+2019) in these
             // keys; they must match the DOCX exactly. Empty values are replaced
             // with an empty string so no unresolved placeholder is left behind.
-            $templateProcessor->setValue('school_institution', mb_strtoupper($validated['school_institution'] ?? ''));
+            $templateProcessor->setValue('school/institution', mb_strtoupper($validated['school_institution'] ?? ''));
             $templateProcessor->setValue('father’s_name', mb_strtoupper($validated['father_name'] ?? ''));
             $templateProcessor->setValue('father’s_occupation', mb_strtoupper($validated['father_occupation'] ?? ''));
             $templateProcessor->setValue('father’s_monthly_income', (string) ($validated['father_monthly_income'] ?? ''));
             $templateProcessor->setValue('mother’s_name', mb_strtoupper($validated['mother_name'] ?? ''));
             $templateProcessor->setValue('mother’s_occupation', mb_strtoupper($validated['mother_occupation'] ?? ''));
-            $templateProcessor->setValue('mother’s_monthly_income', (string) ($validated['mother_monthly_income'] ?? ''));
         }
 
         $templateProcessor->saveAs($outputPath);
+        $this->replaceDocxSignatoryTitle($outputPath, $validated['signatory_title'] ?? null);
     }
 
     /**
@@ -458,6 +565,7 @@ class CertificateController extends Controller
             'certificate_request_id' => $linkedRequest?->id,
             'resident_id' => $resident?->id,
             'certificate_type' => $certType,
+            'control_no' => $validated['control_no'],
             // The Marriage Cohabitation certificate names the resident from
             // the resident profile, so its snapshot is the trusted name and
             // never the client-supplied one.
@@ -471,11 +579,39 @@ class CertificateController extends Controller
 
         for ($attempt = 1; $attempt <= self::REFERENCE_ATTEMPTS; $attempt++) {
             try {
-                return DB::transaction(function () use ($attributes) {
-                    return CertificateIssuance::create([
+                return DB::transaction(function () use ($attributes, $linkedRequest, $barangayId) {
+                    // Serialize the control-number check within the issuing
+                    // barangay. The unique index is the final concurrency guard.
+                    DB::table('barangays')
+                        ->where('id', $barangayId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (CertificateIssuance::query()
+                        ->where('barangay_id', $barangayId)
+                        ->where('control_no', $attributes['control_no'])
+                        ->exists()) {
+                        throw ValidationException::withMessages([
+                            'control_no' => 'This control number is already in use in your barangay. Generate a new number and try again.',
+                        ]);
+                    }
+
+                    $issuance = CertificateIssuance::create([
                         ...$attributes,
                         'reference' => $this->makeReference(),
                     ]);
+
+                    if ($linkedRequest !== null) {
+                        $fee = (float) $linkedRequest->fee;
+                        $nextStatus = $fee > 0 ? 'For Payment' : 'Ready for Claim';
+                        $note = $fee > 0
+                            ? 'Certificate generated. Payment required before claiming.'
+                            : 'Certificate generated and ready for claiming.';
+
+                        CertificateRequestWorkflow::apply($linkedRequest, $nextStatus, $note);
+                    }
+
+                    return $issuance;
                 });
             } catch (QueryException $exception) {
                 // A duplicate request link is a controlled, user-facing error:
@@ -483,6 +619,12 @@ class CertificateController extends Controller
                 if ($this->isDuplicateRequestLink($exception)) {
                     throw ValidationException::withMessages([
                         'certificate_request_id' => 'This certificate request has already been issued.',
+                    ]);
+                }
+
+                if ($this->isDuplicateControlNumber($exception)) {
+                    throw ValidationException::withMessages([
+                        'control_no' => 'This control number is already in use in your barangay. Generate a new number and try again.',
                     ]);
                 }
 
@@ -523,10 +665,131 @@ class CertificateController extends Controller
             || str_contains($message, 'certificate_request_id');
     }
 
+    private function isDuplicateControlNumber(QueryException $exception): bool
+    {
+        return $this->isUniqueViolation($exception)
+            && (str_contains($exception->getMessage(), 'cert_issuances_barangay_control_unique')
+                || str_contains($exception->getMessage(), 'control_no'));
+    }
+
     private function cleanup(string $outputPath): void
     {
         if (is_file($outputPath)) {
             @unlink($outputPath);
         }
+    }
+
+    /** Fill the single-braced signatory token in the current Marriage DOCX copy. */
+    private function replaceLiteralDocxPlaceholder(string $path, string $placeholder, string $value): void
+    {
+        $zip = new \ZipArchive();
+
+        if ($zip->open($path) !== true) {
+            throw new InvalidArgumentException('Unable to open the generated certificate document.');
+        }
+
+        $xmlNames = [];
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $name = $zip->getNameIndex($index);
+
+            if (is_string($name)
+                && preg_match('#^word/(document|header\d*|footer\d*)\.xml$#', $name)) {
+                $xmlNames[] = $name;
+            }
+        }
+
+        $found = false;
+        $replacement = htmlspecialchars($value, ENT_XML1 | ENT_COMPAT, 'UTF-8');
+
+        foreach ($xmlNames as $name) {
+
+            $xml = $zip->getFromName($name);
+
+            if (! is_string($xml) || ! str_contains($xml, $placeholder)) {
+                continue;
+            }
+
+            $found = true;
+            $updated = str_replace($placeholder, $replacement, $xml);
+            $zip->deleteName($name);
+            $zip->addFromString($name, $updated);
+        }
+
+        $closed = $zip->close();
+
+        if (! $closed || ! $found) {
+            throw new InvalidArgumentException('The Marriage template signatory marker could not be filled.');
+        }
+    }
+
+    /** Replace the current fixed signatory label in a generated DOCX copy. */
+    private function replaceDocxSignatoryTitle(string $path, mixed $title): void
+    {
+        if (! is_string($title) || trim($title) === '') {
+            return;
+        }
+
+        $zip = new \ZipArchive();
+
+        if ($zip->open($path) !== true) {
+            throw new InvalidArgumentException('Unable to open the generated certificate document.');
+        }
+
+        $xmlNames = [];
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $name = $zip->getNameIndex($index);
+
+            if (is_string($name)
+                && preg_match('#^word/(document|header\d*|footer\d*)\.xml$#', $name)) {
+                $xmlNames[] = $name;
+            }
+        }
+
+        foreach ($xmlNames as $name) {
+            $xml = $zip->getFromName($name);
+
+            if (! is_string($xml)) {
+                continue;
+            }
+
+            $document = new \DOMDocument();
+            $document->preserveWhiteSpace = true;
+
+            if (! $document->loadXML($xml, LIBXML_NONET)) {
+                continue;
+            }
+
+            $xpath = new \DOMXPath($document);
+            $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+            $changed = false;
+
+            foreach ($xpath->query('//w:p') ?: [] as $paragraph) {
+                $textNodes = $xpath->query('.//w:t', $paragraph);
+                $text = '';
+
+                foreach ($textNodes ?: [] as $textNode) {
+                    $text .= $textNode->textContent;
+                }
+
+                if (mb_strtolower(trim($text)) !== 'officer on duty' || $textNodes === false || $textNodes->length === 0) {
+                    continue;
+                }
+
+                $textNodes->item(0)->nodeValue = trim($title);
+
+                for ($index = 1; $index < $textNodes->length; $index++) {
+                    $textNodes->item($index)->nodeValue = '';
+                }
+
+                $changed = true;
+            }
+
+            if ($changed) {
+                $zip->deleteName($name);
+                $zip->addFromString($name, $document->saveXML() ?: $xml);
+            }
+        }
+
+        $zip->close();
     }
 }

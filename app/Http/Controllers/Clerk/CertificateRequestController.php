@@ -6,36 +6,32 @@ use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
+use App\Models\OrgChartPosition;
+use App\Models\Resident;
+use App\Support\AuditLogger;
+use App\Support\CertificateRequestDetails;
+use App\Support\CertificateRequestWorkflow;
 use App\Support\CertificateTemplates;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 /**
- * Read-only certificate-request listing for the Clerk portal.
+ * Certificate-request processing for the Clerk portal.
  *
- * The Clerk can view requests submitted by residents of their own barangay,
- * search and filter them, and page through the results. The Clerk cannot
- * change a request's status; certificate-request status transitions remain
- * Admin-only (see App\Http\Controllers\Admin\CertificateRequestController).
+ * Clerks view requests submitted by residents of their own barangay, review
+ * and revise the certificate-specific details, and move requests through the
+ * validated status workflow. Administrators have aggregate monitoring only;
+ * they cannot reach these routes.
  */
 class CertificateRequestController extends Controller
 {
-    /**
-     * Canonical certificate request statuses, mirrored from the resident
-     * tracker. Used only to validate the status filter; this controller never
-     * writes a status.
-     */
-    private const STATUSES = [
-        'Pending',
-        'Needs Action',
-        'For Payment',
-        'Processing',
-        'Ready for Claim',
-        'Released',
-        'Rejected',
-    ];
-
     /**
      * Page sizes the Clerk list will honor. Any other value falls back to the
      * default, so an arbitrary per_page can never reach the paginator.
@@ -59,7 +55,7 @@ class CertificateRequestController extends Controller
 
         // Missing, empty, "ALL", or unknown status is treated as no filter so
         // arbitrary input can never reach the query builder.
-        $statusFilter = in_array($requestedStatus, self::STATUSES, true)
+        $statusFilter = in_array($requestedStatus, CertificateRequestWorkflow::statuses(), true)
             ? $requestedStatus
             : null;
 
@@ -160,6 +156,7 @@ class CertificateRequestController extends Controller
         // Certificate-type filter options for the Clerk's own barangay only.
         $certificateOptions = Certificate::query()
             ->where('barangay_id', $barangayId)
+            ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (Certificate $certificate) => [
@@ -167,6 +164,20 @@ class CertificateRequestController extends Controller
                 'name' => $certificate->name,
             ])
             ->all();
+
+        $signatories = OrgChartPosition::query()
+            ->where('barangay_id', $barangayId)
+            ->where('status', 'published')
+            ->whereNotNull('assigned_person')
+            ->where('assigned_person', '<>', '')
+            ->orderBy('title')
+            ->get(['title', 'assigned_person'])
+            ->map(fn (OrgChartPosition $position) => [
+                'name' => $position->assigned_person,
+                'title' => $position->title,
+            ])
+            ->unique(fn (array $item) => mb_strtolower($item['name'].'|'.$item['title']))
+            ->values();
 
         [$issuances, $issuedFilters] = $this->issuanceListing($request, $barangayId);
 
@@ -176,8 +187,9 @@ class CertificateRequestController extends Controller
             'requests' => $requests,
             'issuances' => $issuances,
             'allRecords' => $allRecords,
-            'statuses' => self::STATUSES,
+            'statuses' => CertificateRequestWorkflow::statuses(),
             'certificateOptions' => $certificateOptions,
+            'signatories' => $signatories,
             'filters' => [
                 'search' => $search,
                 'status' => $statusFilter ?? '',
@@ -192,6 +204,418 @@ class CertificateRequestController extends Controller
     }
 
     /**
+     * Detail view for a single certificate request.
+     *
+     * The request is resolved strictly within the Clerk's own barangay before
+     * any data is projected. Only fields the Clerk needs to review, revise, or
+     * issue the certificate are returned; resident contact details stay
+     * private.
+     */
+    public function show(Request $request, CertificateRequest $certificateRequest): JsonResponse
+    {
+        $barangayId = $request->user()->barangay_id;
+
+        abort_unless(
+            $barangayId !== null && $certificateRequest->barangay_id === $barangayId,
+            404,
+        );
+
+        $certificateRequest->loadMissing([
+            'resident:id,barangay_id,purok_id,first_name,middle_name,last_name,suffix,resident_number',
+            'resident.purok:id,name',
+            'certificate:id,name,code',
+        ]);
+
+        $certificate = $certificateRequest->certificate;
+        $resident = $certificateRequest->resident;
+        $type = CertificateRequestDetails::typeForCertificate($certificate);
+        $decoded = CertificateRequestDetails::decode($certificateRequest->additional_details);
+        $detailsType = $decoded['type'] ?? $type;
+
+        $issuance = CertificateIssuance::query()
+            ->where('barangay_id', $barangayId)
+            ->where('certificate_request_id', $certificateRequest->id)
+            ->first();
+
+        return response()->json([
+            'id' => $certificateRequest->id,
+            'reference' => $certificateRequest->reference,
+            'certificate' => $certificate instanceof Certificate ? $certificate->name : 'Certificate',
+            'certificate_type' => $type,
+            'template_available' => $type !== null
+                && CertificateTemplates::isAvailable($type),
+            'resident' => [
+                'id' => $resident?->id,
+                'name' => $resident instanceof Resident ? $resident->full_name : 'Unknown resident',
+                'resident_number' => $resident instanceof Resident ? $resident->resident_number : null,
+                'purok' => $resident?->purok?->name ?? '',
+            ],
+            'purpose' => $certificateRequest->purpose,
+            'fee' => (string) $certificateRequest->fee,
+            'business_name' => $certificateRequest->business_name,
+            'business_address' => $certificateRequest->business_address,
+            'notes' => $decoded['notes'],
+            'original_notes' => $decoded['original_notes'],
+            'details' => CertificateRequestDetails::displayRows($detailsType, $decoded['fields']),
+            'original_details' => CertificateRequestDetails::displayRows(
+                $detailsType,
+                $decoded['original_fields'],
+            ),
+            'details_fields' => CertificateRequestDetails::fieldsForType($detailsType),
+            'detail_values' => $decoded['fields'],
+            'status' => $certificateRequest->status,
+            'admin_note' => $certificateRequest->admin_note,
+            'allowed_statuses' => CertificateRequestWorkflow::genericStatuses(
+                $certificateRequest->status,
+            ),
+            'submitted_at' => $certificateRequest->submitted_at?->format('F j, Y') ?? '',
+            'reviewed_at' => $certificateRequest->reviewed_at?->format('F j, Y') ?? null,
+            'issuance' => $issuance ? [
+                'id' => $issuance->id,
+                'reference' => $issuance->reference,
+                'issued_at' => $issuance->issued_at->format('F j, Y g:i A'),
+            ] : null,
+        ]);
+    }
+
+    /**
+     * Persist the Clerk's review of the certificate-specific values.
+     *
+     * The Resident's original submission is retained alongside the revised
+     * values. Only whitelisted fields for the request's certificate type are
+     * accepted, and the request must belong to the Clerk's barangay.
+     */
+    public function updateDetails(
+        Request $request,
+        CertificateRequest $certificateRequest,
+    ): JsonResponse {
+        $barangayId = $request->user()->barangay_id;
+
+        abort_unless(
+            $barangayId !== null && $certificateRequest->barangay_id === $barangayId,
+            404,
+        );
+
+        $certificateRequest->loadMissing('certificate:id,name,code');
+
+        $decoded = CertificateRequestDetails::decode(
+            $certificateRequest->additional_details,
+        );
+        $type = $decoded['type']
+            ?? CertificateRequestDetails::typeForCertificate(
+                $certificateRequest->certificate,
+            );
+
+        $rules = CertificateRequestDetails::detailValidationRules($type);
+
+        if ($rules === []) {
+            abort(422, 'This request has no editable certificate details.');
+        }
+
+        $validated = $request->validate($rules);
+        $fields = array_merge(
+            $decoded['fields'],
+            is_array($validated['details'] ?? null) ? $validated['details'] : [],
+        );
+
+        $certificateRequest->update([
+            'additional_details' => CertificateRequestDetails::encodeRevision(
+                $certificateRequest->additional_details,
+                $type,
+                $fields,
+            ),
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Audit: certificate request details reviewed
+        |--------------------------------------------------------------------------
+        |
+        | Values and free-text notes are never recorded, only the bounded event
+        | and the request identity. The resident's original values remain in the
+        | stored payload for audit and comparison.
+        |
+        */
+
+        AuditLogger::record(
+            'certificate_request.details_reviewed',
+            $certificateRequest->barangay_id,
+            $request->user()->id,
+            'certificate_request',
+            $certificateRequest->id,
+            ['action' => 'details_reviewed'],
+            $request->ip(),
+        );
+
+        $updated = CertificateRequestDetails::decode(
+            $certificateRequest->fresh()->additional_details,
+        );
+
+        return response()->json([
+            'message' => 'Certificate request details updated.',
+            'details' => CertificateRequestDetails::displayRows(
+                $updated['type'] ?? $type,
+                $updated['fields'],
+            ),
+            'original_details' => CertificateRequestDetails::displayRows(
+                $updated['type'] ?? $type,
+                $updated['original_fields'],
+            ),
+            'detail_values' => $updated['fields'],
+            'notes' => $updated['notes'],
+            'original_notes' => $updated['original_notes'],
+        ]);
+    }
+
+    /**
+     * Move a request through the validated Clerk status workflow.
+     */
+    public function updateStatus(
+        Request $request,
+        CertificateRequest $certificateRequest,
+    ): JsonResponse {
+        $barangayId = $request->user()->barangay_id;
+
+        abort_unless(
+            $barangayId !== null && $certificateRequest->barangay_id === $barangayId,
+            404,
+        );
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in(CertificateRequestWorkflow::statuses())],
+            'admin_note' => ['nullable', 'string', 'max:1000', 'required_if:status,Rejected'],
+        ]);
+
+        $targetStatus = $validated['status'];
+        $currentStatus = $certificateRequest->status;
+
+        // CRITICAL SERVER-SIDE TRANSITION RESTRICTIONS:
+        // Protected statuses (For Payment, Ready for Claim, Released) can NEVER be set directly
+        // via the generic status endpoint. They must follow their dedicated workflow actions:
+        // - 'For Payment': Automatically set upon linked certificate issuance (fee > 0).
+        // - 'Ready for Claim': Automatically set upon linked issuance (fee == 0) or via dedicated payment confirmation.
+        // - 'Released': Only set via dedicated physical handover release endpoint.
+        if ($targetStatus !== $currentStatus) {
+            if ($targetStatus === 'For Payment') {
+                return response()->json([
+                    'message' => 'The For Payment status is set automatically upon certificate issuance.',
+                    'errors' => ['status' => ['The For Payment status is set automatically upon certificate issuance.']],
+                ], 422);
+            }
+
+            if ($targetStatus === 'Ready for Claim') {
+                return response()->json([
+                    'message' => 'The Ready for Claim status requires payment confirmation or certificate issuance.',
+                    'errors' => ['status' => ['The Ready for Claim status requires payment confirmation or certificate issuance.']],
+                ], 422);
+            }
+
+            if ($targetStatus === 'Released') {
+                return response()->json([
+                    'message' => 'Dedicated physical handover confirmation is required to release a certificate.',
+                    'errors' => ['status' => ['Dedicated physical handover confirmation is required to release a certificate.']],
+                ], 422);
+            }
+        }
+
+        $previousStatus = $certificateRequest->status;
+
+        CertificateRequestWorkflow::apply(
+            $certificateRequest,
+            $targetStatus,
+            $validated['admin_note'] ?? null,
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Audit: certificate request status changed
+        |--------------------------------------------------------------------------
+        |
+        | Re-applying the current status only edits the note and records
+        | nothing. The free-text note is never recorded; only the bounded status
+        | transition is written.
+        |
+        */
+
+        if ($certificateRequest->wasChanged('status')) {
+            AuditLogger::record(
+                'certificate_request.status_changed',
+                $certificateRequest->barangay_id,
+                $request->user()->id,
+                'certificate_request',
+                $certificateRequest->id,
+                [
+                    'previous_status' => $previousStatus,
+                    'new_status' => $certificateRequest->status,
+                ],
+                $request->ip(),
+            );
+        }
+
+        return response()->json([
+            'message' => 'Certificate request status updated.',
+            'status' => $certificateRequest->status,
+            'allowed_statuses' => CertificateRequestWorkflow::genericStatuses(
+                $certificateRequest->status,
+            ),
+            'admin_note' => $certificateRequest->admin_note,
+        ]);
+    }
+
+    /**
+     * Dedicated Clerk action to confirm payment for a certificate request.
+     *
+     * Payment confirmation is a Clerk attestation of actual collection, not
+     * independent accounting verification. Requires that the request is currently
+     * in 'For Payment' and has a valid linked issuance.
+     */
+    public function confirmPayment(
+        Request $request,
+        CertificateRequest $certificateRequest,
+    ): JsonResponse {
+        $barangayId = $request->user()->barangay_id;
+
+        abort_unless(
+            $barangayId !== null && $certificateRequest->barangay_id === $barangayId,
+            404,
+        );
+
+        $validated = $request->validate([
+            'confirm_payment' => ['required', 'accepted'],
+            'admin_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if ($certificateRequest->status !== 'For Payment') {
+            return response()->json([
+                'message' => 'Only requests in For Payment status can have payment confirmed.',
+                'errors' => ['status' => ['Only requests in For Payment status can have payment confirmed.']],
+            ], 422);
+        }
+
+        $hasIssuance = CertificateIssuance::where('barangay_id', $barangayId)
+            ->where('certificate_request_id', $certificateRequest->id)
+            ->exists();
+
+        if (! $hasIssuance) {
+            return response()->json([
+                'message' => 'Payment cannot be confirmed before certificate issuance.',
+                'errors' => ['status' => ['Payment cannot be confirmed before certificate issuance.']],
+            ], 422);
+        }
+
+        $previousStatus = $certificateRequest->status;
+        $note = $validated['admin_note'] ?? 'Payment confirmed by clerk. Certificate is ready for claim.';
+
+        DB::transaction(function () use ($certificateRequest, $note) {
+            CertificateRequestWorkflow::apply(
+                $certificateRequest,
+                'Ready for Claim',
+                $note,
+            );
+        });
+
+        AuditLogger::record(
+            'certificate_request.payment_confirmed',
+            $certificateRequest->barangay_id,
+            $request->user()->id,
+            'certificate_request',
+            $certificateRequest->id,
+            [
+                'action' => 'payment_confirmed',
+                'previous_status' => $previousStatus,
+                'new_status' => 'Ready for Claim',
+            ],
+            $request->ip(),
+        );
+
+        return response()->json([
+            'message' => 'Payment confirmed. Certificate is ready for claim.',
+            'status' => $certificateRequest->status,
+            'allowed_statuses' => CertificateRequestWorkflow::genericStatuses(
+                $certificateRequest->status,
+            ),
+            'admin_note' => $certificateRequest->admin_note,
+            'ready_for_claim_at' => $certificateRequest->ready_for_claim_at?->format('F j, Y g:i A'),
+        ]);
+    }
+
+    /**
+     * Dedicated Clerk action to confirm physical handover and release of a certificate.
+     *
+     * Requires that the request is currently in 'Ready for Claim' and has a valid
+     * linked issuance. Explicit confirmation of physical handover is required.
+     */
+    public function confirmRelease(
+        Request $request,
+        CertificateRequest $certificateRequest,
+    ): JsonResponse {
+        $barangayId = $request->user()->barangay_id;
+
+        abort_unless(
+            $barangayId !== null && $certificateRequest->barangay_id === $barangayId,
+            404,
+        );
+
+        $validated = $request->validate([
+            'confirm_handover' => ['required', 'accepted'],
+            'admin_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if ($certificateRequest->status !== 'Ready for Claim') {
+            return response()->json([
+                'message' => 'Only requests in Ready for Claim status can be released.',
+                'errors' => ['status' => ['Only requests in Ready for Claim status can be released.']],
+            ], 422);
+        }
+
+        $hasIssuance = CertificateIssuance::where('barangay_id', $barangayId)
+            ->where('certificate_request_id', $certificateRequest->id)
+            ->exists();
+
+        if (! $hasIssuance) {
+            return response()->json([
+                'message' => 'Cannot release a certificate that has not been issued yet.',
+                'errors' => ['status' => ['Cannot release a certificate that has not been issued yet.']],
+            ], 422);
+        }
+
+        $previousStatus = $certificateRequest->status;
+        $note = $validated['admin_note'] ?? 'Certificate physically handed over and released.';
+
+        DB::transaction(function () use ($certificateRequest, $note) {
+            CertificateRequestWorkflow::apply(
+                $certificateRequest,
+                'Released',
+                $note,
+            );
+        });
+
+        AuditLogger::record(
+            'certificate_request.released',
+            $certificateRequest->barangay_id,
+            $request->user()->id,
+            'certificate_request',
+            $certificateRequest->id,
+            [
+                'action' => 'certificate_released',
+                'previous_status' => $previousStatus,
+                'new_status' => 'Released',
+            ],
+            $request->ip(),
+        );
+
+        return response()->json([
+            'message' => 'Certificate released successfully.',
+            'status' => $certificateRequest->status,
+            'allowed_statuses' => CertificateRequestWorkflow::genericStatuses(
+                $certificateRequest->status,
+            ),
+            'admin_note' => $certificateRequest->admin_note,
+            'released_at' => $certificateRequest->released_at?->format('F j, Y g:i A'),
+        ]);
+    }
+
+    /**
      * Build the read-only issuance-history listing for the Issued tab.
      *
      * The Clerk can only ever see issuances recorded for their own barangay.
@@ -199,7 +623,7 @@ class CertificateRequestController extends Controller
      * barangay_id is never read. Only the fields needed for the table are
      * projected, and the issuer is reduced to a display name.
      *
-     * @return array{0: \Illuminate\Contracts\Pagination\LengthAwarePaginator, 1: array<string, mixed>}
+     * @return array{0: LengthAwarePaginator, 1: array<string, mixed>}
      */
     private function issuanceListing(Request $request, ?int $barangayId): array
     {
@@ -315,7 +739,7 @@ class CertificateRequestController extends Controller
      * presentation fields are projected — no fee, resident_id, issued_by_id,
      * certificate_request_id, or other internal identifiers.
      *
-     * @return array{0: \Illuminate\Contracts\Pagination\LengthAwarePaginator, 1: array<string, mixed>}
+     * @return array{0: LengthAwarePaginator, 1: array<string, mixed>}
      */
     private function allListing(Request $request, ?int $barangayId): array
     {
@@ -387,7 +811,7 @@ class CertificateRequestController extends Controller
                     ])->filter()->implode(' ');
 
                 $occurredAt = $row->occurred_at
-                    ? \Illuminate\Support\Carbon::parse($row->occurred_at)->format('F j, Y')
+                    ? Carbon::parse($row->occurred_at)->format('F j, Y')
                     : '';
 
                 return [
@@ -421,7 +845,7 @@ class CertificateRequestController extends Controller
     /**
      * Request branch of the All Records union, normalised to the common shape.
      *
-     * @param  \Illuminate\Support\Collection<int, string>  $tokens
+     * @param  Collection<int, string>  $tokens
      */
     private function allRequestBranch(
         ?int $barangayId,
@@ -430,9 +854,9 @@ class CertificateRequestController extends Controller
         bool $typeIsTemplate,
         ?int $typeCertificateId,
         string $requestedType,
-        ?\Illuminate\Support\Carbon $dateFromValue,
-        ?\Illuminate\Support\Carbon $dateToValue,
-    ): \Illuminate\Database\Query\Builder {
+        ?Carbon $dateFromValue,
+        ?Carbon $dateToValue,
+    ): Builder {
         $query = DB::table('certificate_requests as r')
             ->join('residents as res', 'res.id', '=', 'r.resident_id')
             ->leftJoin('certificates as c', 'c.id', '=', 'r.certificate_id');
@@ -496,7 +920,7 @@ class CertificateRequestController extends Controller
     /**
      * Issuance branch of the All Records union, normalised to the common shape.
      *
-     * @param  \Illuminate\Support\Collection<int, string>  $tokens
+     * @param  Collection<int, string>  $tokens
      */
     private function allIssuanceBranch(
         ?int $barangayId,
@@ -505,9 +929,9 @@ class CertificateRequestController extends Controller
         bool $typeIsTemplate,
         ?int $typeCertificateId,
         string $requestedType,
-        ?\Illuminate\Support\Carbon $dateFromValue,
-        ?\Illuminate\Support\Carbon $dateToValue,
-    ): \Illuminate\Database\Query\Builder {
+        ?Carbon $dateFromValue,
+        ?Carbon $dateToValue,
+    ): Builder {
         $query = DB::table('certificate_issuances as i');
 
         if ($barangayId === null) {
@@ -569,7 +993,7 @@ class CertificateRequestController extends Controller
     /**
      * Parse a Y-m-d date string, returning null for empty or malformed input.
      */
-    private function parseDate(string $value): ?\Illuminate\Support\Carbon
+    private function parseDate(string $value): ?Carbon
     {
         if ($value === '') {
             return null;
@@ -581,6 +1005,6 @@ class CertificateRequestController extends Controller
             return null;
         }
 
-        return \Illuminate\Support\Carbon::instance($parsed)->startOfDay();
+        return Carbon::instance($parsed)->startOfDay();
     }
 }

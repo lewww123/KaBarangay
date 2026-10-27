@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import ClerkLayout from '@/layouts/ClerkLayout'; 
+import ClerkLayout from '@/layouts/ClerkLayout';
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 
@@ -17,6 +17,14 @@ interface CertificateTypeOption {
     available: boolean;
 }
 
+interface SignatoryOption {
+    name: string;
+    title: string;
+}
+
+const signatoryOptionValue = (name: string, title: string) =>
+    JSON.stringify([name, title]);
+
 interface RequestRow {
     id: number;
     reference: string;
@@ -27,6 +35,78 @@ interface RequestRow {
     };
     status: string;
     submitted_at: string;
+}
+
+interface RequestDetailRow {
+    label: string;
+    value: string;
+}
+
+interface RequestDetailField {
+    key: string;
+    label: string;
+    type: 'text' | 'number';
+    kind: 'text' | 'integer' | 'numeric';
+    required: boolean;
+    min?: number;
+    max?: number;
+    default?: string;
+}
+
+interface RequestDetails {
+    id: number;
+    reference: string;
+    certificate: string;
+    certificate_type: string | null;
+    resident: {
+        id?: number;
+        name: string;
+        resident_number: string | null;
+        purok?: string;
+    };
+    purpose: string;
+    fee: string;
+    business_name: string | null;
+    business_address: string | null;
+    notes: string | null;
+    original_notes: string | null;
+    details: RequestDetailRow[];
+    original_details: RequestDetailRow[];
+    details_fields: RequestDetailField[];
+    detail_values: Record<string, string>;
+    status: string;
+    admin_note: string | null;
+    template_available: boolean;
+    allowed_statuses: string[];
+    submitted_at: string;
+    reviewed_at: string | null;
+    issuance?: {
+        id: number;
+        reference: string;
+        issued_at: string;
+    } | null;
+}
+
+function requestErrorMessage(error: unknown, fallback: string): string {
+    if (axios.isAxiosError(error)) {
+        const errors = error.response?.data?.errors;
+
+        if (errors && typeof errors === 'object') {
+            const first = Object.values(errors)[0];
+
+            if (Array.isArray(first) && typeof first[0] === 'string') {
+                return first[0];
+            }
+        }
+
+        const message = error.response?.data?.message;
+
+        if (typeof message === 'string' && message.trim() !== '') {
+            return message;
+        }
+    }
+
+    return fallback;
 }
 
 interface Paginated<T> {
@@ -162,32 +242,26 @@ const EMPTY_ALL_FILTERS: AllRecordFilters = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-    'Pending': 'bg-amber-100 text-amber-800',
+    Pending: 'bg-amber-100 text-amber-800',
     'Needs Action': 'bg-orange-100 text-orange-800',
     'For Payment': 'bg-blue-100 text-blue-800',
-    'Processing': 'bg-indigo-100 text-indigo-800',
+    Processing: 'bg-indigo-100 text-indigo-800',
     'Ready for Claim': 'bg-teal-100 text-teal-800',
-    'Released': 'bg-green-100 text-green-800',
-    'Rejected': 'bg-red-100 text-red-800',
+    Released: 'bg-green-100 text-green-800',
+    Rejected: 'bg-red-100 text-red-800',
 };
 
 type CertificateTab = 'requests' | 'issued' | 'all';
 
 const CERTIFICATE_FEES: Record<string, string> = {
-    'Residency': '100',
-    'Indigency': '50',
+    Residency: '100',
+    Indigency: '50',
     'Delayed PSA Registration': '50',
     'Marriage Cohabitation': '100',
     'Scholarship Certificate': '50',
-    'Tricycle': '300',
+    Tricycle: '300',
     'Sari-sari Store': '100',
 };
-
-const SIGNATORIES = [
-    { name: 'HON. JENNIFER CALINGAO TRINIDAD', title: 'Punong Barangay' },
-    { name: 'HON. MARIA CLARA', title: 'Barangay Kagawad' },
-    { name: 'PEDRO PENDUKO', title: 'Barangay Secretary' },
-];
 
 const DELAYED_PSA_TYPE = 'Delayed PSA Registration';
 
@@ -219,6 +293,10 @@ const RESIDENCY_PURPOSE = 'PROOF OF RESIDENCY.';
 const RESIDENCY_YEARS_MIN = 0;
 const RESIDENCY_YEARS_MAX = 120;
 
+function createControlNumber(): string {
+    return `CTRL-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
 const DELAYED_PSA_DEFAULTS = {
     nationality: 'FILIPINO',
     birth_place: 'PUERTO PRINCESA CITY',
@@ -227,8 +305,18 @@ const DELAYED_PSA_DEFAULTS = {
 const SEX_OPTIONS = ['MALE', 'FEMALE'];
 
 const MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
 ];
 
 function ordinalSuffix(day: number): string {
@@ -331,7 +419,10 @@ function calculateAge(birthdate: string): number | null {
     let age = today.getFullYear() - year;
     const monthDifference = today.getMonth() + 1 - month;
 
-    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < day)) {
+    if (
+        monthDifference < 0 ||
+        (monthDifference === 0 && today.getDate() < day)
+    ) {
         age -= 1;
     }
 
@@ -423,6 +514,7 @@ function QrScanInput({
 export default function Dashboard({
     auth,
     certificateTypes = [],
+    signatories = [],
     requests = EMPTY_REQUESTS,
     issuances = EMPTY_ISSUANCES,
     statuses = [],
@@ -434,6 +526,7 @@ export default function Dashboard({
 }: {
     auth: { user: User };
     certificateTypes?: CertificateTypeOption[];
+    signatories?: SignatoryOption[];
     requests?: Paginated<RequestRow>;
     issuances?: Paginated<IssuanceRow>;
     allRecords?: Paginated<AllRecordRow>;
@@ -446,16 +539,26 @@ export default function Dashboard({
     const [activeTab, setActiveTab] = useState<CertificateTab>('requests');
     const [searchQuery, setSearchQuery] = useState(filters.search);
     const [statusQuery, setStatusQuery] = useState(filters.status);
-    const [certificateQuery, setCertificateQuery] = useState(filters.certificate_id);
+    const [certificateQuery, setCertificateQuery] = useState(
+        filters.certificate_id,
+    );
     const [dateFromQuery, setDateFromQuery] = useState(filters.date_from);
     const [dateToQuery, setDateToQuery] = useState(filters.date_to);
-    const [issuedSearchQuery, setIssuedSearchQuery] = useState(issuedFilters.search);
+    const [issuedSearchQuery, setIssuedSearchQuery] = useState(
+        issuedFilters.search,
+    );
     const [issuedTypeQuery, setIssuedTypeQuery] = useState(issuedFilters.type);
-    const [issuedDateFromQuery, setIssuedDateFromQuery] = useState(issuedFilters.date_from);
-    const [issuedDateToQuery, setIssuedDateToQuery] = useState(issuedFilters.date_to);
+    const [issuedDateFromQuery, setIssuedDateFromQuery] = useState(
+        issuedFilters.date_from,
+    );
+    const [issuedDateToQuery, setIssuedDateToQuery] = useState(
+        issuedFilters.date_to,
+    );
     const [allSearchQuery, setAllSearchQuery] = useState(allFilters.search);
     const [allTypeQuery, setAllTypeQuery] = useState(allFilters.type);
-    const [allDateFromQuery, setAllDateFromQuery] = useState(allFilters.date_from);
+    const [allDateFromQuery, setAllDateFromQuery] = useState(
+        allFilters.date_from,
+    );
     const [allDateToQuery, setAllDateToQuery] = useState(allFilters.date_to);
     const [listLoading, setListLoading] = useState(false);
     const [popoverOpen, setPopoverOpen] = useState(false);
@@ -476,8 +579,10 @@ export default function Dashboard({
         const onPointerDown = (event: MouseEvent) => {
             const target = event.target as Node;
             if (
-                popoverRef.current && !popoverRef.current.contains(target) &&
-                popoverButtonRef.current && !popoverButtonRef.current.contains(target)
+                popoverRef.current &&
+                !popoverRef.current.contains(target) &&
+                popoverButtonRef.current &&
+                !popoverButtonRef.current.contains(target)
             ) {
                 setPopoverOpen(false);
             }
@@ -578,7 +683,10 @@ export default function Dashboard({
     const applySearch = () => {
         if (activeTab === 'issued') {
             const trimmed = issuedSearchQuery.trim();
-            if (trimmed === lastIssuedQueried.current && trimmed === issuedFilters.search) {
+            if (
+                trimmed === lastIssuedQueried.current &&
+                trimmed === issuedFilters.search
+            ) {
                 return;
             }
             lastIssuedQueried.current = trimmed;
@@ -588,7 +696,10 @@ export default function Dashboard({
 
         if (activeTab === 'all') {
             const trimmed = allSearchQuery.trim();
-            if (trimmed === lastAllQueried.current && trimmed === allFilters.search) {
+            if (
+                trimmed === lastAllQueried.current &&
+                trimmed === allFilters.search
+            ) {
                 return;
             }
             lastAllQueried.current = trimmed;
@@ -642,7 +753,12 @@ export default function Dashboard({
             setIssuedTypeQuery('');
             setIssuedDateFromQuery('');
             setIssuedDateToQuery('');
-            reloadIssued({ issued_type: '', issued_date_from: '', issued_date_to: '', issued_page: 1 });
+            reloadIssued({
+                issued_type: '',
+                issued_date_from: '',
+                issued_date_to: '',
+                issued_page: 1,
+            });
             setPopoverOpen(false);
             return;
         }
@@ -651,7 +767,12 @@ export default function Dashboard({
             setAllTypeQuery('');
             setAllDateFromQuery('');
             setAllDateToQuery('');
-            reloadAll({ all_type: '', all_date_from: '', all_date_to: '', all_page: 1 });
+            reloadAll({
+                all_type: '',
+                all_date_from: '',
+                all_date_to: '',
+                all_page: 1,
+            });
             setPopoverOpen(false);
             return;
         }
@@ -660,7 +781,13 @@ export default function Dashboard({
         setCertificateQuery('');
         setDateFromQuery('');
         setDateToQuery('');
-        reload({ status: '', certificate_id: '', date_from: '', date_to: '', page: 1 });
+        reload({
+            status: '',
+            certificate_id: '',
+            date_from: '',
+            date_to: '',
+            page: 1,
+        });
         setPopoverOpen(false);
     };
 
@@ -687,43 +814,218 @@ export default function Dashboard({
             {
                 preserveState: true,
                 preserveScroll: true,
-                only: activeTab === 'issued'
-                    ? ['issuances', 'issuedFilters']
-                    : activeTab === 'all'
-                        ? ['allRecords', 'allFilters']
-                        : ['requests', 'filters'],
+                only:
+                    activeTab === 'issued'
+                        ? ['issuances', 'issuedFilters']
+                        : activeTab === 'all'
+                          ? ['allRecords', 'allFilters']
+                          : ['requests', 'filters'],
             },
         );
     };
 
-    const activeFilterCount = activeTab === 'issued'
-        ? [issuedTypeQuery !== '', issuedDateFromQuery !== '', issuedDateToQuery !== ''].filter(Boolean).length
-        : activeTab === 'all'
-            ? [allTypeQuery !== '', allDateFromQuery !== '', allDateToQuery !== ''].filter(Boolean).length
-            : [statusQuery !== '', certificateQuery !== '', dateFromQuery !== '', dateToQuery !== ''].filter(Boolean).length;
+    const activeFilterCount =
+        activeTab === 'issued'
+            ? [
+                  issuedTypeQuery !== '',
+                  issuedDateFromQuery !== '',
+                  issuedDateToQuery !== '',
+              ].filter(Boolean).length
+            : activeTab === 'all'
+              ? [
+                    allTypeQuery !== '',
+                    allDateFromQuery !== '',
+                    allDateToQuery !== '',
+                ].filter(Boolean).length
+              : [
+                    statusQuery !== '',
+                    certificateQuery !== '',
+                    dateFromQuery !== '',
+                    dateToQuery !== '',
+                ].filter(Boolean).length;
 
-    const hasFilters = activeTab === 'issued'
-        ? issuedSearchQuery.trim() !== '' || activeFilterCount > 0
-        : activeTab === 'all'
-            ? allSearchQuery.trim() !== '' || activeFilterCount > 0
-            : searchQuery.trim() !== '' || activeFilterCount > 0;
+    const hasFilters =
+        activeTab === 'issued'
+            ? issuedSearchQuery.trim() !== '' || activeFilterCount > 0
+            : activeTab === 'all'
+              ? allSearchQuery.trim() !== '' || activeFilterCount > 0
+              : searchQuery.trim() !== '' || activeFilterCount > 0;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalMode, setModalMode] = useState<'manual' | 'qr'>('manual');
+    const [requestDetailsOpen, setRequestDetailsOpen] = useState(false);
+    const [requestDetails, setRequestDetails] = useState<RequestDetails | null>(
+        null,
+    );
+    const [requestDetailsLoading, setRequestDetailsLoading] = useState(false);
+    const [requestDetailsError, setRequestDetailsError] = useState<
+        string | null
+    >(null);
+    const [detailDraft, setDetailDraft] = useState<Record<string, string>>({});
+    const [statusDraft, setStatusDraft] = useState('');
+    const [adminNoteDraft, setAdminNoteDraft] = useState('');
+    const [savingDetails, setSavingDetails] = useState(false);
+    const [savingStatus, setSavingStatus] = useState(false);
+    const [requestActionError, setRequestActionError] = useState<string | null>(
+        null,
+    );
+    const [requestActionSuccess, setRequestActionSuccess] = useState<
+        string | null
+    >(null);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [showReleaseConfirm, setShowReleaseConfirm] = useState(false);
+    const [modalMode, setModalMode] = useState<'manual' | 'qr'>('qr');
     const [scanLoading, setScanLoading] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
-    const [residentSource, setResidentSource] = useState<'none' | 'qr' | 'manual'>('none');
-    const [lastScannedToken, setLastScannedToken] = useState<string | null>(null);
+    const [residentSource, setResidentSource] = useState<
+        'none' | 'qr' | 'manual'
+    >('none');
+    const [lastScannedToken, setLastScannedToken] = useState<string | null>(
+        null,
+    );
     const [formStep, setFormStep] = useState<1 | 2>(1);
     // Advances only on QR workflow events, so the scan field can be focused
     // again after a scan without refocusing on ordinary renders.
     const [qrFocusSignal, setQrFocusSignal] = useState(0);
 
-    const defaultCertificateType = certificateTypes.find((type) => type.available)?.value ?? '';
+    const openRequestDetails = async (id: number) => {
+        setRequestDetailsOpen(true);
+        setRequestDetails(null);
+        setRequestDetailsError(null);
+        setRequestDetailsLoading(true);
+        setRequestActionError(null);
+        setRequestActionSuccess(null);
+
+        try {
+            const response = await axios.get<RequestDetails>(
+                `/clerk/certificates/requests/${id}`,
+            );
+            setRequestDetails(response.data);
+            setDetailDraft(response.data.detail_values);
+            setStatusDraft(response.data.status);
+            setAdminNoteDraft(response.data.admin_note ?? '');
+        } catch {
+            setRequestDetailsError('Unable to load request details right now.');
+        } finally {
+            setRequestDetailsLoading(false);
+        }
+    };
+
+    const closeRequestDetails = () => {
+        setRequestDetailsOpen(false);
+        setRequestDetails(null);
+        setRequestDetailsError(null);
+        setRequestDetailsLoading(false);
+        setDetailDraft({});
+        setStatusDraft('');
+        setAdminNoteDraft('');
+        setRequestActionError(null);
+        setRequestActionSuccess(null);
+    };
+
+    const saveRequestDetails = async () => {
+        if (!requestDetails || savingDetails) return;
+
+        setSavingDetails(true);
+        setRequestActionError(null);
+        setRequestActionSuccess(null);
+
+        try {
+            const response = await axios.patch<{
+                message: string;
+                details: RequestDetailRow[];
+                original_details: RequestDetailRow[];
+                detail_values: Record<string, string>;
+                notes: string | null;
+                original_notes: string | null;
+            }>(
+                `/clerk/certificates/requests/${requestDetails.id}`,
+                { details: detailDraft },
+            );
+
+            setRequestDetails((current) =>
+                current
+                    ? {
+                          ...current,
+                          details: response.data.details,
+                          original_details: response.data.original_details,
+                          detail_values: response.data.detail_values,
+                          notes: response.data.notes,
+                          original_notes: response.data.original_notes,
+                      }
+                    : current,
+            );
+            setDetailDraft(response.data.detail_values);
+            setRequestActionSuccess(response.data.message);
+        } catch (error) {
+            setRequestActionError(
+                requestErrorMessage(
+                    error,
+                    'Unable to save the reviewed details right now.',
+                ),
+            );
+        } finally {
+            setSavingDetails(false);
+        }
+    };
+
+    const saveRequestStatus = async () => {
+        if (!requestDetails || savingStatus || statusDraft === '') return;
+
+        setSavingStatus(true);
+        setRequestActionError(null);
+        setRequestActionSuccess(null);
+
+        try {
+            const response = await axios.patch<{
+                message: string;
+                status: string;
+                allowed_statuses: string[];
+                admin_note: string | null;
+            }>(
+                `/clerk/certificates/requests/${requestDetails.id}/status`,
+                {
+                    status: statusDraft,
+                    admin_note: adminNoteDraft.trim() || null,
+                },
+            );
+
+            setRequestDetails((current) =>
+                current
+                    ? {
+                          ...current,
+                          status: response.data.status,
+                          allowed_statuses: response.data.allowed_statuses,
+                      }
+                    : current,
+            );
+            setStatusDraft(response.data.status);
+            setAdminNoteDraft(response.data.admin_note ?? '');
+            setRequestActionSuccess(response.data.message);
+            router.reload({ only: ['requests'] });
+        } catch (error) {
+            setRequestActionError(
+                requestErrorMessage(
+                    error,
+                    'Unable to update the request status right now.',
+                ),
+            );
+        } finally {
+            setSavingStatus(false);
+        }
+    };
+
+    const requestDetailsWereRevised =
+        requestDetails !== null &&
+        JSON.stringify(requestDetails.original_details) !==
+            JSON.stringify(requestDetails.details);
+
+    const defaultCertificateType =
+        certificateTypes.find((type) => type.available)?.value ?? '';
     const defaultFee = CERTIFICATE_FEES[defaultCertificateType] ?? '0';
 
     const { data, setData, processing, reset } = useForm({
-        control_no: `CTRL-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        certificate_request_id: '',
+        control_no: createControlNumber(),
         resident_id: '',
         resident_name: '',
         purok: '',
@@ -798,24 +1100,191 @@ export default function Dashboard({
         setProfileError(null);
 
         try {
-            const response = await axios.get(`/clerk/certificates/resident-details/${residentId}`);
+            const response = await axios.get(
+                `/clerk/certificates/resident-details/${residentId}`,
+            );
             const profile = response.data?.resident;
 
             if (!profile) {
-                setProfileError('The resident record could not be loaded. Please enter the birth date, sex, and purok manually.');
+                setProfileError(
+                    'The resident record could not be loaded. Please enter the birth date, sex, and purok manually.',
+                );
                 return;
             }
 
-            setData(current => ({
+            setData((current) => ({
                 ...current,
                 date_of_birth: profile.birthdate || current.date_of_birth,
                 sex: normalizeSexValue(profile.sex) || current.sex,
                 purok: profile.purok || current.purok,
             }));
         } catch {
-            setProfileError('The resident record could not be loaded. Please enter the birth date, sex, and purok manually.');
+            setProfileError(
+                'The resident record could not be loaded. Please enter the birth date, sex, and purok manually.',
+            );
         } finally {
             setProfileLoading(false);
+        }
+    };
+
+    const handleStartProcessing = async () => {
+        if (!requestDetails || actionLoading) return;
+        setActionLoading(true);
+        setRequestActionError(null);
+        setRequestActionSuccess(null);
+
+        try {
+            const response = await axios.patch<{
+                message: string;
+                status: string;
+                allowed_statuses: string[];
+                admin_note: string | null;
+            }>(`/clerk/certificates/requests/${requestDetails.id}/status`, {
+                status: 'Processing',
+                admin_note: adminNoteDraft.trim() || null,
+            });
+
+            setRequestDetails((current) =>
+                current
+                    ? {
+                          ...current,
+                          status: response.data.status,
+                          allowed_statuses: response.data.allowed_statuses,
+                      }
+                    : current,
+            );
+            setStatusDraft(response.data.status);
+            setRequestActionSuccess('Request is now in processing.');
+            router.reload({ only: ['requests'] });
+        } catch (error) {
+            setRequestActionError(
+                requestErrorMessage(error, 'Unable to start processing.'),
+            );
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleInitiateIssuance = (req: RequestDetails) => {
+        const certType = req.certificate_type || defaultCertificateType;
+        const fee = req.fee || CERTIFICATE_FEES[certType] || '0';
+
+        setData((current) => ({
+            ...current,
+            certificate_request_id: String(req.id),
+            certificate_type: certType,
+            resident_id: req.resident.id ? String(req.resident.id) : '',
+            resident_name: req.resident.name,
+            purok: req.resident.purok || current.purok,
+            fee: fee,
+            purpose: req.purpose || current.purpose,
+            business_name: req.business_name || current.business_name,
+            business_address: req.business_address || current.business_address,
+            franchise_no: req.detail_values?.franchise_no || current.franchise_no,
+            school_institution: req.detail_values?.school_institution || current.school_institution,
+            father_name: req.detail_values?.father_name || current.father_name,
+            father_occupation: req.detail_values?.father_occupation || current.father_occupation,
+            father_monthly_income: req.detail_values?.father_monthly_income || current.father_monthly_income,
+            mother_name: req.detail_values?.mother_name || current.mother_name,
+            mother_occupation: req.detail_values?.mother_occupation || current.mother_occupation,
+            mother_monthly_income: req.detail_values?.mother_monthly_income || current.mother_monthly_income,
+            date_of_birth: req.detail_values?.date_of_birth || current.date_of_birth,
+            sex: req.detail_values?.sex || current.sex,
+            nationality: req.detail_values?.nationality || current.nationality,
+            birth_place: req.detail_values?.birth_place || current.birth_place,
+            mother_maiden_name: req.detail_values?.mother_maiden_name || current.mother_maiden_name,
+            parents_marriage_details: req.detail_values?.parents_marriage_details || current.parents_marriage_details,
+            residency_start_year: req.detail_values?.residency_start_year || current.residency_start_year,
+            partner_full_name: req.detail_values?.partner_full_name || current.partner_full_name,
+            partner_age: req.detail_values?.partner_age || current.partner_age,
+            years_living_together: req.detail_values?.years_living_together || current.years_living_together,
+            years_of_residency: req.detail_values?.years_of_residency || current.years_of_residency,
+        }));
+
+        if (req.resident.id) {
+            void applyResidentProfile(String(req.resident.id));
+        }
+
+        setRequestDetailsOpen(false);
+        setFormStep(1);
+        setModalMode('qr');
+        setIsModalOpen(true);
+    };
+
+    const handleConfirmPayment = async () => {
+        if (!requestDetails || actionLoading) return;
+        setActionLoading(true);
+        setRequestActionError(null);
+        setRequestActionSuccess(null);
+
+        try {
+            const response = await axios.post<{
+                message: string;
+                status: string;
+                allowed_statuses: string[];
+                admin_note: string | null;
+            }>(`/clerk/certificates/requests/${requestDetails.id}/confirm-payment`, {
+                confirm_payment: true,
+                admin_note: adminNoteDraft.trim() || null,
+            });
+
+            setRequestDetails((current) =>
+                current
+                    ? {
+                          ...current,
+                          status: response.data.status,
+                          allowed_statuses: response.data.allowed_statuses,
+                      }
+                    : current,
+            );
+            setStatusDraft(response.data.status);
+            setRequestActionSuccess(response.data.message);
+            router.reload({ only: ['requests'] });
+        } catch (error) {
+            setRequestActionError(
+                requestErrorMessage(error, 'Unable to confirm payment.'),
+            );
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleConfirmRelease = async () => {
+        if (!requestDetails || actionLoading) return;
+        setActionLoading(true);
+        setRequestActionError(null);
+        setRequestActionSuccess(null);
+
+        try {
+            const response = await axios.post<{
+                message: string;
+                status: string;
+                allowed_statuses: string[];
+                admin_note: string | null;
+            }>(`/clerk/certificates/requests/${requestDetails.id}/release`, {
+                confirm_handover: true,
+                admin_note: adminNoteDraft.trim() || null,
+            });
+
+            setRequestDetails((current) =>
+                current
+                    ? {
+                          ...current,
+                          status: response.data.status,
+                          allowed_statuses: response.data.allowed_statuses,
+                      }
+                    : current,
+            );
+            setStatusDraft(response.data.status);
+            setShowReleaseConfirm(false);
+            setRequestActionSuccess(response.data.message);
+            router.reload({ only: ['requests'] });
+        } catch (error) {
+            setRequestActionError(
+                requestErrorMessage(error, 'Unable to release certificate.'),
+            );
+        } finally {
+            setActionLoading(false);
         }
     };
 
@@ -824,7 +1293,7 @@ export default function Dashboard({
         const marriage = type === MARRIAGE_TYPE;
         const residency = type === RESIDENCY_TYPE;
 
-        setData(current => ({
+        setData((current) => ({
             ...current,
             certificate_type: type,
             fee: CERTIFICATE_FEES[type] || '0',
@@ -859,17 +1328,19 @@ export default function Dashboard({
         // The Marriage Cohabitation certificate reads the resident's age and
         // purok from the same profile. The Residency certificate names the
         // resident and reads the purok from the same profile.
-        if ((delayedPsa || marriage || residency) && data.resident_id) {
+        if (data.resident_id) {
             void applyResidentProfile(data.resident_id);
         }
     };
 
-    const handleSignatoryChange = (selectedName: string) => {
-        const signatory = SIGNATORIES.find(sig => sig.name === selectedName);
-        setData(data => ({
+    const handleSignatoryChange = (selectedValue: string) => {
+        const signatory = signatories.find(
+            (sig) => signatoryOptionValue(sig.name, sig.title) === selectedValue,
+        );
+        setData((data) => ({
             ...data,
-            signatory_name: selectedName,
-            signatory_title: signatory ? signatory.title : ''
+            signatory_name: signatory?.name ?? '',
+            signatory_title: signatory ? signatory.title : '',
         }));
     };
 
@@ -914,7 +1385,9 @@ export default function Dashboard({
             return;
         }
         if (lastScannedToken !== null && lastScannedToken === scannedCode) {
-            setScanError('This QR code was already scanned. Scan a different code or switch to manual entry.');
+            setScanError(
+                'This QR code was already scanned. Scan a different code or switch to manual entry.',
+            );
             setQrFocusSignal((signal) => signal + 1);
             return;
         }
@@ -931,7 +1404,9 @@ export default function Dashboard({
 
             if (!resident?.id || !resident?.full_name) {
                 clearResidentIdentity();
-                setScanError('Resident not found. Please scan the correct resident QR code.');
+                setScanError(
+                    'Resident not found. Please scan the correct resident QR code.',
+                );
                 return;
             }
 
@@ -947,7 +1422,7 @@ export default function Dashboard({
             // birth, sex, and purok. The Marriage Cohabitation certificate
             // reads the resident's age and purok from the same profile. The
             // Residency certificate reads the resident's purok from it.
-            if (data.certificate_type === DELAYED_PSA_TYPE || data.certificate_type === MARRIAGE_TYPE || data.certificate_type === RESIDENCY_TYPE) {
+            if (data.certificate_type !== '') {
                 void applyResidentProfile(String(resident.id));
             }
         } catch (error) {
@@ -957,12 +1432,18 @@ export default function Dashboard({
             // scanned value is not a valid, resolvable resident QR. Anything else
             // (network drop, 5xx, timeout) is a transient/server problem and must
             // not be mislabelled as an invalid QR code.
-            const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+            const status = axios.isAxiosError(error)
+                ? error.response?.status
+                : undefined;
 
             if (status === 400 || status === 404) {
-                setScanError('Invalid QR code. Please scan a valid resident QR code.');
+                setScanError(
+                    'Invalid QR code. Please scan a valid resident QR code.',
+                );
             } else {
-                setScanError('Unable to verify the QR code right now. Please check your connection and try again.');
+                setScanError(
+                    'Unable to verify the QR code right now. Please check your connection and try again.',
+                );
             }
         } finally {
             setScanLoading(false);
@@ -987,7 +1468,7 @@ export default function Dashboard({
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '/clerk/generate-certificate';
-        
+
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
             const csrfInput = document.createElement('input');
@@ -1010,7 +1491,10 @@ export default function Dashboard({
         const confirmation = document.createElement('input');
         confirmation.type = 'hidden';
         confirmation.name = 'details_confirmed';
-        confirmation.value = data.certificate_type === DELAYED_PSA_TYPE && detailsConfirmed ? '1' : '';
+        confirmation.value =
+            data.certificate_type === DELAYED_PSA_TYPE && detailsConfirmed
+                ? '1'
+                : '';
         form.appendChild(confirmation);
 
         document.body.appendChild(form);
@@ -1024,6 +1508,7 @@ export default function Dashboard({
         setDetailsConfirmed(false);
         setProfileError(null);
         reset();
+        setData('control_no', createControlNumber());
     };
 
     // Every reviewed detail must be present before the certificate may be
@@ -1044,7 +1529,9 @@ export default function Dashboard({
     // A linked resident is required: the server reads the resident name, age,
     // and purok from the resident record and never trusts the form.
     const marriagePartnerAge = parseWholeNumber(data.partner_age);
-    const marriageYearsLivingTogether = parseWholeNumber(data.years_living_together);
+    const marriageYearsLivingTogether = parseWholeNumber(
+        data.years_living_together,
+    );
 
     const marriageDetailsComplete =
         data.resident_id.trim() !== '' &&
@@ -1069,174 +1556,383 @@ export default function Dashboard({
         residencyYears <= RESIDENCY_YEARS_MAX;
 
     const canIssueCertificate = isDelayedPsa
-        ? (delayedPsaDetailsComplete && detailsConfirmed)
-        : (isMarriage ? marriageDetailsComplete : (isResidency ? residencyDetailsComplete : true));
+        ? delayedPsaDetailsComplete && detailsConfirmed
+        : isMarriage
+          ? marriageDetailsComplete
+          : isResidency
+            ? residencyDetailsComplete
+            : true;
 
     const renderDelayedPsaFields = () => (
-        <div className="p-4 bg-sky-50 border border-sky-100 rounded-lg space-y-3">
-            <h4 className="text-xs font-bold text-sky-800 uppercase">Delayed PSA Registration Details</h4>
+        <div className="space-y-3 rounded-lg border border-sky-100 bg-sky-50 p-4">
+            <h4 className="text-xs font-bold text-sky-800 uppercase">
+                Delayed PSA Registration Details
+            </h4>
 
             {profileLoading && (
-                <p className="text-xs text-sky-800">Loading the linked resident's details…</p>
+                <p className="text-xs text-sky-800">
+                    Loading the linked resident's details…
+                </p>
             )}
 
             {profileError && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" role="alert">
+                <div
+                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                    role="alert"
+                >
                     {profileError}
                 </div>
             )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Date of Birth</label>
-                    <input type="date" value={data.date_of_birth} onChange={e => setData('date_of_birth', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Date of Birth
+                    </label>
+                    <input
+                        type="date"
+                        value={data.date_of_birth}
+                        onChange={(e) =>
+                            setData('date_of_birth', e.target.value)
+                        }
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Sex</label>
-                    <select value={data.sex} onChange={e => setData('sex', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm bg-white">
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Sex
+                    </label>
+                    <select
+                        value={data.sex}
+                        onChange={(e) => setData('sex', e.target.value)}
+                        required
+                        className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                    >
                         <option value="">Select Sex...</option>
-                        {SEX_OPTIONS.map(option => (
-                            <option key={option} value={option}>{option}</option>
+                        {SEX_OPTIONS.map((option) => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
                         ))}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Nationality</label>
-                    <input type="text" value={data.nationality} onChange={e => setData('nationality', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Nationality
+                    </label>
+                    <input
+                        type="text"
+                        value={data.nationality}
+                        onChange={(e) => setData('nationality', e.target.value)}
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Birth Place</label>
-                    <input type="text" value={data.birth_place} onChange={e => setData('birth_place', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Birth Place
+                    </label>
+                    <input
+                        type="text"
+                        value={data.birth_place}
+                        onChange={(e) => setData('birth_place', e.target.value)}
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Purok</label>
-                    <input type="text" value={data.purok} onChange={e => setData('purok', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Purok
+                    </label>
+                    <input
+                        type="text"
+                        value={data.purok}
+                        onChange={(e) => setData('purok', e.target.value)}
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Residency Start Year</label>
-                    <input type="number" min="1583" max={new Date().getFullYear()} step="1" inputMode="numeric" value={data.residency_start_year} onChange={e => setData('residency_start_year', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Residency Start Year
+                    </label>
+                    <input
+                        type="number"
+                        min="1583"
+                        max={new Date().getFullYear()}
+                        step="1"
+                        inputMode="numeric"
+                        value={data.residency_start_year}
+                        onChange={(e) =>
+                            setData('residency_start_year', e.target.value)
+                        }
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
                 <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Full Name of the Father</label>
-                    <input type="text" value={data.father_name} onChange={e => setData('father_name', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Full Name of the Father
+                    </label>
+                    <input
+                        type="text"
+                        value={data.father_name}
+                        onChange={(e) => setData('father_name', e.target.value)}
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
                 <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Maiden Name of the Mother</label>
-                    <input type="text" value={data.mother_maiden_name} onChange={e => setData('mother_maiden_name', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Maiden Name of the Mother
+                    </label>
+                    <input
+                        type="text"
+                        value={data.mother_maiden_name}
+                        onChange={(e) =>
+                            setData('mother_maiden_name', e.target.value)
+                        }
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
                 <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Date and Place of Marriage of Parents</label>
-                    <input type="text" value={data.parents_marriage_details} onChange={e => setData('parents_marriage_details', e.target.value)} required placeholder="e.g. 12 June 1985, Puerto Princesa City" className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Date and Place of Marriage of Parents
+                    </label>
+                    <input
+                        type="text"
+                        value={data.parents_marriage_details}
+                        onChange={(e) =>
+                            setData('parents_marriage_details', e.target.value)
+                        }
+                        required
+                        placeholder="e.g. 12 June 1985, Puerto Princesa City"
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
             </div>
 
             <label className="flex items-start gap-2 text-xs text-gray-700">
-                <input type="checkbox" checked={detailsConfirmed} onChange={e => setDetailsConfirmed(e.target.checked)} className="mt-0.5" />
-                <span>I have reviewed the resident details above and confirm that they are correct.</span>
+                <input
+                    type="checkbox"
+                    checked={detailsConfirmed}
+                    onChange={(e) => setDetailsConfirmed(e.target.checked)}
+                    className="mt-0.5"
+                />
+                <span>
+                    I have reviewed the resident details above and confirm that
+                    they are correct.
+                </span>
             </label>
         </div>
     );
 
     const renderMarriageFields = () => (
-        <div className="p-4 bg-rose-50 border border-rose-100 rounded-lg space-y-3">
-            <h4 className="text-xs font-bold text-rose-800 uppercase">Partner Details</h4>
+        <div className="space-y-3 rounded-lg border border-rose-100 bg-rose-50 p-4">
+            <h4 className="text-xs font-bold text-rose-800 uppercase">
+                Partner Details
+            </h4>
 
             {profileLoading && (
-                <p className="text-xs text-rose-800">Loading the linked resident's details…</p>
+                <p className="text-xs text-rose-800">
+                    Loading the linked resident's details…
+                </p>
             )}
 
             {profileError && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" role="alert">
-                    The resident record could not be loaded. The age and purok on this certificate come from the resident record, so the certificate can only be issued against a linked resident.
+                <div
+                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                    role="alert"
+                >
+                    The resident record could not be loaded. The age and purok
+                    on this certificate come from the resident record, so the
+                    certificate can only be issued against a linked resident.
                 </div>
             )}
 
             {data.resident_id.trim() === '' && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" role="alert">
-                    This certificate names the resident from the resident record. Scan the resident's QR code to link the resident before issuing it.
+                <div
+                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                    role="alert"
+                >
+                    This certificate names the resident from the resident
+                    record. Scan the resident's QR code to link the resident
+                    before issuing it.
                 </div>
             )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Partner Full Name</label>
-                    <input type="text" value={data.partner_full_name} onChange={e => setData('partner_full_name', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Partner Full Name
+                    </label>
+                    <input
+                        type="text"
+                        value={data.partner_full_name}
+                        onChange={(e) =>
+                            setData('partner_full_name', e.target.value)
+                        }
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Partner Age ({MARRIAGE_PARTNER_AGE_MIN}-{MARRIAGE_PARTNER_AGE_MAX})</label>
-                    <input type="number" min={MARRIAGE_PARTNER_AGE_MIN} max={MARRIAGE_PARTNER_AGE_MAX} step="1" inputMode="numeric" value={data.partner_age} onChange={e => setData('partner_age', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Partner Age ({MARRIAGE_PARTNER_AGE_MIN}-
+                        {MARRIAGE_PARTNER_AGE_MAX})
+                    </label>
+                    <input
+                        type="number"
+                        min={MARRIAGE_PARTNER_AGE_MIN}
+                        max={MARRIAGE_PARTNER_AGE_MAX}
+                        step="1"
+                        inputMode="numeric"
+                        value={data.partner_age}
+                        onChange={(e) => setData('partner_age', e.target.value)}
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Years Living Together ({MARRIAGE_YEARS_MIN}-{MARRIAGE_YEARS_MAX})</label>
-                    <input type="number" min={MARRIAGE_YEARS_MIN} max={MARRIAGE_YEARS_MAX} step="1" inputMode="numeric" value={data.years_living_together} onChange={e => setData('years_living_together', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Years Living Together ({MARRIAGE_YEARS_MIN}-
+                        {MARRIAGE_YEARS_MAX})
+                    </label>
+                    <input
+                        type="number"
+                        min={MARRIAGE_YEARS_MIN}
+                        max={MARRIAGE_YEARS_MAX}
+                        step="1"
+                        inputMode="numeric"
+                        value={data.years_living_together}
+                        onChange={(e) =>
+                            setData('years_living_together', e.target.value)
+                        }
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
             </div>
         </div>
     );
 
     const renderResidencyFields = () => (
-        <div className="p-4 bg-teal-50 border border-teal-100 rounded-lg space-y-3">
-            <h4 className="text-xs font-bold text-teal-800 uppercase">Residency Details</h4>
+        <div className="space-y-3 rounded-lg border border-teal-100 bg-teal-50 p-4">
+            <h4 className="text-xs font-bold text-teal-800 uppercase">
+                Residency Details
+            </h4>
 
             {profileLoading && (
-                <p className="text-xs text-teal-800">Loading the linked resident's details…</p>
+                <p className="text-xs text-teal-800">
+                    Loading the linked resident's details…
+                </p>
             )}
 
             {profileError && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" role="alert">
-                    The resident record could not be loaded. The name and purok on this certificate come from the resident record, so the certificate can only be issued against a linked resident.
+                <div
+                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                    role="alert"
+                >
+                    The resident record could not be loaded. The name and purok
+                    on this certificate come from the resident record, so the
+                    certificate can only be issued against a linked resident.
                 </div>
             )}
 
             {data.resident_id.trim() === '' && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" role="alert">
-                    This certificate names the resident from the resident record. Scan the resident's QR code to link the resident before issuing it.
+                <div
+                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                    role="alert"
+                >
+                    This certificate names the resident from the resident
+                    record. Scan the resident's QR code to link the resident
+                    before issuing it.
                 </div>
             )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Years of Residency ({RESIDENCY_YEARS_MIN}-{RESIDENCY_YEARS_MAX})</label>
-                    <input type="number" min={RESIDENCY_YEARS_MIN} max={RESIDENCY_YEARS_MAX} step="1" inputMode="numeric" value={data.years_of_residency} onChange={e => setData('years_of_residency', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                        Years of Residency ({RESIDENCY_YEARS_MIN}-
+                        {RESIDENCY_YEARS_MAX})
+                    </label>
+                    <input
+                        type="number"
+                        min={RESIDENCY_YEARS_MIN}
+                        max={RESIDENCY_YEARS_MAX}
+                        step="1"
+                        inputMode="numeric"
+                        value={data.years_of_residency}
+                        onChange={(e) =>
+                            setData('years_of_residency', e.target.value)
+                        }
+                        required
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                    />
                 </div>
             </div>
 
             <p className="text-xs text-gray-600">
-                The name and purok are taken from the linked resident record. The number of years is recorded on the certificate only.
+                The name and purok are taken from the linked resident record.
+                The number of years is recorded on the certificate only.
             </p>
         </div>
     );
 
     const renderDocumentPreview = () => {
         if (data.certificate_type === DELAYED_PSA_TYPE) {
-            const residentName = data.resident_name.toUpperCase() || '___________________';
+            const residentName =
+                data.resident_name.toUpperCase() || '___________________';
             const purok = data.purok.toUpperCase() || '__________';
-            const dateOfBirth = formatLongDate(data.date_of_birth) || '__________';
+            const dateOfBirth =
+                formatLongDate(data.date_of_birth) || '__________';
             const sex = data.sex || '__________';
             const nationality = data.nationality.toUpperCase() || '__________';
             const birthPlace = data.birth_place.toUpperCase() || '__________';
-            const fatherName = data.father_name.toUpperCase() || '___________________';
-            const motherName = data.mother_maiden_name.toUpperCase() || '___________________';
-            const marriageDetails = data.parents_marriage_details.toUpperCase() || '___________________';
+            const fatherName =
+                data.father_name.toUpperCase() || '___________________';
+            const motherName =
+                data.mother_maiden_name.toUpperCase() || '___________________';
+            const marriageDetails =
+                data.parents_marriage_details.toUpperCase() ||
+                '___________________';
             const residencyYear = data.residency_start_year.trim();
-            const residencyPeriod = residencyYear !== '' ? `${residencyYear} up to present` : '__________';
+            const residencyPeriod =
+                residencyYear !== ''
+                    ? `${residencyYear} up to present`
+                    : '__________';
 
             return (
                 <div className="space-y-4 text-left">
-                    <p className="text-center text-xs uppercase tracking-wide">Republic of the Philippines City of Puerto Princesa BARANGAY SAN JOSE</p>
-                    <p className="text-center text-xs uppercase tracking-wide">Office of the Punong Barangay</p>
-                    <p className="text-center text-sm font-bold tracking-[0.2em]">C E R T I F I C A T I O N</p>
-
-                    <p className="text-right font-mono text-xs">{data.control_no}</p>
+                    <p className="text-center text-xs tracking-wide uppercase">
+                        Republic of the Philippines City of Puerto Princesa
+                        BARANGAY SAN JOSE
+                    </p>
+                    <p className="text-center text-xs tracking-wide uppercase">
+                        Office of the Punong Barangay
+                    </p>
+                    <p className="text-center text-sm font-bold tracking-[0.2em]">
+                        C E R T I F I C A T I O N
+                    </p>
 
                     <p>TO WHOM IT MAY CONCERN;</p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        This is to certify that the person whose name, photo, signature/thumbmark appears herein is bona fide resident of {purok} , Barangay San Jose, Puerto Princesa City, Palawan.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This is to certify that the person whose name, photo,
+                        signature/thumbmark appears herein is bona fide resident
+                        of {purok} , Barangay San Jose, Puerto Princesa City,
+                        Palawan.
                     </p>
 
                     <div className="mt-4 space-y-1">
-                        <p>NAME: <strong className="underline">{residentName}</strong></p>
+                        <p>
+                            NAME:{' '}
+                            <strong className="underline">
+                                {residentName}
+                            </strong>
+                        </p>
                         <p>SEX: {sex}</p>
                         <p>NATIONALITY: {nationality}</p>
                         <p>BIRTHDAY: {dateOfBirth}</p>
@@ -1244,110 +1940,186 @@ export default function Dashboard({
                         <p>BARANGAY ADDRESS: PUROK {purok}, BGY.SAN JOSE PPC</p>
                     </div>
 
-                    <p className="mt-4">FULL NAME OF THE FATHER; <strong>{fatherName}</strong></p>
-                    <p className="mt-2">MAIDEN NAME OF THE MOTHER: <strong>{motherName}</strong></p>
-                    <p className="mt-2">DATE AND PLACE OF MARRIAGE OF PARENTS: {marriageDetails}</p>
-
-                    <p className="text-justify leading-relaxed mt-4">
-                        This is to certify further that the person named above has been a resident of this Barangay from {residencyPeriod}.
+                    <p className="mt-4">
+                        FULL NAME OF THE FATHER; <strong>{fatherName}</strong>
+                    </p>
+                    <p className="mt-2">
+                        MAIDEN NAME OF THE MOTHER: <strong>{motherName}</strong>
+                    </p>
+                    <p className="mt-2">
+                        DATE AND PLACE OF MARRIAGE OF PARENTS: {marriageDetails}
                     </p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        This certification is issued upon the request of the above-named person for the purpose of
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This is to certify further that the person named above
+                        has been a resident of this Barangay from{' '}
+                        {residencyPeriod}.
                     </p>
-                    <p className="text-center font-bold">{DELAYED_PSA_PURPOSE}.</p>
+
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This certification is issued upon the request of the
+                        above-named person for the purpose of
+                    </p>
+                    <p className="text-center font-bold">
+                        {DELAYED_PSA_PURPOSE}.
+                    </p>
 
                     <div className="mt-8">
-                        <p className="font-bold text-sm">{residentName}</p>
-                        <p className="text-xs italic">Name and signature/thumbmark of the resident</p>
+                        <p className="text-sm font-bold">{residentName}</p>
+                        <p className="text-xs italic">
+                            Name and signature/thumbmark of the resident
+                        </p>
                     </div>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        Issued on this {formatIssueDate()} at Barangay Hall, Barangay San Jose, City of Puerto Princesa.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        Issued on this {formatIssueDate()} at Barangay Hall,
+                        Barangay San Jose, City of Puerto Princesa.
                     </p>
 
                     <div className="mt-8 text-right">
-                        <p className="font-bold text-sm">HON. JENNIFER CALINGAO TRINIDAD</p>
+                        <p className="text-sm font-bold">
+                            HON. JENNIFER CALINGAO TRINIDAD
+                        </p>
                         <p className="text-xs italic">Punong Barangay</p>
                     </div>
 
                     <div className="mt-6">
-                        <p className="text-sm">By the Authority of the Punong Barangay,</p>
+                        <p className="text-sm">
+                            By the Authority of the Punong Barangay,
+                        </p>
                         <div className="mt-6 text-right">
-                            <p className="font-bold text-sm">KGD. ARNOLD E. IGNACIO</p>
+                            <p className="text-sm font-bold">
+                            {data.signatory_name || '___________________'}
+                            </p>
                             <p className="text-xs italic">Officer on duty</p>
                         </div>
                     </div>
 
-                    <p className="mt-6 text-xs italic">Note: This Certification is valid only for Three (3) Months from the day this was issued.</p>
-                    <p className="text-xs italic">Do not accept if a photocopy of this Certification is not a Certified true Copy, with erasures or Alterations.</p>
+                    <p className="mt-6 text-xs italic">
+                        Note: This Certification is valid only for Three (3)
+                        Months from the day this was issued.
+                    </p>
+                    <p className="text-xs italic">
+                        Do not accept if a photocopy of this Certification is
+                        not a Certified true Copy, with erasures or Alterations.
+                    </p>
                 </div>
             );
         }
 
         if (data.certificate_type === MARRIAGE_TYPE) {
-            const residentName = data.resident_name.trim().toUpperCase() || '___________________';
+            const residentName =
+                data.resident_name.trim().toUpperCase() ||
+                '___________________';
             const residentAge = calculateAge(data.date_of_birth);
-            const partnerName = data.partner_full_name.trim().toUpperCase() || '___________________';
+            const partnerName =
+                data.partner_full_name.trim().toUpperCase() ||
+                '___________________';
             const partnerAge = parseWholeNumber(data.partner_age);
             const purokName = data.purok.trim().toUpperCase();
-            const purok = purokName !== '' ? `PUROK ${purokName}` : '__________';
-            const yearsLivingTogether = parseWholeNumber(data.years_living_together);
+            const purok =
+                purokName !== '' ? `PUROK ${purokName}` : '__________';
+            const yearsLivingTogether = parseWholeNumber(
+                data.years_living_together,
+            );
 
             return (
                 <div className="space-y-4 text-left">
-                    <p className="text-center text-xs uppercase tracking-wide">Republic of the Philippines City of Puerto Princesa BARANGAY SAN JOSE</p>
-                    <p className="text-center text-xs uppercase tracking-wide">Office of the Punong Barangay</p>
-                    <p className="text-center text-sm font-bold tracking-[0.2em]">C E R T I F I C A T I O N</p>
+                    <p className="text-center text-xs tracking-wide uppercase">
+                        Republic of the Philippines City of Puerto Princesa
+                        BARANGAY SAN JOSE
+                    </p>
+                    <p className="text-center text-xs tracking-wide uppercase">
+                        Office of the Punong Barangay
+                    </p>
+                    <p className="text-center text-sm font-bold tracking-[0.2em]">
+                        C E R T I F I C A T I O N
+                    </p>
 
                     <p>To Whom It May Concern:</p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        This is to certify that <strong className="underline">{residentName}</strong>, {residentAge !== null ? residentAge : '____'} and <strong className="underline">{partnerName}</strong>, {partnerAge !== null ? partnerAge : '____'}, both resident of {purok}, Barangay San Jose, City of Puerto Princesa.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This is to certify that{' '}
+                        <strong className="underline">{residentName}</strong>,{' '}
+                        {residentAge !== null ? residentAge : '____'} and{' '}
+                        <strong className="underline">{partnerName}</strong>,{' '}
+                        {partnerAge !== null ? partnerAge : '____'}, both
+                        resident of {purok}, Barangay San Jose, City of Puerto
+                        Princesa.
                     </p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        That the above mentioned individuals are living together for {yearsLivingTogether !== null ? yearsLivingTogether : '____'}.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        That the above mentioned individuals are living together
+                        for{' '}
+                        {yearsLivingTogether !== null
+                            ? yearsLivingTogether
+                            : '____'}
+                        .
                     </p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        This certification is being issued upon the request of <strong className="underline">{residentName}</strong> for {MARRIAGE_PURPOSE}.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This certification is being issued upon the request of{' '}
+                        <strong className="underline">{residentName}</strong>{' '}
+                        for {MARRIAGE_PURPOSE}.
                     </p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        Issued on this {formatIssueDate()} at Barangay Hall, Barangay San Jose, City of Puerto Princesa.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        Issued on this {formatIssueDate()} at Barangay Hall,
+                        Barangay San Jose, City of Puerto Princesa.
                     </p>
 
                     <div className="mt-10 text-right">
-                        <p className="font-bold text-sm">HON. JENNIFER CALINGAO TRINIDAD</p>
+                        <p className="text-sm font-bold">
+                            HON. JENNIFER CALINGAO TRINIDAD
+                        </p>
                         <p className="text-xs italic">Punong Barangay</p>
                     </div>
 
                     <div className="mt-6">
-                        <p className="text-sm">By the Authority of the Punong Barangay,</p>
+                        <p className="text-sm">
+                            By the Authority of the Punong Barangay,
+                        </p>
                         <div className="mt-6 text-right">
-                            <p className="font-bold text-sm">KGD. DIVINA T. GALIVO</p>
-                            <p className="text-xs italic">Officer on duty</p>
+                            <p className="text-sm font-bold">
+                            {data.signatory_name || '___________________'}
+                            </p>
+                            <p className="text-xs italic">{data.signatory_title || 'Officer on duty'}</p>
                         </div>
                     </div>
 
-                    <p className="mt-6 text-xs italic">Note: This Certification is valid only for Three (3) Months from the day this was issued.</p>
-                    <p className="text-xs italic">Do not accept if a photocopy of this Certification is not a Certified true Copy, with erasures or Alterations.</p>
+                    <p className="mt-6 text-xs italic">
+                        Note: This Certification is valid only for Three (3)
+                        Months from the day this was issued.
+                    </p>
+                    <p className="text-xs italic">
+                        Do not accept if a photocopy of this Certification is
+                        not a Certified true Copy, with erasures or Alterations.
+                    </p>
                 </div>
             );
         }
 
         if (data.certificate_type === RESIDENCY_TYPE) {
-            const residentName = data.resident_name.trim().toUpperCase() || '___________________';
+            const residentName =
+                data.resident_name.trim().toUpperCase() ||
+                '___________________';
             const purokName = data.purok.trim().toUpperCase();
-            const purok = purokName !== '' ? `PUROK ${purokName}` : '__________';
+            const purok =
+                purokName !== '' ? `PUROK ${purokName}` : '__________';
             const yearsOfResidency = parseWholeNumber(data.years_of_residency);
 
             return (
                 <div className="space-y-4 text-left">
-                    <p className="text-center text-xs uppercase tracking-wide">Republic of the Philippines City of Puerto Princesa BARANGAY SAN JOSE</p>
-                    <p className="text-center text-xs uppercase tracking-wide">Office of the Punong Barangay</p>
-                    <p className="text-center text-sm font-bold tracking-[0.2em]">C E R T I F I C A T I O N</p>
+                    <p className="text-center text-xs tracking-wide uppercase">
+                        Republic of the Philippines City of Puerto Princesa
+                        BARANGAY SAN JOSE
+                    </p>
+                    <p className="text-center text-xs tracking-wide uppercase">
+                        Office of the Punong Barangay
+                    </p>
+                    <p className="text-center text-sm font-bold tracking-[0.2em]">
+                        C E R T I F I C A T I O N
+                    </p>
 
                     <p>This is to certify that</p>
                     <p className="font-bold underline">{residentName}</p>
@@ -1355,38 +2127,57 @@ export default function Dashboard({
                     <p>{purok}</p>
                     <p>Brgy. San Jose, Puerto Princesa City.</p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        That the above-mentioned individual is a law abiding citizen, with good moral character and has not been convicted nor involved in any unlawful activity.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        That the above-mentioned individual is a law abiding
+                        citizen, with good moral character and has not been
+                        convicted nor involved in any unlawful activity.
                     </p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        This further certifies that {residentName}, is a resident of this barangay for {yearsOfResidency !== null ? yearsOfResidency : '____'}
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This further certifies that {residentName}, is a
+                        resident of this barangay for{' '}
+                        {yearsOfResidency !== null ? yearsOfResidency : '____'}
                     </p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        Issued this {formatIssueDate()} at the Barangay Hall of Barangay San Jose, Puerto Princesa City.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        Issued this {formatIssueDate()} at the Barangay Hall of
+                        Barangay San Jose, Puerto Princesa City.
                     </p>
 
-                    <div className="bg-blue-100 p-2 mt-6 border-l-4 border-blue-500 text-left text-xs font-sans">
-                        <span className="font-bold text-blue-800 uppercase">Purpose: </span>
+                    <div className="mt-6 border-l-4 border-blue-500 bg-blue-100 p-2 text-left font-sans text-xs">
+                        <span className="font-bold text-blue-800 uppercase">
+                            Purpose:{' '}
+                        </span>
                         {RESIDENCY_PURPOSE}
                     </div>
 
                     <div className="mt-8 text-right">
-                        <p className="font-bold text-sm">HON. JENNIFER CALINGAO TRINIDAD</p>
+                        <p className="text-sm font-bold">
+                            HON. JENNIFER CALINGAO TRINIDAD
+                        </p>
                         <p className="text-xs italic">Punong Barangay</p>
                     </div>
 
                     <div className="mt-6">
-                        <p className="text-sm">By the Authority of the Punong Barangay,</p>
+                        <p className="text-sm">
+                            By the Authority of the Punong Barangay,
+                        </p>
                         <div className="mt-6 text-right">
-                            <p className="font-bold text-sm">KGD. DIVINA T. GALIVO</p>
-                            <p className="text-xs italic">Officer on duty</p>
+                            <p className="text-sm font-bold">
+                            {data.signatory_name || '___________________'}
+                            </p>
+                            <p className="text-xs italic">{data.signatory_title || 'Officer on duty'}</p>
                         </div>
                     </div>
 
-                    <p className="mt-6 text-xs italic">Note: This Certification is valid only for Three (3) Months from the day this was issued.</p>
-                    <p className="text-xs italic">Do not accept if a photocopy of this Certification is not a Certified true Copy, with erasures or Alterations.</p>
+                    <p className="mt-6 text-xs italic">
+                        Note: This Certification is valid only for Three (3)
+                        Months from the day this was issued.
+                    </p>
+                    <p className="text-xs italic">
+                        Do not accept if a photocopy of this Certification is
+                        not a Certified true Copy, with erasures or Alterations.
+                    </p>
                 </div>
             );
         }
@@ -1395,22 +2186,40 @@ export default function Dashboard({
             return (
                 <div className="space-y-4">
                     <p>This is to certify that</p>
-                    <p className="font-bold underline text-lg">{data.resident_name.toUpperCase() || '___________________'}</p>
+                    <p className="text-lg font-bold underline">
+                        {data.resident_name.toUpperCase() ||
+                            '___________________'}
+                    </p>
                     <p>Operator/Driver of</p>
-                    <p className="font-bold">ONE(1) UNIT TRICYCLE (FRANCHISE # {data.franchise_no.toUpperCase() || '_______'})</p>
+                    <p className="font-bold">
+                        ONE(1) UNIT TRICYCLE (FRANCHISE #{' '}
+                        {data.franchise_no.toUpperCase() || '_______'})
+                    </p>
                     <p>With a Business/Trade name</p>
-                    <p className="font-bold">{data.business_name.toUpperCase() || '___________________'}</p>
+                    <p className="font-bold">
+                        {data.business_name.toUpperCase() ||
+                            '___________________'}
+                    </p>
                     <p>is lawfully operating at</p>
-                    <p className="font-bold">{data.business_address.toUpperCase() || '___________________'}</p>
-                    
-                    <div className="bg-blue-100 p-2 mt-6 border-l-4 border-blue-500 text-left text-xs font-sans">
-                        <span className="font-bold text-blue-800 uppercase">Purpose: </span> 
+                    <p className="font-bold">
+                        {data.business_address.toUpperCase() ||
+                            '___________________'}
+                    </p>
+
+                    <div className="mt-6 border-l-4 border-blue-500 bg-blue-100 p-2 text-left font-sans text-xs">
+                        <span className="font-bold text-blue-800 uppercase">
+                            Purpose:{' '}
+                        </span>
                         {data.purpose.toUpperCase() || '___________________'}
                     </div>
 
                     <div className="mt-8 text-right">
-                        <p className="font-bold text-sm">{data.signatory_name || '___________________'}</p>
-                        <p className="text-xs italic">{data.signatory_title || 'Signatory Title'}</p>
+                        <p className="text-sm font-bold">
+                            {data.signatory_name || '___________________'}
+                        </p>
+                        <p className="text-xs italic">
+                            {data.signatory_title || 'Signatory Title'}
+                        </p>
                     </div>
                 </div>
             );
@@ -1419,43 +2228,111 @@ export default function Dashboard({
         if (data.certificate_type === 'Scholarship Certificate') {
             return (
                 <div className="space-y-4 text-left">
-                    <p className="text-center text-xs uppercase tracking-wide">{'Republic of the Philippines'} · City of Puerto Princesa · Barangay San Jose</p>
-                    <p className="text-center text-xs uppercase tracking-wide">Office of the Punong Barangay</p>
-                    <p className="text-center text-sm font-bold tracking-[0.2em]">INDIGENT CERTIFICATE</p>
-
-                    <p className="text-justify leading-relaxed mt-4">
-                        This is to certify that <strong className="underline">{data.resident_name.toUpperCase() || '___________________'}</strong>, is a resident of {data.purok || '__________'} Barangay San Jose, City of Puerto Princesa. A {data.school_institution.toUpperCase() || '___________________'}.
+                    <p className="text-center text-xs tracking-wide uppercase">
+                        {'Republic of the Philippines'} · City of Puerto
+                        Princesa · Barangay San Jose
+                    </p>
+                    <p className="text-center text-xs tracking-wide uppercase">
+                        Office of the Punong Barangay
+                    </p>
+                    <p className="text-center text-sm font-bold tracking-[0.2em]">
+                        INDIGENT CERTIFICATE
                     </p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        This further certifies that he/she is a child of <strong>{data.father_name.toUpperCase() || '___________________'}</strong> (<em>{data.father_occupation.toUpperCase() || '____________'}</em>) With Monthly Income ({data.father_monthly_income || '__________'}) and <strong>{data.mother_name.toUpperCase() || '___________________'}</strong> (<em>{data.mother_occupation.toUpperCase() || '____________'}</em>) With Monthly Income ({data.mother_monthly_income || '__________'}) who&lsquo;s monthly family income does not exceed to the government&rsquo;s stipulated poverty threshold level. Thus, is exempted from filing income tax.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This is to certify that{' '}
+                        <strong className="underline">
+                            {data.resident_name.toUpperCase() ||
+                                '___________________'}
+                        </strong>
+                        , is a resident of {data.purok || '__________'} Barangay
+                        San Jose, City of Puerto Princesa. A{' '}
+                        {data.school_institution.toUpperCase() ||
+                            '___________________'}
+                        .
                     </p>
 
-                    <p className="text-center font-bold mt-4">THIS FURTHER CERTIFIES THAT THEY BELONG TO THE INDIGENT FAMILY.</p>
-
-                    <p className="text-justify leading-relaxed mt-4">
-                        This certification is issued for the authentication of the above-named person for declaration of his/her residency and family income status./ for {data.purpose.toUpperCase() || '___________________'}
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This further certifies that he/she is a child of{' '}
+                        <strong>
+                            {data.father_name.toUpperCase() ||
+                                '___________________'}
+                        </strong>{' '}
+                        (
+                        <em>
+                            {data.father_occupation.toUpperCase() ||
+                                '____________'}
+                        </em>
+                        ) With Monthly Income (
+                        {data.father_monthly_income || '__________'}) and{' '}
+                        <strong>
+                            {data.mother_name.toUpperCase() ||
+                                '___________________'}
+                        </strong>{' '}
+                        (
+                        <em>
+                            {data.mother_occupation.toUpperCase() ||
+                                '____________'}
+                        </em>
+                        ) With Monthly Income (
+                        {data.mother_monthly_income || '__________'})
+                        who&lsquo;s monthly family income does not exceed to the
+                        government&rsquo;s stipulated poverty threshold level.
+                        Thus, is exempted from filing income tax.
                     </p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        Issued on this {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })} at Barangay Hall, Barangay San Jose, City of Puerto Princesa.
+                    <p className="mt-4 text-center font-bold">
+                        THIS FURTHER CERTIFIES THAT THEY BELONG TO THE INDIGENT
+                        FAMILY.
+                    </p>
+
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This certification is issued for the authentication of
+                        the above-named person for declaration of his/her
+                        residency and family income status./ for{' '}
+                        {data.purpose.toUpperCase() || '___________________'}
+                    </p>
+
+                    <p className="mt-4 text-justify leading-relaxed">
+                        Issued on this{' '}
+                        {new Date().toLocaleDateString('en-US', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                        })}{' '}
+                        at Barangay Hall, Barangay San Jose, City of Puerto
+                        Princesa.
                     </p>
 
                     <div className="mt-10 text-right">
-                        <p className="font-bold text-sm">JENNIFER CALINGAO TRINIDAD</p>
+                        <p className="text-sm font-bold">
+                            JENNIFER CALINGAO TRINIDAD
+                        </p>
                         <p className="text-xs italic">Punong Barangay</p>
                     </div>
 
                     <div className="mt-8">
-                        <p className="text-sm">By the Authority of the Punong Barangay,</p>
+                        <p className="text-sm">
+                            By the Authority of the Punong Barangay,
+                        </p>
                         <div className="mt-8 text-right">
-                            <p className="font-bold text-sm">{data.signatory_name || '___________________'}</p>
-                            <p className="text-xs italic">{data.signatory_title || 'Officer on duty'}</p>
+                            <p className="text-sm font-bold">
+                                {data.signatory_name || '___________________'}
+                            </p>
+                            <p className="text-xs italic">
+                                {data.signatory_title || 'Officer on duty'}
+                            </p>
                         </div>
                     </div>
 
-                    <p className="mt-6 text-xs italic">Note: This Certification is valid only for Three (3) Months from the day this was issued.</p>
-                    <p className="text-xs italic">Do not accept if a photocopy of this Certification is not a Certified true Copy, with erasures or Alterations.</p>
+                    <p className="mt-6 text-xs italic">
+                        Note: This Certification is valid only for Three (3)
+                        Months from the day this was issued.
+                    </p>
+                    <p className="text-xs italic">
+                        Do not accept if a photocopy of this Certification is
+                        not a Certified true Copy, with erasures or Alterations.
+                    </p>
                 </div>
             );
         }
@@ -1463,38 +2340,77 @@ export default function Dashboard({
         if (data.certificate_type === 'Indigency') {
             return (
                 <div className="space-y-4 text-left">
-                    <p className="text-center text-xs uppercase tracking-wide">Republic of the Philippines City of Puerto Princesa BARANGAY SAN JOSE</p>
-                    <p className="text-center text-xs uppercase tracking-wide">Office of the Punong Barangay</p>
-                    <p className="text-center text-sm font-bold tracking-[0.2em]">C E R T I F I C A T I O N</p>
-                    <p className="text-center text-sm italic">(Indigent Certificate)</p>
-
-                    <p className="text-justify leading-relaxed mt-4">
-                        This is to certify that <strong className="underline">{data.resident_name.toUpperCase() || '___________________'}</strong>, is a bonafide resident of {data.purok || '__________'} Barangay San Jose, City of Puerto Princesa. That she/he belongs to the indigent family. That their Family&rsquo;s Monthly Income is not sufficient for their other Needs.
+                    <p className="text-center text-xs tracking-wide uppercase">
+                        Republic of the Philippines City of Puerto Princesa
+                        BARANGAY SAN JOSE
+                    </p>
+                    <p className="text-center text-xs tracking-wide uppercase">
+                        Office of the Punong Barangay
+                    </p>
+                    <p className="text-center text-sm font-bold tracking-[0.2em]">
+                        C E R T I F I C A T I O N
+                    </p>
+                    <p className="text-center text-sm italic">
+                        (Indigent Certificate)
                     </p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        This certification is being issued upon the request of the above-named person for the purpose of {data.purpose.toUpperCase() || '___________________'}.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This is to certify that{' '}
+                        <strong className="underline">
+                            {data.resident_name.toUpperCase() ||
+                                '___________________'}
+                        </strong>
+                        , is a bonafide resident of {data.purok || '__________'}{' '}
+                        Barangay San Jose, City of Puerto Princesa. That she/he
+                        belongs to the indigent family. That their
+                        Family&rsquo;s Monthly Income is not sufficient for
+                        their other Needs.
                     </p>
 
-                    <p className="text-justify leading-relaxed mt-4">
-                        Issued on this {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })} at Barangay Hall, Barangay San Jose, City of Puerto Princesa.
+                    <p className="mt-4 text-justify leading-relaxed">
+                        This certification is being issued upon the request of
+                        the above-named person for the purpose of{' '}
+                        {data.purpose.toUpperCase() || '___________________'}.
+                    </p>
+
+                    <p className="mt-4 text-justify leading-relaxed">
+                        Issued on this{' '}
+                        {new Date().toLocaleDateString('en-US', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                        })}{' '}
+                        at Barangay Hall, Barangay San Jose, City of Puerto
+                        Princesa.
                     </p>
 
                     <div className="mt-10 text-right">
-                        <p className="font-bold text-sm">HON. JENNIFER CALINGAO TRINIDAD</p>
+                        <p className="text-sm font-bold">
+                            HON. JENNIFER CALINGAO TRINIDAD
+                        </p>
                         <p className="text-xs italic">Punong Barangay</p>
                     </div>
 
                     <div className="mt-8">
-                        <p className="text-sm">By the Authority of the Punong Barangay,</p>
+                        <p className="text-sm">
+                            By the Authority of the Punong Barangay,
+                        </p>
                         <div className="mt-8 text-right">
-                            <p className="font-bold text-sm">{data.signatory_name || '___________________'}</p>
+                            <p className="text-sm font-bold">
+                                {data.signatory_name || '___________________'}
+                            </p>
                             <p className="text-xs italic">Officer on duty</p>
                         </div>
                     </div>
 
-                    <p className="mt-6 text-xs italic">Note: This Certification is valid only for Three (3) Months from the day this was issued.</p>
-                    <p className="text-xs italic">Do not accept if a photocopy of this Certification is not a Certified true Copy, with erasures or Alterations.</p>
+                    <p className="mt-6 text-xs italic">
+                        Note: This Certification is valid only for Three (3)
+                        Months from the day this was issued.
+                    </p>
+                    <p className="text-xs italic">
+                        Do not accept if a photocopy of this Certification is
+                        not a Certified true Copy, with erasures or Alterations.
+                    </p>
                 </div>
             );
         }
@@ -1502,22 +2418,35 @@ export default function Dashboard({
         return (
             <div className="space-y-4">
                 <p>TO WHOM IT MAY CONCERN:</p>
-                <p className="text-justify leading-relaxed mt-4">
-                    This is to certify that <strong className="underline">{data.resident_name.toUpperCase() || '___________________'}</strong> is a bona fide resident of 
-                    Purok {data.purok || '___________'}, Barangay San Jose, Puerto Princesa City.
+                <p className="mt-4 text-justify leading-relaxed">
+                    This is to certify that{' '}
+                    <strong className="underline">
+                        {data.resident_name.toUpperCase() ||
+                            '___________________'}
+                    </strong>{' '}
+                    is a bona fide resident of Purok{' '}
+                    {data.purok || '___________'}, Barangay San Jose, Puerto
+                    Princesa City.
                 </p>
-                <p className="text-justify leading-relaxed mt-4">
-                    This certification is being issued upon the request of the above-named person for whatever legal purpose it may serve.
+                <p className="mt-4 text-justify leading-relaxed">
+                    This certification is being issued upon the request of the
+                    above-named person for whatever legal purpose it may serve.
                 </p>
-                
-                <div className="bg-blue-100 p-2 mt-6 border-l-4 border-blue-500 text-left text-xs font-sans">
-                    <span className="font-bold text-blue-800 uppercase">Purpose: </span> 
+
+                <div className="mt-6 border-l-4 border-blue-500 bg-blue-100 p-2 text-left font-sans text-xs">
+                    <span className="font-bold text-blue-800 uppercase">
+                        Purpose:{' '}
+                    </span>
                     {data.purpose.toUpperCase() || '___________________'}
                 </div>
 
                 <div className="mt-10 text-right">
-                    <p className="font-bold text-sm">{data.signatory_name || '___________________'}</p>
-                    <p className="text-xs italic">{data.signatory_title || 'Signatory Title'}</p>
+                    <p className="text-sm font-bold">
+                        {data.signatory_name || '___________________'}
+                    </p>
+                    <p className="text-xs italic">
+                        {data.signatory_title || 'Signatory Title'}
+                    </p>
                 </div>
             </div>
         );
@@ -1527,14 +2456,25 @@ export default function Dashboard({
         <ClerkLayout user={auth.user} active="certificates">
             <Head title="Certificate Issuance" />
 
-            <div className="space-y-6 max-w-7xl mx-auto">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="mx-auto max-w-7xl space-y-6">
+                <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                     <div>
-                        <h1 className="text-xl md:text-2xl font-bold text-gray-800">Certificate Issuance</h1>
+                        <h1 className="text-xl font-bold text-gray-800 md:text-2xl">
+                            Certificate Issuance
+                        </h1>
                     </div>
-                    <button 
-                        onClick={() => { setIsModalOpen(true); setFormStep(1); setScanError(null); setResidentSource('none'); setLastScannedToken(null); reset(); }}
-                        className="bg-[#3f6f3d] hover:bg-[#315b30] text-white px-4 py-2 rounded-md font-medium text-sm transition-colors shadow-sm"
+                    <button
+                        onClick={() => {
+                            setModalMode('qr');
+                            setIsModalOpen(true);
+                            setFormStep(1);
+                            setScanError(null);
+                            setResidentSource('none');
+                            setLastScannedToken(null);
+                            reset();
+                            setData('control_no', createControlNumber());
+                        }}
+                        className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#315b30]"
                     >
                         + Issue New Certificate
                     </button>
@@ -1543,18 +2483,20 @@ export default function Dashboard({
                 {/* CERTIFICATE MANAGEMENT */}
                 <div className="rounded-lg border border-[#e6ddcd] bg-white shadow-sm">
                     <div className="flex border-b border-[#e6ddcd] bg-[#f0ebe1]">
-                        {([
-                            ['requests', 'Requests'],
-                            ['issued', 'Issued / Completed'],
-                            ['all', 'All Records'],
-                        ] as [CertificateTab, string][]).map(([tab, label]) => (
+                        {(
+                            [
+                                ['requests', 'Requests'],
+                                ['issued', 'Issued / Completed'],
+                                ['all', 'All Records'],
+                            ] as [CertificateTab, string][]
+                        ).map(([tab, label]) => (
                             <button
                                 key={tab}
                                 type="button"
                                 onClick={() => setActiveTab(tab)}
-                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                                className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                                     activeTab === tab
-                                        ? 'border-[#3f6f3d] text-[#3f6f3d] bg-white'
+                                        ? 'border-[#3f6f3d] bg-white text-[#3f6f3d]'
                                         : 'border-transparent text-[#8a7f6a] hover:text-gray-700'
                                 }`}
                             >
@@ -1566,19 +2508,57 @@ export default function Dashboard({
                     {/* SEARCH & FILTER BAR */}
                     <div className="flex flex-col gap-3 border-b border-[#e6ddcd] p-4 sm:flex-row sm:items-center">
                         <div className="relative flex-1">
-                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8a7f6a]" aria-hidden="true">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                                    <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 3.4 9.83l3.63 3.63a.75.75 0 1 0 1.06-1.06l-3.63-3.63A5.5 5.5 0 0 0 9 3.5Zm-4 5.5a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z" clipRule="evenodd" />
+                            <span
+                                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#8a7f6a]"
+                                aria-hidden="true"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    className="h-4 w-4"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M9 3.5a5.5 5.5 0 1 0 3.4 9.83l3.63 3.63a.75.75 0 1 0 1.06-1.06l-3.63-3.63A5.5 5.5 0 0 0 9 3.5Zm-4 5.5a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
+                                        clipRule="evenodd"
+                                    />
                                 </svg>
                             </span>
                             <input
                                 type="text"
-                                value={activeTab === 'issued' ? issuedSearchQuery : activeTab === 'all' ? allSearchQuery : searchQuery}
-                                onChange={(e) => (activeTab === 'issued' ? setIssuedSearchQuery(e.target.value) : activeTab === 'all' ? setAllSearchQuery(e.target.value) : setSearchQuery(e.target.value))}
-                                onKeyDown={(e) => { if (e.key === 'Enter') applySearch(); }}
-                                placeholder={activeTab === 'issued' ? 'Search resident, resident no., or issuance reference...' : activeTab === 'all' ? 'Search all records by resident, resident no., or reference...' : 'Search resident, resident no., or reference...'}
-                                aria-label={activeTab === 'issued' ? 'Search certificate issuances' : activeTab === 'all' ? 'Search all certificate records' : 'Search certificate requests'}
-                                className="w-full rounded-md border border-[#e6ddcd] py-2 pl-9 pr-3 text-sm focus:border-[#3f6f3d] focus:outline-none focus:ring-1 focus:ring-[#3f6f3d]"
+                                value={
+                                    activeTab === 'issued'
+                                        ? issuedSearchQuery
+                                        : activeTab === 'all'
+                                          ? allSearchQuery
+                                          : searchQuery
+                                }
+                                onChange={(e) =>
+                                    activeTab === 'issued'
+                                        ? setIssuedSearchQuery(e.target.value)
+                                        : activeTab === 'all'
+                                          ? setAllSearchQuery(e.target.value)
+                                          : setSearchQuery(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') applySearch();
+                                }}
+                                placeholder={
+                                    activeTab === 'issued'
+                                        ? 'Search resident, resident no., or issuance reference...'
+                                        : activeTab === 'all'
+                                          ? 'Search all records by resident, resident no., or reference...'
+                                          : 'Search resident, resident no., or reference...'
+                                }
+                                aria-label={
+                                    activeTab === 'issued'
+                                        ? 'Search certificate issuances'
+                                        : activeTab === 'all'
+                                          ? 'Search all certificate records'
+                                          : 'Search certificate requests'
+                                }
+                                className="w-full rounded-md border border-[#e6ddcd] py-2 pr-3 pl-9 text-sm focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
                             />
                         </div>
 
@@ -1592,7 +2572,13 @@ export default function Dashboard({
                                 aria-haspopup="true"
                                 className="flex w-full items-center justify-center gap-2 rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-[#faf8f2] sm:w-auto"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    className="h-4 w-4"
+                                    aria-hidden="true"
+                                >
                                     <path d="M3 5.75A.75.75 0 0 1 3.75 5h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 5.75Zm2 4.25a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1-.75-.75Zm3 4.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z" />
                                 </svg>
                                 Filters
@@ -1607,60 +2593,172 @@ export default function Dashboard({
                                 <div
                                     ref={popoverRef}
                                     role="dialog"
-                                    aria-label={activeTab === 'issued' ? 'Filter certificate issuances' : activeTab === 'all' ? 'Filter all certificate records' : 'Filter certificate requests'}
+                                    aria-label={
+                                        activeTab === 'issued'
+                                            ? 'Filter certificate issuances'
+                                            : activeTab === 'all'
+                                              ? 'Filter all certificate records'
+                                              : 'Filter certificate requests'
+                                    }
                                     className="absolute right-0 z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-[#e6ddcd] bg-white p-4 shadow-lg"
                                 >
                                     <div className="space-y-3">
                                         {activeTab === 'issued' ? (
                                             <>
                                                 <div>
-                                                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">Certificate Type</label>
-                                                    <select value={issuedTypeQuery} onChange={(e) => setIssuedTypeQuery(e.target.value)} className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm">
-                                                        <option value="">All types</option>
-                                                        {certificateTypes.map((type) => (
-                                                            <option key={type.value} value={type.value}>{type.value}</option>
-                                                        ))}
+                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        Certificate Type
+                                                    </label>
+                                                    <select
+                                                        value={issuedTypeQuery}
+                                                        onChange={(e) =>
+                                                            setIssuedTypeQuery(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                    >
+                                                        <option value="">
+                                                            All types
+                                                        </option>
+                                                        {certificateTypes.map(
+                                                            (type) => (
+                                                                <option
+                                                                    key={
+                                                                        type.value
+                                                                    }
+                                                                    value={
+                                                                        type.value
+                                                                    }
+                                                                >
+                                                                    {type.value}
+                                                                </option>
+                                                            ),
+                                                        )}
                                                     </select>
                                                 </div>
 
                                                 {activeTab === 'issued' && (
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">Record Type</label>
-                                                        <select value={activeTab} onChange={(e) => setActiveTab(e.target.value as CertificateTab)} className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm">
-                                                            <option value="all">All Records</option>
-                                                            <option value="requests">Requests</option>
-                                                            <option value="issued">Issued / Completed</option>
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                            Record Type
+                                                        </label>
+                                                        <select
+                                                            value={activeTab}
+                                                            onChange={(e) =>
+                                                                setActiveTab(
+                                                                    e.target
+                                                                        .value as CertificateTab,
+                                                                )
+                                                            }
+                                                            className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                        >
+                                                            <option value="all">
+                                                                All Records
+                                                            </option>
+                                                            <option value="requests">
+                                                                Requests
+                                                            </option>
+                                                            <option value="issued">
+                                                                Issued /
+                                                                Completed
+                                                            </option>
                                                         </select>
                                                     </div>
                                                 )}
 
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">From</label>
-                                                        <input type="date" value={issuedDateFromQuery} onChange={(e) => setIssuedDateFromQuery(e.target.value)} className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm" />
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                            From
+                                                        </label>
+                                                        <input
+                                                            type="date"
+                                                            value={
+                                                                issuedDateFromQuery
+                                                            }
+                                                            onChange={(e) =>
+                                                                setIssuedDateFromQuery(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                        />
                                                     </div>
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">To</label>
-                                                        <input type="date" value={issuedDateToQuery} onChange={(e) => setIssuedDateToQuery(e.target.value)} className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm" />
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                            To
+                                                        </label>
+                                                        <input
+                                                            type="date"
+                                                            value={
+                                                                issuedDateToQuery
+                                                            }
+                                                            onChange={(e) =>
+                                                                setIssuedDateToQuery(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                        />
                                                     </div>
                                                 </div>
                                             </>
                                         ) : activeTab === 'all' ? (
                                             <>
                                                 <div>
-                                                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">Certificate Type</label>
-                                                    <select value={allTypeQuery} onChange={(e) => setAllTypeQuery(e.target.value)} className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm">
-                                                        <option value="">All types</option>
+                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        Certificate Type
+                                                    </label>
+                                                    <select
+                                                        value={allTypeQuery}
+                                                        onChange={(e) =>
+                                                            setAllTypeQuery(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                    >
+                                                        <option value="">
+                                                            All types
+                                                        </option>
                                                         <optgroup label="Certificate Templates">
-                                                            {certificateTypes.map((type) => (
-                                                                <option key={`tpl-${type.value}`} value={type.value}>{type.value}</option>
-                                                            ))}
+                                                            {certificateTypes.map(
+                                                                (type) => (
+                                                                    <option
+                                                                        key={`tpl-${type.value}`}
+                                                                        value={
+                                                                            type.value
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            type.value
+                                                                        }
+                                                                    </option>
+                                                                ),
+                                                            )}
                                                         </optgroup>
-                                                        {certificateOptions.length > 0 && (
+                                                        {certificateOptions.length >
+                                                            0 && (
                                                             <optgroup label="Barangay Certificates">
-                                                                {certificateOptions.map((option) => (
-                                                                    <option key={`cert-${option.id}`} value={String(option.id)}>{option.name}</option>
-                                                                ))}
+                                                                {certificateOptions.map(
+                                                                    (
+                                                                        option,
+                                                                    ) => (
+                                                                        <option
+                                                                            key={`cert-${option.id}`}
+                                                                            value={String(
+                                                                                option.id,
+                                                                            )}
+                                                                        >
+                                                                            {
+                                                                                option.name
+                                                                            }
+                                                                        </option>
+                                                                    ),
+                                                                )}
                                                             </optgroup>
                                                         )}
                                                     </select>
@@ -1668,54 +2766,171 @@ export default function Dashboard({
 
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">From</label>
-                                                        <input type="date" value={allDateFromQuery} onChange={(e) => setAllDateFromQuery(e.target.value)} className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm" />
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                            From
+                                                        </label>
+                                                        <input
+                                                            type="date"
+                                                            value={
+                                                                allDateFromQuery
+                                                            }
+                                                            onChange={(e) =>
+                                                                setAllDateFromQuery(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                        />
                                                     </div>
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">To</label>
-                                                        <input type="date" value={allDateToQuery} onChange={(e) => setAllDateToQuery(e.target.value)} className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm" />
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                            To
+                                                        </label>
+                                                        <input
+                                                            type="date"
+                                                            value={
+                                                                allDateToQuery
+                                                            }
+                                                            onChange={(e) =>
+                                                                setAllDateToQuery(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                        />
                                                     </div>
                                                 </div>
                                             </>
                                         ) : (
                                             <>
                                                 <div>
-                                                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">Certificate Type</label>
-                                                    <select value={certificateQuery} onChange={(e) => setCertificateQuery(e.target.value)} className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm">
-                                                        <option value="">All types</option>
-                                                        {certificateOptions.map((option) => (
-                                                            <option key={option.id} value={String(option.id)}>{option.name}</option>
-                                                        ))}
+                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        Certificate Type
+                                                    </label>
+                                                    <select
+                                                        value={certificateQuery}
+                                                        onChange={(e) =>
+                                                            setCertificateQuery(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                    >
+                                                        <option value="">
+                                                            All types
+                                                        </option>
+                                                        {certificateOptions.map(
+                                                            (option) => (
+                                                                <option
+                                                                    key={
+                                                                        option.id
+                                                                    }
+                                                                    value={String(
+                                                                        option.id,
+                                                                    )}
+                                                                >
+                                                                    {
+                                                                        option.name
+                                                                    }
+                                                                </option>
+                                                            ),
+                                                        )}
                                                     </select>
                                                 </div>
 
                                                 <div>
-                                                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">Record Type</label>
-                                                    <select value={activeTab} onChange={(e) => setActiveTab(e.target.value as CertificateTab)} className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm">
-                                                        <option value="all">All Records</option>
-                                                        <option value="requests">Requests</option>
-                                                        <option value="issued">Issued / Completed</option>
+                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        Record Type
+                                                    </label>
+                                                    <select
+                                                        value={activeTab}
+                                                        onChange={(e) =>
+                                                            setActiveTab(
+                                                                e.target
+                                                                    .value as CertificateTab,
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                    >
+                                                        <option value="all">
+                                                            All Records
+                                                        </option>
+                                                        <option value="requests">
+                                                            Requests
+                                                        </option>
+                                                        <option value="issued">
+                                                            Issued / Completed
+                                                        </option>
                                                     </select>
                                                 </div>
 
                                                 <div>
-                                                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">Status</label>
-                                                    <select value={statusQuery} onChange={(e) => setStatusQuery(e.target.value)} className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm">
-                                                        <option value="">All statuses</option>
-                                                        {statuses.map((status) => (
-                                                            <option key={status} value={status}>{status}</option>
-                                                        ))}
+                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        Status
+                                                    </label>
+                                                    <select
+                                                        value={statusQuery}
+                                                        onChange={(e) =>
+                                                            setStatusQuery(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                    >
+                                                        <option value="">
+                                                            All statuses
+                                                        </option>
+                                                        {statuses.map(
+                                                            (status) => (
+                                                                <option
+                                                                    key={status}
+                                                                    value={
+                                                                        status
+                                                                    }
+                                                                >
+                                                                    {status}
+                                                                </option>
+                                                            ),
+                                                        )}
                                                     </select>
                                                 </div>
 
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">From</label>
-                                                        <input type="date" value={dateFromQuery} onChange={(e) => setDateFromQuery(e.target.value)} className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm" />
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                            From
+                                                        </label>
+                                                        <input
+                                                            type="date"
+                                                            value={
+                                                                dateFromQuery
+                                                            }
+                                                            onChange={(e) =>
+                                                                setDateFromQuery(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                        />
                                                     </div>
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#8a7f6a]">To</label>
-                                                        <input type="date" value={dateToQuery} onChange={(e) => setDateToQuery(e.target.value)} className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm" />
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                            To
+                                                        </label>
+                                                        <input
+                                                            type="date"
+                                                            value={dateToQuery}
+                                                            onChange={(e) =>
+                                                                setDateToQuery(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                        />
                                                     </div>
                                                 </div>
                                             </>
@@ -1723,10 +2938,18 @@ export default function Dashboard({
                                     </div>
 
                                     <div className="mt-4 flex items-center justify-end gap-2 border-t border-[#e6ddcd] pt-3">
-                                        <button type="button" onClick={clearFilters} className="rounded-md px-3 py-1.5 text-sm font-medium text-[#8a7f6a] hover:bg-[#faf8f2]">
+                                        <button
+                                            type="button"
+                                            onClick={clearFilters}
+                                            className="rounded-md px-3 py-1.5 text-sm font-medium text-[#8a7f6a] hover:bg-[#faf8f2]"
+                                        >
                                             Clear
                                         </button>
-                                        <button type="button" onClick={applyFilters} className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#315b30]">
+                                        <button
+                                            type="button"
+                                            onClick={applyFilters}
+                                            className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#315b30]"
+                                        >
                                             Apply Filters
                                         </button>
                                     </div>
@@ -1737,7 +2960,12 @@ export default function Dashboard({
 
                     {activeTab === 'all' && (
                         <div className="border-b border-[#e6ddcd] bg-blue-50 px-4 py-2 text-xs text-blue-800">
-                            Combined view of <span className="font-semibold">requests</span> and <span className="font-semibold">issued certificates</span>. Each row shows its record type.
+                            Combined view of{' '}
+                            <span className="font-semibold">requests</span> and{' '}
+                            <span className="font-semibold">
+                                issued certificates
+                            </span>
+                            . Each row shows its record type.
                         </div>
                     )}
 
@@ -1745,39 +2973,80 @@ export default function Dashboard({
                     <div className="overflow-x-auto">
                         {activeTab === 'issued' ? (
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#f0ebe1] text-[10px] uppercase tracking-wide text-[#8a7f6a]">
+                                <thead className="bg-[#f0ebe1] text-[10px] tracking-wide text-[#8a7f6a] uppercase">
                                     <tr>
-                                        <th className="px-4 py-3 font-semibold">Reference</th>
-                                        <th className="px-4 py-3 font-semibold">Resident</th>
-                                        <th className="px-4 py-3 font-semibold">Certificate</th>
-                                        <th className="px-4 py-3 font-semibold">Purok</th>
-                                        <th className="px-4 py-3 font-semibold">Issued</th>
-                                        <th className="px-4 py-3 font-semibold">Issued By</th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Reference
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Resident
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Certificate
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Purok
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Issued
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Issued By
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#f0ebe1]">
                                     {listLoading ? (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-10 text-center text-sm text-[#8a7f6a]">Loading…</td>
+                                            <td
+                                                colSpan={6}
+                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                            >
+                                                Loading…
+                                            </td>
                                         </tr>
                                     ) : issuances.data.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-10 text-center text-sm text-[#8a7f6a]">
-                                                {hasFilters ? 'No issued certificates match your search or filters.' : 'No certificates have been issued yet.'}
+                                            <td
+                                                colSpan={6}
+                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                            >
+                                                {hasFilters
+                                                    ? 'No issued certificates match your search or filters.'
+                                                    : 'No certificates have been issued yet.'}
                                             </td>
                                         </tr>
                                     ) : (
                                         issuances.data.map((row) => (
-                                            <tr key={row.id} className="hover:bg-[#faf8f2]">
-                                                <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">{row.reference}</td>
-                                                <td className="px-4 py-3">
-                                                    <p className="font-medium text-gray-800">{row.resident.name}</p>
-                                                    <p className="text-xs text-[#8a7f6a]">{row.resident.resident_number ?? '—'}</p>
+                                            <tr
+                                                key={row.id}
+                                                className="hover:bg-[#faf8f2]"
+                                            >
+                                                <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">
+                                                    {row.reference}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-700">{row.certificate_type}</td>
-                                                <td className="px-4 py-3 text-gray-600">{row.purok ?? '—'}</td>
-                                                <td className="px-4 py-3 text-gray-600">{row.issued_at}</td>
-                                                <td className="px-4 py-3 text-gray-600">{row.issued_by}</td>
+                                                <td className="px-4 py-3">
+                                                    <p className="font-medium text-gray-800">
+                                                        {row.resident.name}
+                                                    </p>
+                                                    <p className="text-xs text-[#8a7f6a]">
+                                                        {row.resident
+                                                            .resident_number ??
+                                                            '—'}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-700">
+                                                    {row.certificate_type}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600">
+                                                    {row.purok ?? '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600">
+                                                    {row.issued_at}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600">
+                                                    {row.issued_by}
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -1785,55 +3054,107 @@ export default function Dashboard({
                             </table>
                         ) : activeTab === 'all' ? (
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#f0ebe1] text-[10px] uppercase tracking-wide text-[#8a7f6a]">
+                                <thead className="bg-[#f0ebe1] text-[10px] tracking-wide text-[#8a7f6a] uppercase">
                                     <tr>
-                                        <th className="px-4 py-3 font-semibold">Type</th>
-                                        <th className="px-4 py-3 font-semibold">Reference</th>
-                                        <th className="px-4 py-3 font-semibold">Resident</th>
-                                        <th className="px-4 py-3 font-semibold">Certificate</th>
-                                        <th className="px-4 py-3 font-semibold">Purok</th>
-                                        <th className="px-4 py-3 font-semibold">Status</th>
-                                        <th className="px-4 py-3 font-semibold">Date</th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Type
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Reference
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Resident
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Certificate
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Purok
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Status
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Date
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#f0ebe1]">
                                     {listLoading ? (
                                         <tr>
-                                            <td colSpan={7} className="px-4 py-10 text-center text-sm text-[#8a7f6a]">Loading…</td>
+                                            <td
+                                                colSpan={7}
+                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                            >
+                                                Loading…
+                                            </td>
                                         </tr>
                                     ) : allRecords.data.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="px-4 py-10 text-center text-sm text-[#8a7f6a]">
-                                                {hasFilters ? 'No records match your search or filters.' : 'No certificate records yet.'}
+                                            <td
+                                                colSpan={7}
+                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                            >
+                                                {hasFilters
+                                                    ? 'No records match your search or filters.'
+                                                    : 'No certificate records yet.'}
                                             </td>
                                         </tr>
                                     ) : (
                                         allRecords.data.map((row) => (
-                                            <tr key={`${row.record_type}-${row.id}`} className="hover:bg-[#faf8f2]">
+                                            <tr
+                                                key={`${row.record_type}-${row.id}`}
+                                                className="hover:bg-[#faf8f2]"
+                                            >
                                                 <td className="px-4 py-3">
-                                                    {row.record_type === 'issuance' ? (
-                                                        <span className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800">Issued</span>
+                                                    {row.record_type ===
+                                                    'issuance' ? (
+                                                        <span className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800">
+                                                            Issued
+                                                        </span>
                                                     ) : (
-                                                        <span className="inline-flex rounded-full border border-[#e6ddcd] bg-[#f0ebe1] px-2 py-0.5 text-xs font-semibold text-[#8a7f6a]">Request</span>
+                                                        <span className="inline-flex rounded-full border border-[#e6ddcd] bg-[#f0ebe1] px-2 py-0.5 text-xs font-semibold text-[#8a7f6a]">
+                                                            Request
+                                                        </span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">{row.reference}</td>
-                                                <td className="px-4 py-3">
-                                                    <p className="font-medium text-gray-800">{row.resident.name}</p>
-                                                    <p className="text-xs text-[#8a7f6a]">{row.resident.resident_number ?? '—'}</p>
+                                                <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">
+                                                    {row.reference}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-700">{row.certificate}</td>
-                                                <td className="px-4 py-3 text-gray-600">{row.purok ?? '—'}</td>
                                                 <td className="px-4 py-3">
-                                                    {row.record_type === 'issuance' || row.status === null ? (
-                                                        <span className="inline-flex rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800">Issued</span>
+                                                    <p className="font-medium text-gray-800">
+                                                        {row.resident.name}
+                                                    </p>
+                                                    <p className="text-xs text-[#8a7f6a]">
+                                                        {row.resident
+                                                            .resident_number ??
+                                                            '—'}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-700">
+                                                    {row.certificate}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600">
+                                                    {row.purok ?? '—'}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {row.record_type ===
+                                                        'issuance' ||
+                                                    row.status === null ? (
+                                                        <span className="inline-flex rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800">
+                                                            Issued
+                                                        </span>
                                                     ) : (
-                                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[row.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                                                        <span
+                                                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[row.status] ?? 'bg-gray-100 text-gray-700'}`}
+                                                        >
                                                             {row.status}
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">{row.occurred_at}</td>
+                                                <td className="px-4 py-3 text-gray-600">
+                                                    {row.occurred_at}
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -1841,41 +3162,94 @@ export default function Dashboard({
                             </table>
                         ) : (
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#f0ebe1] text-[10px] uppercase tracking-wide text-[#8a7f6a]">
+                                <thead className="bg-[#f0ebe1] text-[10px] tracking-wide text-[#8a7f6a] uppercase">
                                     <tr>
-                                        <th className="px-4 py-3 font-semibold">Reference</th>
-                                        <th className="px-4 py-3 font-semibold">Resident</th>
-                                        <th className="px-4 py-3 font-semibold">Certificate</th>
-                                        <th className="px-4 py-3 font-semibold">Status</th>
-                                        <th className="px-4 py-3 font-semibold">Submitted</th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Reference
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Resident
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Certificate
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Status
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Submitted
+                                        </th>
+                                        <th className="px-4 py-3 font-semibold">
+                                            Action
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#f0ebe1]">
                                     {listLoading ? (
                                         <tr>
-                                            <td colSpan={5} className="px-4 py-10 text-center text-sm text-[#8a7f6a]">Loading…</td>
+                                            <td
+                                                colSpan={6}
+                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                            >
+                                                Loading…
+                                            </td>
                                         </tr>
                                     ) : requests.data.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="px-4 py-10 text-center text-sm text-[#8a7f6a]">
-                                                {hasFilters ? 'No requests match your search or filters.' : 'No certificate requests yet.'}
+                                            <td
+                                                colSpan={6}
+                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                            >
+                                                {hasFilters
+                                                    ? 'No requests match your search or filters.'
+                                                    : 'No certificate requests yet.'}
                                             </td>
                                         </tr>
                                     ) : (
                                         requests.data.map((row) => (
-                                            <tr key={row.id} className="hover:bg-[#faf8f2]">
-                                                <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">{row.reference}</td>
-                                                <td className="px-4 py-3">
-                                                    <p className="font-medium text-gray-800">{row.resident.name}</p>
-                                                    <p className="text-xs text-[#8a7f6a]">{row.resident.resident_number ?? '—'}</p>
+                                            <tr
+                                                key={row.id}
+                                                className="hover:bg-[#faf8f2]"
+                                            >
+                                                <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">
+                                                    {row.reference}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-700">{row.certificate}</td>
                                                 <td className="px-4 py-3">
-                                                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[row.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                                                    <p className="font-medium text-gray-800">
+                                                        {row.resident.name}
+                                                    </p>
+                                                    <p className="text-xs text-[#8a7f6a]">
+                                                        {row.resident
+                                                            .resident_number ??
+                                                            '—'}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-700">
+                                                    {row.certificate}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span
+                                                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[row.status] ?? 'bg-gray-100 text-gray-700'}`}
+                                                    >
                                                         {row.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">{row.submitted_at}</td>
+                                                <td className="px-4 py-3 text-gray-600">
+                                                    {row.submitted_at}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            openRequestDetails(
+                                                                row.id,
+                                                            )
+                                                        }
+                                                        className="rounded-md border border-[#e6ddcd] px-2.5 py-1 text-xs font-medium text-[#3f6f3d] hover:bg-[#f0ebe1]"
+                                                    >
+                                                        Details
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -1886,7 +3260,12 @@ export default function Dashboard({
 
                     {/* PAGINATION */}
                     {(() => {
-                        const page = activeTab === 'issued' ? issuances : activeTab === 'all' ? allRecords : requests;
+                        const page =
+                            activeTab === 'issued'
+                                ? issuances
+                                : activeTab === 'all'
+                                  ? allRecords
+                                  : requests;
                         // Row count is a paginator controller value, not a
                         // generated/printed/released claim about the document.
                         return (
@@ -1900,12 +3279,22 @@ export default function Dashboard({
                                     <label className="flex items-center gap-1.5">
                                         <span>Rows per page</span>
                                         <select
-                                            value={activeTab === 'issued' ? issuedFilters.per_page : filters.per_page}
-                                            onChange={(e) => changePerPage(Number(e.target.value))}
+                                            value={
+                                                activeTab === 'issued'
+                                                    ? issuedFilters.per_page
+                                                    : filters.per_page
+                                            }
+                                            onChange={(e) =>
+                                                changePerPage(
+                                                    Number(e.target.value),
+                                                )
+                                            }
                                             className="rounded-md border border-[#e6ddcd] bg-white px-2 py-1 text-xs text-gray-700"
                                         >
                                             {[10, 25, 50].map((size) => (
-                                                <option key={size} value={size}>{size}</option>
+                                                <option key={size} value={size}>
+                                                    {size}
+                                                </option>
                                             ))}
                                         </select>
                                     </label>
@@ -1913,16 +3302,23 @@ export default function Dashboard({
                                         <button
                                             type="button"
                                             disabled={!page.prev_page_url}
-                                            onClick={() => goToPage(page.prev_page_url)}
+                                            onClick={() =>
+                                                goToPage(page.prev_page_url)
+                                            }
                                             className="rounded-md border px-3 py-1.5 font-medium text-gray-700 disabled:opacity-40"
                                         >
                                             Previous
                                         </button>
-                                        <span>Page {page.current_page} of {page.last_page}</span>
+                                        <span>
+                                            Page {page.current_page} of{' '}
+                                            {page.last_page}
+                                        </span>
                                         <button
                                             type="button"
                                             disabled={!page.next_page_url}
-                                            onClick={() => goToPage(page.next_page_url)}
+                                            onClick={() =>
+                                                goToPage(page.next_page_url)
+                                            }
                                             className="rounded-md border px-3 py-1.5 font-medium text-gray-700 disabled:opacity-40"
                                         >
                                             Next
@@ -1936,44 +3332,107 @@ export default function Dashboard({
 
                 {/* MODAL */}
                 {isModalOpen && (
+                    <>
+                    <style>{`@page { size: 210mm 297mm; margin: 0; } @media print { html, body { margin: 0 !important; padding: 0 !important; } body * { visibility: hidden !important; } .certificate-print-page, .certificate-print-page * { visibility: visible !important; } .certificate-print-page { position: absolute !important; left: 0 !important; top: 0 !important; width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important; height: 297mm !important; max-height: 297mm !important; overflow: hidden !important; aspect-ratio: auto !important; margin: 0 !important; padding: 14mm !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }`}</style>
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
-                            <div className="bg-[#3f6f3d] text-white px-6 py-4 flex justify-between items-center shrink-0">
-                                <h3 className="font-bold text-lg">
-                                    {formStep === 1 ? 'Issue New Certificate' : 'Document Preview (Plain Text)'}
+                        <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
+                            <div className="flex shrink-0 items-center justify-between bg-[#3f6f3d] px-6 py-4 text-white">
+                                <h3 className="text-lg font-bold">
+                                    {formStep === 1
+                                        ? 'Issue New Certificate'
+                                        : 'Certificate Preview (A4 Portrait)'}
                                 </h3>
-                                <button onClick={() => { setIsModalOpen(false); setScanError(null); }} className="text-white/80 hover:text-white text-xl font-bold">&times;</button>
+                                <button
+                                    onClick={() => {
+                                        setIsModalOpen(false);
+                                        setScanError(null);
+                                    }}
+                                    className="text-xl font-bold text-white/80 hover:text-white"
+                                >
+                                    &times;
+                                </button>
                             </div>
 
-                            <div className="overflow-y-auto flex-1">
+                            <div className="flex-1 overflow-y-auto">
                                 {formStep === 1 ? (
                                     /* STEP 1: FORM ENTRY */
                                     <>
                                         <div className="flex border-b bg-gray-50">
-                                            <button type="button" onClick={() => switchMode('manual')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${modalMode === 'manual' ? 'border-[#3f6f3d] text-[#3f6f3d] bg-white' : 'border-transparent text-gray-500'}`}>Manual Entry</button>
-                                            <button type="button" onClick={() => switchMode('qr')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${modalMode === 'qr' ? 'border-[#3f6f3d] text-[#3f6f3d] bg-white' : 'border-transparent text-gray-500'}`}>Scan QR</button>
+                                            <button
+                                                type="button"
+                                                onClick={() => switchMode('qr')}
+                                                className={`flex-1 border-b-2 py-3 text-sm font-medium ${modalMode === 'qr' ? 'border-[#3f6f3d] bg-white text-[#3f6f3d]' : 'border-transparent text-gray-500'}`}
+                                            >
+                                                Scan QR
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => switchMode('manual')}
+                                                className={`flex-1 border-b-2 py-3 text-sm font-medium ${modalMode === 'manual' ? 'border-[#3f6f3d] bg-white text-[#3f6f3d]' : 'border-transparent text-gray-500'}`}
+                                            >
+                                                Manual Entry
+                                            </button>
                                         </div>
 
-                                        <form onSubmit={handleProceedToReview} className="p-6 space-y-4">
+                                        <form
+                                            onSubmit={handleProceedToReview}
+                                            className="space-y-4 p-6"
+                                        >
                                             {modalMode === 'qr' ? (
                                                 <div className="space-y-4">
-                                                    <div className="py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 px-4">
-                                                        <p className="text-center text-sm text-gray-600 mb-1">
-                                                            Point the handheld 2D QR scanner at the resident's KaBarangay QR code.
-                                                            The scanner enters the code automatically.
+                                                    <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6">
+                                                        <p className="mb-1 text-center text-sm text-gray-600">
+                                                            Point the handheld
+                                                            2D QR scanner at the
+                                                            resident's
+                                                            KaBarangay QR code.
+                                                            The scanner enters
+                                                            the code
+                                                            automatically.
                                                         </p>
-                                                        <p className="text-center text-xs text-gray-500 mb-3">
-                                                            Scan the QR code — do not type or paste into this field.
+                                                        <p className="mb-3 text-center text-xs text-gray-500">
+                                                            Scan the QR code —
+                                                            do not type or paste
+                                                            into this field.
                                                         </p>
-                                                        <QrScanInput onScanned={handleQRCodeScanned} onEmpty={handleEmptyScan} loading={scanLoading} focusSignal={qrFocusSignal} />
+                                                        <QrScanInput
+                                                            onScanned={
+                                                                handleQRCodeScanned
+                                                            }
+                                                            onEmpty={
+                                                                handleEmptyScan
+                                                            }
+                                                            loading={
+                                                                scanLoading
+                                                            }
+                                                            focusSignal={
+                                                                qrFocusSignal
+                                                            }
+                                                        />
                                                     </div>
 
                                                     {scanError && (
-                                                        <div className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-                                                            <span>{scanError}</span>
+                                                        <div
+                                                            className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                                                            role="alert"
+                                                        >
+                                                            <span>
+                                                                {scanError}
+                                                            </span>
                                                             <button
                                                                 type="button"
-                                                                onClick={() => { setScanError(null); setQrFocusSignal((signal) => signal + 1); }}
+                                                                onClick={() => {
+                                                                    setScanError(
+                                                                        null,
+                                                                    );
+                                                                    setQrFocusSignal(
+                                                                        (
+                                                                            signal,
+                                                                        ) =>
+                                                                            signal +
+                                                                            1,
+                                                                    );
+                                                                }}
                                                                 className="shrink-0 rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
                                                             >
                                                                 Try again
@@ -1981,112 +3440,413 @@ export default function Dashboard({
                                                         </div>
                                                     )}
 
-                                                    {residentSource === 'qr' && data.resident_name !== '' && (
-                                                        <div className="rounded-md border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-800">
-                                                            <div className="flex items-center justify-between gap-3">
-                                                                <div>
-                                                                    <span className="inline-flex items-center rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">QR VERIFIED</span>
-                                                                    <p className="mt-1 font-semibold">{data.resident_name}</p>
-                                                                    <p className="text-xs text-green-700">Resident ID: {data.resident_id}</p>
+                                                    {residentSource === 'qr' &&
+                                                        data.resident_name !==
+                                                            '' && (
+                                                            <div className="rounded-md border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-800">
+                                                                <div className="flex items-center justify-between gap-3">
+                                                                    <div>
+                                                                        <span className="inline-flex items-center rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">
+                                                                            QR
+                                                                            VERIFIED
+                                                                        </span>
+                                                                        <p className="mt-1 font-semibold">
+                                                                            {
+                                                                                data.resident_name
+                                                                            }
+                                                                        </p>
+                                                                        <p className="text-xs text-green-700">
+                                                                            Resident
+                                                                            ID:{' '}
+                                                                            {
+                                                                                data.resident_id
+                                                                            }
+                                                                        </p>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setScanError(
+                                                                                null,
+                                                                            );
+                                                                            clearResidentIdentity();
+                                                                            setQrFocusSignal(
+                                                                                (
+                                                                                    signal,
+                                                                                ) =>
+                                                                                    signal +
+                                                                                    1,
+                                                                            );
+                                                                        }}
+                                                                        className="shrink-0 rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-800 hover:bg-green-100"
+                                                                    >
+                                                                        {
+                                                                            'Scan another'
+                                                                        }
+                                                                    </button>
                                                                 </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => { setScanError(null); clearResidentIdentity(); setQrFocusSignal((signal) => signal + 1); }}
-                                                                    className="shrink-0 rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-800 hover:bg-green-100"
-                                                                >
-                                                                    Scan another
-                                                                </button>
                                                             </div>
-                                                        </div>
-                                                    )}
+                                                        )}
 
                                                     <div className="grid grid-cols-2 gap-4">
                                                         {/* The Residency template prints no control number,
                                                             so the field is not shown for that certificate
                                                             type. */}
-                                                        {data.certificate_type !== RESIDENCY_TYPE && (
+                                                        {data.certificate_type !==
+                                                            RESIDENCY_TYPE && (
                                                             <div>
-                                                                <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Control No.</label>
-                                                                <input type="text" value={data.control_no} readOnly className="w-full px-3 py-2 border bg-gray-100 rounded-md text-sm" />
+                                                                <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                    Control No.
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={
+                                                                        data.control_no
+                                                                    }
+                                                                    readOnly
+                                                                    className="w-full rounded-md border bg-gray-100 px-3 py-2 text-sm"
+                                                                />
                                                             </div>
                                                         )}
                                                         <div>
-                                                            <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Resident Name</label>
-                                                            <input type="text" value={data.resident_name} readOnly placeholder="Scan a resident QR code to fill this" className="w-full px-3 py-2 border bg-gray-100 rounded-md text-sm" />
+                                                            <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                Resident Name
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={
+                                                                    data.resident_name
+                                                                }
+                                                                readOnly
+                                                                placeholder="Scan a resident QR code to fill this"
+                                                                className="w-full rounded-md border bg-gray-100 px-3 py-2 text-sm"
+                                                            />
                                                         </div>
                                                     </div>
 
                                                     <div>
-                                                        <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Certificate Type</label>
-                                                        <select value={data.certificate_type} onChange={e => handleCertificateTypeChange(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm bg-white">
-                                                            {certificateTypes.length === 0 && (
-                                                                <option value="">No certificate templates available</option>
-                                                            )}
-                                                            {certificateTypes.map((type) => (
-                                                                <option key={type.value} value={type.value} disabled={!type.available}>
-                                                                    {type.available ? type.value : `${type.value} (Coming Soon)`}
+                                                        <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                            Certificate Type
+                                                        </label>
+                                                        <select
+                                                            value={
+                                                                data.certificate_type
+                                                            }
+                                                            onChange={(e) =>
+                                                                handleCertificateTypeChange(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                                                        >
+                                                            {certificateTypes.length ===
+                                                                0 && (
+                                                                <option value="">
+                                                                    No
+                                                                    certificate
+                                                                    templates
+                                                                    available
                                                                 </option>
-                                                            ))}
+                                                            )}
+                                                            {certificateTypes.map(
+                                                                (type) => (
+                                                                    <option
+                                                                        key={
+                                                                            type.value
+                                                                        }
+                                                                        value={
+                                                                            type.value
+                                                                        }
+                                                                        disabled={
+                                                                            !type.available
+                                                                        }
+                                                                    >
+                                                                        {type.available
+                                                                            ? type.value
+                                                                            : `${type.value} (Coming Soon)`}
+                                                                    </option>
+                                                                ),
+                                                            )}
                                                         </select>
                                                     </div>
 
-                                                    {data.certificate_type === DELAYED_PSA_TYPE && renderDelayedPsaFields()}
+                                                    {data.certificate_type ===
+                                                        DELAYED_PSA_TYPE &&
+                                                        renderDelayedPsaFields()}
 
-                                                    {data.certificate_type === MARRIAGE_TYPE && renderMarriageFields()}
+                                                    {data.certificate_type ===
+                                                        MARRIAGE_TYPE &&
+                                                        renderMarriageFields()}
 
-                                                    {data.certificate_type === RESIDENCY_TYPE && renderResidencyFields()}
+                                                    {data.certificate_type ===
+                                                        RESIDENCY_TYPE &&
+                                                        renderResidencyFields()}
 
-                                                    {(data.certificate_type === 'Tricycle' || data.certificate_type === 'Sari-sari Store') && (
-                                                        <div className="p-4 bg-orange-50 border border-orange-100 rounded-lg space-y-3">
-                                                            <h4 className="text-xs font-bold text-orange-800 uppercase">Business & Franchise Details</h4>
-                                                            {data.certificate_type === 'Tricycle' && (
+                                                    {(data.certificate_type ===
+                                                        'Tricycle' ||
+                                                        data.certificate_type ===
+                                                            'Sari-sari Store') && (
+                                                        <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50 p-4">
+                                                            <h4 className="text-xs font-bold text-orange-800 uppercase">
+                                                                Business &
+                                                                Franchise
+                                                                Details
+                                                            </h4>
+                                                            {data.certificate_type ===
+                                                                'Tricycle' && (
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Franchise No.</label>
-                                                                    <input type="text" value={data.franchise_no} onChange={e => setData('franchise_no', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Franchise
+                                                                        No.
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.franchise_no
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'franchise_no',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        required
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                             )}
                                                             <div>
-                                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Business Name</label>
-                                                                <input type="text" value={data.business_name} onChange={e => setData('business_name', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                    Business
+                                                                    Name
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={
+                                                                        data.business_name
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        setData(
+                                                                            'business_name',
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                    required
+                                                                    className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                />
                                                             </div>
                                                             <div>
-                                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Business Address</label>
-                                                                <input type="text" value={data.business_address} onChange={e => setData('business_address', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                    Business
+                                                                    Address
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={
+                                                                        data.business_address
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        setData(
+                                                                            'business_address',
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                    required
+                                                                    className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                />
                                                             </div>
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === 'Scholarship Certificate' && (
-                                                        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg space-y-3">
-                                                            <h4 className="text-xs font-bold text-emerald-800 uppercase">Scholarship & Family Details</h4>
+                                                    {data.certificate_type ===
+                                                        'Scholarship Certificate' && (
+                                                        <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+                                                            <h4 className="text-xs font-bold text-emerald-800 uppercase">
+                                                                Scholarship &
+                                                                Family Details
+                                                            </h4>
                                                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                                                 <div className="sm:col-span-2">
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">School / Institution</label>
-                                                                    <input type="text" value={data.school_institution} onChange={e => setData('school_institution', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        School /
+                                                                        Institution
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.school_institution
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'school_institution',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Father's Name</label>
-                                                                    <input type="text" value={data.father_name} onChange={e => setData('father_name', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Father's
+                                                                        Name
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.father_name
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'father_name',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Father's Occupation</label>
-                                                                    <input type="text" value={data.father_occupation} onChange={e => setData('father_occupation', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Father's
+                                                                        Occupation
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.father_occupation
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'father_occupation',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Father's Monthly Income</label>
-                                                                    <input type="number" min="0" step="0.01" inputMode="decimal" value={data.father_monthly_income} onChange={e => setData('father_monthly_income', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Father's
+                                                                        Monthly
+                                                                        Income
+                                                                    </label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.01"
+                                                                        inputMode="decimal"
+                                                                        value={
+                                                                            data.father_monthly_income
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'father_monthly_income',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Mother's Name</label>
-                                                                    <input type="text" value={data.mother_name} onChange={e => setData('mother_name', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Mother's
+                                                                        Name
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.mother_name
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'mother_name',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Mother's Occupation</label>
-                                                                    <input type="text" value={data.mother_occupation} onChange={e => setData('mother_occupation', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Mother's
+                                                                        Occupation
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.mother_occupation
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'mother_occupation',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Mother's Monthly Income</label>
-                                                                    <input type="number" min="0" step="0.01" inputMode="decimal" value={data.mother_monthly_income} onChange={e => setData('mother_monthly_income', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Mother's
+                                                                        Monthly
+                                                                        Income
+                                                                    </label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.01"
+                                                                        inputMode="decimal"
+                                                                        value={
+                                                                            data.mother_monthly_income
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'mother_monthly_income',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2094,173 +3854,558 @@ export default function Dashboard({
 
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div>
-                                                            <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Fee (₱)</label>
-                                                            <input type="text" value={data.fee} readOnly className="w-full px-3 py-2 border bg-gray-100 rounded-md text-sm" />
+                                                            <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                Fee (₱)
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={data.fee}
+                                                                readOnly
+                                                                className="w-full rounded-md border bg-gray-100 px-3 py-2 text-sm"
+                                                            />
                                                         </div>
-                                                        {data.certificate_type !== DELAYED_PSA_TYPE && (
+                                                        {data.certificate_type !==
+                                                            DELAYED_PSA_TYPE && (
                                                             <div>
                                                                 {/* The Marriage Cohabitation and the Residency
                                                                     templates state their own purpose, so the
                                                                     generic purpose input is not collected for
                                                                     those certificate types. */}
-                                                                {data.certificate_type !== MARRIAGE_TYPE && (!isResidency) && (
-                                                                    <>
-                                                                        <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Purpose</label>
-                                                                        <input type="text" value={data.purpose} onChange={e => setData('purpose', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
-                                                                    </>
-                                                                )}
+                                                                {data.certificate_type !==
+                                                                    MARRIAGE_TYPE &&
+                                                                    (!isResidency) && (
+                                                                        <>
+                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                                Purpose
+                                                                            </label>
+                                                                            <input
+                                                                                type="text"
+                                                                                value={
+                                                                                    data.purpose
+                                                                                }
+                                                                                onChange={(
+                                                                                    e,
+                                                                                ) =>
+                                                                                    setData(
+                                                                                        'purpose',
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                    )
+                                                                                }
+                                                                                required
+                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                            />
+                                                                        </>
+                                                                    )}
                                                             </div>
                                                         )}
                                                     </div>
 
-                                                    {data.certificate_type === DELAYED_PSA_TYPE && (
+                                                    {data.certificate_type ===
+                                                        DELAYED_PSA_TYPE && (
                                                         <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
-                                                            The purpose of this certificate is fixed by the template: <strong>{DELAYED_PSA_PURPOSE}</strong>.
+                                                            The purpose of this
+                                                            certificate is fixed
+                                                            by the template:{' '}
+                                                            <strong>
+                                                                {
+                                                                    DELAYED_PSA_PURPOSE
+                                                                }
+                                                            </strong>
+                                                            .
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === MARRIAGE_TYPE && (
+                                                    {data.certificate_type ===
+                                                        MARRIAGE_TYPE && (
                                                         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
-                                                            The purpose of this certificate is fixed by the template: <strong>{MARRIAGE_PURPOSE}</strong>.
+                                                            The purpose of this
+                                                            certificate is fixed
+                                                            by the template:{' '}
+                                                            <strong>
+                                                                {
+                                                                    MARRIAGE_PURPOSE
+                                                                }
+                                                            </strong>
+                                                            .
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === RESIDENCY_TYPE && (
+                                                    {data.certificate_type ===
+                                                        RESIDENCY_TYPE && (
                                                         <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
-                                                            The purpose of this certificate is fixed by the template: <strong>{RESIDENCY_PURPOSE}</strong>
+                                                            The purpose of this
+                                                            certificate is fixed
+                                                            by the template:{' '}
+                                                            <strong>
+                                                                {
+                                                                    RESIDENCY_PURPOSE
+                                                                }
+                                                            </strong>
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type !== DELAYED_PSA_TYPE && (
-                                                        <div className="bg-blue-50 p-4 border border-blue-100 rounded-lg">
-                                                            {/* The Marriage Cohabitation and the Residency templates
-                                                                carry their own signature blocks, so no signatory
-                                                                is collected for those certificate types. */}
-                                                            {data.certificate_type !== MARRIAGE_TYPE && (!isResidency) && (
-                                                                <>
-                                                                    <label className="block text-xs font-semibold uppercase text-blue-800 mb-1">Signatory</label>
-                                                                    <select required value={data.signatory_name} onChange={e => handleSignatoryChange(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm bg-white">
-                                                                        <option value="">Select Signatory...</option>
-                                                                        {SIGNATORIES.map((sig, idx) => (
-                                                                            <option key={idx} value={sig.name}>{sig.name} - {sig.title}</option>
-                                                                        ))}
-                                                                    </select>
-                                                                </>
-                                                            )}
+                                                    {data.certificate_type !== '' && (
+                                                        <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                                                            <>
+                                                                        <label className="mb-1 block text-xs font-semibold text-blue-800 uppercase">
+                                                                            Signatory
+                                                                        </label>
+                                                                        <select
+                                                                            required
+                                                                            value={signatoryOptionValue(
+                                                                                data.signatory_name,
+                                                                                data.signatory_title,
+                                                                            )}
+                                                                            onChange={(
+                                                                                e,
+                                                                            ) =>
+                                                                                handleSignatoryChange(
+                                                                                    e
+                                                                                        .target
+                                                                                        .value,
+                                                                                )
+                                                                            }
+                                                                            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                                                                        >
+                                                                            <option value="">
+                                                                                Select
+                                                                                Signatory...
+                                                                            </option>
+            {signatories.map(
+                                                                                (
+                                                                                    sig,
+                                                                                    idx,
+                                                                                ) => (
+                                                                                    <option
+                                                                                        key={
+                                                                                            idx
+                                                                                        }
+                                                                                        value={signatoryOptionValue(
+                                                                                            sig.name,
+                                                                                            sig.title,
+                                                                                        )}
+                                                                                    >
+                                                                                        {
+                                                                                            sig.name
+                                                                                        }{' '}
+                                                                                        -{' '}
+                                                                                        {
+                                                                                            sig.title
+                                                                                        }
+                                                                                    </option>
+                                                                                ),
+                                                                            )}
+                                                                        </select>
+                                                            </>
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === DELAYED_PSA_TYPE && (
+                                                    {data.certificate_type ===
+                                                        DELAYED_PSA_TYPE && (
                                                         <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
-                                                            This certificate carries the Punong Barangay and Officer on Duty signature blocks, so no signatory selection is required.
+                                                            Select the signatory for this certificate from the published Barangay Organizational Chart.
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === MARRIAGE_TYPE && (
+                                                    {data.certificate_type ===
+                                                        MARRIAGE_TYPE && (
                                                         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
-                                                            This certificate carries the Punong Barangay and Officer on Duty signature blocks, so no signatory selection is required.
+                                                            Select the signatory for this certificate from the published Barangay Organizational Chart.
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === RESIDENCY_TYPE && (
+                                                    {data.certificate_type ===
+                                                        RESIDENCY_TYPE && (
                                                         <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
-                                                            This certificate carries the Punong Barangay and Officer on Duty signature blocks, so no signatory selection is required.
+                                                            Select the signatory for this certificate from the published Barangay Organizational Chart.
                                                         </div>
                                                     )}
                                                 </div>
                                             ) : (
                                                 <div className="space-y-4">
                                                     <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                                                        <span className="inline-flex items-center rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">MANUAL ENTRY</span>
-                                                        <span className="ml-2">Enter the resident's details below. This information is not QR-verified.</span>
+                                                        <span className="inline-flex items-center rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
+                                                            MANUAL ENTRY
+                                                        </span>
+                                                        <span className="ml-2">
+                                                            Enter the resident's
+                                                            details below. This
+                                                            information is not
+                                                            QR-verified.
+                                                        </span>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         {/* The Residency template prints no control number,
                                                             so the field is not shown for that certificate
                                                             type. */}
-                                                        {data.certificate_type !== RESIDENCY_TYPE && (
+                                                        {data.certificate_type !==
+                                                            RESIDENCY_TYPE && (
                                                             <div>
-                                                                <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Control No.</label>
-                                                                <input type="text" value={data.control_no} readOnly className="w-full px-3 py-2 border bg-gray-100 rounded-md text-sm" />
+                                                                <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                    Control No.
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={
+                                                                        data.control_no
+                                                                    }
+                                                                    readOnly
+                                                                    className="w-full rounded-md border bg-gray-100 px-3 py-2 text-sm"
+                                                                />
                                                             </div>
                                                         )}
                                                         <div>
-                                                            <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Resident Name</label>
-                                                            <input type="text" value={data.resident_name} onChange={e => { setData('resident_name', e.target.value); setResidentSource('manual'); }} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                            <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                Resident Name
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={
+                                                                    data.resident_name
+                                                                }
+                                                                onChange={(
+                                                                    e,
+                                                                ) => {
+                                                                    setData(
+                                                                        'resident_name',
+                                                                        e.target
+                                                                            .value,
+                                                                    );
+                                                                    setResidentSource(
+                                                                        'manual',
+                                                                    );
+                                                                }}
+                                                                required
+                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                            />
                                                         </div>
                                                     </div>
 
                                                     <div>
-                                                        <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Certificate Type</label>
-                                                        <select value={data.certificate_type} onChange={e => handleCertificateTypeChange(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm bg-white">
-                                                            {certificateTypes.length === 0 && (
-                                                                <option value="">No certificate templates available</option>
-                                                            )}
-                                                            {certificateTypes.map((type) => (
-                                                                <option key={type.value} value={type.value} disabled={!type.available}>
-                                                                    {type.available ? type.value : `${type.value} (Coming Soon)`}
+                                                        <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                            Certificate Type
+                                                        </label>
+                                                        <select
+                                                            value={
+                                                                data.certificate_type
+                                                            }
+                                                            onChange={(e) =>
+                                                                handleCertificateTypeChange(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                                                        >
+                                                            {certificateTypes.length ===
+                                                                0 && (
+                                                                <option value="">
+                                                                    No
+                                                                    certificate
+                                                                    templates
+                                                                    available
                                                                 </option>
-                                                            ))}
+                                                            )}
+                                                            {certificateTypes.map(
+                                                                (type) => (
+                                                                    <option
+                                                                        key={
+                                                                            type.value
+                                                                        }
+                                                                        value={
+                                                                            type.value
+                                                                        }
+                                                                        disabled={
+                                                                            !type.available
+                                                                        }
+                                                                    >
+                                                                        {type.available
+                                                                            ? type.value
+                                                                            : `${type.value} (Coming Soon)`}
+                                                                    </option>
+                                                                ),
+                                                            )}
                                                         </select>
                                                     </div>
 
-                                                    {data.certificate_type === DELAYED_PSA_TYPE && renderDelayedPsaFields()}
+                                                    {data.certificate_type ===
+                                                        DELAYED_PSA_TYPE &&
+                                                        renderDelayedPsaFields()}
 
-                                                    {data.certificate_type === MARRIAGE_TYPE && renderMarriageFields()}
+                                                    {data.certificate_type ===
+                                                        MARRIAGE_TYPE &&
+                                                        renderMarriageFields()}
 
-                                                    {data.certificate_type === RESIDENCY_TYPE && renderResidencyFields()}
+                                                    {data.certificate_type ===
+                                                        RESIDENCY_TYPE &&
+                                                        renderResidencyFields()}
 
-                                                    {(data.certificate_type === 'Tricycle' || data.certificate_type === 'Sari-sari Store') && (
-                                                        <div className="p-4 bg-orange-50 border border-orange-100 rounded-lg space-y-3">
-                                                            <h4 className="text-xs font-bold text-orange-800 uppercase">Business & Franchise Details</h4>
-                                                            {data.certificate_type === 'Tricycle' && (
+                                                    {(data.certificate_type ===
+                                                        'Tricycle' ||
+                                                        data.certificate_type ===
+                                                            'Sari-sari Store') && (
+                                                        <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50 p-4">
+                                                            <h4 className="text-xs font-bold text-orange-800 uppercase">
+                                                                Business &
+                                                                Franchise
+                                                                Details
+                                                            </h4>
+                                                            {data.certificate_type ===
+                                                                'Tricycle' && (
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Franchise No.</label>
-                                                                    <input type="text" value={data.franchise_no} onChange={e => setData('franchise_no', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Franchise
+                                                                        No.
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.franchise_no
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'franchise_no',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        required
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                             )}
                                                             <div>
-                                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Business Name</label>
-                                                                <input type="text" value={data.business_name} onChange={e => setData('business_name', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                    Business
+                                                                    Name
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={
+                                                                        data.business_name
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        setData(
+                                                                            'business_name',
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                    required
+                                                                    className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                />
                                                             </div>
                                                             <div>
-                                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Business Address</label>
-                                                                <input type="text" value={data.business_address} onChange={e => setData('business_address', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                    Business
+                                                                    Address
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={
+                                                                        data.business_address
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        setData(
+                                                                            'business_address',
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                    required
+                                                                    className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                />
                                                             </div>
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === 'Scholarship Certificate' && (
-                                                        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg space-y-3">
-                                                            <h4 className="text-xs font-bold text-emerald-800 uppercase">Scholarship & Family Details</h4>
+                                                    {data.certificate_type ===
+                                                        'Scholarship Certificate' && (
+                                                        <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+                                                            <h4 className="text-xs font-bold text-emerald-800 uppercase">
+                                                                Scholarship &
+                                                                Family Details
+                                                            </h4>
                                                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                                                 <div className="sm:col-span-2">
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">School / Institution</label>
-                                                                    <input type="text" value={data.school_institution} onChange={e => setData('school_institution', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        School /
+                                                                        Institution
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.school_institution
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'school_institution',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Father's Name</label>
-                                                                    <input type="text" value={data.father_name} onChange={e => setData('father_name', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Father's
+                                                                        Name
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.father_name
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'father_name',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Father's Occupation</label>
-                                                                    <input type="text" value={data.father_occupation} onChange={e => setData('father_occupation', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Father's
+                                                                        Occupation
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.father_occupation
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'father_occupation',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Father's Monthly Income</label>
-                                                                    <input type="number" min="0" step="0.01" inputMode="decimal" value={data.father_monthly_income} onChange={e => setData('father_monthly_income', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Father's
+                                                                        Monthly
+                                                                        Income
+                                                                    </label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.01"
+                                                                        inputMode="decimal"
+                                                                        value={
+                                                                            data.father_monthly_income
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'father_monthly_income',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Mother's Name</label>
-                                                                    <input type="text" value={data.mother_name} onChange={e => setData('mother_name', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Mother's
+                                                                        Name
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.mother_name
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'mother_name',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Mother's Occupation</label>
-                                                                    <input type="text" value={data.mother_occupation} onChange={e => setData('mother_occupation', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Mother's
+                                                                        Occupation
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            data.mother_occupation
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'mother_occupation',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Mother's Monthly Income</label>
-                                                                    <input type="number" min="0" step="0.01" inputMode="decimal" value={data.mother_monthly_income} onChange={e => setData('mother_monthly_income', e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        Mother's
+                                                                        Monthly
+                                                                        Income
+                                                                    </label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.01"
+                                                                        inputMode="decimal"
+                                                                        value={
+                                                                            data.mother_monthly_income
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'mother_monthly_income',
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                    />
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2268,122 +4413,695 @@ export default function Dashboard({
 
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div>
-                                                            <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Fee (₱)</label>
-                                                            <input type="text" value={data.fee} readOnly className="w-full px-3 py-2 border bg-gray-100 rounded-md text-sm" />
+                                                            <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                Fee (₱)
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={data.fee}
+                                                                readOnly
+                                                                className="w-full rounded-md border bg-gray-100 px-3 py-2 text-sm"
+                                                            />
                                                         </div>
-                                                        {data.certificate_type !== DELAYED_PSA_TYPE && (
+                                                        {data.certificate_type !==
+                                                            DELAYED_PSA_TYPE && (
                                                             <div>
                                                                 {/* The Marriage Cohabitation and the Residency
                                                                     templates state their own purpose, so the
                                                                     generic purpose input is not collected for
                                                                     those certificate types. */}
-                                                                {data.certificate_type !== MARRIAGE_TYPE && (!isResidency) && (
-                                                                    <>
-                                                                        <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Purpose</label>
-                                                                        <input type="text" value={data.purpose} onChange={e => setData('purpose', e.target.value)} required className="w-full px-3 py-2 border rounded-md text-sm" />
-                                                                    </>
-                                                                )}
+                                                                {data.certificate_type !==
+                                                                    MARRIAGE_TYPE &&
+                                                                    (!isResidency) && (
+                                                                        <>
+                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                                Purpose
+                                                                            </label>
+                                                                            <input
+                                                                                type="text"
+                                                                                value={
+                                                                                    data.purpose
+                                                                                }
+                                                                                onChange={(
+                                                                                    e,
+                                                                                ) =>
+                                                                                    setData(
+                                                                                        'purpose',
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                    )
+                                                                                }
+                                                                                required
+                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                            />
+                                                                        </>
+                                                                    )}
                                                             </div>
                                                         )}
                                                     </div>
 
-                                                    {data.certificate_type === DELAYED_PSA_TYPE && (
+                                                    {data.certificate_type ===
+                                                        DELAYED_PSA_TYPE && (
                                                         <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
-                                                            The purpose of this certificate is fixed by the template: <strong>{DELAYED_PSA_PURPOSE}</strong>.
+                                                            The purpose of this
+                                                            certificate is fixed
+                                                            by the template:{' '}
+                                                            <strong>
+                                                                {
+                                                                    DELAYED_PSA_PURPOSE
+                                                                }
+                                                            </strong>
+                                                            .
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === MARRIAGE_TYPE && (
+                                                    {data.certificate_type ===
+                                                        MARRIAGE_TYPE && (
                                                         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
-                                                            The purpose of this certificate is fixed by the template: <strong>{MARRIAGE_PURPOSE}</strong>.
+                                                            The purpose of this
+                                                            certificate is fixed
+                                                            by the template:{' '}
+                                                            <strong>
+                                                                {
+                                                                    MARRIAGE_PURPOSE
+                                                                }
+                                                            </strong>
+                                                            .
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === RESIDENCY_TYPE && (
+                                                    {data.certificate_type ===
+                                                        RESIDENCY_TYPE && (
                                                         <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
-                                                            The purpose of this certificate is fixed by the template: <strong>{RESIDENCY_PURPOSE}</strong>
+                                                            The purpose of this
+                                                            certificate is fixed
+                                                            by the template:{' '}
+                                                            <strong>
+                                                                {
+                                                                    RESIDENCY_PURPOSE
+                                                                }
+                                                            </strong>
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type !== DELAYED_PSA_TYPE && (
-                                                        <div className="bg-blue-50 p-4 border border-blue-100 rounded-lg">
-                                                            {/* The Marriage Cohabitation and the Residency templates
-                                                                carry their own signature blocks, so no signatory
-                                                                is collected for those certificate types. */}
-                                                            {data.certificate_type !== MARRIAGE_TYPE && (!isResidency) && (
-                                                                <>
-                                                                    <label className="block text-xs font-semibold uppercase text-blue-800 mb-1">Signatory</label>
-                                                                    <select required value={data.signatory_name} onChange={e => handleSignatoryChange(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm bg-white">
-                                                                        <option value="">Select Signatory...</option>
-                                                                        {SIGNATORIES.map((sig, idx) => (
-                                                                            <option key={idx} value={sig.name}>{sig.name} - {sig.title}</option>
-                                                                        ))}
-                                                                    </select>
-                                                                </>
-                                                            )}
+                                                    {data.certificate_type !== '' && (
+                                                        <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                                                            <>
+                                                                        <label className="mb-1 block text-xs font-semibold text-blue-800 uppercase">
+                                                                            Signatory
+                                                                        </label>
+                                                                        <select
+                                                                            required
+                                                                            value={signatoryOptionValue(
+                                                                                data.signatory_name,
+                                                                                data.signatory_title,
+                                                                            )}
+                                                                            onChange={(
+                                                                                e,
+                                                                            ) =>
+                                                                                handleSignatoryChange(
+                                                                                    e
+                                                                                        .target
+                                                                                        .value,
+                                                                                )
+                                                                            }
+                                                                            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                                                                        >
+                                                                            <option value="">
+                                                                                Select
+                                                                                Signatory...
+                                                                            </option>
+            {signatories.map(
+                                                                                (
+                                                                                    sig,
+                                                                                    idx,
+                                                                                ) => (
+                                                                                    <option
+                                                                                        key={
+                                                                                            idx
+                                                                                        }
+                                                                                        value={signatoryOptionValue(
+                                                                                            sig.name,
+                                                                                            sig.title,
+                                                                                        )}
+                                                                                    >
+                                                                                        {
+                                                                                            sig.name
+                                                                                        }{' '}
+                                                                                        -{' '}
+                                                                                        {
+                                                                                            sig.title
+                                                                                        }
+                                                                                    </option>
+                                                                                ),
+                                                                            )}
+                                                                        </select>
+                                                            </>
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === DELAYED_PSA_TYPE && (
+                                                    {data.certificate_type ===
+                                                        DELAYED_PSA_TYPE && (
                                                         <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
-                                                            This certificate carries the Punong Barangay and Officer on Duty signature blocks, so no signatory selection is required.
+                                                            Select the signatory for this certificate from the published Barangay Organizational Chart.
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === MARRIAGE_TYPE && (
+                                                    {data.certificate_type ===
+                                                        MARRIAGE_TYPE && (
                                                         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
-                                                            This certificate carries the Punong Barangay and Officer on Duty signature blocks, so no signatory selection is required.
+                                                            Select the signatory for this certificate from the published Barangay Organizational Chart.
                                                         </div>
                                                     )}
 
-                                                    {data.certificate_type === RESIDENCY_TYPE && (
+                                                    {data.certificate_type ===
+                                                        RESIDENCY_TYPE && (
                                                         <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
-                                                            This certificate carries the Punong Barangay and Officer on Duty signature blocks, so no signatory selection is required.
+                                                            Select the signatory for this certificate from the published Barangay Organizational Chart.
                                                         </div>
                                                     )}
                                                 </div>
                                             )}
 
-                                            <div className="flex justify-end pt-4 border-t mt-4">
-                                                <button type="submit" className="px-4 py-2 bg-[#3f6f3d] text-white rounded-md text-sm font-medium shadow-sm hover:bg-[#315b30]">
-                                                    Proceed to Text Preview &rarr;
+                                            <div className="mt-4 flex justify-end border-t pt-4">
+                                                <button
+                                                    type="submit"
+                                                    className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#315b30]"
+                                                >
+                                                    Proceed to Text Preview
+                                                    &rarr;
                                                 </button>
                                             </div>
                                         </form>
                                     </>
                                 ) : (
                                     /* STEP 2: PLAIN TEXT DOCUMENT PREVIEW */
-                                    <div className="p-6 bg-gray-100">
+                                    <div className="bg-gray-100 p-6">
                                         <div className="mx-auto mb-4 max-w-[500px]">
                                             {residentSource === 'qr' ? (
                                                 <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                                                    <span className="inline-flex items-center rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">QR VERIFIED</span>
-                                                    <span className="ml-2">Resident identity was confirmed by scanning a KaBarangay QR code.</span>
+                                                    <span className="inline-flex items-center rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">
+                                                        QR VERIFIED
+                                                    </span>
+                                                    <span className="ml-2">
+                                                        Resident identity was
+                                                        confirmed by scanning a
+                                                        KaBarangay QR code.
+                                                    </span>
                                                 </div>
                                             ) : (
                                                 <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                                                    <span className="inline-flex items-center rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">MANUAL ENTRY</span>
-                                                    <span className="ml-2">Resident details were entered manually and are not QR-verified.</span>
+                                                    <span className="inline-flex items-center rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
+                                                        MANUAL ENTRY
+                                                    </span>
+                                                    <span className="ml-2">
+                                                        Resident details were
+                                                        entered manually and are
+                                                        not QR-verified.
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="bg-white border border-gray-300 shadow-lg mx-auto p-8 rounded-sm font-serif text-gray-800 text-center max-w-[500px]">
-                                            <h2 className="text-xl font-bold tracking-[0.2em] mb-8">C E R T I F I C A T I O N</h2>
-                                            
+                                        <div className="certificate-print-page mx-auto box-border aspect-[210/297] w-full max-w-[210mm] overflow-y-auto rounded-sm border border-gray-300 bg-white p-6 text-center font-serif break-words text-gray-800 shadow-lg sm:p-8">
+                                            <p className="mb-2 text-right font-mono text-xs">Control No. {data.control_no}</p>
+                                            <h2 className="mb-8 text-xl font-bold tracking-[0.2em]">
+                                                C E R T I F I C A T I O N
+                                            </h2>
+
                                             {renderDocumentPreview()}
-                                            
                                         </div>
 
-                                        <div className="flex justify-between items-center mt-6">
-                                            <button type="button" onClick={() => setFormStep(1)} className="px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-md text-sm hover:bg-gray-50 shadow-sm">
+                                        <div className="mt-6 flex items-center justify-between">
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormStep(1)}
+                                                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50"
+                                            >
                                                 &larr; Back to Edit
                                             </button>
-                                            <button type="button" onClick={handleFinalSubmit} disabled={processing || !canIssueCertificate} className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md rounded-md text-sm font-bold ${processing || !canIssueCertificate ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                                Confirm & Download Original .docx
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button type="button" onClick={() => window.print()} className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Print Preview</button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleFinalSubmit}
+                                                    disabled={processing || !canIssueCertificate}
+                                                    className={`rounded-md bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:bg-blue-700 ${processing || !canIssueCertificate ? 'cursor-not-allowed opacity-50' : ''}`}
+                                                >
+                                                    Confirm & Download Original.docx
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                    </>
+                )}
+
+                {requestDetailsOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                        <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
+                            <div className="flex shrink-0 items-center justify-between bg-[#3f6f3d] px-6 py-4 text-white">
+                                <h3 className="text-lg font-bold">
+                                    Certificate Request Details
+                                </h3>
+                                <button
+                                    onClick={closeRequestDetails}
+                                    className="text-xl font-bold text-white/80 hover:text-white"
+                                    aria-label="Close request details"
+                                >
+                                    &times;
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-6">
+                                {requestDetailsLoading ? (
+                                    <p className="py-8 text-center text-sm text-[#8a7f6a]">
+                                        Loading request details...
+                                    </p>
+                                ) : requestDetailsError ? (
+                                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                        {requestDetailsError}
+                                    </div>
+                                ) : requestDetails ? (
+                                    <div className="space-y-5">
+                                        <div className="grid gap-3 text-sm sm:grid-cols-2">
+                                            <div>
+                                                <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Reference
+                                                </p>
+                                                <p className="font-mono font-medium text-gray-800">
+                                                    {requestDetails.reference}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Certificate
+                                                </p>
+                                                <p className="font-medium text-gray-800">
+                                                    {requestDetails.certificate}
+                                                </p>
+                                                {!requestDetails.template_available && (
+                                                    <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                                                        This active catalog service has no provisioned DOCX template yet. The request remains available for review, but issuance cannot be generated until a template is available.
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Resident
+                                                </p>
+                                                <p className="font-medium text-gray-800">
+                                                    {
+                                                        requestDetails.resident
+                                                            .name
+                                                    }
+                                                </p>
+                                                <p className="text-xs text-[#8a7f6a]">
+                                                    {requestDetails.resident
+                                                        .resident_number ?? '—'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Purpose
+                                                </p>
+                                                <p className="text-gray-800">
+                                                    {requestDetails.purpose ||
+                                                        '—'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Fee
+                                                </p>
+                                                <p className="text-gray-800">
+                                                    ₱{requestDetails.fee}
+                                                </p>
+                                            </div>
+
+                                            {requestDetails.issuance && (
+                                                <div className="rounded-md border border-teal-200 bg-teal-50 p-2.5 sm:col-span-2">
+                                                    <p className="text-[10px] font-semibold tracking-wide text-teal-800 uppercase">
+                                                        Certificate Issued
+                                                    </p>
+                                                    <p className="text-xs font-medium text-teal-900">
+                                                        Reference: <span className="font-mono">{requestDetails.issuance.reference}</span>
+                                                    </p>
+                                                    <p className="text-[11px] text-teal-700">
+                                                        Issued on {requestDetails.issuance.issued_at}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {(requestDetails.business_name ||
+                                            requestDetails.business_address) && (
+                                            <div className="rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-3">
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Business Details
+                                                </p>
+                                                <p className="text-sm text-gray-800">
+                                                    {requestDetails.business_name ||
+                                                        '—'}
+                                                </p>
+                                                <p className="text-sm text-gray-600">
+                                                    {requestDetails.business_address ||
+                                                        '—'}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {requestActionError && (
+                                            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                                {requestActionError}
+                                            </div>
+                                        )}
+
+                                        {requestActionSuccess && (
+                                            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                                                {requestActionSuccess}
+                                            </div>
+                                        )}
+
+                                        {/* WORKFLOW ACTIONS */}
+                                        <div className="rounded-md border border-[#3f6f3d]/30 bg-[#f7f5ee] p-3.5 shadow-sm">
+                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#3f6f3d] uppercase">
+                                                Workflow Action
+                                            </p>
+
+                                            {requestDetails.status === 'Pending' && (
+                                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                    <p className="text-xs text-gray-700">
+                                                        This request is pending review. Start processing to review details and issue the certificate.
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => void handleStartProcessing()}
+                                                        disabled={actionLoading}
+                                                        className="inline-flex shrink-0 items-center justify-center rounded-md bg-[#3f6f3d] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                                    >
+                                                        {actionLoading ? 'Updating...' : 'Start Processing'}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {(requestDetails.status === 'Processing' || requestDetails.status === 'Needs Action') && !requestDetails.issuance && (
+                                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                    <p className="text-xs text-gray-700">
+                                                        Review certificate details below, then generate and issue the official certificate.
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleInitiateIssuance(requestDetails)}
+                                                        className="inline-flex shrink-0 items-center justify-center rounded-md bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700"
+                                                    >
+                                                        Issue Certificate
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {requestDetails.status === 'For Payment' && (
+                                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                    <div>
+                                                        <p className="text-xs font-medium text-gray-800">
+                                                            Fee Due: ₱{requestDetails.fee}
+                                                        </p>
+                                                        <p className="text-[11px] text-gray-600">
+                                                            Confirm payment once collected from resident to mark ready for claim.
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => void handleConfirmPayment()}
+                                                        disabled={actionLoading}
+                                                        className="inline-flex shrink-0 items-center justify-center rounded-md bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    >
+                                                        {actionLoading ? 'Confirming...' : 'Confirm Payment Received'}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {requestDetails.status === 'Ready for Claim' && (
+                                                <div className="space-y-2">
+                                                    <p className="text-xs text-gray-700">
+                                                        Certificate has been issued and is ready for physical release to resident.
+                                                    </p>
+                                                    {!showReleaseConfirm ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowReleaseConfirm(true)}
+                                                            className="inline-flex items-center justify-center rounded-md bg-[#3f6f3d] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#315b30]"
+                                                        >
+                                                            Confirm Physical Handover (Release)
+                                                        </button>
+                                                    ) : (
+                                                        <div className="rounded-md border border-amber-300 bg-amber-50 p-2.5 space-y-2">
+                                                            <p className="text-xs font-medium text-amber-900">
+                                                                Confirm that the physical certificate was handed over to the resident?
+                                                            </p>
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => void handleConfirmRelease()}
+                                                                    disabled={actionLoading}
+                                                                    className="rounded bg-emerald-700 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+                                                                >
+                                                                    {actionLoading ? 'Releasing...' : 'Yes, Confirm Handover'}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowReleaseConfirm(false)}
+                                                                    className="rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {requestDetails.status === 'Released' && (
+                                                <p className="text-xs font-medium text-green-800">
+                                                    ✓ Certificate released and handed over to resident. Lifecycle is complete.
+                                                </p>
+                                            )}
+
+                                            {requestDetails.status === 'Rejected' && (
+                                                <p className="text-xs font-medium text-red-800">
+                                                    ✕ This certificate request was rejected.
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-3">
+                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                Processing Status
+                                            </p>
+                                            <div className="space-y-2">
+                                                <select
+                                                    aria-label="Certificate request status"
+                                                    value={statusDraft}
+                                                    onChange={(event) =>
+                                                        setStatusDraft(
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    className="w-full rounded-md border border-[#d8cdb8] bg-white px-3 py-2 text-sm outline-none focus:border-[#3f6f3d]"
+                                                >
+                                                    {requestDetails.allowed_statuses.map(
+                                                        (status) => (
+                                                            <option
+                                                                key={status}
+                                                                value={status}
+                                                            >
+                                                                {status}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                                <textarea
+                                                    rows={2}
+                                                    aria-label="Note shown to the resident"
+                                                    value={adminNoteDraft}
+                                                    onChange={(event) =>
+                                                        setAdminNoteDraft(
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    placeholder={
+                                                        statusDraft ===
+                                                        'Rejected'
+                                                            ? 'Reason for rejection (required)'
+                                                            : 'Optional note shown to the resident'
+                                                    }
+                                                    className="w-full rounded-md border border-[#d8cdb8] bg-white px-3 py-2 text-sm outline-none focus:border-[#3f6f3d]"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        void saveRequestStatus()
+                                                    }
+                                                    disabled={
+                                                        savingStatus ||
+                                                        statusDraft === ''
+                                                    }
+                                                    className="rounded-md bg-[#3f6f3d] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                                >
+                                                    {savingStatus
+                                                        ? 'Saving...'
+                                                        : 'Save Status'}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {requestDetails.details_fields.length >
+                                        0 ? (
+                                            <div>
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Reviewed Certificate Details
+                                                </p>
+                                                <div className="grid gap-3 rounded-md border border-[#e6ddcd] p-3 sm:grid-cols-2">
+                                                    {requestDetails.details_fields.map(
+                                                        (field) => (
+                                                            <label
+                                                                key={field.key}
+                                                                className="text-xs font-medium text-[#8a7f6a]"
+                                                            >
+                                                                {field.label}
+                                                                <input
+                                                                    type={
+                                                                        field.type
+                                                                    }
+                                                                    min={
+                                                                        field.min
+                                                                    }
+                                                                    max={
+                                                                        field.max
+                                                                    }
+                                                                    value={
+                                                                        detailDraft[
+                                                                            field
+                                                                                .key
+                                                                        ] ?? ''
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) =>
+                                                                        setDetailDraft(
+                                                                            (
+                                                                                current,
+                                                                            ) => ({
+                                                                                ...current,
+                                                                                [field.key]:
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                            }),
+                                                                        )
+                                                                    }
+                                                                    className="mt-1 w-full rounded-md border border-[#d8cdb8] bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#3f6f3d]"
+                                                                />
+                                                            </label>
+                                                        ),
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        void saveRequestDetails()
+                                                    }
+                                                    disabled={savingDetails}
+                                                    className="mt-2 rounded-md bg-[#3f6f3d] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                                >
+                                                    {savingDetails
+                                                        ? 'Saving...'
+                                                        : 'Save Details'}
+                                                </button>
+
+                                                {requestDetailsWereRevised &&
+                                                    requestDetails
+                                                        .original_details
+                                                        .length > 0 && (
+                                                        <div className="mt-3 rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-3">
+                                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                                Originally
+                                                                Submitted
+                                                            </p>
+                                                            <div className="divide-y divide-[#f0ebe1]">
+                                                                {requestDetails.original_details.map(
+                                                                    (
+                                                                        detail,
+                                                                    ) => (
+                                                                        <div
+                                                                            key={
+                                                                                detail.label
+                                                                            }
+                                                                            className="grid gap-1 py-1.5 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]"
+                                                                        >
+                                                                            <span className="text-[#8a7f6a]">
+                                                                                {
+                                                                                    detail.label
+                                                                                }
+                                                                            </span>
+                                                                            <span className="text-gray-800">
+                                                                                {
+                                                                                    detail.value
+                                                                                }
+                                                                            </span>
+                                                                        </div>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                            </div>
+                                        ) : requestDetails.details.length > 0 ? (
+                                            <div>
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Certificate Details
+                                                </p>
+                                                <div className="divide-y divide-[#f0ebe1] rounded-md border border-[#e6ddcd]">
+                                                    {requestDetails.details.map(
+                                                        (detail) => (
+                                                            <div
+                                                                key={
+                                                                    detail.label
+                                                                }
+                                                                className="grid gap-1 px-3 py-2 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]"
+                                                            >
+                                                                <span className="text-[#8a7f6a]">
+                                                                    {
+                                                                        detail.label
+                                                                    }
+                                                                </span>
+                                                                <span className="font-medium text-gray-800">
+                                                                    {
+                                                                        detail.value
+                                                                    }
+                                                                </span>
+                                                            </div>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : null}
+
+                                        {requestDetails.notes && (
+                                            <div>
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Resident Notes
+                                                </p>
+                                                <p className="rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-3 text-sm whitespace-pre-wrap text-gray-700">
+                                                    {requestDetails.notes}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
                     </div>

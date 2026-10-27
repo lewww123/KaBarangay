@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Barangay;
 use App\Models\CertificateIssuance;
+use App\Models\OrgChartPosition;
 use App\Support\CertificateTemplates;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -28,6 +29,14 @@ class ScholarshipCertificateIntegrationTest extends TestCase
         $this->withoutVite();
 
         $this->barangay = $this->createBarangay('Barangay One', 'BRGY-ONE');
+        $creator = $this->createStaff($this->barangay, 'clerk');
+        OrgChartPosition::create([
+            'barangay_id' => $this->barangay->id,
+            'title' => 'Punong Barangay',
+            'assigned_person' => 'HON. TEST',
+            'status' => 'published',
+            'created_by' => $creator->id,
+        ]);
     }
 
     public function test_scholarship_template_is_available_and_downloads(): void
@@ -55,15 +64,14 @@ class ScholarshipCertificateIntegrationTest extends TestCase
         $processor = new TemplateProcessor(CertificateTemplates::path('Scholarship Certificate'));
 
         $values = [
-            'resident_name' => 'JUAN DELA CRUZ',
+            "resident\u{2019}s_name" => 'JUAN DELA CRUZ',
             'purok' => 'PUROK 1',
-            'school_institution' => 'PPS NATIONAL HIGH SCHOOL',
+            'school/institution' => 'PPS NATIONAL HIGH SCHOOL',
             self::FATHER.'_name' => 'PEDRO DELA CRUZ',
             self::FATHER.'_occupation' => 'FARMER',
             self::FATHER.'_monthly_income' => '5000',
             self::MOTHER.'_name' => 'MARIA DELA CRUZ',
             self::MOTHER.'_occupation' => 'HOUSEWIFE',
-            self::MOTHER.'_monthly_income' => '0',
             'purpose' => 'EDUCATIONAL ASSISTANCE',
             'current_date' => '1st day of January 2026',
             'signatory_name' => 'HON. TEST',
@@ -103,13 +111,12 @@ class ScholarshipCertificateIntegrationTest extends TestCase
 
         // Blank-safe: every Scholarship-specific field empty.
         $values = [
-            'school_institution' => '',
+            'school/institution' => '',
             self::FATHER.'_name' => '',
             self::FATHER.'_occupation' => '',
             self::FATHER.'_monthly_income' => '',
             self::MOTHER.'_name' => '',
             self::MOTHER.'_occupation' => '',
-            self::MOTHER.'_monthly_income' => '',
         ];
 
         foreach ($values as $key => $value) {
@@ -179,7 +186,11 @@ class ScholarshipCertificateIntegrationTest extends TestCase
 
     public function test_scholarship_form_fields_are_gated_and_wired(): void
     {
-        $source = (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx'));
+        $source = (string) preg_replace(
+            '/\s+/',
+            ' ',
+            (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx')),
+        );
 
         // Fields only appear for Scholarship.
         $this->assertStringContainsString(
@@ -215,7 +226,11 @@ class ScholarshipCertificateIntegrationTest extends TestCase
 
     public function test_scholarship_preview_branch_uses_template_wording_and_no_placeholders(): void
     {
-        $source = (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx'));
+        $source = (string) preg_replace(
+            '/\s+/',
+            ' ',
+            (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx')),
+        );
 
         // The Scholarship preview branch reflects the DOCX wording.
         $this->assertStringContainsString('INDIGENT CERTIFICATE', $source);
@@ -240,24 +255,24 @@ class ScholarshipCertificateIntegrationTest extends TestCase
             self::FATHER.'_monthly_income',
             self::FATHER.'_name',
             self::FATHER.'_occupation',
-            self::MOTHER.'_monthly_income',
             self::MOTHER.'_name',
             self::MOTHER.'_occupation',
             'purok',
             'purpose',
-            'resident_name',
-            'school_institution',
+            "resident\u{2019}s_name",
+            'school/institution',
             'signatory_name',
         ];
         sort($expected);
 
         $this->assertSame($expected, $variables);
 
-        // The old slash key must be gone and the six curly-apostrophe keys kept.
+        // The current template uses the slash key and omits mother's monthly income.
         $xml = $this->archiveDocumentXml(CertificateTemplates::path('Scholarship Certificate'));
         $this->assertNotFalse($xml);
-        $this->assertStringNotContainsString('${school/institution}', $xml);
-        $this->assertStringContainsString('${school_institution}', $xml);
+        $this->assertStringContainsString('${school/institution}', $xml);
+        $this->assertStringNotContainsString('${school_institution}', $xml);
+        $this->assertStringNotContainsString('${mother’s_monthly_income}', $xml);
     }
 
     private function requireScholarshipTemplate(): void
@@ -269,7 +284,7 @@ class ScholarshipCertificateIntegrationTest extends TestCase
 
     private function archiveDocumentXml(string $path): string|false
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($path) !== true) {
             return false;

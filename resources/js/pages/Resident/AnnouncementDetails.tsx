@@ -5,17 +5,25 @@ import ResidentLayout from '@/layouts/ResidentLayout';
 
 interface Props {
     announcement: AnnouncementDetailsRecord;
+    kind?: 'announcements' | 'updates';
+    period?: 'current' | 'past';
 }
 
-export default function ResidentAnnouncementDetails({ announcement }: Props) {
+export default function ResidentAnnouncementDetails({
+    announcement,
+    kind = 'announcements',
+    period = 'current',
+}: Props) {
+    const isUpdates = kind === 'updates';
+
     return (
-        <ResidentLayout active="announcements">
+        <ResidentLayout active={isUpdates ? 'updates' : 'announcements'}>
             <Head title={announcement.title} />
 
             <div className="mx-auto max-w-4xl">
                 <AnnouncementDetails
                     announcement={announcement}
-                    backHref="/resident/announcements"
+                    backHref={isUpdates ? `/resident/updates?period=${period}` : '/resident/announcements'}
                 />
             </div>
         </ResidentLayout>

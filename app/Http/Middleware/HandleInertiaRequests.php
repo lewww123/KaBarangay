@@ -44,8 +44,10 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
+                'warning' => fn () => $request->session()->get('warning'),
                 'error' => fn () => $request->session()->get('error'),
                 'info' => fn () => $request->session()->get('info'),
+                'attendance_outcome' => fn () => $request->session()->get('attendance_outcome'),
             ],
             // Certificate types and whether an approved template is available.
             // Drives the "Coming Soon" state in the clerk certificate form.

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class RegistrationDocument extends Model
 {
@@ -21,6 +22,8 @@ class RegistrationDocument extends Model
         'file_size',
         'sha256',
         'verification_status',
+        'supersedes_document_id',
+        'superseded_at',
         'review_notes',
         'verified_by',
         'verified_at',
@@ -36,6 +39,7 @@ class RegistrationDocument extends Model
         return [
             'file_size' => 'integer',
             'verified_at' => 'datetime',
+            'superseded_at' => 'datetime',
         ];
     }
 
@@ -55,5 +59,15 @@ class RegistrationDocument extends Model
     public function verifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function supersedes(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'supersedes_document_id');
+    }
+
+    public function successor(): HasOne
+    {
+        return $this->hasOne(self::class, 'supersedes_document_id');
     }
 }

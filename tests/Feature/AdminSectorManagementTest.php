@@ -61,9 +61,6 @@ class AdminSectorManagementTest extends TestCase
             $user = $this->createStaff($this->barangay, $role);
 
             $this->actingAs($user)->get('/admin/sectors')->assertStatus(403);
-            $this->actingAs($user)->post('/admin/sectors', [
-                'name' => 'Injected',
-            ])->assertStatus(403);
         }
     }
 
@@ -126,157 +123,32 @@ class AdminSectorManagementTest extends TestCase
 
     /*
     |--------------------------------------------------------------------------
-    | Create
+    | Retired Sector Definitions CRUD Routes
     |--------------------------------------------------------------------------
+    |
+    | Per approved scope, the Sector Definitions CRUD endpoints (POST /admin/sectors
+    | and PUT /admin/sectors/{sector}) have been intentionally removed and are
+    | unavailable.
+    |
     */
 
-    public function test_admin_can_create_sector_with_explicit_slug(): void
+    public function test_sector_definitions_write_routes_are_unavailable(): void
     {
         $admin = $this->createStaff($this->barangay, 'admin');
+        $sector = $this->createSector('Senior Citizen', 'senior');
 
         $this->actingAs($admin)
             ->post('/admin/sectors', [
                 'name' => 'Solo Parent',
                 'slug' => 'solo-parent',
-                'requires_proof' => true,
-                'is_active' => true,
             ])
-            ->assertRedirect();
-
-        $this->assertDatabaseHas('sectors', [
-            'name' => 'Solo Parent',
-            'slug' => 'solo-parent',
-            'requires_proof' => true,
-            'is_active' => true,
-        ]);
-    }
-
-    public function test_admin_can_create_sector_with_auto_generated_slug(): void
-    {
-        $admin = $this->createStaff($this->barangay, 'admin');
-
-        $this->actingAs($admin)
-            ->post('/admin/sectors', [
-                'name' => 'Out of School Youth',
-                'slug' => '',
-                'requires_proof' => false,
-                'is_active' => true,
-            ])
-            ->assertRedirect();
-
-        $this->assertDatabaseHas('sectors', [
-            'name' => 'Out of School Youth',
-            'slug' => 'out-of-school-youth',
-            'requires_proof' => false,
-        ]);
-    }
-
-    public function test_create_rejects_duplicate_slug(): void
-    {
-        $admin = $this->createStaff($this->barangay, 'admin');
-        $this->createSector('Senior Citizen', 'senior');
-
-        $this->actingAs($admin)
-            ->from('/admin/sectors')
-            ->post('/admin/sectors', [
-                'name' => 'Senior Duplicate',
-                'slug' => 'senior',
-            ])
-            ->assertSessionHasErrors('slug');
-    }
-
-    public function test_create_rejects_invalid_slug_format(): void
-    {
-        $admin = $this->createStaff($this->barangay, 'admin');
-
-        $this->actingAs($admin)
-            ->from('/admin/sectors')
-            ->post('/admin/sectors', [
-                'name' => 'Bad Slug',
-                'slug' => 'Bad Slug!',
-            ])
-            ->assertSessionHasErrors('slug');
-    }
-
-    public function test_create_requires_name(): void
-    {
-        $admin = $this->createStaff($this->barangay, 'admin');
-
-        $this->actingAs($admin)
-            ->from('/admin/sectors')
-            ->post('/admin/sectors', [
-                'name' => '',
-            ])
-            ->assertSessionHasErrors('name');
-    }
-
-    public function test_create_rejects_name_that_cannot_produce_a_slug(): void
-    {
-        $admin = $this->createStaff($this->barangay, 'admin');
-
-        $this->actingAs($admin)
-            ->from('/admin/sectors')
-            ->post('/admin/sectors', [
-                'name' => '###',
-                'slug' => '',
-            ])
-            ->assertSessionHasErrors('slug');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Update
-    |--------------------------------------------------------------------------
-    */
-
-    public function test_admin_can_update_sector_name_and_flags(): void
-    {
-        $admin = $this->createStaff($this->barangay, 'admin');
-        $sector = $this->createSector('Senior Citizen', 'senior');
+            ->assertStatus(405);
 
         $this->actingAs($admin)
             ->put("/admin/sectors/{$sector->id}", [
-                'name' => 'Senior Citizens',
-                'requires_proof' => false,
-                'is_active' => false,
+                'name' => 'Renamed Sector',
             ])
-            ->assertRedirect();
-
-        $sector->refresh();
-
-        $this->assertSame('Senior Citizens', $sector->name);
-        $this->assertFalse($sector->requires_proof);
-        $this->assertFalse($sector->is_active);
-    }
-
-    public function test_update_does_not_change_slug(): void
-    {
-        $admin = $this->createStaff($this->barangay, 'admin');
-        $sector = $this->createSector('Senior Citizen', 'senior');
-
-        $this->actingAs($admin)
-            ->put("/admin/sectors/{$sector->id}", [
-                'name' => 'Senior Citizen',
-                'slug' => 'renamed',
-                'requires_proof' => true,
-                'is_active' => true,
-            ])
-            ->assertRedirect();
-
-        $this->assertSame('senior', $sector->refresh()->slug);
-    }
-
-    public function test_update_requires_name(): void
-    {
-        $admin = $this->createStaff($this->barangay, 'admin');
-        $sector = $this->createSector('Senior Citizen', 'senior');
-
-        $this->actingAs($admin)
-            ->from('/admin/sectors')
-            ->put("/admin/sectors/{$sector->id}", [
-                'name' => '',
-            ])
-            ->assertSessionHasErrors('name');
+            ->assertStatus(404);
     }
 
     /*
@@ -300,15 +172,10 @@ class AdminSectorManagementTest extends TestCase
 
     public function test_deactivating_senior_sector_removes_it_from_registration(): void
     {
-        $admin = $this->createStaff($this->barangay, 'admin');
         $senior = $this->createSector('Senior Citizen', 'senior');
         $this->createSector('Person with Disability (PWD)', 'pwd');
 
-        $this->actingAs($admin)->put("/admin/sectors/{$senior->id}", [
-            'name' => 'Senior Citizen',
-            'requires_proof' => true,
-            'is_active' => false,
-        ])->assertRedirect();
+        $senior->update(['is_active' => false]);
 
         $this->get('/resident/register')
             ->assertOk()
@@ -1216,7 +1083,8 @@ class AdminSectorManagementTest extends TestCase
     {
         $this->assertSame(
             [
-                'Sector Definitions',
+                'Sector Applications',
+                'General Resident',
                 'PWD Members',
                 'Senior Citizens',
                 'Certificates',
@@ -1231,49 +1099,30 @@ class AdminSectorManagementTest extends TestCase
     {
         $labels = $this->sectorTabLabels();
 
-        // The removed tab was labelled "Residents" (previously rendered as a
-        // "Resident Snapshot"). Asserting against the navigation labels only
-        // means legitimate mentions of "residents" elsewhere on the page (for
-        // example the PWD or Senior member lists) can neither satisfy nor break
-        // this check.
+        // Old standalone "Residents" tab must remain absent
         $this->assertNotContains('Residents', $labels);
-        $this->assertNotContains('General Residents', $labels);
 
         $source = $this->sectorPageSource();
 
-        // The removed tab must not reappear as a content block or tab
-        // identifier. These are exact literals, so unrelated prose that merely
-        // contains the word "residents" is not affected.
         $this->assertStringNotContainsString("activeTab === 'Residents'", $source);
-        $this->assertStringNotContainsString("activeTab === 'general'", $source);
     }
 
-    public function test_sector_definitions_is_the_default_tab(): void
+    public function test_general_resident_is_the_default_tab(): void
     {
-        // Pins the exact tab union and the default selection. Reintroducing a
-        // Residents-style tab identifier to the union would break this.
-        $this->assertMatchesRegularExpression(
-            "/useState<\s*'sectors'\s*\|\s*'pwd'\s*\|\s*'senior'\s*\|\s*'certificates'\s*\|\s*'lupon'\s*>\('sectors'\)/",
-            $this->sectorPageSource()
-        );
+        $source = $this->sectorPageSource();
+
+        $this->assertStringContainsString("initialTab = 'general'", $source);
+        $this->assertStringContainsString('useState<ActiveTab>(validInitialTab)', $source);
     }
 
-    public function test_lupon_tab_shows_count_unavailable_without_fake_counts(): void
+    public function test_lupon_tab_shows_summary_metrics_and_confidentiality_notice(): void
     {
         $block = $this->tabBlock('lupon');
 
-        $normalized = (string) preg_replace('/\s+/', ' ', $block);
-
-        $this->assertStringContainsString(
-            'Lupon case counts are unavailable because case records are not yet connected.',
-            $normalized
-        );
-
-        // No bound value, count expression, or interpolated metric.
-        $this->assertStringNotContainsString('{certificates', $block);
-        $this->assertStringNotContainsString('{stats', $block);
-        $this->assertStringNotContainsString('count(', $block);
-        $this->assertStringNotContainsString('value=', $block);
+        $this->assertStringContainsString('Lupong Tagapamayapa Confidentiality Notice', $block);
+        $this->assertStringContainsString('{luponSummary.open}', $block);
+        $this->assertStringContainsString('{luponSummary.closed}', $block);
+        $this->assertStringContainsString('{luponSummary.total}', $block);
     }
 
     public function test_lupon_tab_exposes_no_case_management_actions(): void
@@ -1336,7 +1185,6 @@ class AdminSectorManagementTest extends TestCase
 
         $entries = [
             '/admin' => 'Overview',
-            '/admin/announcements/approvals' => 'Announcements',
             '/admin/residents' => 'Residents',
             '/admin/qr-scanner' => 'QR Scanner',
             '/admin/sectors' => 'Sectors',
@@ -2045,7 +1893,7 @@ class AdminSectorManagementTest extends TestCase
         $end = strpos($source, '{activeTab ===', $start + 1);
 
         if ($end === false) {
-            $end = strpos($source, '{showModal', $start + 1);
+            $end = strpos($source, '</AdminLayout>', $start + 1);
         }
 
         $this->assertNotFalse($end, "Tab block [{$tab}] end marker was not found.");
@@ -2093,5 +1941,13 @@ class AdminSectorManagementTest extends TestCase
             'status' => $status,
             'submitted_at' => now(),
         ]);
+    }
+    public function test_program_approvals_entry_removed_from_admin_sidebar(): void
+    {
+        $source = file_get_contents(resource_path('js/layouts/AdminLayout.tsx'));
+
+        $this->assertIsString($source);
+        $this->assertStringNotContainsString('/admin/announcements/approvals', $source);
+        $this->assertStringNotContainsString('Program Approvals', $source);
     }
 }

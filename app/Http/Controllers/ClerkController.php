@@ -18,17 +18,26 @@ class ClerkController extends Controller
             abort(403, 'Unauthorized access to General Clerk Portal.');
         }
 
+        // The authenticated staff record is the authority for dashboard scope.
+        // A missing barangay_id therefore matches no announcements.
+        $announcements = Announcement::query()
+            ->where('barangay_id', $user->barangay_id);
+
         return Inertia::render('Clerk/Dashboard', [
             'userName' => $user->name,
             'stats' => [
                 'totalResidents' => Resident::where('status', 'active')
                     ->where('barangay_id', $user->barangay_id)
                     ->count(),
-                'totalAnnouncements' => Announcement::count(),
-                'pendingAnnouncements' => Announcement::where('approval_status', 'pending')->count(),
-                'approvedAnnouncements' => Announcement::where('approval_status', 'approved')->count(),
+                'totalAnnouncements' => (clone $announcements)->count(),
+                'pendingAnnouncements' => (clone $announcements)
+                    ->where('approval_status', 'pending')
+                    ->count(),
+                'approvedAnnouncements' => (clone $announcements)
+                    ->where('approval_status', 'approved')
+                    ->count(),
             ],
-            'recentAnnouncements' => Announcement::latest()
+            'recentAnnouncements' => (clone $announcements)->latest()
                 ->take(5)
                 ->get(['id', 'title', 'category', 'approval_status', 'is_published', 'created_at'])
                 ->map(fn (Announcement $announcement) => [

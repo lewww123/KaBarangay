@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     FormEvent,
     ReactNode,
@@ -6,6 +6,7 @@ import {
     useRef,
     useState,
 } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import AdminLayout from '@/layouts/AdminLayout';
 
 type Sector = {
@@ -23,6 +24,9 @@ type RegistrationDocument = {
     verification_status: string;
     url: string;
     is_image: boolean;
+    is_superseded?: boolean;
+    superseded_at?: string | null;
+    sector_slug?: string | null;
 };
 
 type PendingRegistration = {
@@ -47,12 +51,29 @@ type PendingRegistration = {
     review_notes?: string | null;
     reviewed_at?: string | null;
     last_resubmitted_at?: string | null;
+    correction_field_options?: string[];
+    correction_document_options?: string[];
+};
+
+type ResidentCandidate = {
+    id: number;
+    resident_number: string;
+    full_name: string;
+    birthdate: string | null;
+    sex: string | null;
+    purok: string | null;
+    email: string | null;
+    status: string;
+    account_exists: boolean;
+    account_active: boolean;
+    qr_suggested?: boolean;
 };
 
 type Stats = {
     totalResidents: number;
     activeResidents: number;
     pendingRegistrations: number;
+    pendingClaims: number;
 };
 
 type Purok = {
@@ -73,7 +94,7 @@ type Paginator<T> = {
 };
 
 type AllResidentRow = {
-    type: 'resident' | 'registration';
+    type: 'resident';
     id: number;
     reference: string;
     fullName: string;
@@ -86,6 +107,7 @@ type AllResidentRow = {
 };
 
 type ResidentDetails = {
+    id: number;
     resident_number: string;
     first_name: string;
     middle_name: string | null;
@@ -97,10 +119,13 @@ type ResidentDetails = {
     address_line: string | null;
     mobile: string | null;
     email: string | null;
+    email_verified: boolean;
     status: string;
+    source: string;
     approved_at: string | null;
     barangay: string | null;
     purok: string | null;
+    account_exists: boolean;
     account_active: boolean;
     sectors: Sector[];
 };
@@ -121,11 +146,33 @@ type RegistrationDetails = {
     review_notes: string | null;
     submitted_at: string | null;
     reviewed_at: string | null;
+    reviewer: string | null;
+    matched_at: string | null;
     last_resubmitted_at: string | null;
     barangay: string | null;
     purok: string | null;
     sectors: Sector[];
     documents: RegistrationDocument[];
+    matched_resident: {
+        id: number;
+        resident_number: string;
+        full_name: string;
+        birthdate: string | null;
+        email: string | null;
+        status: string;
+        purok: string | null;
+        account_exists: boolean;
+        account_active: boolean;
+    } | null;
+    correction_cycles?: Array<{
+        cycle_number: number;
+        instructions: string;
+        field_targets: string[];
+        document_targets: string[];
+        reviewer: string | null;
+        requested_at: string | null;
+        resubmitted_at: string | null;
+    }>;
 };
 
 type DetailsTarget = 'resident' | 'registration';
@@ -144,7 +191,7 @@ type Props = {
     needsCorrectionRegistrations?: Paginator<PendingRegistration>;
     rejectedRegistrations?: Paginator<PendingRegistration>;
     puroks?: Purok[];
-    residents?: Paginator<Resident>;
+    addedByAdmin?: Paginator<Resident>;
     filters?: {
         resident_search?: string;
         registration_search?: string;
@@ -154,7 +201,12 @@ type Props = {
     flash?: { success?: string | null; error?: string | null };
 };
 
-type Tab = 'all' | 'pending' | 'approved' | 'needs_correction' | 'rejected';
+type Tab =
+    | 'all'
+    | 'added_by_admin'
+    | 'pending'
+    | 'needs_correction'
+    | 'rejected';
 
 type ResidentStatus = 'active' | 'inactive';
 
@@ -166,7 +218,10 @@ type Resident = {
     purok: string;
     sectors: Sector[];
     status: ResidentStatus;
+    source: string;
+    accountExists: boolean;
     accountActive: boolean;
+    emailVerified: boolean;
     qrStatus: 'active' | 'revoked' | 'none';
 };
 
@@ -193,7 +248,7 @@ const RESIDENT_PARTIAL_PROPS = [
     'pendingRegistrations',
     'needsCorrectionRegistrations',
     'rejectedRegistrations',
-    'residents',
+    'addedByAdmin',
     'filters',
 ];
 
@@ -203,12 +258,13 @@ export default function Residents({
     needsCorrectionRegistrations,
     rejectedRegistrations,
     puroks = [],
-    residents,
+    addedByAdmin,
     filters,
     stats = {
         totalResidents: 0,
         activeResidents: 0,
         pendingRegistrations: 0,
+        pendingClaims: 0,
     },
     flash,
 }: Props) {
@@ -217,7 +273,8 @@ export default function Residents({
     const selectedPurokId =
         typeof filters?.purok_id === 'number' ? filters.purok_id : null;
 
-    const paginator: ResidentPaginator = residents ?? emptyPaginator<Resident>();
+    const addedByAdminPaginator: ResidentPaginator =
+        addedByAdmin ?? emptyPaginator<Resident>();
 
     const allPaginator: AllResidentsPaginator =
         allResidents ?? emptyPaginator<AllResidentRow>();
@@ -243,8 +300,8 @@ export default function Residents({
         ? rejectedPaginator.data
         : [];
 
-    const approvedResidents = Array.isArray(paginator.data)
-        ? paginator.data
+    const adminAddedResidents = Array.isArray(addedByAdminPaginator.data)
+        ? addedByAdminPaginator.data
         : [];
 
     const [activeTab, setActiveTab] = useState<Tab>('all');
@@ -255,6 +312,8 @@ export default function Residents({
         filters?.resident_search ?? '',
     );
     const [selectedApplication, setSelectedApplication] =
+        useState<PendingRegistration | null>(null);
+    const [correctingApplication, setCorrectingApplication] =
         useState<PendingRegistration | null>(null);
     const [rejectingApplication, setRejectingApplication] =
         useState<PendingRegistration | null>(null);
@@ -269,6 +328,21 @@ export default function Residents({
 
     const [details, setDetails] = useState<DetailsState | null>(null);
     const detailsRequestId = useRef(0);
+
+    const [showCreateResident, setShowCreateResident] = useState(false);
+    const createResidentForm = useForm({
+        purok_id: '',
+        first_name: '',
+        middle_name: '',
+        last_name: '',
+        suffix: '',
+        birthdate: '',
+        sex: '',
+        civil_status: '',
+        address_line: '',
+        mobile: '',
+        email: '',
+    });
 
     const lastQueried = useRef(filters?.resident_search ?? '');
     const lastQueriedRegistration = useRef(
@@ -289,7 +363,7 @@ export default function Residents({
                 resident_search: approvedSearch.trim() || undefined,
                 registration_search: registrationSearch.trim() || undefined,
                 purok: selectedPurokId ?? undefined,
-                page: paginator.current_page,
+                added_page: addedByAdminPaginator.current_page,
                 all_page: allPaginator.current_page,
                 pending_page: pendingPaginator.current_page,
                 needs_correction_page: needsCorrectionPaginator.current_page,
@@ -306,7 +380,7 @@ export default function Residents({
     };
 
     useEffect(() => {
-        if (activeTab !== 'approved' && activeTab !== 'all') {
+        if (activeTab !== 'added_by_admin' && activeTab !== 'all') {
             return;
         }
 
@@ -317,14 +391,14 @@ export default function Residents({
         const timer = window.setTimeout(() => {
             lastQueried.current = approvedSearch;
 
-            navigateResidentsWith({ page: 1, all_page: 1 });
+            navigateResidentsWith({ all_page: 1, added_page: 1 });
         }, 300);
 
         return () => window.clearTimeout(timer);
     }, [approvedSearch, activeTab, filters?.purok_id]);
 
     useEffect(() => {
-        if (activeTab === 'all' || activeTab === 'approved') {
+        if (activeTab === 'all' || activeTab === 'added_by_admin') {
             return;
         }
 
@@ -364,8 +438,8 @@ export default function Residents({
 
         navigateResidentsWith({
             purok: purokId ?? undefined,
-            page: 1,
             all_page: 1,
+            added_page: 1,
             pending_page: 1,
             needs_correction_page: 1,
             rejected_page: 1,
@@ -402,13 +476,23 @@ export default function Residents({
                 Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
             },
+            credentials: 'same-origin',
         })
             .then(async (response) => {
                 if (!response.ok) {
-                    throw new Error('Request failed');
+                    throw new Error(`Could not load these details (HTTP ${response.status}).`);
                 }
 
-                return response.json();
+                const payload = await response.json();
+                if (
+                    !payload ||
+                    payload.type !== type ||
+                    !payload.data ||
+                    typeof payload.data !== 'object'
+                ) {
+                    throw new Error('The server returned details in an unexpected format.');
+                }
+                return payload;
             })
             .then((payload) => {
                 if (requestId !== detailsRequestId.current) {
@@ -429,14 +513,16 @@ export default function Residents({
                             : null,
                 });
             })
-            .catch(() => {
+            .catch((error: unknown) => {
                 if (requestId !== detailsRequestId.current) {
                     return;
                 }
 
                 setDetails({
                     loading: false,
-                    error: 'Unable to load the details for this record. Please try again.',
+                    error: error instanceof Error
+                        ? error.message
+                        : 'Unable to load the details for this record. Please try again.',
                     type,
                     resident: null,
                     registration: null,
@@ -562,6 +648,18 @@ export default function Residents({
         );
     };
 
+    const submitCreateResident = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        createResidentForm.post('/admin/residents', {
+            preserveScroll: true,
+            onSuccess: () => {
+                createResidentForm.reset();
+                setShowCreateResident(false);
+            },
+        });
+    };
+
     const openReject = (application: PendingRegistration) => {
         setSelectedApplication(null);
         setRejectingApplication(application);
@@ -570,13 +668,21 @@ export default function Residents({
         setApproveError('');
     };
 
-    const approveRegistration = (application: PendingRegistration) => {
-        if (processingApproveId !== null) {
+    const openApplicationReview = (application: PendingRegistration) => {
+        setApproveError('');
+        setSelectedApplication(application);
+    };
+
+    const approveRegistration = (
+        application: PendingRegistration,
+        residentId: number,
+    ) => {
+        if (processingApproveId !== null || !Number.isInteger(residentId)) {
             return;
         }
 
         const confirmed = window.confirm(
-            `Approve ${getApplicantName(application)} as a permanent resident?`,
+            `Link ${getApplicantName(application)} to the selected official Resident record? This will create portal access without changing the Resident's existing identity or QR record.`,
         );
 
         if (!confirmed) {
@@ -588,7 +694,7 @@ export default function Residents({
 
         router.post(
             `/admin/residents/${application.id}/approve`,
-            {},
+            { resident_id: residentId },
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -597,9 +703,9 @@ export default function Residents({
                 },
                 onError: (errors) => {
                     const message =
-                        typeof errors.approval === 'string'
-                            ? errors.approval
-                            : 'Unable to approve this registration. Please review the application and try again.';
+                        (typeof errors.resident_id === 'string' && errors.resident_id) ||
+                        (typeof errors.approval === 'string' && errors.approval) ||
+                        'Unable to link this registration. Please review the application and selected Resident.';
 
                     setApproveError(message);
                 },
@@ -656,16 +762,26 @@ export default function Residents({
             <Head title="Residents" />
 
             <AdminLayout active="residents">
-                <div className="mb-6">
-                    <h1 className="text-2xl font-semibold text-gray-800">
-                        Residents
-                    </h1>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Review resident registrations and manage approved residents
-                    </p>
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-semibold text-gray-800">Resident Management</h1>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Manage verified online accounts and official Resident records
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowCreateResident(true)}
+                            className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                        >
+                            Add Resident
+                        </button>
+                    </div>
                 </div>
 
-                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <SummaryCard
                         title="Total Residents"
                         value={stats.totalResidents}
@@ -673,11 +789,6 @@ export default function Residents({
                     <SummaryCard
                         title="Active Residents"
                         value={stats.activeResidents}
-                    />
-                    <SummaryCard
-                        title="Pending Registrations"
-                        value={stats.pendingRegistrations}
-                        highlight={stats.pendingRegistrations > 0}
                     />
                 </div>
 
@@ -695,39 +806,30 @@ export default function Residents({
                             onClick={() => setActiveTab('all')}
                         />
                         <TabButton
-                            label={`Pending (${pendingPaginator.total})`}
-                            active={activeTab === 'pending'}
-                            onClick={() => setActiveTab('pending')}
+                            label={`Added by Admin (${addedByAdminPaginator.total})`}
+                            active={activeTab === 'added_by_admin'}
+                            onClick={() => setActiveTab('added_by_admin')}
                         />
-                        <TabButton
-                            label={`Approved (${paginator.total})`}
-                            active={activeTab === 'approved'}
-                            onClick={() => setActiveTab('approved')}
-                        />
-                        <TabButton
-                            label={`Needs Correction (${needsCorrectionPaginator.total})`}
-                            active={activeTab === 'needs_correction'}
-                            onClick={() => setActiveTab('needs_correction')}
-                        />
-                        <TabButton
-                            label={`Rejected (${rejectedPaginator.total})`}
-                            active={activeTab === 'rejected'}
-                            onClick={() => setActiveTab('rejected')}
-                        />
+                        <Link
+                            href="/admin/resident-claims"
+                            className="inline-flex min-h-11 items-center whitespace-nowrap border-b-2 border-transparent px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700"
+                        >
+                            Online Accounts
+                        </Link>
                     </div>
 
                     <div className="pb-3">
                         <input
                             type="text"
                             value={
-                                activeTab === 'all' || activeTab === 'approved'
+                                activeTab === 'all' || activeTab === 'added_by_admin'
                                     ? approvedSearch
                                     : registrationSearch
                             }
                             onChange={(event) => {
                                 if (
                                     activeTab === 'all' ||
-                                    activeTab === 'approved'
+                                    activeTab === 'added_by_admin'
                                 ) {
                                     setApprovedSearch(event.target.value);
                                 } else {
@@ -735,7 +837,7 @@ export default function Residents({
                                 }
                             }}
                             placeholder={
-                                activeTab === 'all' || activeTab === 'approved'
+                                activeTab === 'all' || activeTab === 'added_by_admin'
                                     ? 'Search resident...'
                                     : 'Search applicant...'
                             }
@@ -773,14 +875,13 @@ export default function Residents({
                         paginator={allPaginator}
                         onNavigate={navigateResidents}
                         onViewResident={openResidentDetails}
-                        onViewRegistration={openRegistrationDetails}
                     />
                 )}
 
-                {activeTab === 'approved' && (
-                    <ApprovedResidentsTable
-                        residents={approvedResidents}
-                        paginator={paginator}
+                {activeTab === 'added_by_admin' && (
+                    <AddedByAdminResidentsTable
+                        residents={adminAddedResidents}
+                        paginator={addedByAdminPaginator}
                         onNavigate={navigateResidents}
                         onToggleStatus={toggleResidentStatus}
                         onToggleAccount={toggleAccountStatus}
@@ -798,12 +899,9 @@ export default function Residents({
                         paginator={pendingPaginator}
                         onNavigate={navigateResidents}
                         searchActive={registrationSearch.trim() !== ''}
-                        onView={(application) => {
-                            setApproveError('');
-                            setSelectedApplication(application);
-                        }}
+                        onView={openApplicationReview}
                         onReject={openReject}
-                        onApprove={approveRegistration}
+                        onApprove={openApplicationReview}
                         processingApproveId={processingApproveId}
                     />
                 )}
@@ -814,12 +912,9 @@ export default function Residents({
                         paginator={needsCorrectionPaginator}
                         onNavigate={navigateResidents}
                         searchActive={registrationSearch.trim() !== ''}
-                        onView={(application) => {
-                            setApproveError('');
-                            setSelectedApplication(application);
-                        }}
+                        onView={openApplicationReview}
                         onReject={openReject}
-                        onApprove={approveRegistration}
+                        onApprove={openApplicationReview}
                         processingApproveId={processingApproveId}
                     />
                 )}
@@ -838,7 +933,9 @@ export default function Residents({
 
                 {selectedApplication && (
                     <ApplicationModal
+                        key={selectedApplication.id}
                         application={selectedApplication}
+                        approveError={approveError}
                         onClose={() => {
                             if (processingApproveId !== null) {
                                 return;
@@ -848,12 +945,23 @@ export default function Residents({
                             setApproveError('');
                         }}
                         onReject={() => openReject(selectedApplication)}
-                        onApprove={() =>
-                            approveRegistration(selectedApplication)
+                        onRequestCorrection={() => {
+                            setCorrectingApplication(selectedApplication);
+                            setSelectedApplication(null);
+                        }}
+                        onApprove={(residentId) =>
+                            approveRegistration(selectedApplication, residentId)
                         }
                         processingApprove={
                             processingApproveId === selectedApplication.id
                         }
+                    />
+                )}
+
+                {correctingApplication && (
+                    <CorrectionRequestModal
+                        application={correctingApplication}
+                        onClose={() => setCorrectingApplication(null)}
                     />
                 )}
 
@@ -882,6 +990,106 @@ export default function Residents({
                     />
                 )}
 
+                {showCreateResident && (
+                    <ModalContainer>
+                        <div className="my-auto w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-xl">
+                            <ModalHeader
+                                title="Add Resident"
+                                description="Create a canonical Resident record without creating a portal account."
+                                onClose={() => {
+                                    if (!createResidentForm.processing) {
+                                        setShowCreateResident(false);
+                                    }
+                                }}
+                            />
+
+                            <form
+                                onSubmit={submitCreateResident}
+                                className="max-h-[70vh] space-y-4 overflow-y-auto px-5 py-5"
+                            >
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <CreateField label="Purok" error={createResidentForm.errors.purok_id}>
+                                        <select
+                                            value={createResidentForm.data.purok_id}
+                                            onChange={(event) => createResidentForm.setData('purok_id', event.target.value)}
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        >
+                                            <option value="">Select purok</option>
+                                            {safePuroks.map((purok) => (
+                                                <option key={purok.id} value={purok.id}>{purok.name}</option>
+                                            ))}
+                                        </select>
+                                    </CreateField>
+
+                                    <CreateField label="First Name" error={createResidentForm.errors.first_name}>
+                                        <input value={createResidentForm.data.first_name} onChange={(event) => createResidentForm.setData('first_name', event.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required />
+                                    </CreateField>
+
+                                    <CreateField label="Middle Name" error={createResidentForm.errors.middle_name}>
+                                        <input value={createResidentForm.data.middle_name} onChange={(event) => createResidentForm.setData('middle_name', event.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                                    </CreateField>
+
+                                    <CreateField label="Last Name" error={createResidentForm.errors.last_name}>
+                                        <input value={createResidentForm.data.last_name} onChange={(event) => createResidentForm.setData('last_name', event.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required />
+                                    </CreateField>
+
+                                    <CreateField label="Suffix" error={createResidentForm.errors.suffix}>
+                                        <input value={createResidentForm.data.suffix} onChange={(event) => createResidentForm.setData('suffix', event.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                                    </CreateField>
+
+                                    <CreateField label="Birthdate" error={createResidentForm.errors.birthdate}>
+                                        <input type="date" value={createResidentForm.data.birthdate} onChange={(event) => createResidentForm.setData('birthdate', event.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required />
+                                    </CreateField>
+
+                                    <CreateField label="Sex" error={createResidentForm.errors.sex}>
+                                        <select value={createResidentForm.data.sex} onChange={(event) => createResidentForm.setData('sex', event.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required>
+                                            <option value="">Select sex</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                    </CreateField>
+
+                                    <CreateField label="Civil Status" error={createResidentForm.errors.civil_status}>
+                                        <select value={createResidentForm.data.civil_status} onChange={(event) => createResidentForm.setData('civil_status', event.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required>
+                                            <option value="">Select civil status</option>
+                                            <option value="Single">Single</option>
+                                            <option value="Married">Married</option>
+                                            <option value="Widowed">Widowed</option>
+                                            <option value="Separated">Separated</option>
+                                        </select>
+                                    </CreateField>
+
+                                    <CreateField label="Mobile Number" error={createResidentForm.errors.mobile}>
+                                        <input value={createResidentForm.data.mobile} onChange={(event) => createResidentForm.setData('mobile', event.target.value)} placeholder="09XXXXXXXXX" className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required />
+                                    </CreateField>
+
+                                    <CreateField label="Email Address (optional)" error={createResidentForm.errors.email}>
+                                        <input type="email" value={createResidentForm.data.email} onChange={(event) => createResidentForm.setData('email', event.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                                    </CreateField>
+                                </div>
+
+                                <CreateField label="Address" error={createResidentForm.errors.address_line}>
+                                    <textarea value={createResidentForm.data.address_line} onChange={(event) => createResidentForm.setData('address_line', event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required />
+                                </CreateField>
+
+                                <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                                    An invitation is sent when an email address is provided. The QR code is not emailed; deliver it securely from the Resident details view.
+                                </p>
+
+                                <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
+                                    <button type="button" onClick={() => setShowCreateResident(false)} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" disabled={createResidentForm.processing} className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30] disabled:opacity-60">
+                                        {createResidentForm.processing ? 'Creating...' : 'Create Resident'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </ModalContainer>
+                )}
+
                 {details && (
                     <ResidentDetailsModal details={details} onClose={closeDetails} />
                 )}
@@ -890,7 +1098,7 @@ export default function Residents({
     );
 }
 
-function ApprovedResidentsTable({
+function AddedByAdminResidentsTable({
     residents,
     paginator,
     onNavigate,
@@ -938,7 +1146,14 @@ function ApprovedResidentsTable({
                                 }
                             >
                                 <td className="px-5 py-4 font-mono text-xs font-semibold text-[#3f6f3d]">
-                                    {resident.residentId}
+                                    <button
+                                        type="button"
+                                        onClick={() => onView(resident)}
+                                        className="text-left hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3f6f3d]"
+                                        aria-label={`View details for Resident ID ${resident.residentId}`}
+                                    >
+                                        {resident.residentId}
+                                    </button>
                                 </td>
                                 <td className="px-5 py-4">
                                     <button
@@ -1044,7 +1259,7 @@ function ApprovedResidentsTable({
                                     className="px-5 py-12 text-center"
                                 >
                                     <p className="text-sm font-medium text-gray-600">
-                                        No approved residents yet
+                                            No Residents added by Admin yet
                                     </p>
                                     <p className="mt-1 text-xs text-gray-400">
                                         Approved resident accounts will appear here.
@@ -1273,12 +1488,10 @@ function AllResidentsTable({
     paginator,
     onNavigate,
     onViewResident,
-    onViewRegistration,
 }: {
     paginator: AllResidentsPaginator;
     onNavigate: (url: string) => void;
     onViewResident: (id: number) => void;
-    onViewRegistration: (id: number) => void;
 }) {
     const rows = Array.isArray(paginator.data) ? paginator.data : [];
 
@@ -1288,12 +1501,12 @@ function AllResidentsTable({
                 <table className="w-full min-w-[1080px]">
                     <thead className="border-b border-gray-200 bg-[#fafaf7]">
                         <tr>
-                            <TableHead>Type</TableHead>
-                            <TableHead>ID / Reference</TableHead>
+                            <TableHead>Resident ID</TableHead>
                             <TableHead>Resident</TableHead>
                             <TableHead>Purok</TableHead>
                             <TableHead>Sector</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead>Account</TableHead>
+                            <TableHead>Resident Status</TableHead>
                             <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">
                                 Action
                             </th>
@@ -1310,20 +1523,6 @@ function AllResidentsTable({
                                         : ''
                                 }
                             >
-                                <td className="px-5 py-4">
-                                    <span
-                                        className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-                                            row.type === 'resident'
-                                                ? 'bg-[#edf4ea] text-[#3f6f3d]'
-                                                : 'bg-[#eef3fb] text-[#416b9c]'
-                                        }`}
-                                    >
-                                        {row.type === 'resident'
-                                            ? 'Resident'
-                                            : 'Registration'}
-                                    </span>
-                                </td>
-
                                 <td className="px-5 py-4 font-mono text-xs font-semibold text-gray-600">
                                     {row.reference}
                                 </td>
@@ -1346,6 +1545,14 @@ function AllResidentsTable({
                                 </td>
 
                                 <td className="px-5 py-4">
+                                    <StatusBadge
+                                        active={Boolean(row.accountActive)}
+                                        activeLabel="Linked"
+                                        inactiveLabel="Disabled"
+                                    />
+                                </td>
+
+                                <td className="px-5 py-4">
                                     <StatusPill status={row.status} />
                                 </td>
 
@@ -1353,11 +1560,7 @@ function AllResidentsTable({
                                     <div className="flex justify-end">
                                         <button
                                             type="button"
-                                            onClick={() =>
-                                                row.type === 'resident'
-                                                    ? onViewResident(row.id)
-                                                    : onViewRegistration(row.id)
-                                            }
+                                            onClick={() => onViewResident(row.id)}
                                             className="rounded-md border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
                                         >
                                             View
@@ -1377,8 +1580,8 @@ function AllResidentsTable({
                                         No residents found
                                     </p>
                                     <p className="mt-1 text-xs text-gray-400">
-                                        Approved residents and pending
-                                        registrations will appear here.
+                                        Verified Residents with linked online
+                                        accounts will appear here.
                                     </p>
                                 </td>
                             </tr>
@@ -1546,27 +1749,40 @@ function ResidentDetailsBody({ resident }: { resident: ResidentDetails }) {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Info label="Resident ID" value={resident.resident_number} />
                 <Info label="Full Name" value={fullNameOf(resident)} />
-                <Info label="Birthdate" value={resident.birthdate || '—'} />
-                <Info label="Sex" value={resident.sex || '—'} />
+                <Info label="Birthdate" value={resident.birthdate || '�?"'} />
+                <Info label="Sex" value={resident.sex || '�?"'} />
                 <Info
                     label="Civil Status"
-                    value={resident.civil_status || '—'}
+                    value={resident.civil_status || '�?"'}
                 />
-                <Info label="Mobile" value={resident.mobile || '—'} />
-                <Info label="Email" value={resident.email || '—'} />
-                <Info label="Address" value={resident.address_line || '—'} />
-                <Info label="Barangay" value={resident.barangay || '—'} />
-                <Info label="Purok" value={resident.purok || '—'} />
+                <Info label="Mobile" value={resident.mobile || '�?"'} />
+                <Info label="Email" value={resident.email || '�?"'} />
+                <Info
+                    label="Email Verification"
+                    value={resident.email_verified ? 'Verified' : 'Unverified'}
+                />
+                <Info label="Address" value={resident.address_line || '�?"'} />
+                <Info label="Barangay" value={resident.barangay || '�?"'} />
+                <Info label="Purok" value={resident.purok || '�?"'} />
                 <Info
                     label="Resident Status"
-                    value={resident.status || '—'}
+                    value={resident.status || '�?"'}
                 />
-                <Info label="Approved At" value={resident.approved_at || '—'} />
+                <Info label="Source" value={resident.source === 'admin' ? 'Admin-created' : 'Registration'} />
+                <Info label="Approved At" value={resident.approved_at || '�?"'} />
                 <Info
                     label="Portal Account"
-                    value={resident.account_active ? 'Active' : 'Inactive'}
+                    value={
+                        !resident.account_exists
+                            ? 'No account yet'
+                            : resident.account_active
+                              ? 'Active'
+                              : 'Inactive'
+                    }
                 />
             </div>
+
+            <ResidentQrPanel residentId={resident.id} />
 
             <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
@@ -1576,6 +1792,108 @@ function ResidentDetailsBody({ resident }: { resident: ResidentDetails }) {
                     <SectorBadges sectors={resident.sectors} />
                 </div>
             </div>
+        </div>
+    );
+}
+
+function ResidentQrPanel({ residentId }: { residentId: number }) {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [credential, setCredential] = useState<{
+        resident_number: string;
+        full_name: string;
+        verification_url: string;
+    } | null>(null);
+
+    const reveal = async () => {
+        setLoading(true);
+        setError('');
+
+        try {
+            const response = await fetch(
+                `/admin/residents/${residentId}/qr/credential`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                },
+            );
+
+            const payload = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    payload?.errors?.qr?.[0] ||
+                        'Unable to load the QR credential.',
+                );
+            }
+
+            setCredential(payload);
+        } catch (requestError) {
+            setError(
+                requestError instanceof Error
+                    ? requestError.message
+                    : 'Unable to load the QR credential.',
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="rounded-lg border border-gray-200 bg-[#fafaf7] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                        QR Credential Delivery
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-gray-600">
+                        Reveal only when handing the credential to the Resident in person or through an approved secure channel. This action is audited.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={reveal}
+                    disabled={loading}
+                    className="rounded-md border border-[#3f6f3d] px-3 py-2 text-xs font-semibold text-[#3f6f3d] hover:bg-[#edf4ea] disabled:opacity-60"
+                >
+                    {loading ? 'Loading...' : credential ? 'Refresh QR' : 'Reveal QR'}
+                </button>
+            </div>
+
+            {error && <p className="mt-3 text-xs font-medium text-red-600">{error}</p>}
+
+            {credential && (
+                <div className="mt-4 flex flex-col items-center gap-3 rounded-lg bg-white p-4 sm:flex-row">
+                    <QRCodeSVG value={credential.verification_url} size={148} />
+                    <div className="min-w-0 text-center sm:text-left">
+                        <p className="text-sm font-semibold text-gray-900">{credential.full_name}</p>
+                        <p className="mt-1 font-mono text-xs text-gray-600">{credential.resident_number}</p>
+                        <p className="mt-2 break-all text-[10px] leading-4 text-gray-400">
+                            {credential.verification_url}
+                        </p>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function CreateField({
+    label,
+    error,
+    children,
+}: {
+    label: string;
+    error?: string;
+    children: ReactNode;
+}) {
+    return (
+        <div>
+            <label className="block text-xs font-semibold text-gray-700">{label}</label>
+            {children}
+            {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
         </div>
     );
 }
@@ -1632,6 +1950,27 @@ function RegistrationDetailsBody({
                 </div>
             )}
 
+            {registration.matched_resident && (
+                <section className="rounded-lg border border-[#b7d8b2] bg-[#edf4ea] p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#3f6f3d]">
+                        Linked Official Resident
+                    </p>
+                    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <Info label="Resident ID" value={registration.matched_resident.resident_number} />
+                        <Info label="Name" value={registration.matched_resident.full_name} />
+                        <Info label="Birthdate" value={registration.matched_resident.birthdate || '—'} />
+                        <Info label="Purok" value={registration.matched_resident.purok || '—'} />
+                        <Info label="Resident status" value={registration.matched_resident.status} />
+                        <Info label="Account" value={registration.matched_resident.account_exists
+                            ? (registration.matched_resident.account_active ? 'Linked and enabled' : 'Linked and disabled')
+                            : 'No account linked'} />
+                    </div>
+                    {registration.matched_at && (
+                        <p className="mt-2 text-xs text-gray-600">Linked at {registration.matched_at}</p>
+                    )}
+                </section>
+            )}
+
             <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                     Sectors
@@ -1647,6 +1986,22 @@ function RegistrationDetailsBody({
                 </p>
                 <ApplicationDocuments documents={registration.documents} />
             </div>
+
+            {(registration.correction_cycles?.length ?? 0) > 0 && (
+                <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-900">Correction history</p>
+                    {registration.correction_cycles?.map((cycle) => (
+                        <div key={cycle.cycle_number} className="border-t border-amber-200 pt-3 first:border-0 first:pt-0">
+                            <p className="text-xs font-semibold text-gray-800">
+                                Cycle {cycle.cycle_number} · {cycle.requested_at || 'Request time unavailable'}
+                                {cycle.resubmitted_at ? ` · Resubmitted ${cycle.resubmitted_at}` : ' · Awaiting applicant'}
+                            </p>
+                            <p className="mt-1 whitespace-pre-line text-sm text-gray-700">{cycle.instructions}</p>
+                            <p className="mt-1 text-xs text-gray-500">Reviewer: {cycle.reviewer || '—'}</p>
+                        </div>
+                    ))}
+                </section>
+            )}
         </div>
     );
 }
@@ -1695,6 +2050,11 @@ function ResidentDetailsModal({
                                 registration={details.registration}
                             />
                         )}
+
+                    {!details.loading && !details.error &&
+                        !details.resident && !details.registration && (
+                            <p className="text-sm text-gray-500">No details are available for this record.</p>
+                        )}
                 </div>
 
                 <div className="flex justify-end border-t border-gray-200 px-5 py-4">
@@ -1713,17 +2073,77 @@ function ResidentDetailsModal({
 
 function ApplicationModal({
     application,
+    approveError,
     onClose,
     onReject,
+    onRequestCorrection,
     onApprove,
     processingApprove,
 }: {
     application: PendingRegistration;
+    approveError: string;
     onClose: () => void;
     onReject: () => void;
-    onApprove: () => void;
+    onRequestCorrection: () => void;
+    onApprove: (residentId: number) => void;
     processingApprove: boolean;
 }) {
+    const [candidateSearch, setCandidateSearch] = useState(
+        `${application.first_name} ${application.last_name}`.trim(),
+    );
+    const [candidates, setCandidates] = useState<ResidentCandidate[]>([]);
+    const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
+    const [loadingCandidates, setLoadingCandidates] = useState(false);
+    const [candidateError, setCandidateError] = useState('');
+
+    useEffect(() => {
+        const query = candidateSearch.trim();
+        if (query.length < 2) {
+            setCandidates([]);
+            setLoadingCandidates(false);
+            setCandidateError('Enter at least two characters to search this barangay\'s active Resident records.');
+            return;
+        }
+
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+            setLoadingCandidates(true);
+            setCandidateError('');
+            fetch(
+                `/admin/resident-registrations/${application.id}/candidates?q=${encodeURIComponent(query)}`,
+                {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                    signal: controller.signal,
+                },
+            )
+                .then(async (response) => {
+                    if (!response.ok) {
+                        throw new Error('Unable to load Resident candidates.');
+                    }
+                    return (await response.json()) as { data?: ResidentCandidate[] };
+                })
+                .then((payload) => setCandidates(Array.isArray(payload.data) ? payload.data : []))
+                .catch((error: unknown) => {
+                    if (error instanceof DOMException && error.name === 'AbortError') {
+                        return;
+                    }
+                    setCandidates([]);
+                    setCandidateError('Unable to load candidates. Refresh the review and try again.');
+                })
+                .finally(() => setLoadingCandidates(false));
+        }, 250);
+
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [application.id, candidateSearch]);
+
+    const selectedCandidate = candidates.find(
+        (candidate) => candidate.id === selectedCandidateId,
+    );
+
     return (
         <ModalContainer>
             <div className="w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-xl">
@@ -1790,6 +2210,99 @@ function ApplicationModal({
                         />
                     </div>
 
+                    <section className="mt-6 rounded-xl border border-[#d7e5d2] bg-[#f8fbf6] p-4">
+                        <div className="mb-3">
+                            <h2 className="text-sm font-semibold text-gray-800">
+                                Select the official Barangay Resident
+                            </h2>
+                            <p className="mt-1 text-xs leading-5 text-gray-500">
+                                Search suggestions do not link automatically. Review the official record and explicitly select one. If no correct record exists, leave this application pending; approval will not create a Resident.
+                            </p>
+                            <p className="mt-2 text-xs leading-5 text-blue-800">
+                                A QR reference, when valid, adds a suggestion only. It does not establish identity or select a candidate automatically.
+                            </p>
+                        </div>
+
+                        <label htmlFor="resident-candidate-search" className="mb-1 block text-xs font-medium text-gray-600">
+                            Search by Resident ID or name
+                        </label>
+                        <input
+                            id="resident-candidate-search"
+                            type="search"
+                            value={candidateSearch}
+                            onChange={(event) => {
+                                setCandidateSearch(event.target.value);
+                                setSelectedCandidateId(null);
+                            }}
+                            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#6b9464] focus:ring-2 focus:ring-[#b7d8b2]"
+                            placeholder="Resident number or name"
+                            disabled={processingApprove}
+                        />
+
+                        {loadingCandidates && <p className="mt-3 text-xs text-gray-500">Searching this barangay…</p>}
+                        {!loadingCandidates && candidateError && <p className="mt-3 text-xs text-red-600">{candidateError}</p>}
+                        {!loadingCandidates && !candidateError && candidates.length === 0 && (
+                            <p className="mt-3 rounded-md border border-gray-200 bg-white p-3 text-xs text-gray-500">
+                                No active Resident matches this search. The application remains pending until a correct official record is selected.
+                            </p>
+                        )}
+
+                        {candidates.length > 0 && (
+                            <fieldset className="mt-3 space-y-2" disabled={processingApprove}>
+                                <legend className="sr-only">Official Resident candidate</legend>
+                                {candidates.map((candidate) => (
+                                    <label
+                                        key={candidate.id}
+                                        className={`flex cursor-pointer items-start gap-3 rounded-lg border bg-white p-3 ${selectedCandidateId === candidate.id ? 'border-[#6b9464] ring-1 ring-[#6b9464]' : 'border-gray-200'}`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="resident-candidate"
+                                            value={candidate.id}
+                                            checked={selectedCandidateId === candidate.id}
+                                            onChange={() => setSelectedCandidateId(candidate.id)}
+                                            className="mt-1 accent-[#3f6f3d]"
+                                        />
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block text-sm font-medium text-gray-800">{candidate.full_name}</span>
+                                            {candidate.qr_suggested && (
+                                                <span className="mt-1 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-800">
+                                                    Suggested by QR reference — select explicitly to continue
+                                                </span>
+                                            )}
+                                            <span className="mt-0.5 block text-xs text-gray-500">
+                                                {candidate.resident_number} · Born {candidate.birthdate || '—'} · {candidate.purok || 'Purok not recorded'}
+                                            </span>
+                                            {candidate.account_exists && (
+                                                <span className="mt-1 block text-xs font-medium text-amber-700">
+                                                    An account is already linked. This candidate cannot receive another account.
+                                                </span>
+                                            )}
+                                        </span>
+                                    </label>
+                                ))}
+                            </fieldset>
+                        )}
+
+                        {selectedCandidate && (
+                            <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Official record selected</p>
+                                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <Info label="Resident ID" value={selectedCandidate.resident_number} />
+                                    <Info label="Official Name" value={selectedCandidate.full_name} />
+                                    <Info label="Birthdate" value={selectedCandidate.birthdate || '—'} />
+                                    <Info label="Email on record" value={selectedCandidate.email || '—'} />
+                                    <Info label="Account linkage" value={selectedCandidate.account_exists ? 'Already linked' : 'No account'} />
+                                    <Info label="Resident status" value={selectedCandidate.status} />
+                                </div>
+                            </div>
+                        )}
+                    </section>
+
+                    {approveError && (
+                        <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{approveError}</p>
+                    )}
+
                     <div className="mt-6">
                         <div className="mb-3">
                             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -1829,17 +2342,159 @@ function ApplicationModal({
                         Reject
                     </button>
 
+                    {application.status === 'pending' && (
+                        <button
+                            type="button"
+                            onClick={onRequestCorrection}
+                            disabled={processingApprove}
+                            className="rounded-md border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Request Correction
+                        </button>
+                    )}
+
                     <button
                         type="button"
-                        onClick={onApprove}
-                        disabled={processingApprove}
+                        onClick={() => selectedCandidate && onApprove(selectedCandidate.id)}
+                        disabled={processingApprove || !selectedCandidate || selectedCandidate.account_exists}
                         className="rounded-md bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {processingApprove
                             ? 'Approving...'
-                            : 'Approve Registration'}
+                            : 'Confirm Resident Link'}
                     </button>
                 </div>
+            </div>
+        </ModalContainer>
+    );
+}
+
+const CORRECTION_FIELD_LABELS: Record<string, string> = {
+    first_name: 'First name',
+    middle_name: 'Middle name',
+    last_name: 'Last name',
+    suffix: 'Suffix',
+    birthdate: 'Birthdate',
+    sex: 'Sex',
+    civil_status: 'Civil status',
+    address_line: 'Address',
+    mobile: 'Mobile number',
+    email: 'Email address',
+    purok_id: 'Purok',
+};
+
+const CORRECTION_DOCUMENT_LABELS: Record<string, string> = {
+    valid_id: 'Valid ID',
+    live_identity_photo: 'Live Identity Photo',
+    senior_proof: 'Senior Citizen Proof',
+    pwd_proof: 'PWD Proof',
+};
+
+function CorrectionRequestModal({
+    application,
+    onClose,
+}: {
+    application: PendingRegistration;
+    onClose: () => void;
+}) {
+    const form = useForm({
+        instructions: '',
+        field_targets: [] as string[],
+        document_targets: [] as string[],
+    });
+    const availableFields = (application.correction_field_options ?? []).filter(
+        (field) => Object.prototype.hasOwnProperty.call(CORRECTION_FIELD_LABELS, field),
+    );
+    const availableDocuments = (application.correction_document_options ?? []).filter(
+        (document) => Object.prototype.hasOwnProperty.call(CORRECTION_DOCUMENT_LABELS, document),
+    );
+    const formErrors = form.errors as Record<string, string | undefined>;
+
+    const toggle = (key: string, current: string[], setter: (value: string[]) => void) => {
+        setter(current.includes(key)
+            ? current.filter((item) => item !== key)
+            : [...current, key]);
+    };
+
+    const submit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        form.post(`/admin/residents/${application.id}/correction`, {
+            preserveScroll: true,
+            onSuccess: onClose,
+        });
+    };
+
+    return (
+        <ModalContainer>
+            <div className="my-auto w-full max-w-xl overflow-hidden rounded-xl bg-white shadow-xl">
+                <ModalHeader
+                    title="Request Applicant Correction"
+                    description={`Select only the information or documents this applicant should correct (${application.reference}).`}
+                    onClose={() => { if (!form.processing) onClose(); }}
+                />
+                <form onSubmit={submit} className="space-y-5 px-5 py-5">
+                    <div>
+                        <label htmlFor="correction-instructions" className="mb-1 block text-sm font-medium text-gray-700">
+                            Instructions for applicant
+                        </label>
+                        <textarea
+                            id="correction-instructions"
+                            value={form.data.instructions}
+                            onChange={(event) => form.setData('instructions', event.target.value)}
+                            rows={4}
+                            required
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                        />
+                        {form.errors.instructions && <p role="alert" className="mt-1 text-xs text-red-700">{form.errors.instructions}</p>}
+                    </div>
+
+                    <fieldset className="space-y-2">
+                        <legend className="text-sm font-semibold text-gray-800">Applicant fields</legend>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            {availableFields.map((field) => (
+                                <label key={field} className="flex items-center gap-2 text-sm text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.data.field_targets.includes(field)}
+                                        onChange={() => toggle(field, form.data.field_targets, (value) => form.setData('field_targets', value))}
+                                    />
+                                    {CORRECTION_FIELD_LABELS[field]}
+                                </label>
+                            ))}
+                        </div>
+                        {form.errors.field_targets && <p role="alert" className="text-xs text-red-700">{form.errors.field_targets}</p>}
+                        {form.errors['field_targets.0'] && <p role="alert" className="text-xs text-red-700">{form.errors['field_targets.0']}</p>}
+                    </fieldset>
+
+                    {availableDocuments.length > 0 && (
+                        <fieldset className="space-y-2">
+                            <legend className="text-sm font-semibold text-gray-800">Existing documents</legend>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                {availableDocuments.map((document) => (
+                                    <label key={document} className="flex items-center gap-2 text-sm text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={form.data.document_targets.includes(document)}
+                                            onChange={() => toggle(document, form.data.document_targets, (value) => form.setData('document_targets', value))}
+                                        />
+                                        {CORRECTION_DOCUMENT_LABELS[document]}
+                                    </label>
+                                ))}
+                            </div>
+                            {form.errors.document_targets && <p role="alert" className="text-xs text-red-700">{form.errors.document_targets}</p>}
+                            {form.errors['document_targets.0'] && <p role="alert" className="text-xs text-red-700">{form.errors['document_targets.0']}</p>}
+                        </fieldset>
+                    )}
+
+                    {formErrors.correction && <p role="alert" className="text-sm text-red-700">{formErrors.correction}</p>}
+                    <p className="text-xs leading-5 text-gray-500">Sectors, Resident identity, account details, QR credentials, and application status cannot be changed through this request.</p>
+                    <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+                        <button type="button" onClick={onClose} disabled={form.processing} className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 disabled:opacity-50">Cancel</button>
+                        <button type="submit" disabled={form.processing} className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                            {form.processing ? 'Saving…' : 'Send correction request'}
+                        </button>
+                    </div>
+                </form>
             </div>
         </ModalContainer>
     );
@@ -1879,6 +2534,11 @@ function ApplicationDocuments({
                                         ? ` • ${formatFileSize(document.file_size)}`
                                         : ''}
                                 </p>
+                                {document.is_superseded && (
+                                    <p className="mt-1 text-[11px] font-semibold text-amber-800">
+                                        Superseded{document.superseded_at ? ` on ${document.superseded_at}` : ''}
+                                    </p>
+                                )}
                             </div>
 
                             <span className="rounded-full bg-[#fff4d8] px-2.5 py-1 text-[10px] font-medium capitalize text-[#946b00]">

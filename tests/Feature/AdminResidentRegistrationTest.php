@@ -10,6 +10,7 @@ use App\Models\ResidentQrCredential;
 use App\Models\ResidentRegistration;
 use App\Models\Sector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -73,6 +74,54 @@ class AdminResidentRegistrationTest extends TestCase
                 ->where('stats.totalResidents', 1)
                 ->where('stats.activeResidents', 1)
                 ->where('stats.pendingRegistrations', 1));
+    }
+
+    public function test_all_residents_and_added_by_admin_use_separate_verified_account_and_source_rules(): void
+    {
+        $adminLinked = $this->createResident($this->barangay, $this->purok, [
+            'first_name' => 'Admin',
+            'last_name' => 'Linked',
+            'mobile' => '09170000011',
+        ]);
+        $adminLinked->update([
+            'source' => 'admin',
+            'email_verified_at' => now(),
+        ]);
+
+        $adminUnlinked = $this->createResident($this->barangay, $this->purok, [
+            'first_name' => 'Admin',
+            'last_name' => 'Offline',
+            'mobile' => '09170000012',
+        ]);
+        $adminUnlinked->update(['source' => 'admin']);
+        $adminUnlinked->account()->delete();
+
+        $verifiedRegistration = $this->createResident($this->barangay, $this->purok, [
+            'first_name' => 'Online',
+            'last_name' => 'Linked',
+            'mobile' => '09170000013',
+        ]);
+        $verifiedRegistration->update(['email_verified_at' => now()]);
+
+        $otherPurok = $this->createPurok($this->other, 'Purok 2');
+        $foreignResident = $this->createResident($this->other, $otherPurok, [
+            'mobile' => '09170000014',
+        ]);
+        $foreignResident->update(['email_verified_at' => now()]);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($admin)
+            ->get('/admin/residents')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Residents')
+                ->where('allResidents.total', 2)
+                ->where('allResidents.data.0.reference', $adminLinked->resident_number)
+                ->where('allResidents.data.1.reference', $verifiedRegistration->resident_number)
+                ->where('addedByAdmin.total', 2)
+                ->where('addedByAdmin.data.0.id', $adminLinked->id)
+                ->where('addedByAdmin.data.1.id', $adminUnlinked->id));
     }
 
     public function test_index_requires_admin_role(): void
@@ -233,26 +282,56 @@ class AdminResidentRegistrationTest extends TestCase
         ]);
     }
 
-    public function test_double_approval_is_prevented(): void
+    public function test_admin_cannot_approve_or_reject_until_needs_correction_is_resubmitted(): void
     {
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000020',
+        ]);
+        $registration->update(['status' => 'needs_correction']);
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($admin)
+            ->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => 1])
+            ->assertStatus(422);
+
+        $this->actingAs($admin)
+            ->post('/admin/residents/'.$registration->id.'/reject', ['reason' => 'Applicant must resubmit.'])
+            ->assertStatus(422);
+
+        $this->assertSame('needs_correction', $registration->fresh()->status);
+        $this->assertDatabaseMissing('residents', ['resident_registration_id' => $registration->id]);
+        $this->assertDatabaseMissing('resident_accounts', ['resident_id' => 1]);
+    }
+
+    public function test_double_approval_is_prevented(): void
+    {
+        $candidate = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09170000022',
+        ]);
+        $candidate->account()->delete();
+        $candidate->update(['email' => 'applicant@example.test']);
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000022',
+            'email' => 'applicant@example.test',
         ]);
 
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
-            ->post('/admin/residents/'.$registration->id.'/approve')
+            ->post('/admin/residents/'.$registration->id.'/approve', [
+                'resident_id' => $candidate->id,
+            ])
             ->assertRedirect();
 
         $this->actingAs($admin)
-            ->post('/admin/residents/'.$registration->id.'/approve')
+            ->post('/admin/residents/'.$registration->id.'/approve', [
+                'resident_id' => $candidate->id,
+            ])
             ->assertStatus(422);
 
-        $this->assertSame(
-            1,
-            Resident::where('resident_registration_id', $registration->id)->count()
-        );
+        $this->assertSame(0, Resident::where('resident_registration_id', $registration->id)->count());
+        $this->assertSame($candidate->id, $registration->fresh()->matched_resident_id);
+        $this->assertSame(1, $candidate->account()->count());
     }
 
     public function test_approval_blocked_when_resident_already_exists(): void
@@ -262,7 +341,7 @@ class AdminResidentRegistrationTest extends TestCase
         ]);
 
         // A permanent resident already points at this (still pending) registration.
-        Resident::create([
+        $existingResident = Resident::create([
             'public_id' => (string) Str::uuid(),
             'resident_registration_id' => $registration->id,
             'barangay_id' => $this->barangay->id,
@@ -281,7 +360,7 @@ class AdminResidentRegistrationTest extends TestCase
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
-            ->post('/admin/residents/'.$registration->id.'/approve')
+            ->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => $existingResident->id])
             ->assertSessionHasErrors('approval');
 
         $this->assertDatabaseHas('resident_registrations', [
@@ -290,107 +369,292 @@ class AdminResidentRegistrationTest extends TestCase
         ]);
     }
 
-    public function test_duplicate_mobile_is_handled_without_database_exception(): void
+    public function test_missing_candidate_keeps_application_pending_without_creating_records(): void
     {
-        $this->createResident($this->barangay, $this->purok, [
-            'mobile' => '09170000031',
-        ]);
-
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
-            'mobile' => '09170000031',
+            'mobile' => '09980000031',
         ]);
 
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
             ->post('/admin/residents/'.$registration->id.'/approve')
-            ->assertSessionHasErrors('approval');
+            ->assertSessionHasErrors('resident_id');
 
         $this->assertDatabaseMissing('residents', [
             'resident_registration_id' => $registration->id,
         ]);
+        $this->assertSame(0, Resident::query()->count());
+        $this->assertSame(0, \App\Models\ResidentAccount::query()->count());
+        $this->assertSame('pending', $registration->fresh()->status);
     }
 
-    public function test_duplicate_email_is_handled_without_database_exception(): void
+    public function test_approval_stays_pending_when_match_columns_are_not_deployed(): void
     {
-        $resident = $this->createResident($this->barangay, $this->purok, [
-            'mobile' => '09170000041',
-        ]);
-        $resident->update(['email' => 'duplicate@example.com']);
-
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000032',
+        ]);
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        Schema::shouldReceive('hasColumn')
+            ->once()
+            ->with('resident_registrations', 'matched_resident_id')
+            ->andReturn(false);
+
+        $this->actingAs($admin)
+            ->post('/admin/residents/'.$registration->id.'/approve', [
+                'resident_id' => 12345,
+            ])
+            ->assertSessionHasErrors('approval');
+
+        $this->assertSame('pending', $registration->fresh()->status);
+        $this->assertDatabaseMissing('resident_accounts', ['resident_id' => 12345]);
+    }
+
+    public function test_invalid_or_foreign_barangay_candidate_is_rejected(): void
+    {
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000042',
+        ]);
+        $otherPurok = $this->createPurok($this->other, 'Purok 2');
+        $foreignResident = $this->createResident($this->other, $otherPurok, [
             'mobile' => '09170000042',
         ]);
-        // Case-insensitive duplicate.
-        $registration->update(['email' => 'DUPLICATE@example.com']);
+        $foreignResident->account()->delete();
+        $foreignResident->update(['email' => 'applicant@example.test']);
+        $registration->update(['email' => 'applicant@example.test']);
 
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
-            ->post('/admin/residents/'.$registration->id.'/approve')
-            ->assertSessionHasErrors('approval');
+            ->post('/admin/residents/'.$registration->id.'/approve', [
+                'resident_id' => $foreignResident->id,
+            ])
+            ->assertSessionHasErrors('resident_id');
 
-        $this->assertDatabaseMissing('residents', [
-            'resident_registration_id' => $registration->id,
-        ]);
+        $this->assertSame('pending', $registration->fresh()->status);
+        $this->assertNull($registration->fresh()->matched_resident_id);
     }
 
-    public function test_valid_approval_creates_resident_account_sector_and_qr(): void
+    public function test_matching_candidate_search_is_limited_to_admin_barangay(): void
     {
-        $sector = Sector::create([
-            'name' => 'Senior Citizen',
-            'slug' => 'senior',
-            'requires_proof' => true,
-            'is_active' => true,
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok);
+        $own = $this->createResident($this->barangay, $this->purok, [
+            'first_name' => 'Possible', 'last_name' => 'Match', 'mobile' => '09170000061',
         ]);
-
-        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
-            'mobile' => '09170000051',
-        ]);
-        $registration->sectors()->create([
-            'sector_id' => $sector->id,
-            'verification_status' => 'pending',
+        $otherPurok = $this->createPurok($this->other, 'Purok 2');
+        $foreign = $this->createResident($this->other, $otherPurok, [
+            'first_name' => 'Possible', 'last_name' => 'Match', 'mobile' => '09170000062',
         ]);
 
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
-            ->post('/admin/residents/'.$registration->id.'/approve')
+            ->get('/admin/resident-registrations/'.$registration->id.'/candidates?q=Possible Match')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $own->id)
+            ->assertJsonMissing(['id' => $foreign->id]);
+    }
+
+    public function test_matching_candidate_search_requires_admin_authorization(): void
+    {
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok);
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $this->actingAs($clerk)
+            ->get('/admin/resident-registrations/'.$registration->id.'/candidates?q=Applicant')
+            ->assertForbidden();
+    }
+
+    public function test_inactive_candidate_cannot_be_linked(): void
+    {
+        $candidate = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09170000075',
+        ]);
+        $candidate->account()->delete();
+        $candidate->update([
+            'email' => 'applicant@example.test',
+            'status' => 'inactive',
+        ]);
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000075', 'email' => 'applicant@example.test',
+        ]);
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($admin)
+            ->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => $candidate->id])
+            ->assertSessionHasErrors('resident_id');
+
+        $this->assertSame('pending', $registration->fresh()->status);
+        $this->assertSame(0, $candidate->account()->count());
+    }
+
+    public function test_existing_account_conflict_preserves_account_and_application(): void
+    {
+        $candidate = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09170000071',
+        ]);
+        $candidate->update(['email' => 'same@example.test']);
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000071', 'email' => 'same@example.test',
+        ]);
+        $existingPassword = $candidate->account->password;
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($admin)
+            ->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => $candidate->id])
+            ->assertSessionHasErrors('resident_id');
+
+        $this->assertSame($existingPassword, $candidate->account()->firstOrFail()->password);
+        $this->assertSame('pending', $registration->fresh()->status);
+        $this->assertNull($registration->fresh()->matched_resident_id);
+    }
+
+    public function test_candidate_email_conflict_keeps_application_pending(): void
+    {
+        $candidate = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09170000072',
+        ]);
+        $candidate->account()->delete();
+        $candidate->update(['email' => 'official@example.test']);
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000072', 'email' => 'applicant@example.test',
+        ]);
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($admin)
+            ->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => $candidate->id])
+            ->assertSessionHasErrors('resident_id');
+
+        $this->assertSame('pending', $registration->fresh()->status);
+        $this->assertSame(0, $candidate->account()->count());
+    }
+
+    public function test_two_applications_cannot_link_the_same_resident(): void
+    {
+        $candidate = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09170000073',
+        ]);
+        $candidate->account()->delete();
+        $candidate->update(['email' => 'same@example.test']);
+        $first = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000073', 'email' => 'same@example.test',
+        ]);
+        $second = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000074', 'email' => 'same@example.test',
+        ]);
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($admin)
+            ->post('/admin/residents/'.$first->id.'/approve', ['resident_id' => $candidate->id])
+            ->assertRedirect();
+        $this->actingAs($admin)
+            ->post('/admin/residents/'.$second->id.'/approve', ['resident_id' => $candidate->id])
+            ->assertSessionHasErrors('resident_id');
+
+        $this->assertSame('approved', $first->fresh()->status);
+        $this->assertSame('pending', $second->fresh()->status);
+        $this->assertSame(
+            $first->id,
+            ResidentRegistration::query()->where('matched_resident_id', $candidate->id)->value('id')
+        );
+        $this->assertSame(1, $candidate->account()->count());
+    }
+
+    public function test_registration_update_failure_rolls_back_created_account(): void
+    {
+        $candidate = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09170000075',
+        ]);
+        $candidate->account()->delete();
+        $candidate->update(['email' => 'rollback@example.test']);
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000075',
+            'email' => 'rollback@example.test',
+        ]);
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        ResidentRegistration::updating(function (ResidentRegistration $record) use ($registration): void {
+            if ($record->is($registration) && $record->isDirty('status')) {
+                throw new \RuntimeException('Forced registration write failure.');
+            }
+        });
+
+        $this->withoutExceptionHandling();
+        try {
+            $this->actingAs($admin)
+                ->post('/admin/residents/'.$registration->id.'/approve', [
+                    'resident_id' => $candidate->id,
+                ]);
+            $this->fail('Expected the registration update to fail.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Forced registration write failure.', $exception->getMessage());
+        }
+
+        $this->assertSame(0, $candidate->account()->count());
+        $this->assertSame('pending', $registration->fresh()->status);
+        $this->assertNull($registration->fresh()->matched_resident_id);
+    }
+
+    public function test_valid_approval_links_selected_resident_without_replacing_identity_or_qr(): void
+    {
+        $sector = Sector::create([
+            'name' => 'Senior Citizen', 'slug' => 'senior',
+            'requires_proof' => true, 'is_active' => true,
+        ]);
+        $candidate = $this->createResident($this->barangay, $this->purok, [
+            'first_name' => 'Official', 'last_name' => 'Resident', 'mobile' => '09170000051',
+        ]);
+        $candidate->account()->delete();
+        $candidate->update(['email' => 'applicant@example.test']);
+        $oldResidentNumber = $candidate->resident_number;
+        $lineageRegistrationId = $candidate->resident_registration_id;
+        $qr = ResidentQrCredential::create([
+            'resident_id' => $candidate->id,
+            'token' => 'KBQR-'.Str::random(64),
+            'is_active' => true,
+            'generated_at' => now(),
+        ]);
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09170000052', 'email' => 'APPLICANT@example.test',
+        ]);
+        $registration->sectors()->create([
+            'sector_id' => $sector->id, 'verification_status' => 'pending',
+        ]);
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($admin)
+            ->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => $candidate->id])
             ->assertRedirect();
 
-        $resident = Resident::where('resident_registration_id', $registration->id)
-            ->firstOrFail();
-
-        $this->assertSame('active', $resident->status);
-        $this->assertSame($this->barangay->id, $resident->barangay_id);
-        $this->assertNotNull($resident->approved_at);
-        $this->assertMatchesRegularExpression(
-            '/^BRGYONE-RES-\d{6}$/',
-            $resident->resident_number
-        );
-
-        $this->assertDatabaseHas('resident_accounts', [
-            'resident_id' => $resident->id,
-            'is_active' => 1,
-        ]);
-
+        $registration->refresh();
+        $candidate->refresh();
+        $this->assertSame($candidate->id, $registration->matched_resident_id);
+        $this->assertSame($admin->id, $registration->matched_by);
+        $this->assertNotNull($registration->matched_at);
+        $this->assertSame('approved', $registration->status);
+        $this->assertSame($lineageRegistrationId, $candidate->resident_registration_id);
+        $this->assertSame($oldResidentNumber, $candidate->resident_number);
+        $this->assertSame(1, Resident::query()->count());
+        $this->assertSame(1, $candidate->account()->count());
+        $this->assertTrue($candidate->account->is_active);
+        $this->assertSame($qr->id, $candidate->qrCredential()->value('id'));
+        $this->assertSame($qr->token, $candidate->qrCredential()->value('token'));
         $this->assertDatabaseHas('resident_sector', [
-            'resident_id' => $resident->id,
+            'resident_id' => $candidate->id,
             'sector_id' => $sector->id,
         ]);
-
-        $qr = ResidentQrCredential::where('resident_id', $resident->id)->firstOrFail();
-        $this->assertTrue($qr->is_active);
-        $this->assertStringStartsWith('KBQR-', $qr->token);
-
-        $this->assertDatabaseHas('resident_registrations', [
-            'id' => $registration->id,
-            'status' => 'approved',
-            'reviewed_by' => $admin->id,
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'resident_registration.approved',
+            'entity_type' => 'resident_registration',
+            'entity_id' => $registration->id,
         ]);
-
-        $registration->refresh();
-        $this->assertNotNull($registration->reviewed_at);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'resident_registration.matched',
+            'entity_type' => 'resident_registration',
+            'entity_id' => $registration->id,
+        ]);
     }
 
     /*

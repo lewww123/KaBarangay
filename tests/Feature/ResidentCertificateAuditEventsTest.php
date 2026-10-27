@@ -8,6 +8,7 @@ use App\Models\CertificateRequest;
 use App\Models\Purok;
 use App\Models\ResidentRegistration;
 use App\Models\User;
+use App\Support\CertificateRequestDetails;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -55,8 +56,8 @@ class ResidentCertificateAuditEventsTest extends TestCase
 
         $this->certificate = Certificate::create([
             'barangay_id' => $this->barangay->id,
-            'code' => 'BRGY-CLEARANCE',
-            'name' => 'Barangay Clearance',
+            'code' => 'BRGY-INDIGENCY',
+            'name' => 'Certificate of Indigency',
             'fee' => 50,
             'is_active' => true,
         ]);
@@ -68,6 +69,15 @@ class ResidentCertificateAuditEventsTest extends TestCase
             'staff_id' => 'ADM-001',
             'name' => 'Portal Admin',
             'email' => 'portal.admin@example.test',
+        ]);
+    }
+
+    private function portalClerk(): User
+    {
+        return $this->createStaff($this->barangay, 'clerk', [
+            'staff_id' => 'CLK-001',
+            'name' => 'Portal Clerk',
+            'email' => 'portal.clerk@example.test',
         ]);
     }
 
@@ -484,20 +494,20 @@ class ResidentCertificateAuditEventsTest extends TestCase
 
     /*
     |--------------------------------------------------------------------------
-    | certificate_request.status_changed (admin review)
+    | certificate_request.status_changed (Clerk review)
     |--------------------------------------------------------------------------
     */
 
-    public function test_admin_certificate_status_change_records_one_event_with_transition(): void
+    public function test_clerk_certificate_status_change_records_one_event_with_transition(): void
     {
         $request = $this->createCertificateRequest('REF-STATUS-001');
-        $admin = $this->portalAdmin();
+        $clerk = $this->portalClerk();
 
-        $this->actingAs($admin)
-            ->put('/admin/certificates/'.$request->id.'/status', [
+        $this->actingAs($clerk)
+            ->patchJson('/clerk/certificates/requests/'.$request->id.'/status', [
                 'status' => 'Processing',
             ])
-            ->assertRedirect();
+            ->assertOk();
 
         $rows = $this->rows();
 
@@ -506,7 +516,7 @@ class ResidentCertificateAuditEventsTest extends TestCase
         $row = $rows->first();
 
         $this->assertSame('certificate_request.status_changed', $row->event);
-        $this->assertSame($admin->id, (int) $row->actor_id);
+        $this->assertSame($clerk->id, (int) $row->actor_id);
         $this->assertSame($this->barangay->id, (int) $row->barangay_id);
         $this->assertSame('certificate_request', $row->entity_type);
         $this->assertSame($request->id, (int) $row->entity_id);
@@ -517,32 +527,33 @@ class ResidentCertificateAuditEventsTest extends TestCase
         $this->assertSame('127.0.0.1', $row->ip_address);
     }
 
-    public function test_admin_reapplication_of_current_status_records_nothing(): void
+    public function test_clerk_reapplication_of_current_status_records_nothing(): void
     {
         $request = $this->createCertificateRequest('REF-NOOP-001');
-        $admin = $this->portalAdmin();
+        $clerk = $this->portalClerk();
 
-        $this->actingAs($admin)
-            ->put('/admin/certificates/'.$request->id.'/status', [
+        $this->actingAs($clerk)
+            ->patchJson('/clerk/certificates/requests/'.$request->id.'/status', [
                 'status' => 'Pending',
                 'admin_note' => 'Waiting for the resident.',
             ])
-            ->assertRedirect();
+            ->assertOk();
 
         $this->assertSame(0, DB::table('audit_logs')->count());
         $this->assertSame('Waiting for the resident.', $request->refresh()->admin_note);
     }
 
-    public function test_admin_invalid_transition_records_nothing(): void
+    public function test_clerk_invalid_transition_records_nothing(): void
     {
         $request = $this->createCertificateRequest('REF-JUMP-001');
-        $admin = $this->portalAdmin();
+        $clerk = $this->portalClerk();
 
-        $this->actingAs($admin)
-            ->put('/admin/certificates/'.$request->id.'/status', [
+        $this->actingAs($clerk)
+            ->patchJson('/clerk/certificates/requests/'.$request->id.'/status', [
                 'status' => 'Released',
             ])
-            ->assertSessionHasErrors('status');
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
 
         $this->assertSame(0, DB::table('audit_logs')->count());
         $this->assertSame('Pending', $request->refresh()->status);
@@ -553,8 +564,8 @@ class ResidentCertificateAuditEventsTest extends TestCase
         $otherPurok = $this->createPurok($this->other, 'Purok 2');
         $otherCertificate = Certificate::create([
             'barangay_id' => $this->other->id,
-            'code' => 'BRGY-CLEARANCE',
-            'name' => 'Barangay Clearance',
+            'code' => 'BRGY-INDIGENCY',
+            'name' => 'Certificate of Indigency',
             'fee' => 50,
             'is_active' => true,
         ]);
@@ -572,16 +583,68 @@ class ResidentCertificateAuditEventsTest extends TestCase
             'submitted_at' => now(),
         ]);
 
-        $admin = $this->portalAdmin();
+        $clerk = $this->portalClerk();
 
-        $this->actingAs($admin)
-            ->put('/admin/certificates/'.$foreign->id.'/status', [
+        $this->actingAs($clerk)
+            ->patchJson('/clerk/certificates/requests/'.$foreign->id.'/status', [
                 'status' => 'Processing',
             ])
-            ->assertStatus(403);
+            ->assertNotFound();
 
         $this->assertSame(0, DB::table('audit_logs')->count());
         $this->assertSame('Pending', $foreign->refresh()->status);
+    }
+
+    public function test_clerk_detail_revision_records_one_bounded_event(): void
+    {
+        $residency = Certificate::create([
+            'barangay_id' => $this->barangay->id,
+            'code' => 'residency',
+            'name' => 'Certificate of Residency',
+            'fee' => 50,
+            'is_active' => true,
+        ]);
+
+        $request = $this->createCertificateRequest('REF-DETAIL-001');
+        $request->update([
+            'certificate_id' => $residency->id,
+            'additional_details' => CertificateRequestDetails::encode(
+                'Residency',
+                ['years_of_residency' => '5'],
+                'Resident note',
+            ),
+        ]);
+
+        $clerk = $this->portalClerk();
+
+        $this->actingAs($clerk)
+            ->patchJson('/clerk/certificates/requests/'.$request->id, [
+                'details' => ['years_of_residency' => '7'],
+            ])
+            ->assertOk();
+
+        $rows = $this->rows();
+
+        $this->assertCount(1, $rows);
+
+        $row = $rows->first();
+
+        $this->assertSame('certificate_request.details_reviewed', $row->event);
+        $this->assertSame($clerk->id, (int) $row->actor_id);
+        $this->assertSame($this->barangay->id, (int) $row->barangay_id);
+        $this->assertSame('certificate_request', $row->entity_type);
+        $this->assertSame($request->id, (int) $row->entity_id);
+        $this->assertSame(
+            ['action' => 'details_reviewed'],
+            json_decode($row->context, true),
+        );
+
+        $decoded = CertificateRequestDetails::decode(
+            $request->refresh()->additional_details,
+        );
+
+        $this->assertSame('7', $decoded['fields']['years_of_residency']);
+        $this->assertSame('5', $decoded['original_fields']['years_of_residency']);
     }
 
     /*

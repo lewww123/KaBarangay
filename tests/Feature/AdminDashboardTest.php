@@ -8,6 +8,7 @@ use App\Models\CertificateRequest;
 use App\Models\Purok;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
 
@@ -117,42 +118,73 @@ class AdminDashboardTest extends TestCase
             ->assertInertia(fn ($page) => $page->where('stats.residents', 1));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Announcement approval counts
-    |--------------------------------------------------------------------------
-    */
-
-    public function test_pending_announcement_count_only_counts_pending(): void
+    public function test_dashboard_exposes_only_approved_summary_metrics(): void
     {
         $admin = $this->createStaff($this->barangay, 'admin');
-
-        $this->createAnnouncement($this->barangay, ['approval_status' => 'pending']);
-        $this->createAnnouncement($this->barangay, ['approval_status' => 'pending']);
-        $this->createAnnouncement($this->barangay, ['approval_status' => 'approved']);
-        $this->createAnnouncement($this->barangay, ['approval_status' => 'rejected']);
+        $qualified = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170002001']);
+        $qualified->registration()->update(['status' => 'pending']);
+        $qualified->forceFill(['email_verified_at' => null])->save();
+        $this->createResident($this->barangay, $this->purok, ['mobile' => '09170002002']);
 
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.pendingAnnouncements', 2)
-                ->where('activity.pendingApprovals', 2));
+                ->where('stats.residents', 2)
+                ->missing('stats.totalResidents')
+                ->missing('stats.pendingApplications'));
     }
 
-    public function test_pending_announcement_count_is_scoped_to_own_barangay(): void
+    /*
+    |--------------------------------------------------------------------------
+    | Announcement counts
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_total_programs_and_announcements_counts_are_scoped(): void
     {
+        $admin = $this->createStaff($this->barangay, 'admin');
         $other = $this->createBarangay('Barangay Two', 'BRGY-TWO');
 
-        $this->createAnnouncement($this->barangay, ['approval_status' => 'pending']);
-        $this->createAnnouncement($other, ['approval_status' => 'pending']);
-
-        $admin = $this->createStaff($this->barangay, 'admin');
+        $this->createAnnouncement($this->barangay, ['category' => 'Event', 'approval_status' => 'pending']);
+        $this->createAnnouncement($this->barangay, ['category' => 'Event', 'approval_status' => 'rejected']);
+        $this->createAnnouncement($this->barangay, ['category' => 'General']);
+        $this->createAnnouncement($this->barangay, ['category' => 'General', 'requires_attendance' => true]);
+        $this->createAnnouncement($other, ['category' => 'Event']);
 
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('stats.pendingAnnouncements', 1));
+            ->assertInertia(fn ($page) => $page
+                ->where('stats.totalPrograms', 3)
+                ->where('stats.totalAnnouncements', 4));
+    }
+
+    public function test_dashboard_shows_only_published_approved_announcements_for_own_barangay(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $published = $this->createAnnouncement($this->barangay, [
+            'title' => 'Published program', 'content' => 'Monitoring details', 'category' => 'Event',
+            'event_start_at' => now()->addDay(), 'location' => 'Barangay Hall',
+        ]);
+        $this->createAnnouncement($this->barangay, ['title' => 'Unpublished', 'is_published' => false]);
+        $this->createAnnouncement($this->barangay, ['title' => 'Awaiting approval', 'approval_status' => 'pending']);
+        $other = $this->createBarangay('Barangay Two', 'BRGY-TWO');
+        $this->createAnnouncement($other, ['title' => 'Other barangay']);
+
+        $this->actingAs($admin)->get('/admin')->assertOk()->assertInertia(fn ($page) => $page
+            ->has('announcements', 1)
+            ->where('announcements.0.id', $published->id)
+            ->where('announcements.0.title', 'Published program')
+            ->where('announcements.0.content', 'Monitoring details')
+            ->where('announcements.0.location', 'Barangay Hall'));
+    }
+
+    public function test_admin_announcement_approval_routes_are_not_registered(): void
+    {
+        $this->assertFalse(Route::has('admin.announcements.approvals'));
+        $this->assertFalse(Route::has('admin.announcements.approve'));
+        $this->assertFalse(Route::has('admin.announcements.reject'));
     }
 
     /*
@@ -178,7 +210,6 @@ class AdminDashboardTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.activeStaff', 5)
                 ->where('activity.activeStaff', 5));
     }
 
@@ -193,16 +224,16 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('stats.activeStaff', 2));
+            ->assertInertia(fn ($page) => $page->where('activity.activeStaff', 2));
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Purok counts and dropdown data
+    | Purok counts
     |--------------------------------------------------------------------------
     */
 
-    public function test_purok_count_and_dropdown_are_scoped_to_own_barangay(): void
+    public function test_purok_count_is_scoped_to_own_barangay(): void
     {
         $this->createPurok($this->barangay, 'Purok Alpha');
         $this->createPurok($this->barangay, 'Purok Beta');
@@ -217,13 +248,10 @@ class AdminDashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('stats.puroks', 3)
-                ->has('puroks', 3)
-                ->where('puroks.0.name', 'Purok 1')
-                ->where('puroks.1.name', 'Purok Alpha')
-                ->where('puroks.2.name', 'Purok Beta'));
+                ->missing('puroks'));
     }
 
-    public function test_purok_dropdown_handles_empty_list(): void
+    public function test_purok_count_handles_empty_list(): void
     {
         $empty = $this->createBarangay('Barangay Empty', 'BRGY-EMPTY');
         $admin = $this->createStaff($empty, 'admin');
@@ -235,7 +263,7 @@ class AdminDashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('stats.puroks', 0)
-                ->has('puroks', 0));
+                ->missing('puroks'));
     }
 
     /*
@@ -263,7 +291,7 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('stats.releasedCertificates', 1));
+            ->assertInertia(fn ($page) => $page->missing('stats.releasedCertificates'));
     }
 
     public function test_released_certificate_count_is_scoped_to_own_barangay(): void
@@ -295,7 +323,7 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('stats.releasedCertificates', 1));
+            ->assertInertia(fn ($page) => $page->missing('stats.releasedCertificates'));
     }
 
     public function test_issued_certificates_card_defers_its_destination(): void
@@ -328,7 +356,7 @@ class AdminDashboardTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->missing('stats.cases')
+                ->has('stats.cases')
                 ->missing('stats.luponCases')
                 ->missing('stats.openCases')
                 ->missing('activity.openCases')
@@ -355,7 +383,6 @@ class AdminDashboardTest extends TestCase
     {
         $admin = $this->createStaff($this->barangay, 'admin');
 
-        $this->createAnnouncement($this->barangay, ['approval_status' => 'pending', 'title' => 'Pending Announcement']);
         $this->createPendingRegistration($this->barangay, $this->purok, ['first_name' => 'Jane', 'last_name' => 'Doe']);
 
         $this->actingAs($admin)
@@ -363,7 +390,7 @@ class AdminDashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(function ($page) {
                 $page->component('Dashboard')
-                    ->has('notifications', 2);
+                    ->has('notifications', 1);
 
                 $notifications = $page->toArray()['props']['notifications'];
 
@@ -372,7 +399,7 @@ class AdminDashboardTest extends TestCase
                     $this->assertNotContains($notification['title'], ['Today', 'Yesterday']);
                     $this->assertContains(
                         $notification['href'],
-                        ['/admin/announcements/approvals', '/admin/residents', '/admin/sectors', '/admin/staff']
+                        ['/admin/residents', '/admin/sectors', '/admin/staff']
                     );
                 }
             });
@@ -380,15 +407,14 @@ class AdminDashboardTest extends TestCase
 
     /*
     |--------------------------------------------------------------------------
-    | System Overview links use verified destinations
+    | Dashboard notifications use verified destinations
     |--------------------------------------------------------------------------
     */
 
-    public function test_system_overview_only_links_to_verified_destinations(): void
+    public function test_dashboard_notifications_only_link_to_verified_destinations(): void
     {
         $admin = $this->createStaff($this->barangay, 'admin');
 
-        $this->createAnnouncement($this->barangay, ['approval_status' => 'pending']);
         $this->createPendingRegistration($this->barangay, $this->purok);
 
         $this->actingAs($admin)
@@ -398,7 +424,6 @@ class AdminDashboardTest extends TestCase
                 $notifications = $page->toArray()['props']['notifications'];
 
                 $allowed = [
-                    '/admin/announcements/approvals',
                     '/admin/residents',
                     '/admin/sectors',
                     '/admin/staff',
@@ -427,11 +452,10 @@ class AdminDashboardTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Dashboard')
                 ->where('stats.residents', 0)
-                ->where('stats.pendingAnnouncements', 0)
-                ->where('stats.activeStaff', 1)
+                ->where('stats.totalPrograms', 0)
+                ->where('stats.totalAnnouncements', 0)
                 ->where('stats.puroks', 0)
-                ->where('stats.releasedCertificates', 0)
-                ->where('activity.pendingApprovals', 0)
+                ->missing('stats.releasedCertificates')
                 ->where('activity.activeStaff', 1)
                 ->has('puroks', 0)
                 ->has('notifications', 0));

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Resident;
 
 use App\Http\Controllers\Controller;
+use App\Models\LuponCase;
 use App\Models\LuponComplaint;
 use App\Models\Resident;
+use App\Support\AuditLogger;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,9 +17,6 @@ use Inertia\Response;
 
 class LuponComplaintController extends Controller
 {
-    /**
-     * Complaint types offered by the resident intake form.
-     */
     private const COMPLAINT_TYPES = [
         'Property / Boundary Dispute',
         'Noise / Disturbance',
@@ -28,17 +27,13 @@ class LuponComplaintController extends Controller
         'Other',
     ];
 
-    /**
-     * Respondent residency answers offered by the intake form.
-     */
     private const RESPONDENT_STATUSES = ['Yes', 'No', 'Unknown'];
 
     /**
-     * Display the Lupon page for the logged-in resident.
-     *
-     * Only the resident's own complaints are returned, scoped to their
-     * barangay. Hearing and case-management data are intentionally absent:
-     * they are not part of this intake batch.
+     * Display the Lupon page for the logged-in resident with tabs:
+     * - File a Complaint
+     * - My Complaints
+     * - Complaints Against Me (Verified Respondent tab)
      */
     public function index(): Response
     {
@@ -48,9 +43,11 @@ class LuponComplaintController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
-        $complaints = LuponComplaint::query()
+        // 1. Complaints filed by this resident
+        $myComplaints = LuponComplaint::query()
             ->where('resident_id', $resident->id)
             ->where('barangay_id', $resident->barangay_id)
+            ->with(['case'])
             ->latest('created_at')
             ->get()
             ->map(function (LuponComplaint $complaint) {
@@ -73,6 +70,46 @@ class LuponComplaintController extends Controller
                         $complaint->submitted_at
                         ?? $complaint->created_at
                     )?->format('F j, Y') ?? '',
+                    'case' => $complaint->case ? [
+                        'id' => $complaint->case->id,
+                        'caseNumber' => $complaint->case->case_number,
+                        'phase' => $complaint->case->phase,
+                        'status' => $complaint->case->status,
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        // 2. Verified cases where this resident is a respondent (Complaints Against Me)
+        $complaintsAgainstMe = LuponCase::query()
+            ->where('barangay_id', $resident->barangay_id)
+            ->whereHas('respondents', function ($q) use ($resident) {
+                $q->where('resident_id', $resident->id)
+                    ->where('association_status', 'verified');
+            })
+            ->with([
+                'complainants' => fn ($q) => $q->where('is_primary', true)->limit(1),
+                'hearings' => fn ($q) => $q->where('status', 'Scheduled')->orderBy('hearing_date')->limit(1),
+            ])
+            ->latest('filed_date')
+            ->get()
+            ->map(function (LuponCase $case) {
+                $complainant = $case->complainants->first();
+                $nextHearing = $case->hearings->first();
+
+                return [
+                    'id' => $case->id,
+                    'caseNumber' => $case->case_number,
+                    'caseType' => $case->case_type,
+                    'phase' => $case->phase,
+                    'status' => $case->status,
+                    'filedDate' => $case->filed_date->format('F j, Y'),
+                    'complainantName' => $complainant?->name ?? 'Complainant',
+                    'nextHearing' => $nextHearing ? [
+                        'date' => $nextHearing->hearing_date->format('F j, Y'),
+                        'time' => $nextHearing->hearing_time,
+                        'venue' => $nextHearing->venue,
+                    ] : null,
                 ];
             })
             ->values();
@@ -90,15 +127,13 @@ class LuponComplaintController extends Controller
                 ),
             ],
             'complaintTypes' => self::COMPLAINT_TYPES,
-            'complaints' => $complaints,
+            'complaints' => $myComplaints,
+            'complaintsAgainstMe' => $complaintsAgainstMe,
         ]);
     }
 
     /**
      * Save a new complaint for review by the Lupong Tagapamayapa.
-     *
-     * The complaint is stored as "Submitted". Nothing is auto-accepted and no
-     * case, hearing, or pangkat record is created by this endpoint.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -109,30 +144,24 @@ class LuponComplaintController extends Controller
 
         $validated = $request->validate([
             'respondentName' => ['required', 'string', 'max:255'],
-
             'respondentResidentStatus' => [
                 'required',
                 'string',
                 Rule::in(self::RESPONDENT_STATUSES),
             ],
-
             'respondentAddress' => ['nullable', 'string', 'max:1000'],
             'respondentContact' => ['nullable', 'string', 'max:50'],
-
             'complaintType' => [
                 'required',
                 'string',
                 Rule::in(self::COMPLAINT_TYPES),
             ],
-
             'incidentDate' => [
                 'required',
                 'date',
                 'before_or_equal:today',
             ],
-
             'incidentTime' => ['nullable', 'date_format:H:i'],
-
             'incidentLocation' => ['required', 'string', 'max:500'],
             'narrative' => ['required', 'string', 'max:5000'],
             'requestedAction' => ['required', 'string', 'max:2000'],
@@ -155,7 +184,21 @@ class LuponComplaintController extends Controller
             'submitted_at' => now(),
         ];
 
-        $this->createWithReference($attributes);
+        $complaint = $this->createWithReference($attributes);
+
+        AuditLogger::record(
+            event: 'lupon_complaint.submitted',
+            barangayId: $resident->barangay_id,
+            actorId: null,
+            entityType: 'lupon_complaint',
+            entityId: $complaint->id,
+            context: [
+                'action' => 'submitted',
+                'entity_reference' => $complaint->reference,
+                'new_status' => 'Submitted',
+            ],
+            ipAddress: $request->ip()
+        );
 
         return redirect()
             ->route('resident.lupon')
@@ -165,17 +208,9 @@ class LuponComplaintController extends Controller
             );
     }
 
-    /**
-     * Create the complaint with a unique sequential LUP-YYYY-NNNNN reference.
-     *
-     * The reference is allocated inside the transaction and retried on a
-     * unique-constraint collision so two concurrent submissions can never
-     * claim the same number.
-     */
     private function createWithReference(array $attributes): LuponComplaint
     {
         $prefix = 'LUP-'.now()->year.'-';
-
         $attempts = 0;
 
         while ($attempts < 5) {
@@ -200,10 +235,6 @@ class LuponComplaintController extends Controller
         throw new \RuntimeException('Unable to allocate a unique complaint reference.');
     }
 
-    /**
-     * Next sequential reference for the current year, based on the highest
-     * reference already stored for that year.
-     */
     private function nextReference(string $prefix): string
     {
         $last = LuponComplaint::query()
@@ -233,6 +264,7 @@ class LuponComplaintController extends Controller
 
         return str_contains($message, 'UNIQUE')
             || str_contains($message, 'Duplicate entry')
-            || str_contains($message, 'SQLSTATE[23000]');
+            || str_contains($message, 'SQLSTATE[23000]')
+            || str_contains($message, 'SQLSTATE[23505]');
     }
 }

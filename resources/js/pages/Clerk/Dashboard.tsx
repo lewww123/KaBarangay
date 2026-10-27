@@ -66,7 +66,7 @@ export default function Dashboard({
                             Welcome, {displayName}
                         </h1>
                         <p className="text-sm text-gray-500">
-                            Overview of your barangay's residents and announcements.
+                            Overview of your barangay's residents, updates, and programs.
                         </p>
                     </div>
                 </div>
@@ -83,7 +83,7 @@ export default function Dashboard({
                     </div>
                     <div className="bg-white border-l-4 border-green-500 rounded-r-lg shadow-sm p-4 sm:p-5">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                            Approved Announcements
+                            Published Updates & Programs
                         </h3>
                         <p className="text-2xl sm:text-3xl font-bold text-gray-800">
                             {stats?.approvedAnnouncements ?? 0}
@@ -91,7 +91,7 @@ export default function Dashboard({
                     </div>
                     <div className="bg-white border-l-4 border-amber-500 rounded-r-lg shadow-sm p-4 sm:p-5">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                            Pending Announcements
+                            Programs Pending Approval
                         </h3>
                         <p className="text-2xl sm:text-3xl font-bold text-gray-800">
                             {stats?.pendingAnnouncements ?? 0}
@@ -103,19 +103,19 @@ export default function Dashboard({
                 <div className="bg-white border border-[#e6ddcd] rounded-lg shadow-sm overflow-hidden">
                     <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#e6ddcd]">
                         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                            Recent Announcements
+                            Recent Updates & Programs
                         </h2>
                         <Link
-                            href="/clerk/announcements"
+                            href="/clerk/updates"
                             className="text-xs font-medium text-[#3f6f3d] hover:text-[#315b30]"
                         >
-                            Manage announcements &rarr;
+                            Manage updates &rarr;
                         </Link>
                     </div>
 
                     {recentAnnouncements.length === 0 ? (
                         <p className="px-4 sm:px-6 py-8 text-center text-sm text-gray-500">
-                            No announcements yet.
+                            No updates or programs yet.
                         </p>
                     ) : (
                         <div className="overflow-x-auto">

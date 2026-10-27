@@ -1,7 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
-type LuponPage = 'dashboard' | 'complaints';
+type LuponPage = 'dashboard' | 'complaints' | 'cases' | 'hearings';
 
 type LuponLayoutProps = {
     children: ReactNode;
@@ -78,6 +78,20 @@ export default function LuponLayout({
                             icon="📋"
                             label="Complaints"
                             active={active === 'complaints'}
+                        />
+
+                        <SidebarLink
+                            href="/lupon/cases"
+                            icon="📂"
+                            label="Cases"
+                            active={active === 'cases'}
+                        />
+
+                        <SidebarLink
+                            href="/lupon/hearings"
+                            icon="🗓️"
+                            label="Hearings"
+                            active={active === 'hearings'}
                         />
 
                     </nav>

@@ -2,8 +2,6 @@ import { Head, Link } from '@inertiajs/react';
 
 type Registration = {
     reference: string;
-    status: string;
-    submitted_at: string | null;
 };
 
 type Props = {
@@ -63,9 +61,7 @@ export default function RegistrationPending({
                             </h1>
 
                             <p className="mt-2 text-sm leading-6 text-gray-600">
-                                Your application has been received
-                                and is waiting for verification by
-                                your barangay.
+                                Your registration form was received. Use your application reference and password to securely view its current status.
                             </p>
                         </div>
 
@@ -88,15 +84,11 @@ export default function RegistrationPending({
 
                                 <div>
                                     <p className="text-sm font-bold text-amber-900">
-                                        Pending Admin Verification
+                                        What happens next
                                     </p>
 
                                     <p className="mt-1 text-xs leading-5 text-amber-800">
-                                        Your account is not active
-                                        yet. Authorized barangay
-                                        personnel must verify your
-                                        information, valid ID and
-                                        live identity photo.
+                                        Authorized barangay personnel will review the information and documents you submitted. Your application status is available only after secure sign-in.
                                     </p>
                                 </div>
                             </div>
@@ -118,6 +110,21 @@ export default function RegistrationPending({
                         </div>
 
                         <div className="mt-5 space-y-3">
+                            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                                <p className="text-sm font-semibold text-blue-900">
+                                    Verify your email for decision notices
+                                </p>
+                                <p className="mt-1 text-xs leading-5 text-blue-800">
+                                    If you provided an email address, check for a six-digit verification code. Sign in below with your application reference and registration password to enter it. Email verification is not required for Admin review or approval.
+                                </p>
+                                <Link
+                                    href="/resident/register/verification/resend"
+                                    className="mt-3 inline-flex text-xs font-semibold text-[#315b30] underline underline-offset-2"
+                                >
+                                    Request another verification code
+                                </Link>
+                            </div>
+
                             <ProcessItem
                                 number="1"
                                 title="Registration submitted"
@@ -141,8 +148,15 @@ export default function RegistrationPending({
                         </div>
 
                         <Link
-                            href="/resident/login"
+                            href={`/resident/application/access?reference=${encodeURIComponent(registration.reference)}`}
                             className="mt-6 flex min-h-12 w-full items-center justify-center rounded-xl bg-[#3f6f3d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#315b30]"
+                        >
+                            View application securely
+                        </Link>
+
+                        <Link
+                            href="/resident/login"
+                            className="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl border border-gray-300 px-5 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
                         >
                             Back to Resident Login
                         </Link>

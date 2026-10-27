@@ -45,7 +45,7 @@ class AttendanceRecordingTest extends TestCase
         return '/pwd/announcements/'.$announcement->id.'/attendance/mark';
     }
 
-    public function test_senior_attendance_status_change_updates_a_single_record(): void
+    public function test_senior_present_to_claimed_request_preserves_the_original_record(): void
     {
         $staff = $this->createStaff($this->barangay, 'senior_staff');
         $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170001001']);
@@ -55,18 +55,18 @@ class AttendanceRecordingTest extends TestCase
         $this->actingAs($staff)->post($this->seniorMarkUrl($announcement), [
             'resident_id' => $resident->id,
             'status' => 'present',
-        ])->assertRedirect();
+        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'recorded');
 
         $this->actingAs($staff)->post($this->seniorMarkUrl($announcement), [
             'resident_id' => $resident->id,
             'status' => 'claimed',
-        ])->assertRedirect();
+        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'existing_record_conflict');
 
         $this->assertDatabaseCount('announcement_attendances', 1);
         $this->assertDatabaseHas('announcement_attendances', [
             'announcement_id' => $announcement->id,
             'resident_id' => $resident->id,
-            'status' => 'claimed',
+            'status' => 'present',
         ]);
     }
 
@@ -76,12 +76,15 @@ class AttendanceRecordingTest extends TestCase
         $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170001002']);
         $announcement = $this->createAnnouncement($this->barangay, ['requires_attendance' => true]);
 
-        for ($i = 0; $i < 2; $i++) {
-            $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
-                'resident_id' => $resident->id,
-                'status' => 'present',
-            ])->assertRedirect();
-        }
+        $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
+            'resident_id' => $resident->id,
+            'status' => 'present',
+        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'recorded');
+
+        $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
+            'resident_id' => $resident->id,
+            'status' => 'present',
+        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'already_present');
 
         $this->assertDatabaseCount('announcement_attendances', 1);
     }

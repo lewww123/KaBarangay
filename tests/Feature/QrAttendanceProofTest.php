@@ -414,7 +414,7 @@ class QrAttendanceProofTest extends TestCase
         $this->assertDatabaseCount('announcement_attendances', 0);
     }
 
-    public function test_reissued_proof_updates_a_single_record(): void
+    public function test_reissued_proof_does_not_replace_an_existing_claim(): void
     {
         $clerk = $this->createStaff($this->barangay, 'clerk');
         $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170005015']);
@@ -427,7 +427,7 @@ class QrAttendanceProofTest extends TestCase
             'status' => 'claimed',
             'method' => 'qr_scanner',
             'qr_proof' => $firstProof,
-        ])->assertRedirect();
+        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'recorded');
 
         $secondProof = $this->resolveProof($clerk, $credential->token, $announcement);
         $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
@@ -435,12 +435,12 @@ class QrAttendanceProofTest extends TestCase
             'status' => 'present',
             'method' => 'qr_scanner',
             'qr_proof' => $secondProof,
-        ])->assertRedirect();
+        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'already_claimed');
 
         $this->assertDatabaseCount('announcement_attendances', 1);
         $this->assertDatabaseHas('announcement_attendances', [
             'resident_id' => $resident->id,
-            'status' => 'present',
+            'status' => 'claimed',
         ]);
     }
 

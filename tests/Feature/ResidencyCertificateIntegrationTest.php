@@ -68,7 +68,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
         // blocks, and it prints no control number, so it must not expose the
         // generic merge fields.
         $this->assertNotContains('purpose', $variables);
-        $this->assertNotContains('signatory_name', $variables);
+        $this->assertContains('signatory_name', $variables);
         $this->assertNotContains('signatory_title', $variables);
         $this->assertNotContains('control_no', $variables);
         $this->assertNotContains('fee', $variables);
@@ -447,7 +447,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
         $this->assertSame(2, CertificateIssuance::query()->count());
     }
 
-    public function test_residency_does_not_require_a_purpose_a_signatory_or_a_control_number(): void
+    public function test_residency_requires_a_control_number_but_not_an_optional_purpose_or_signatory(): void
     {
         $this->requireTemplate();
 
@@ -464,8 +464,8 @@ class ResidencyCertificateIntegrationTest extends TestCase
                 'control_no' => '',
             ]));
 
-        $response->assertSessionHasNoErrors();
-        $this->assertSame(1, CertificateIssuance::query()->count());
+        $response->assertSessionHasErrors('control_no');
+        $this->assertSame(0, CertificateIssuance::query()->count());
     }
 
     public function test_residency_persists_one_issuance_without_the_transient_years(): void
@@ -495,7 +495,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
         $attributes = $issuance->getAttributes();
 
         $this->assertArrayNotHasKey('years_of_residency', $attributes);
-        $this->assertArrayNotHasKey('control_no', $attributes);
+        $this->assertSame('CTRL-2026-0001', $attributes['control_no']);
     }
 
     public function test_residency_generation_is_restricted_to_clerk_staff(): void
@@ -516,7 +516,11 @@ class ResidencyCertificateIntegrationTest extends TestCase
 
     public function test_residency_frontend_collects_the_years_and_hides_the_purpose_signatory_and_control_number(): void
     {
-        $source = (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx'));
+        $source = (string) preg_replace(
+            '/\s+/',
+            ' ',
+            (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx')),
+        );
 
         // The Residency detail block exists and is rendered for that type.
         $this->assertStringContainsString("const RESIDENCY_TYPE = 'Residency';", $source);
@@ -689,7 +693,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
             'resident_name' => 'Juan Dela Cruz',
             'purok' => 'Masunurin',
             'purpose' => '',
-            'control_no' => '',
+            'control_no' => 'CTRL-2026-0001',
             'fee' => '50',
             'signatory_name' => '',
             'signatory_title' => '',

@@ -67,7 +67,7 @@ class DelayedPsaCertificateIntegrationTest extends TestCase
         // blocks, so it must not expose the generic merge fields.
         $this->assertNotContains('purpose', $variables);
         $this->assertNotContains('barangay_address', $variables);
-        $this->assertNotContains('signatory_name', $variables);
+        $this->assertContains('signatory_name', $variables);
         $this->assertNotContains('signatory_title', $variables);
     }
 
@@ -557,7 +557,11 @@ class DelayedPsaCertificateIntegrationTest extends TestCase
 
     public function test_delayed_psa_frontend_gates_the_purpose_and_signatory_inputs(): void
     {
-        $source = (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx'));
+        $source = (string) preg_replace(
+            '/\s+/',
+            ' ',
+            (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx')),
+        );
 
         // The Delayed PSA detail block exists and is rendered for that type.
         $this->assertStringContainsString("const DELAYED_PSA_TYPE = 'Delayed PSA Registration';", $source);

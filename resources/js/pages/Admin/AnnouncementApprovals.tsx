@@ -39,6 +39,11 @@ interface AnnouncementItem {
         id: number;
         name: string;
     } | null;
+    publication?: {
+        published_at: string | null;
+        published_by: string | null;
+    } | null;
+    approval_logs?: ApprovalLog[];
     approvalLogs?: ApprovalLog[];
 }
 
@@ -57,7 +62,19 @@ type ApprovalForm = {
 export default function AnnouncementApprovals({ announcements = [] }: Props) {
     const [activeTab, setActiveTab] = useState<TabType>('pending');
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementItem | null>(null);
+    const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementItem | null>(() => {
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        const announcementId = new URLSearchParams(window.location.search).get('announcement');
+
+        if (!announcementId) {
+            return null;
+        }
+
+        return announcements.find((item) => String(item.id) === announcementId) ?? null;
+    });
     const [rejectingAnnouncement, setRejectingAnnouncement] = useState<AnnouncementItem | null>(null);
     const [approvingId, setApprovingId] = useState<number | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
@@ -86,7 +103,7 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
             return;
         }
 
-        if (!confirm('Are you sure you want to approve and publish this announcement?')) {
+        if (!confirm('Are you sure you want to approve and publish this program?')) {
             return;
         }
 
@@ -104,7 +121,7 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
                             ? formErrors.approval
                             : typeof formErrors.revision_token === 'string'
                               ? formErrors.revision_token
-                              : 'Unable to approve this announcement. Please refresh and try again.',
+                              : 'Unable to approve this program. Please refresh and try again.',
                     );
                 },
                 onFinish: () => setApprovingId(null),
@@ -141,19 +158,22 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
         });
     };
 
+    const selectedApprovalLogs =
+        selectedAnnouncement?.approval_logs ?? selectedAnnouncement?.approvalLogs ?? [];
+
     return (
-        <AdminLayout active="announcements">
-            <Head title="Announcement Approvals" />
+        <AdminLayout active="overview">
+            <Head title="Program Approvals" />
 
             <div className="mx-auto max-w-7xl space-y-6 font-sans p-2 sm:p-4">
                 {/* PAGE HEADER */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">
-                            Announcement Approvals
+                            Program Approvals
                         </h1>
                         <p className="text-sm text-gray-500">
-                            Review, approve, or reject announcements submitted by barangay staff and clerks.
+                            Review, approve, or reject programs submitted by barangay staff and clerks. Updates publish immediately and do not require approval.
                         </p>
                     </div>
 
@@ -161,7 +181,7 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
                     <div className="relative w-full sm:w-72">
                         <input
                             type="text"
-                            placeholder="Search announcements..."
+                            placeholder="Search programs..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-4 text-sm outline-none transition focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15"
@@ -263,7 +283,7 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
                                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                             }`}
                         >
-                            <span>All Announcements</span>
+                            <span>All Programs</span>
                             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-600">
                                 {announcements.length}
                             </span>
@@ -276,10 +296,10 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
                     {filteredAnnouncements.length === 0 ? (
                         <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm">
                             <p className="text-base font-semibold text-gray-700">
-                                No announcements found in "{activeTab.toUpperCase()}"
+                                No programs found in "{activeTab.toUpperCase()}"
                             </p>
                             <p className="mt-1 text-sm text-gray-500">
-                                There are no announcements matching your current filter.
+                                There are no programs matching your current filter.
                             </p>
                         </div>
                     ) : (
@@ -393,7 +413,7 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
                         <h3 className="text-lg font-bold text-gray-900">
-                            Reject Announcement
+                            Reject Program
                         </h3>
                         <p className="mt-1 text-xs text-gray-500">
                             Please provide a clear reason so the clerk can make the necessary revisions.
@@ -456,7 +476,7 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
                         <div className="flex items-start justify-between">
                             <div>
                                 <span className="text-xs font-semibold uppercase text-gray-400">
-                                    Announcement Details
+                                    Program Details
                                 </span>
                                 <h2 className="text-xl font-bold text-gray-900 mt-1">
                                     {selectedAnnouncement.title}
@@ -477,12 +497,45 @@ export default function AnnouncementApprovals({ announcements = [] }: Props) {
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
                             <h3 className="text-sm font-bold text-gray-900">
+                                Publication
+                            </h3>
+
+                            <dl className="grid gap-3 sm:grid-cols-3">
+                                <div className="rounded-xl border border-gray-200 bg-white p-3">
+                                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                        Published Date
+                                    </dt>
+                                    <dd className="mt-1 text-sm font-semibold text-gray-800">
+                                        {formatPublicationDate(selectedAnnouncement.publication?.published_at)}
+                                    </dd>
+                                </div>
+                                <div className="rounded-xl border border-gray-200 bg-white p-3">
+                                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                        Published Time
+                                    </dt>
+                                    <dd className="mt-1 text-sm font-semibold text-gray-800">
+                                        {formatPublicationTime(selectedAnnouncement.publication?.published_at)}
+                                    </dd>
+                                </div>
+                                <div className="rounded-xl border border-gray-200 bg-white p-3">
+                                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                        Published By
+                                    </dt>
+                                    <dd className="mt-1 text-sm font-semibold text-gray-800">
+                                        {selectedAnnouncement.publication?.published_by?.trim() || 'Unavailable'}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-4 space-y-3">
+                            <h3 className="text-sm font-bold text-gray-900">
                                 Approval History & Audit Logs
                             </h3>
 
-                            {selectedAnnouncement.approvalLogs && selectedAnnouncement.approvalLogs.length > 0 ? (
+                            {selectedApprovalLogs.length > 0 ? (
                                 <div className="space-y-2">
-                                    {selectedAnnouncement.approvalLogs.map((log) => (
+                                    {selectedApprovalLogs.map((log) => (
                                         <div
                                             key={log.id}
                                             className="rounded-xl border border-gray-200 p-3 text-xs flex justify-between items-start bg-white"
@@ -553,6 +606,38 @@ function getStatusBadge(status: string) {
 function formatAudience(audience: string) {
     if (!audience) return 'All Residents';
     return audience.replace(/_/g, ' ');
+}
+
+function parsePublicationDate(value?: string | null) {
+    if (!value) return null;
+
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatPublicationDate(value?: string | null) {
+    const date = parsePublicationDate(value);
+
+    if (!date) return 'Unavailable';
+
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+}
+
+function formatPublicationTime(value?: string | null) {
+    const date = parsePublicationDate(value);
+
+    if (!date) return 'Unavailable';
+
+    return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    });
 }
 
 function SearchIcon() {

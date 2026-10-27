@@ -753,6 +753,152 @@ class AnnouncementManagementTest extends TestCase
                 ->where('announcements.0.revision_token', fn ($token) => is_string($token) && strlen($token) === 64));
     }
 
+    public function test_admin_approval_index_exposes_current_publication_actor_and_timestamp(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $firstPublisher = $this->createStaff($this->barangay, 'admin');
+        $currentPublisher = $this->createStaff($this->barangay, 'admin');
+
+        $announcement = $this->createAnnouncement($this->barangay, [
+            'title' => 'Republished Notice',
+            'created_by' => $clerk->id,
+            'approval_status' => 'pending',
+            'is_published' => false,
+        ]);
+
+        $this->actingAs($firstPublisher)
+            ->post('/admin/announcements/'.$announcement->id.'/approve', [
+                'revision_token' => $this->revisionToken($announcement),
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($clerk)->put('/clerk/announcements/'.$announcement->id, [
+            'title' => 'Republished Notice',
+            'content' => 'Updated before republication.',
+            'category' => 'General',
+            'target_audience' => 'all',
+        ])->assertRedirect();
+
+        $this->actingAs($currentPublisher)
+            ->post('/admin/announcements/'.$announcement->id.'/approve', [
+                'revision_token' => $this->revisionToken($announcement),
+            ])
+            ->assertRedirect();
+
+        $publicationLog = AnnouncementApprovalLog::query()
+            ->where('announcement_id', $announcement->id)
+            ->where('action', 'approved')
+            ->orderByDesc('id')
+            ->firstOrFail();
+
+        $this->actingAs($firstPublisher)
+            ->get('/admin/announcements/approvals')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/AnnouncementApprovals')
+                ->where('announcements.0.publication.published_by', $currentPublisher->name)
+                ->where(
+                    'announcements.0.publication.published_at',
+                    $publicationLog->created_at->toIso8601String()
+                ));
+    }
+
+    public function test_admin_approval_index_keeps_publication_after_event_completion(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $announcement = $this->createAnnouncement($this->barangay, [
+            'title' => 'Completed Event',
+            'category' => 'Event',
+            'approval_status' => 'pending',
+            'is_published' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->post('/admin/announcements/'.$announcement->id.'/approve', [
+                'revision_token' => $this->revisionToken($announcement),
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($clerk)
+            ->post('/clerk/announcements/'.$announcement->id.'/complete')
+            ->assertRedirect();
+
+        $publicationLog = AnnouncementApprovalLog::query()
+            ->where('announcement_id', $announcement->id)
+            ->where('action', 'approved')
+            ->firstOrFail();
+
+        $this->actingAs($admin)
+            ->get('/admin/announcements/approvals')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/AnnouncementApprovals')
+                ->where('announcements.0.publication.published_by', $admin->name)
+                ->where(
+                    'announcements.0.publication.published_at',
+                    $publicationLog->created_at->toIso8601String()
+                ));
+    }
+
+    public function test_admin_approval_index_hides_publication_after_resubmission(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $announcement = $this->createAnnouncement($this->barangay, [
+            'approval_status' => 'pending',
+            'is_published' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->post('/admin/announcements/'.$announcement->id.'/approve', [
+                'revision_token' => $this->revisionToken($announcement),
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($clerk)->put('/clerk/announcements/'.$announcement->id, [
+            'title' => 'Needs Another Review',
+            'content' => 'Edited after publication.',
+            'category' => 'General',
+            'target_audience' => 'all',
+        ])->assertRedirect();
+
+        $this->actingAs($admin)
+            ->get('/admin/announcements/approvals')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/AnnouncementApprovals')
+                ->where('announcements.0.approval_status', 'pending')
+                ->where('announcements.0.is_published', false)
+                ->where('announcements.0.publication', null));
+    }
+
+    public function test_admin_approval_index_falls_back_to_recorded_review_for_legacy_publication(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $reviewedAt = now()->subDay();
+
+        $this->createAnnouncement($this->barangay, [
+            'approval_status' => 'approved',
+            'is_published' => true,
+            'reviewed_by' => $admin->id,
+            'reviewed_at' => $reviewedAt,
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/announcements/approvals')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/AnnouncementApprovals')
+                ->where('announcements.0.publication.published_by', $admin->name)
+                ->where(
+                    'announcements.0.publication.published_at',
+                    $reviewedAt->toIso8601String()
+                ));
+    }
+
     public function test_approval_requires_a_revision_token(): void
     {
         $admin = $this->createStaff($this->barangay, 'admin');
@@ -1165,5 +1311,301 @@ class AnnouncementManagementTest extends TestCase
                         && $withoutDate !== null
                         && $withoutDate['event_start_at'] === null;
                 }));
+    }
+
+    public function test_new_events_default_to_attendance_disabled_across_staff_portals(): void
+    {
+        $portals = [
+            ['role' => 'clerk', 'url' => '/clerk/announcements', 'audience' => 'all', 'extra' => ['target_audience' => 'all']],
+            ['role' => 'pwd_staff', 'url' => '/pwd/announcements', 'audience' => 'pwd', 'extra' => []],
+            ['role' => 'senior_staff', 'url' => '/senior/announcements', 'audience' => 'senior_citizens', 'extra' => []],
+        ];
+
+        foreach ($portals as $portal) {
+            $staff = $this->createStaff($this->barangay, $portal['role']);
+
+            $this->actingAs($staff)
+                ->post($portal['url'], [
+                    'title' => 'Default Attendance '.$portal['role'],
+                    'content' => 'Event without attendance tracking.',
+                    'category' => 'Event',
+                    'event_start_at' => '2026-11-15T08:30:00',
+                    'location' => 'Barangay Hall',
+                    ...$portal['extra'],
+                ])
+                ->assertSessionHasNoErrors()
+                ->assertRedirect();
+
+            $announcement = Announcement::query()
+                ->where('title', 'Default Attendance '.$portal['role'])
+                ->firstOrFail();
+
+            $this->assertFalse($announcement->requires_attendance);
+            $this->assertSame($portal['audience'], $announcement->target_audience);
+            $this->assertSame($this->barangay->id, $announcement->barangay_id);
+        }
+    }
+
+    public function test_explicit_attendance_setting_is_persisted_across_staff_portals(): void
+    {
+        $portals = [
+            ['role' => 'clerk', 'url' => '/clerk/announcements', 'audience' => 'all', 'extra' => ['target_audience' => 'all']],
+            ['role' => 'pwd_staff', 'url' => '/pwd/announcements', 'audience' => 'pwd', 'extra' => []],
+            ['role' => 'senior_staff', 'url' => '/senior/announcements', 'audience' => 'senior_citizens', 'extra' => []],
+        ];
+
+        foreach ($portals as $portal) {
+            $staff = $this->createStaff($this->barangay, $portal['role']);
+
+            $this->actingAs($staff)
+                ->post($portal['url'], [
+                    'title' => 'Enabled Attendance '.$portal['role'],
+                    'content' => 'Event with attendance tracking.',
+                    'category' => 'Event',
+                    'requires_attendance' => true,
+                    'event_start_at' => '2026-11-15T08:30:00',
+                    'location' => 'Barangay Hall',
+                    ...$portal['extra'],
+                ])
+                ->assertSessionHasNoErrors()
+                ->assertRedirect();
+
+            $announcement = Announcement::query()
+                ->where('title', 'Enabled Attendance '.$portal['role'])
+                ->firstOrFail();
+
+            $this->assertTrue($announcement->requires_attendance);
+            $this->assertSame($portal['audience'], $announcement->target_audience);
+        }
+    }
+
+    public function test_editing_unrelated_fields_preserves_attendance_setting(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $announcement = $this->createAnnouncement($this->barangay, [
+            'title' => 'Attendance Event',
+            'category' => 'Event',
+            'target_audience' => 'all',
+            'requires_attendance' => true,
+            'event_start_at' => '2026-11-15 08:30:00',
+            'location' => 'Barangay Hall',
+        ]);
+
+        $this->actingAs($clerk)
+            ->put('/clerk/announcements/'.$announcement->id, [
+                'title' => 'Attendance Event Updated',
+                'content' => 'Updated title and content only.',
+                'category' => 'Event',
+                'target_audience' => 'all',
+                'event_start_at' => '2026-11-15T08:30:00',
+                'location' => 'Barangay Hall',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $announcement->refresh();
+
+        $this->assertSame('Attendance Event Updated', $announcement->title);
+        $this->assertTrue($announcement->requires_attendance);
+        $this->assertSame('pending', $announcement->approval_status);
+    }
+
+    public function test_editing_event_to_informational_does_not_require_event_fields(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $announcement = $this->createAnnouncement($this->barangay, [
+            'title' => 'Attendance Event',
+            'category' => 'Event',
+            'target_audience' => 'all',
+            'approval_status' => 'approved',
+            'is_published' => true,
+            'requires_attendance' => true,
+            'event_start_at' => '2026-11-15 08:30:00',
+            'location' => 'Barangay Hall',
+        ]);
+
+        $this->actingAs($clerk)
+            ->put('/clerk/announcements/'.$announcement->id, [
+                'title' => 'General Update',
+                'content' => 'No longer an event.',
+                'category' => 'General',
+                'target_audience' => 'all',
+                'requires_attendance' => false,
+                'event_start_at' => '',
+                'location' => '',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $announcement->refresh();
+
+        $this->assertSame('General', $announcement->category);
+        $this->assertFalse($announcement->requires_attendance);
+        $this->assertNull($announcement->event_start_at);
+        $this->assertNull($announcement->location);
+        $this->assertSame('pending', $announcement->approval_status);
+        $this->assertFalse($announcement->is_published);
+    }
+
+    public function test_sector_staff_update_cannot_switch_audience_or_barangay(): void
+    {
+        $portals = [
+            ['role' => 'pwd_staff', 'url' => '/pwd/announcements', 'audience' => 'pwd'],
+            ['role' => 'senior_staff', 'url' => '/senior/announcements', 'audience' => 'senior_citizens'],
+        ];
+
+        foreach ($portals as $portal) {
+            $staff = $this->createStaff($this->barangay, $portal['role']);
+            $announcement = $this->createAnnouncement($this->barangay, [
+                'title' => 'Scoped '.$portal['role'],
+                'content' => 'Original content.',
+                'category' => 'General',
+                'target_audience' => $portal['audience'],
+                'approval_status' => 'approved',
+                'is_published' => true,
+            ]);
+
+            $this->actingAs($staff)
+                ->put($portal['url'].'/'.$announcement->id, [
+                    'title' => 'Scoped '.$portal['role'].' Updated',
+                    'content' => 'Updated content.',
+                    'category' => 'General',
+                    'target_audience' => $portal['audience'] === 'pwd' ? 'senior_citizens' : 'pwd',
+                    'barangay_id' => $this->other->id,
+                ])
+                ->assertSessionHasNoErrors()
+                ->assertRedirect();
+
+            $announcement->refresh();
+
+            $this->assertSame($portal['audience'], $announcement->target_audience);
+            $this->assertSame($this->barangay->id, $announcement->barangay_id);
+            $this->assertSame('pending', $announcement->approval_status);
+            $this->assertFalse($announcement->is_published);
+        }
+    }
+
+    public function test_clerk_update_route_publishes_immediately(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $this->actingAs($clerk)->post('/clerk/updates', [
+            'title' => 'Road Closure Notice',
+            'content' => 'Purok 1 road is closed for repairs.',
+            'category' => 'General',
+            'target_audience' => 'all',
+            'requires_attendance' => false,
+        ])->assertRedirect();
+
+        $announcement = Announcement::query()->latest('id')->firstOrFail();
+
+        $this->assertSame('approved', $announcement->approval_status);
+        $this->assertTrue($announcement->is_published);
+        $this->assertSame('General', $announcement->category);
+        $this->assertSame($clerk->id, $announcement->reviewed_by);
+
+        $this->assertDatabaseHas('announcement_approval_logs', [
+            'announcement_id' => $announcement->id,
+            'action' => 'approved',
+            'new_status' => 'approved',
+        ]);
+    }
+
+    public function test_pwd_and_senior_update_routes_preserve_direct_publishing_behavior(): void
+    {
+        foreach ([
+            ['role' => 'pwd_staff', 'path' => '/pwd/updates', 'audience' => 'pwd'],
+            ['role' => 'senior_staff', 'path' => '/senior/updates', 'audience' => 'senior_citizens'],
+        ] as $portal) {
+            $staff = $this->createStaff($this->barangay, $portal['role']);
+
+            $this->actingAs($staff)->post($portal['path'], [
+                'title' => 'Sector update',
+                'content' => 'Informational post content.',
+                'category' => 'General',
+                'requires_attendance' => false,
+            ])->assertRedirect();
+
+            $announcement = Announcement::query()->latest('id')->firstOrFail();
+
+            $this->assertSame($portal['audience'], $announcement->target_audience);
+            $this->assertSame('approved', $announcement->approval_status);
+            $this->assertTrue($announcement->is_published);
+            $this->assertSame($staff->id, $announcement->reviewed_by);
+        }
+    }
+
+    public function test_clerk_program_route_forces_event_details_and_awaits_approval(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $this->actingAs($clerk)->post('/clerk/programs', [
+            'title' => 'Senior Vaccine Drive',
+            'content' => 'Free vaccination for senior citizens.',
+            'category' => 'General',
+            'target_audience' => 'all',
+            'requires_attendance' => true,
+            'event_start_at' => now()->addWeek()->toDateTimeString(),
+            'location' => 'Barangay Covered Court',
+        ])->assertRedirect();
+
+        $announcement = Announcement::query()->latest('id')->firstOrFail();
+
+        $this->assertSame('Event', $announcement->category);
+        $this->assertSame('pending', $announcement->approval_status);
+        $this->assertFalse($announcement->is_published);
+        $this->assertTrue($announcement->requires_attendance);
+    }
+
+    public function test_update_show_route_preserves_update_context(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $announcement = $this->createAnnouncement($this->barangay, [
+            'title' => 'Update Detail',
+            'category' => 'General',
+            'requires_attendance' => false,
+            'approval_status' => 'approved',
+            'is_published' => true,
+        ]);
+
+        $this->actingAs($clerk)
+            ->get('/clerk/updates/'.$announcement->id)
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Clerk/Announcements/Show')
+                ->where('kind', 'update')
+                ->where('announcement.id', $announcement->id));
+    }
+
+    public function test_update_and_program_feeds_are_separated(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $this->createAnnouncement($this->barangay, [
+            'title' => 'Informational Update',
+            'category' => 'General',
+            'requires_attendance' => false,
+        ]);
+        $this->createAnnouncement($this->barangay, [
+            'title' => 'Community Program',
+            'category' => 'Event',
+            'requires_attendance' => true,
+        ]);
+
+        $this->actingAs($clerk)
+            ->get('/clerk/updates')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Clerk/Announcements/Index')
+                ->has('announcements', 1)
+                ->where('announcements.0.title', 'Informational Update'));
+
+        $this->actingAs($clerk)
+            ->get('/clerk/programs')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Clerk/Announcements/Index')
+                ->has('announcements', 1)
+                ->where('announcements.0.title', 'Community Program'));
     }
 }
