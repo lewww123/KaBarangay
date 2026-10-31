@@ -8,6 +8,8 @@ use RuntimeException;
 
 abstract class TestCase extends BaseTestCase
 {
+    private const STAFF_HOST = 'https://staff.kabarangay.com';
+
     private const ISOLATED_TEST_ENVIRONMENT = [
         'APP_CONFIG_CACHE'     => 'bootstrap/cache/phpunit-config-cache-disabled.php',
         'APP_ENV'              => 'testing',
@@ -35,6 +37,15 @@ abstract class TestCase extends BaseTestCase
         self::assertIsolatedTestDatabase($app);
 
         return $app;
+    }
+
+    protected function prepareUrlForRequest($uri): string
+    {
+        if (is_string($uri) && preg_match('#^/(?:admin|clerk|lupon|pwd|senior|api/qr)(?:/|$)#', $uri) === 1) {
+            $uri = self::STAFF_HOST.$uri;
+        }
+
+        return parent::prepareUrlForRequest($uri);
     }
 
     private static function assertIsolatedTestDatabase(Application $app): void

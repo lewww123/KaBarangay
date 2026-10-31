@@ -2,7 +2,6 @@
 
 use App\Http\Middleware\EnsureStaffRole;
 use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\LocalAdminRequestDiagnostics;
 use App\Http\Middleware\ResidentAuth;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -49,7 +48,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 HandleInertiaRequests::class,
                 AddLinkHeadersForPreloadedAssets::class,
             ],
-            prepend: [LocalAdminRequestDiagnostics::class],
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {

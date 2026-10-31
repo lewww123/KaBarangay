@@ -77,7 +77,7 @@ class AdminAuditLogTest extends TestCase
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->assertSame(
-            url('/admin/audit-log'),
+            'https://staff.kabarangay.com/admin/audit-log',
             route('admin.audit-log')
         );
 

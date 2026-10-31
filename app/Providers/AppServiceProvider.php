@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use App\Auth\CachedEloquentUserProvider;
-use App\Http\Middleware\LocalAdminRequestDiagnostics;
 use App\Models\Certificate;
 use App\Models\CitizenCharterService;
 use App\Models\CitizenCharterVersion;
@@ -11,20 +10,17 @@ use App\Models\OrgChartPosition;
 use App\Models\User;
 use App\Observers\ReferenceDataObserver;
 use App\Observers\UserAuthCacheObserver;
-use App\Support\AdminQueryLogger;
 use App\Support\LoginAttemptRecorder;
 use App\Support\LoginIdentifier;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -57,52 +53,6 @@ class AppServiceProvider extends ServiceProvider
             $referenceModel::observe(ReferenceDataObserver::class);
         }
 
-        $queryLogger = new AdminQueryLogger;
-        DB::listen($queryLogger(...));
-
-        if (app()->environment('local')) {
-            Event::listen(QueryExecuted::class, static function (QueryExecuted $event): void {
-                $request = app('request');
-
-                if (! $request instanceof Request) {
-                    return;
-                }
-
-                $metrics = $request->attributes->get(LocalAdminRequestDiagnostics::METRICS_ATTRIBUTE);
-
-                if (! is_array($metrics)) {
-                    return;
-                }
-
-                $duration = max(0.0, (float) $event->time);
-                $fingerprint = LocalAdminRequestDiagnostics::fingerprintQuery($event->sql);
-                $metrics['query_count']++;
-                $metrics['query_duration_ms'] += $duration;
-                $metrics['slow_queries'][] = [
-                    'fingerprint' => $fingerprint,
-                    'classification' => LocalAdminRequestDiagnostics::classifyQuery($event->sql),
-                    'duration_ms' => round($duration, 3),
-                ];
-
-                if ($fingerprint === LocalAdminRequestDiagnostics::TARGET_SOURCE_FINGERPRINT
-                    && $duration >= LocalAdminRequestDiagnostics::TARGET_SOURCE_MIN_DURATION_MS
-                    && count($metrics['target_query_sources'] ?? []) < LocalAdminRequestDiagnostics::TARGET_SOURCE_LIMIT) {
-                    $metrics['target_query_sources'][] = [
-                        'fingerprint' => $fingerprint,
-                        'duration_ms' => round($duration, 3),
-                        'source_frames' => LocalAdminRequestDiagnostics::targetQuerySourceFrames(),
-                    ];
-                }
-
-                usort(
-                    $metrics['slow_queries'],
-                    static fn (array $left, array $right): int => $right['duration_ms'] <=> $left['duration_ms'],
-                );
-                $metrics['slow_queries'] = array_slice($metrics['slow_queries'], 0, LocalAdminRequestDiagnostics::SLOW_QUERY_LIMIT);
-
-                $request->attributes->set(LocalAdminRequestDiagnostics::METRICS_ATTRIBUTE, $metrics);
-            });
-        }
     }
 
     /**
