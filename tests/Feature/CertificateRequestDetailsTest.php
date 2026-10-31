@@ -31,7 +31,7 @@ class CertificateRequestDetailsTest extends TestCase
             ),
         );
 
-        $this->assertNull(
+        $this->assertSame('Barangay Clearance',
             CertificateRequestDetails::typeForCertificate(
                 new Certificate(['code' => 'BRGY-CLEARANCE', 'name' => 'Barangay Clearance']),
             ),

@@ -53,65 +53,51 @@ class CitizenCharterController extends Controller
         $baseQuery = CitizenCharterService::query()
             ->where('barangay_id', $user->barangay_id);
 
-        $stats = [
-            'total' => (clone $baseQuery)->count(),
-            'draft' => (clone $baseQuery)
-                ->where('is_published', false)
-                ->whereNull('archived_at')
-                ->count(),
-            'published' => (clone $baseQuery)
-                ->where('is_published', true)
-                ->whereNull('archived_at')
-                ->count(),
-            'archived' => (clone $baseQuery)
-                ->whereNotNull('archived_at')
-                ->count(),
-        ];
-
-        $services = (clone $baseQuery)
-            ->with(['currentVersion', 'creator:id,name'])
-            ->when($status === 'draft', function ($query) {
-                $query->where('is_published', false)
-                    ->whereNull('archived_at');
-            })
-            ->when($status === 'published', function ($query) {
-                $query->where('is_published', true)
-                    ->whereNull('archived_at');
-            })
-            ->when($status === 'archived', function ($query) {
-                $query->whereNotNull('archived_at');
-            })
-            ->when($search !== '', function ($query) use ($search) {
-                $like = '%'.$search.'%';
-
-                $query->where(function ($query) use ($like) {
-                    $query->where('title', 'like', $like)
-                        ->orWhere('category', 'like', $like)
-                        ->orWhere('description', 'like', $like);
-                });
-            })
-            ->orderBy('display_order')
-            ->latest('id')
-            ->paginate(15)
-            ->withQueryString()
-            ->through(
-                fn (CitizenCharterService $service) => $this->servicePayload(
-                    $service,
-                    true
-                )
-            );
-
         return Inertia::render('Clerk/CitizenCharter/Index', [
-            'services' => $services,
+            'services' => $this->deferProp(fn () => (clone $baseQuery)
+                ->with(['currentVersion.uploader:id,name', 'creator:id,name'])
+                ->when($status === 'draft', function ($query) {
+                    $query->where('is_published', false)
+                        ->whereNull('archived_at');
+                })
+                ->when($status === 'published', function ($query) {
+                    $query->where('is_published', true)
+                        ->whereNull('archived_at');
+                })
+                ->when($status === 'archived', function ($query) {
+                    $query->whereNotNull('archived_at');
+                })
+                ->when($search !== '', function ($query) use ($search) {
+                    $like = '%'.$search.'%';
+
+                    $query->where(function ($query) use ($like) {
+                        $query->where('title', 'like', $like)
+                            ->orWhere('category', 'like', $like)
+                            ->orWhere('description', 'like', $like);
+                    });
+                })
+                ->orderBy('display_order')
+                ->latest('id')
+                ->paginate(15)
+                ->withQueryString()
+                ->through(
+                    fn (CitizenCharterService $service) => $this->servicePayload(
+                        $service,
+                        true
+                    )
+                )),
             'filters' => [
                 'search' => $search,
                 'status' => $status,
             ],
-            'stats' => $stats,
+            'stats' => $this->deferProp(fn () => $this->rememberAggregate(
+                "clerk:citizen-charter:stats:{$user->barangay_id}",
+                30,
+                fn (): array => $this->publicationCounts($baseQuery),
+            )),
             'user' => [
                 'name' => $user->name,
-                'staff_id' => $user->staff_id,
-                'department' => $user->department ?: 'Clerk',
+                'department' => 'Clerk',
             ],
         ]);
     }
@@ -229,19 +215,20 @@ class CitizenCharterController extends Controller
     ): Response {
         $this->authorizeBarangay($request, $service);
 
-        $service->load([
-            'currentVersion',
-            'creator:id,name',
-            'updater:id,name',
-            'versions' => fn ($query) => $query->with('uploader:id,name')->orderByDesc('version_number'),
-        ]);
-
         return Inertia::render('Clerk/CitizenCharter/Show', [
-            'service' => $this->servicePayload($service, true),
+            'service' => $this->deferProp(function () use ($service): array {
+                $service->load([
+                    'currentVersion.uploader:id,name',
+                    'creator:id,name',
+                    'updater:id,name',
+                    'versions' => fn ($query) => $query->with('uploader:id,name')->orderByDesc('version_number'),
+                ]);
+
+                return $this->servicePayload($service, true);
+            }),
             'user' => [
                 'name' => $request->user()->name,
-                'staff_id' => $request->user()->staff_id,
-                'department' => $request->user()->department ?: 'Clerk',
+                'department' => 'Clerk',
             ],
         ]);
     }

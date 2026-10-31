@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -15,10 +16,8 @@ use Illuminate\Support\Carbon;
     'name',
     'email',
     'password',
-    'barangay_id',
-    'staff_id',
-    'department',
-    'role',
+        'barangay_id',
+        'resident_id',
     'status',
 ])]
 #[Hidden(['password', 'remember_token'])]
@@ -30,6 +29,25 @@ class User extends Authenticatable
     public function barangay(): BelongsTo
     {
         return $this->belongsTo(Barangay::class);
+    }
+
+    public function resident(): BelongsTo
+    {
+        return $this->belongsTo(Resident::class);
+    }
+
+    public function staffAssignments(): HasMany
+    {
+        return $this->hasMany(StaffAssignment::class);
+    }
+
+    /** @param array<int, string> $departments */
+    public function hasActiveAssignment(array $departments): bool
+    {
+        return $this->staffAssignments()
+            ->whereIn('department', $departments)
+            ->where('is_active', true)
+            ->exists();
     }
 
     protected function casts(): array

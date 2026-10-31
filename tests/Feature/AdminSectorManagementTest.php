@@ -157,7 +157,7 @@ class AdminSectorManagementTest extends TestCase
     |--------------------------------------------------------------------------
     */
 
-    public function test_resident_registration_still_exposes_active_senior_and_pwd_sectors(): void
+    public function test_resident_registration_exposes_all_active_database_sectors(): void
     {
         $this->createSector('Senior Citizen', 'senior');
         $this->createSector('Person with Disability (PWD)', 'pwd');
@@ -167,7 +167,7 @@ class AdminSectorManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Register')
-                ->has('sectors', 2));
+                ->has('sectors', 3));
     }
 
     public function test_deactivating_senior_sector_removes_it_from_registration(): void
@@ -1186,7 +1186,6 @@ class AdminSectorManagementTest extends TestCase
         $entries = [
             '/admin' => 'Overview',
             '/admin/residents' => 'Residents',
-            '/admin/qr-scanner' => 'QR Scanner',
             '/admin/sectors' => 'Sectors',
             '/admin/staff' => 'Staff',
             '/admin/population' => 'Population',
@@ -1942,6 +1941,7 @@ class AdminSectorManagementTest extends TestCase
             'submitted_at' => now(),
         ]);
     }
+
     public function test_program_approvals_entry_removed_from_admin_sidebar(): void
     {
         $source = file_get_contents(resource_path('js/layouts/AdminLayout.tsx'));

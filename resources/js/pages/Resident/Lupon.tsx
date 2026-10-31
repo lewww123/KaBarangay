@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
-import { useForm } from '@inertiajs/react';
+import { Deferred, useForm } from '@inertiajs/react';
 import ResidentLayout from '@/layouts/ResidentLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 
 type ComplaintTab = 'file' | 'complaints' | 'against';
 type FormStep = 'form' | 'review' | 'success';
@@ -91,7 +92,18 @@ type PageProps = {
     flash?: { success?: string | null };
 };
 
-export default function Lupon({
+export default function Lupon(props: PageProps) {
+    return (
+        <Deferred
+            data={['resident', 'complaints', 'complaintsAgainstMe']}
+            fallback={<ResidentLayout active="lupon"><PortalPageSkeleton list showTabs /></ResidentLayout>}
+        >
+            <LuponContent {...props} />
+        </Deferred>
+    );
+}
+
+function LuponContent({
     resident,
     complaintTypes,
     complaints,

@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import AnnouncementImportanceBadge from '@/components/announcements/AnnouncementImportanceBadge';
 import {
-    formatApprovalStatusLabel,
+    formatAnnouncementStatusLabel,
     formatAttendanceSetting,
     formatAudienceLabel,
     isEventAnnouncement,
@@ -16,6 +16,8 @@ export interface AnnouncementDetailsRecord {
     target_audience: string;
     type?: 'event' | 'informational';
     approval_status?: 'pending' | 'approved' | 'rejected';
+    program_status?: 'draft' | 'ongoing' | 'done' | null;
+    is_published?: boolean;
     rejection_reason?: string | null;
     requires_attendance?: boolean;
     attendance_available?: boolean;
@@ -107,14 +109,12 @@ export default function AnnouncementDetails({
                                 announcement.approval_status,
                             )}`}
                         >
-                            {formatApprovalStatusLabel(
-                                announcement.approval_status,
-                            )}
+                            {formatAnnouncementStatusLabel(announcement)}
                         </span>
                     )}
                 </div>
 
-                {showApprovalStatus && announcement.rejection_reason && (
+                {showApprovalStatus && !isEvent && announcement.rejection_reason && (
                     <div
                         className={`mt-5 rounded border p-3 text-xs ${
                             announcement.approval_status === 'rejected'

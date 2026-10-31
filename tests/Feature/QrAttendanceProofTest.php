@@ -306,6 +306,18 @@ class QrAttendanceProofTest extends TestCase
         $this->assertTrue(Cache::has($claimKey));
     }
 
+    public function test_proof_binds_the_issuing_user_id(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170005104']);
+        $announcement = $this->createAnnouncement($this->barangay, ['requires_attendance' => true]);
+
+        $payload = json_decode(Crypt::decryptString(QrAttendanceProof::issue($clerk, $resident, $announcement)), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame($clerk->id, $payload['user_id']);
+        $this->assertArrayNotHasKey('staff_id', $payload);
+    }
+
     public function test_proof_is_rejected_when_another_request_has_already_claimed_it(): void
     {
         $clerk = $this->createStaff($this->barangay, 'clerk');

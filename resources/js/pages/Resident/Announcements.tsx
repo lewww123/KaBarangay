@@ -1,6 +1,7 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Deferred, Head, Link, router } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
 import ResidentLayout from '@/layouts/ResidentLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 
 interface AnnouncementItem {
     id: number;
@@ -62,7 +63,18 @@ const importanceOptions = [
     { value: 'low', label: 'Low' },
 ];
 
-export default function Announcements({
+export default function Announcements(props: Props) {
+    return (
+        <Deferred
+            data={['announcements', 'categories', 'pagination']}
+            fallback={<ResidentLayout active={props.kind === 'updates' ? 'updates' : 'announcements'}><PortalPageSkeleton list /></ResidentLayout>}
+        >
+            <AnnouncementsContent {...props} />
+        </Deferred>
+    );
+}
+
+function AnnouncementsContent({
     announcements,
     categories,
     filters = emptyFilters,
@@ -111,6 +123,7 @@ export default function Announcements({
         }
 
         router.get(basePath, params, {
+            only: ['announcements', 'pagination', 'filters', 'kind', 'period', ...(nextPeriod !== period ? ['categories'] : [])],
             preserveScroll: true,
             preserveState: true,
             replace: true,
@@ -165,6 +178,7 @@ export default function Announcements({
             isUpdates ? { period } : {},
             {
                 preserveScroll: true,
+                only: ['announcements', 'pagination', 'filters', 'kind', 'period'],
                 preserveState: true,
                 replace: true,
                 onStart: () => setFiltering(true),

@@ -9,6 +9,7 @@ use App\Models\Resident;
 use App\Models\ResidentRegistration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
 
@@ -65,28 +66,29 @@ class AdminResidentTabsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Residents')
-                ->where('allResidents.total', 2)
-                ->has('allResidents.data', 2)
+                ->where('allResidents.total', 3)
+                ->has('allResidents.data', 3)
                 ->where('allResidents.data.0.id', $qualifying->id)
                 ->where('addedByAdmin.total', 1)
                 ->where('addedByAdmin.data.0.id', $adminAdded->id)
-                ->missing('pendingRegistrations')
-                ->missing('needsCorrectionRegistrations')
-                ->missing('rejectedRegistrations'));
+                ->where('pendingRegistrations.total', 1)
+                ->where('needsCorrectionRegistrations.total', 0)
+                ->where('rejectedRegistrations.total', 0));
     }
 
-    public function test_all_residents_accepts_approved_legacy_claim_association_without_email_verification(): void
+    public function test_all_residents_does_not_accept_a_legacy_claim_as_account_qualification(): void
     {
         $resident = $this->createResident($this->barangay, $this->purok, [
             'mobile' => '09181000005',
         ]);
         $resident->registration()->update(['status' => 'pending']);
         $resident->forceFill(['email_verified_at' => null])->save();
-        $resident->claims()->create([
-            'public_id' => (string) \Illuminate\Support\Str::uuid(),
+        \Illuminate\Support\Facades\DB::table('resident_claims')->insert([
+            'resident_id' => $resident->id,
+            'public_id' => (string) Str::uuid(),
             'barangay_id' => $this->barangay->id,
             'purok_id' => $this->purok->id,
-            'email' => $resident->email,
+            'email' => 'legacy-claim@example.test',
             'password' => bcrypt('Password123'),
             'status' => 'approved',
             'identity_checked_at' => now(),
@@ -98,8 +100,7 @@ class AdminResidentTabsTest extends TestCase
             ->get('/admin/residents')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('allResidents.total', 1)
-                ->where('allResidents.data.0.id', $resident->id));
+                ->where('allResidents.total', 1));
     }
 
     public function test_online_accounts_preserves_registration_status_models_and_barangay_scope(): void
@@ -118,27 +119,25 @@ class AdminResidentTabsTest extends TestCase
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
-            ->get('/admin/resident-claims?status=pending')
+            ->get('/admin/residents')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('Admin/ResidentClaims')
-                ->where('status', 'pending')
-                ->where('registrations.total', 1)
-                ->where('registrations.data.0.id', $pending->id));
+                ->component('Admin/Residents')
+                ->where('pendingRegistrations.total', 1)
+                ->where('pendingRegistrations.data.0.id', $pending->id));
 
         $this->actingAs($admin)
-            ->get('/admin/resident-claims?status=needs_correction')
+            ->get('/admin/residents')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('registrations.total', 1)
-                ->where('registrations.data.0.id', $correction->id)
-                ->where('claims.total', 0));
+                ->where('needsCorrectionRegistrations.total', 1)
+                ->where('needsCorrectionRegistrations.data.0.id', $correction->id));
 
         $this->actingAs($admin)
-            ->get('/admin/resident-claims?status=rejected')
+            ->get('/admin/residents')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('registrations.total', 0));
+                ->where('rejectedRegistrations.total', 0));
     }
 
     public function test_verified_directory_search_and_purok_filter_remain_scoped(): void
@@ -325,7 +324,7 @@ class AdminResidentTabsTest extends TestCase
         ]);
 
         $this->get('/admin/residents/'.$resident->id.'/details')
-            ->assertRedirect('/login');
+            ->assertRedirect(route('login'));
     }
 
     public function test_missing_details_records_return_404(): void

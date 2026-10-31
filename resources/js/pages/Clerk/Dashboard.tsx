@@ -1,19 +1,20 @@
-import { Head, Link } from '@inertiajs/react';
+import { Deferred, Head, Link } from '@inertiajs/react';
 import ClerkLayout from '@/layouts/ClerkLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import { formatAnnouncementStatusLabel, isEventAnnouncement } from '@/components/announcements/announcement';
 
 interface User {
     id: number;
     name: string;
     email: string;
-    role: string;
-    staff_id: string;
-    department: string;
+    staffAssignments?: { department: string; position: string }[];
 }
 
 interface DashboardStats {
     totalResidents: number;
     totalAnnouncements: number;
     pendingAnnouncements: number;
+    draftPrograms?: number;
     approvedAnnouncements: number;
 }
 
@@ -22,6 +23,8 @@ interface RecentAnnouncement {
     title: string;
     category: string | null;
     approval_status: string;
+    program_status?: string | null;
+    requires_attendance?: boolean;
     is_published: boolean;
     created_at: string | null;
 }
@@ -40,6 +43,10 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 function statusLabel(announcement: RecentAnnouncement): string {
+    if (isEventAnnouncement(announcement)) {
+        return formatAnnouncementStatusLabel(announcement);
+    }
+
     if (announcement.approval_status === 'approved' && !announcement.is_published) {
         return 'approved · unpublished';
     }
@@ -71,6 +78,10 @@ export default function Dashboard({
                     </div>
                 </div>
 
+                <Deferred
+                    data={['stats', 'recentAnnouncements']}
+                    fallback={<PortalPageSkeleton metrics={3} rows={5} list />}
+                >
                 {/* REAL STATS */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="bg-white border-l-4 border-[#3f6f3d] rounded-r-lg shadow-sm p-4 sm:p-5">
@@ -91,10 +102,10 @@ export default function Dashboard({
                     </div>
                     <div className="bg-white border-l-4 border-amber-500 rounded-r-lg shadow-sm p-4 sm:p-5">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                            Programs Pending Approval
+                            Draft Programs
                         </h3>
                         <p className="text-2xl sm:text-3xl font-bold text-gray-800">
-                            {stats?.pendingAnnouncements ?? 0}
+                            {stats?.draftPrograms ?? 0}
                         </p>
                     </div>
                 </div>
@@ -153,6 +164,7 @@ export default function Dashboard({
                         </div>
                     )}
                 </div>
+                </Deferred>
             </div>
         </ClerkLayout>
     );

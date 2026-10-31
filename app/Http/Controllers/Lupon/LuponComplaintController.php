@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Lupon;
 use App\Http\Controllers\Controller;
 use App\Models\LuponComplaint;
 use App\Support\AuditLogger;
+use App\Support\ReferenceData;
+use App\Support\ResidentNotificationService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -57,7 +60,7 @@ class LuponComplaintController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized access to the Lupon complaint queue.');
         }
 
@@ -75,78 +78,88 @@ class LuponComplaintController extends Controller
             $query->where('status', $statusFilter);
         }
 
-        $complaints = $query
-            ->with([
-                'resident:id,first_name,middle_name,last_name,suffix,resident_number',
-                'case:id,complaint_id,case_number,phase,status',
-            ])
-            ->latest('created_at')
-            ->get()
-            ->map(function (LuponComplaint $complaint) {
-                return [
-                    'id' => $complaint->id,
-                    'reference' => $complaint->reference,
-                    'resident' => [
-                        'name' => $complaint->resident?->full_name ?? 'Unknown resident',
-                        'residentNumber' => $complaint->resident?->resident_number,
-                    ],
-                    'respondentName' => $complaint->respondent_name,
-                    'respondentResidentStatus' => $complaint->respondent_resident_status,
-                    'respondentAddress' => $complaint->respondent_address,
-                    'respondentContact' => $complaint->respondent_contact,
-                    'complaintType' => $complaint->complaint_type,
-                    'incidentDate' => $complaint->incident_date?->format('F j, Y') ?? '',
-                    'incidentTime' => $complaint->incident_time ?: null,
-                    'incidentLocation' => $complaint->incident_location,
-                    // Narrative and requested action are the subject of review.
-                    // They are returned per record only, and never inside the
-                    // aggregate counts below.
-                    'narrative' => $complaint->narrative,
-                    'requestedAction' => $complaint->requested_action,
-                    'status' => $complaint->status,
-                    'luponNote' => $complaint->lupon_note,
-                    'submittedDate' => (
-                        $complaint->submitted_at
-                        ?? $complaint->created_at
-                    )?->format('F j, Y') ?? '',
-                    'case' => $complaint->case ? [
-                        'id' => $complaint->case->id,
-                        'caseNumber' => $complaint->case->case_number,
-                        'phase' => $complaint->case->phase,
-                        'status' => $complaint->case->status,
-                    ] : null,
-                ];
-            })
-            ->values();
-
-        // Aggregate counts: integers only. No complaint narratives or other
-        // confidential detail is included in this payload.
-        $pendingCount = LuponComplaint::query()
-            ->where('barangay_id', $user->barangay_id)
-            ->whereIn('status', ['Submitted', 'Under Review'])
-            ->count();
-
-        $byStatus = collect(self::STATUSES)
-            ->mapWithKeys(function (string $status) use ($user) {
-                return [
-                    $status => LuponComplaint::query()
-                        ->where('barangay_id', $user->barangay_id)
-                        ->where('status', $status)
-                        ->count(),
-                ];
-            })
-            ->all();
+        $barangayId = $user->barangay_id;
 
         return Inertia::render('Lupon/Complaints', [
             'userName' => $user->name,
-            'barangayName' => $user->barangay?->name,
-            'complaints' => $complaints,
+            'barangayName' => fn () => ReferenceData::barangay((int) $barangayId)['name'],
+            'complaints' => $this->deferProp(fn () => $query
+                ->with([
+                    'resident:id,first_name,middle_name,last_name,suffix,resident_number',
+                    'case:id,complaint_id,case_number,phase,status,payment_status,fee_amount,or_number,paid_at,form_7_issued_at',
+                ])
+                ->select([
+                    'id', 'barangay_id', 'resident_id', 'reference', 'respondent_name',
+                    'respondent_resident_status', 'respondent_address', 'respondent_contact',
+                    'complaint_type', 'incident_date', 'incident_time', 'incident_location',
+                    'narrative', 'requested_action', 'status', 'lupon_note', 'submitted_at', 'created_at',
+                ])
+                ->latest('created_at')
+                ->paginate(15)
+                ->withQueryString()
+                ->through(function (LuponComplaint $complaint) {
+                    return [
+                        'id' => $complaint->id,
+                        'reference' => $complaint->reference,
+                        'resident' => [
+                            'name' => $complaint->resident?->full_name ?? 'Unknown resident',
+                            'residentNumber' => $complaint->resident?->resident_number,
+                        ],
+                        'respondentName' => $complaint->respondent_name,
+                        'respondentResidentStatus' => $complaint->respondent_resident_status,
+                        'respondentAddress' => $complaint->respondent_address,
+                        'respondentContact' => $complaint->respondent_contact,
+                        'complaintType' => $complaint->complaint_type,
+                        'incidentDate' => $complaint->incident_date?->format('F j, Y') ?? '',
+                        'incidentTime' => $complaint->incident_time ?: null,
+                        'incidentLocation' => $complaint->incident_location,
+                        // Narrative and requested action are the subject of review.
+                        // They are returned per record only, and never inside the
+                        // aggregate counts below.
+                        'narrative' => $complaint->narrative,
+                        'requestedAction' => $complaint->requested_action,
+                        'status' => $complaint->status,
+                        'luponNote' => $complaint->lupon_note,
+                        'submittedDate' => (
+                            $complaint->submitted_at
+                            ?? $complaint->created_at
+                        )?->format('F j, Y') ?? '',
+                        'case' => $complaint->case ? [
+                            'id' => $complaint->case->id,
+                            'caseNumber' => $complaint->case->case_number,
+                            'phase' => $complaint->case->phase,
+                            'status' => $complaint->case->status,
+                            'paymentStatus' => $complaint->case->payment_status,
+                            'feeAmount' => $complaint->case->fee_amount,
+                            'orNumber' => $complaint->case->or_number,
+                            'form7IssuedAt' => $complaint->case->form_7_issued_at?->format('F j, Y g:i A'),
+                        ] : null,
+                    ];
+                })),
             'statuses' => self::STATUSES,
             'activeStatusFilter' => $statusFilter,
-            'stats' => [
-                'pendingCount' => $pendingCount,
-                'byStatus' => $byStatus,
-            ],
+            'stats' => $this->deferProp(fn () => $this->rememberAggregate(
+                "lupon:complaints:stats:{$barangayId}",
+                30,
+                function () use ($barangayId): array {
+                    // Aggregate counts: integers only. No complaint narratives
+                    // or other confidential detail is included in this payload.
+                    $counts = LuponComplaint::query()
+                        ->where('barangay_id', $barangayId)
+                        ->selectRaw('status, COUNT(*) as total')
+                        ->groupBy('status')
+                        ->pluck('total', 'status');
+
+                    return [
+                        'pendingCount' => (int) ($counts['Submitted'] ?? 0) + (int) ($counts['Under Review'] ?? 0),
+                        'byStatus' => collect(self::STATUSES)
+                            ->mapWithKeys(fn (string $status) => [
+                                $status => (int) ($counts[$status] ?? 0),
+                            ])
+                            ->all(),
+                    ];
+                },
+            )),
         ]);
     }
 
@@ -160,7 +173,7 @@ class LuponComplaintController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized access to the Lupon complaint queue.');
         }
 
@@ -221,5 +234,83 @@ class LuponComplaintController extends Controller
         );
 
         return redirect()->back()->with('success', 'Complaint status updated.');
+    }
+
+    /** Record the manual fee and activate a promoted, verified KP case. */
+    public function verifyFee(
+        Request $request,
+        LuponComplaint $complaint,
+        ResidentNotificationService $notifications,
+    ): RedirectResponse {
+        $user = $request->user();
+
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists() || $complaint->barangay_id !== $user->barangay_id) {
+            abort(403, 'Unauthorized access to complaint.');
+        }
+
+        $validated = $request->validate([
+            'fee_amount' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'or_number' => ['required', 'string', 'max:100'],
+            'payment_status' => ['required', Rule::in(['paid', 'waived'])],
+        ]);
+
+        [$case, $respondent] = DB::transaction(function () use ($complaint, $user, $validated) {
+            $locked = LuponComplaint::query()
+                ->whereKey($complaint->id)
+                ->where('barangay_id', $user->barangay_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $case = $locked->case()
+                ->with(['respondents' => fn ($query) => $query
+                    ->where('is_primary', true)
+                    ->with('resident:id,first_name,middle_name,last_name,suffix,email')])
+                ->lockForUpdate()
+                ->first();
+
+            if ($case === null) {
+                throw ValidationException::withMessages([
+                    'fee_amount' => 'Promote and verify the respondent before activating this complaint.',
+                ]);
+            }
+
+            $respondent = $case->respondents->first();
+            if ($respondent?->association_status !== 'verified' || $respondent->resident === null) {
+                throw ValidationException::withMessages([
+                    'fee_amount' => 'Verify and link the respondent resident from the case record before activating it.',
+                ]);
+            }
+
+            if ($case->payment_status !== 'unpaid') {
+                throw ValidationException::withMessages([
+                    'fee_amount' => 'This case has already had its fee verified.',
+                ]);
+            }
+
+            $case->update([
+                'payment_status' => $validated['payment_status'],
+                'fee_amount' => $validated['fee_amount'],
+                'or_number' => $validated['or_number'],
+                'paid_at' => now(),
+                'form_7_issued_at' => now(),
+                'status' => 'Under Mediation',
+            ]);
+
+            return [$case->fresh(), $respondent->resident];
+        });
+
+        $notification = $notifications->enqueueLuponSummons($respondent, $case);
+        $notifications->deliver($notification);
+
+        AuditLogger::record(
+            event: 'lupon_case.fee_verified',
+            barangayId: $user->barangay_id,
+            actorId: $user->id,
+            entityType: 'lupon_case',
+            entityId: $case->id,
+            context: ['action' => 'fee_verified', 'entity_reference' => $case->case_number],
+            ipAddress: $request->ip(),
+        );
+
+        return redirect()->back()->with('success', "Fee verified. KP Form 7 summons issued for {$case->case_number}.");
     }
 }

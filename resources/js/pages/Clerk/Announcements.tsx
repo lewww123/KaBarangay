@@ -3,7 +3,7 @@ import ClerkLayout from '@/layouts/ClerkLayout';
 import { useState } from 'react';
 import axios from 'axios';
 
-interface User { id: number; name: string; role: string; }
+interface User { id: number; name: string; staffAssignments?: { department: string; position: string }[]; }
 interface Sector { id: number; name: string; slug: string; }
 interface ApprovalLog { id: number; action: string; previous_status: string; new_status: string; notes: string; created_at: string; actor: { name: string }; }
 

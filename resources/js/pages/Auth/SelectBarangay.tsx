@@ -1,4 +1,5 @@
-import { Head, router } from '@inertiajs/react';
+import { Deferred, Head, router } from '@inertiajs/react';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import { FormEvent, useState } from 'react';
 
 interface Barangay {
@@ -11,7 +12,11 @@ interface Props {
     barangays: Barangay[];
 }
 
-export default function SelectBarangay({ barangays }: Props) {
+export default function SelectBarangay(props: Props) {
+    return <Deferred data="barangays" fallback={<main className="mx-auto max-w-xl p-6"><PortalPageSkeleton list rows={3} /></main>}><SelectBarangayContent {...props} /></Deferred>;
+}
+
+function SelectBarangayContent({ barangays }: Props) {
     const [selectedBarangay, setSelectedBarangay] = useState('');
     const [processing, setProcessing] = useState(false);
 

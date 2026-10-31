@@ -12,6 +12,8 @@ import {
     type Paginator,
 } from '@/components/disbursements/disbursement';
 import ClerkLayout from '@/layouts/ClerkLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type Props = {
     documents: Paginator<DisbursementDocumentData>;
@@ -49,7 +51,11 @@ const STATUS_TABS: {
     { value: 'archived', label: 'Archived', countKey: 'archived' },
 ];
 
-export default function ClerkDisbursementsIndex({
+export default withDeferredPage(ClerkDisbursementsIndex, ['documents', 'stats'], (props) => (
+    <ClerkLayout active="disbursements" user={props.user}><PortalPageSkeleton metrics={4} /></ClerkLayout>
+));
+
+function ClerkDisbursementsIndex({
     documents,
     filters,
     stats,
@@ -79,6 +85,7 @@ export default function ClerkDisbursementsIndex({
             {
                 preserveScroll: true,
                 preserveState,
+                only: ['documents', 'filters'],
                 replace: true,
             },
         );
@@ -281,6 +288,7 @@ export default function ClerkDisbursementsIndex({
                                             {},
                                             {
                                                 preserveScroll: true,
+                                                only: ['documents', 'filters'],
                                                 replace: true,
                                             },
                                         );
@@ -354,6 +362,7 @@ export default function ClerkDisbursementsIndex({
                                                 {
                                                     preserveScroll: true,
                                                     preserveState: true,
+                                                    only: ['documents', 'filters'],
                                                 },
                                             );
                                         }}

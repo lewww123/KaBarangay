@@ -1,80 +1,115 @@
 import { Head, Link } from '@inertiajs/react';
 import LuponLayout from '@/layouts/LuponLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
+
+type Metrics = {
+    filed: number;
+    mediation: number;
+    conciliation: number;
+    settled: number;
+    certificatesIssued: number;
+};
+
+type Deadline = {
+    id: number;
+    caseNumber: string;
+    title: string;
+    phase: string;
+    dueDate: string;
+    overdue: boolean;
+};
+
+type Hearing = {
+    id: number;
+    caseId: number;
+    caseNumber: string | null;
+    caseTitle: string | null;
+    phase: string;
+    date: string;
+    time: string | null;
+    venue: string;
+};
 
 interface Props {
-    auth: { user: { name?: string; staff_id?: string; department?: string } };
+    auth: { user: { name?: string }; staffAssignments?: { department: string; position: string }[] };
     userName?: string;
     barangayName?: string | null;
+    metrics: Metrics;
+    deadlines: Deadline[];
+    schedule: Hearing[];
 }
 
-export default function LuponDashboard({ auth, userName, barangayName = null }: Props) {
+export default withDeferredPage(LuponDashboard, ['metrics', 'deadlines', 'schedule'], (props) => (
+    <LuponLayout active="dashboard" user={props.auth.user} barangayName={props.barangayName}>
+        <PortalPageSkeleton metrics={5} list />
+    </LuponLayout>
+));
+
+function LuponDashboard({ auth, userName, barangayName = null, metrics, deadlines, schedule }: Props) {
+    const cards = [
+        ['Total Cases Filed', metrics.filed, 'All recorded KP disputes'],
+        ['Active Mediation', metrics.mediation, 'Punong Barangay level'],
+        ['Pangkat Conciliation', metrics.conciliation, 'Active panel proceedings'],
+        ['Settled Cases', metrics.settled, 'Resolution records'],
+        ['Certificates Issued', metrics.certificatesIssued, 'KP document issuances'],
+    ];
+
     return (
         <LuponLayout active="dashboard" user={auth.user} barangayName={barangayName}>
-            <Head title="Lupon Portal" />
+            <Head title="Lupon Dashboard" />
 
-            <div className="mx-auto max-w-7xl space-y-6 font-sans p-2 sm:p-4">
-                {/* WELCOME BANNER */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mx-auto max-w-7xl space-y-6">
+                <div className="flex flex-col justify-between gap-4 rounded-2xl bg-[#315b30] p-6 text-white shadow-sm sm:flex-row sm:items-end">
                     <div>
-                        <h1 className="text-2xl font-semibold text-gray-800">
-                            Lupon Portal
-                        </h1>
-
-                        <p className="mt-1 text-sm text-gray-500">
-                            {userName ? `Signed in as ${userName}` : 'Lupon staff portal'}
-                        </p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Katarungang Pambarangay</p>
+                        <h1 className="mt-2 text-2xl font-bold">Case Desk Overview</h1>
+                        <p className="mt-1 text-sm text-white/75">{userName ? `Signed in as ${userName}` : 'Lupon staff portal'}</p>
                     </div>
-
-                    <div className="flex flex-wrap gap-2">
-                        <Link
-                            href="/lupon/complaints"
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
-                        >
-                            📋 Complaints Queue
-                        </Link>
-
-                        <Link
-                            href="/lupon/cases"
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
-                        >
-                            📂 Lupon Cases
-                        </Link>
-                        <Link
-                            href="/lupon/hearings"
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-[#3f6f3d]/30 bg-[#e8f1e4] px-4 py-2 text-sm font-semibold text-[#315b30] shadow-sm hover:bg-[#dcebd6]"
-                        >
-                            🗓️ Hearings
-                        </Link>
+                    <div className="flex gap-2">
+                        <Link href="/lupon/complaints" className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#315b30]">Review intake</Link>
+                        <Link href="/lupon/cases/create" className="rounded-lg border border-white/40 px-4 py-2 text-sm font-semibold text-white">Log walk-in case</Link>
                     </div>
                 </div>
 
-                <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-2xl">
-                            ⚖️
+                <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    {cards.map(([label, value, hint]) => (
+                        <div key={label} className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">{label}</p>
+                            <p className="mt-2 text-3xl font-bold text-stone-900">{value}</p>
+                            <p className="mt-1 text-xs text-stone-500">{hint}</p>
                         </div>
-                        <div>
-                            <h2 className="text-base font-semibold text-gray-800">Lupon work queues</h2>
-                            <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                                Review resident complaints, manage cases, and check scheduled hearings for your barangay.
-                            </p>
-                        </div>
-                    </div>
-                    <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                        {[
-                            { title: 'Complaints', description: 'Review submitted complaints and accepted cases.', href: '/lupon/complaints', icon: '📋' },
-                            { title: 'Cases', description: 'Open case records, parties, proceedings, and settlements.', href: '/lupon/cases', icon: '📂' },
-                            { title: 'Hearings', description: 'View hearing schedules and recorded outcomes.', href: '/lupon/hearings', icon: '🗓️' },
-                        ].map((item) => (
-                            <Link key={item.href} href={item.href} className="rounded-xl border border-gray-200 bg-[#fafaf7] p-4 transition hover:border-[#3f6f3d]/50 hover:bg-[#f4f7ef]">
-                                <span className="text-xl" aria-hidden="true">{item.icon}</span>
-                                <h3 className="mt-2 text-sm font-semibold text-gray-800">{item.title}</h3>
-                                <p className="mt-1 text-xs leading-5 text-gray-500">{item.description}</p>
-                                <span className="mt-3 inline-block text-xs font-semibold text-[#3f6f3d]">Open {item.title} →</span>
-                            </Link>
-                        ))}
-                    </div>
+                    ))}
                 </section>
+
+                <div className="grid gap-6 lg:grid-cols-2">
+                    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="font-bold text-stone-900">Urgent attention</h2>
+                                <p className="mt-1 text-sm text-stone-500">15-day mediation and conciliation checkpoints.</p>
+                            </div>
+                            <Link href="/lupon/cases" className="text-sm font-semibold text-[#3f6f3d]">All cases</Link>
+                        </div>
+                        <div className="mt-4 divide-y divide-stone-100">
+                            {deadlines.length === 0 ? <p className="py-5 text-sm text-stone-500">No active cases approaching a 15-day checkpoint.</p> : deadlines.map((deadline) => (
+                                <Link key={deadline.id} href={`/lupon/cases/${deadline.id}`} className="flex items-center justify-between gap-3 py-3">
+                                    <div className="min-w-0"><p className="font-semibold text-stone-800">{deadline.caseNumber}</p><p className="truncate text-sm text-stone-500">{deadline.title}</p></div>
+                                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${deadline.overdue ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>{deadline.overdue ? 'Overdue' : `Due ${deadline.dueDate}`}</span>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+                        <div className="flex items-center justify-between"><div><h2 className="font-bold text-stone-900">This week&apos;s hearings</h2><p className="mt-1 text-sm text-stone-500">Scheduled summons and proceedings.</p></div><Link href="/lupon/hearings" className="text-sm font-semibold text-[#3f6f3d]">Calendar</Link></div>
+                        <div className="mt-4 divide-y divide-stone-100">
+                            {schedule.length === 0 ? <p className="py-5 text-sm text-stone-500">No hearings scheduled for the next seven days.</p> : schedule.map((hearing) => (
+                                <Link key={hearing.id} href={`/lupon/cases/${hearing.caseId}`} className="flex items-center justify-between gap-3 py-3"><div><p className="font-semibold text-stone-800">{hearing.caseNumber}</p><p className="text-sm text-stone-500">{hearing.caseTitle}</p></div><div className="text-right text-xs text-stone-600"><p className="font-semibold">{hearing.date}{hearing.time ? `, ${hearing.time}` : ''}</p><p>{hearing.phase} · {hearing.venue}</p></div></Link>
+                            ))}
+                        </div>
+                    </section>
+                </div>
             </div>
         </LuponLayout>
     );

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Deferred, Head, Link, useForm, router } from '@inertiajs/react';
 import AnnouncementAttendanceOption from '@/components/announcements/AnnouncementAttendanceOption';
 import AnnouncementImportanceBadge from '@/components/announcements/AnnouncementImportanceBadge';
 import AnnouncementLifecycleTabs from '@/components/announcements/AnnouncementLifecycleTabs';
 import AnnouncementReviewSummary from '@/components/announcements/AnnouncementReviewSummary';
+import ProgramStatusSelect from '@/components/announcements/ProgramStatusSelect';
 import MarkAnnouncementDoneButton from '@/components/announcements/MarkAnnouncementDoneButton';
 import {
     ANNOUNCEMENT_IMPORTANCE_OPTIONS,
@@ -11,6 +12,7 @@ import {
     canMarkAnnouncementDone,
     formatAnnouncementPostedAt,
     formatApprovalStatusLabel,
+    formatAnnouncementStatusLabel,
     formatAnnouncementType,
     isAttendanceAvailable,
     isEventAnnouncement,
@@ -19,6 +21,7 @@ import {
     type AnnouncementTabCounts,
 } from '@/components/announcements/announcement';
 import PwdLayout from '@/layouts/PwdLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import { toDateTimeLocalValue } from '@/lib/utils';
 
 interface Announcement {
@@ -29,6 +32,7 @@ interface Announcement {
     importance?: string | null;
     type?: 'event' | 'informational';
     approval_status: 'pending' | 'approved' | 'rejected';
+    program_status?: 'draft' | 'ongoing' | 'done' | null;
     is_published: boolean;
     rejection_reason?: string | null;
     requires_attendance: boolean;
@@ -48,18 +52,15 @@ interface Props {
     activeTab: AnnouncementTab;
     tabCounts: AnnouncementTabCounts;
     kind?: AnnouncementKind;
-    user?: {
-        name?: string;
-        staff_id?: string;
-    };
+    auth?: { user?: { name?: string }; staffAssignments?: { department: string; position: string }[] };
 }
 
 export default function PwdAnnouncementsIndex({
-    announcements,
+    announcements = [],
     activeTab,
     tabCounts,
     kind = 'auto',
-    user,
+    auth,
 }: Props) {
     const isUpdate = kind === 'update';
     const isProgram = kind === 'program';
@@ -77,6 +78,7 @@ export default function PwdAnnouncementsIndex({
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         title: '',
+        program_status: 'ongoing',
         content: '',
         category: isProgram ? 'Event' : 'General',
         importance: 'normal',
@@ -106,6 +108,7 @@ export default function PwdAnnouncementsIndex({
         setFormType(forcedFormType ?? type);
         setData({
             title: item.title,
+            program_status: item.program_status === 'draft' ? 'draft' : 'ongoing',
             content: item.content,
             category: isProgram ? 'Event' : isUpdate && item.category === 'Event' ? 'General' : item.category || 'General',
             importance: item.importance || 'normal',
@@ -189,7 +192,7 @@ export default function PwdAnnouncementsIndex({
     });
 
     return (
-        <PwdLayout active={isUpdate ? 'updates' : isProgram ? 'programs' : 'announcements'} user={user}>
+        <PwdLayout active={isUpdate ? 'updates' : isProgram ? 'programs' : 'announcements'} user={auth?.user}>
             <Head title={isUpdate ? 'PWD Sector Updates' : isProgram ? 'PWD Sector Programs' : 'PWD Sector Announcements'} />
 
             <div className="space-y-5">
@@ -216,6 +219,10 @@ export default function PwdAnnouncementsIndex({
                     </button>
                 </div>
 
+                <Deferred
+                    data={['announcements', 'tabCounts']}
+                    fallback={<PortalPageSkeleton rows={6} columns={7} />}
+                >
                 {!isUpdate && (
                     <div className="rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm">
                         <AnnouncementLifecycleTabs
@@ -306,7 +313,7 @@ export default function PwdAnnouncementsIndex({
                                         <tr key={item.id} className="hover:bg-gray-50/80">
                                             <td className="px-5 py-3.5 font-semibold text-gray-900">
                                                 {item.title}
-                                                {item.rejection_reason && (
+                                                {!isEventAnnouncement(item) && item.rejection_reason && (
                                                     <p className={`mt-1 text-xs font-normal ${item.approval_status === 'rejected' ? 'text-red-600' : 'text-amber-600'}`}>
                                                         {item.approval_status === 'rejected'
                                                             ? `Returned for revision: ${item.rejection_reason}`
@@ -353,7 +360,7 @@ export default function PwdAnnouncementsIndex({
                                                             ? 'bg-red-100 text-red-800'
                                                             : 'bg-amber-100 text-amber-800'
                                                     }`}>
-                                                        {formatApprovalStatusLabel(item.approval_status)}
+                                                        {formatAnnouncementStatusLabel(item)}
                                                     </span>
                                                 )}
                                             </td>
@@ -416,6 +423,7 @@ export default function PwdAnnouncementsIndex({
                         </table>
                     </div>
                 </div>
+                </Deferred>
 
                 {showModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -559,12 +567,13 @@ export default function PwdAnnouncementsIndex({
                                     </>
                                 )}
 
+                                {reviewType === 'event' && <ProgramStatusSelect value={data.program_status} onChange={(value) => setData('program_status', value)} />}
                                 <AnnouncementReviewSummary
                                     type={reviewType}
                                     audience="pwd"
                                     requiresAttendance={data.requires_attendance}
-                                    willResubmit={Boolean(editingItem) && !isUpdate}
-                                    directPublish={isUpdate}
+                                    willResubmit={Boolean(editingItem) && !isUpdate && reviewType !== 'event'}
+                                    directPublish={isUpdate || reviewType === 'event'}
                                 />
 
                                 <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
@@ -586,7 +595,7 @@ export default function PwdAnnouncementsIndex({
                                             : isUpdate
                                               ? editingItem ? 'Republish Update' : 'Publish Update'
                                               : isProgram
-                                                ? editingItem ? 'Resubmit Program' : 'Submit Program for Approval'
+                                                ? data.program_status === 'draft' ? 'Save Draft' : 'Publish Program'
                                                 : editingItem
                                                   ? 'Update Announcement'
                                                   : 'Submit for Approval'}

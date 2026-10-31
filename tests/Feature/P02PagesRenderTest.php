@@ -49,7 +49,7 @@ class P02PagesRenderTest extends TestCase
 
     public function test_pwd_announcements_index_renders(): void
     {
-        $pwd = $this->createStaff($this->barangay, 'pwd_staff');
+        $pwd = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $this->purok], 'pwd', 'PWD Staff');
 
         $this->actingAs($pwd)
             ->get('/pwd/announcements')
@@ -60,7 +60,7 @@ class P02PagesRenderTest extends TestCase
     public function test_pwd_attendance_sheet_renders(): void
     {
         $announcement = $this->createAnnouncement($this->barangay, ['target_audience' => 'pwd', 'requires_attendance' => true]);
-        $pwd = $this->createStaff($this->barangay, 'pwd_staff');
+        $pwd = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $this->purok], 'pwd', 'PWD Staff');
 
         $this->actingAs($pwd)
             ->get('/pwd/announcements/'.$announcement->id.'/attendance')

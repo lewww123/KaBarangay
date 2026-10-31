@@ -28,13 +28,13 @@ class AnnouncementAttendance extends Model
     protected static function booted()
     {
         static::addGlobalScope('barangay', function (Builder $builder) {
-            if (auth()->check() && auth()->user()->role !== 'super_admin') {
+            if (auth()->check()) {
                 $builder->where('barangay_id', auth()->user()->barangay_id);
             }
         });
 
         static::creating(function ($model) {
-            if (auth()->check() && auth()->user()->role !== 'super_admin') {
+            if (auth()->check()) {
                 $model->barangay_id = $model->barangay_id ?? auth()->user()->barangay_id;
             }
         });

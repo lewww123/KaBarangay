@@ -38,16 +38,16 @@ class SectorApplicationDocumentController extends Controller
                 abort(403, 'Cross-barangay document access is denied.');
             }
 
-            if ($user->role === 'admin') {
+            if ($user->hasActiveAssignment(['admin'])) {
                 return;
             }
 
             $sectorSlug = $application->sector->slug;
-            if ($sectorSlug === 'senior' && in_array($user->role, ['senior', 'senior_staff'], true)) {
+            if ($sectorSlug === 'senior' && $user->hasActiveAssignment(['senior'])) {
                 return;
             }
 
-            if ($sectorSlug === 'pwd' && in_array($user->role, ['pwd', 'pwd_staff'], true)) {
+            if ($sectorSlug === 'pwd' && $user->hasActiveAssignment(['pwd'])) {
                 return;
             }
 

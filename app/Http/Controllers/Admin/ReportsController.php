@@ -7,7 +7,6 @@ use App\Models\Announcement;
 use App\Models\CertificateIssuance;
 use App\Models\LuponCase;
 use App\Models\Resident;
-use App\Models\Sector;
 use App\Support\AnnouncementType;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -30,18 +29,66 @@ class ReportsController extends Controller
     public function index(Request $request): Response
     {
         $filters = $this->validatedFilters($request);
-        $report = $this->buildReport((int) $request->user()->barangay_id, $filters);
+        $barangayId = (int) $request->user()->barangay_id;
+        $window = $this->window($filters);
+        $report = null;
+
+        $resolveReport = function () use (&$report, $barangayId, $filters): array {
+            if ($report !== null) {
+                return $report;
+            }
+
+            return $report = $this->rememberAggregate(
+                'admin:reports:'.$barangayId.':'.md5(json_encode($filters)),
+                30,
+                fn () => $this->buildReport($barangayId, $filters),
+            );
+        };
 
         return Inertia::render('Admin/Reports', [
-            ...$report,
             'filters' => $filters,
+            'window' => [
+                'from' => $window['date_from'],
+                'to' => $window['date_to_inclusive'],
+                'label' => $window['label'],
+                'timezone' => self::REPORTING_TIMEZONE,
+                'boundary' => $window['boundary'],
+            ],
+            'population' => $this->deferProp(fn () => $resolveReport()['population']),
+            'certificates' => $this->deferProp(fn () => $resolveReport()['certificates']),
+            'lupon' => $this->deferProp(fn () => $resolveReport()['lupon']),
+            'programs' => $this->deferProp(fn () => $resolveReport()['programs']),
+            'financial' => $this->deferProp(fn () => $resolveReport()['financial']),
         ]);
     }
 
     public function export(Request $request): StreamedResponse
     {
         $filters = $this->validatedFilters($request);
-        $report = $this->buildReport((int) $request->user()->barangay_id, $filters);
+
+        // The financial export contract is a fixed unavailable row. It does
+        // not need any report table data.
+        if ($filters['category'] === 'financial') {
+            $window = $this->window($filters);
+            $filename = 'barangay-reports-'.$window['date_from'].'-'.$window['date_to_inclusive'].'.csv';
+
+            return response()->streamDownload(function () use ($window): void {
+                $output = fopen('php://output', 'wb');
+                if ($output === false) {
+                    return;
+                }
+
+                fputcsv($output, ['Report', 'Metric', 'Period', 'Value'], ',', '"', '');
+                $this->writeCsvRow($output, ['Financial', 'Availability', $window['label'], 'Unavailable: no authoritative financial ledger']);
+                fclose($output);
+            }, $filename, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Cache-Control' => 'private, no-store, max-age=0',
+                'X-Content-Type-Options' => 'nosniff',
+            ]);
+        }
+
+        $report = $this->buildReport((int) $request->user()->barangay_id, $filters, forExport: true);
         $filename = 'barangay-reports-'.$report['window']['from'].'-'.$report['window']['to'].'.csv';
 
         return response()->streamDownload(function () use ($report, $filters): void {
@@ -138,23 +185,44 @@ class ReportsController extends Controller
     }
 
     /** @param array{period: string, date: string, date_from: string, date_to: string, category: string} $filters
-     *  @return array<string, mixed>
+     * @return array<string, mixed>
      */
-    private function buildReport(int $barangayId, array $filters): array
+    private function buildReport(int $barangayId, array $filters, bool $forExport = false): array
     {
         $window = $this->window($filters);
-        $residents = Resident::query()
-            ->where('barangay_id', $barangayId)
-            ->where('status', 'active');
+        $includes = fn (string $category): bool => $filters['category'] === 'all' || $filters['category'] === $category;
+        $includePopulationMetrics = ! $forExport || $includes('population');
+        $populationMetrics = [];
+
+        if ($includePopulationMetrics) {
+            $residents = Resident::query()
+                ->where('barangay_id', $barangayId)
+                ->where('status', 'active');
+
+            $row = DB::query()
+                ->selectSub((clone $residents)->selectRaw('COUNT(*)')->toBase(), 'total')
+                ->selectSub(
+                    (clone $residents)->whereHas('sectors', fn ($query) => $query->where('slug', 'senior'))->selectRaw('COUNT(*)')->toBase(),
+                    'senior',
+                )
+                ->selectSub(
+                    (clone $residents)->whereHas('sectors', fn ($query) => $query->where('slug', 'pwd'))->selectRaw('COUNT(*)')->toBase(),
+                    'pwd',
+                )
+                ->selectSub((clone $residents)->whereDoesntHave('sectors')->selectRaw('COUNT(*)')->toBase(), 'general')
+                ->first();
+
+            $populationMetrics = [
+                'Total active Residents' => (int) ($row->total ?? 0),
+                'Senior Citizens' => (int) ($row->senior ?? 0),
+                'PWD' => (int) ($row->pwd ?? 0),
+                'General Residents' => (int) ($row->general ?? 0),
+            ];
+        }
 
         $population = [
-            'metrics' => [
-                'Total active Residents' => (clone $residents)->count(),
-                'Senior Citizens' => (clone $residents)->whereHas('sectors', fn ($query) => $query->where('slug', 'senior'))->count(),
-                'PWD' => (clone $residents)->whereHas('sectors', fn ($query) => $query->where('slug', 'pwd'))->count(),
-                'General Residents' => (clone $residents)->whereDoesntHave('sectors')->count(),
-            ],
-            'sectors' => $this->sectorBreakdown($barangayId),
+            'metrics' => $populationMetrics,
+            'sectors' => $includes('population') ? $this->sectorBreakdown($barangayId) : [],
             'distribution_note' => 'General follows the existing definition: active Residents with no sector membership. Senior and PWD memberships may overlap, so an exclusive distribution chart is omitted.',
         ];
 
@@ -168,6 +236,25 @@ class ReportsController extends Controller
             ->where('filed_date', '<', $window['date_to_exclusive']);
         $programQuery = $this->programQuery($barangayId, $window);
 
+        $certificateBreakdown = $includes('certificates')
+            ? $this->labelAndTrendBreakdown($certificateQuery, 'certificate_type', 'issued_at', true, $window)
+            : ['by_label' => [], 'trend' => []];
+        $luponBreakdown = $includes('lupon')
+            ? $this->labelAndTrendBreakdown($caseQuery, 'case_type', 'filed_date', false, $window)
+            : ['by_label' => [], 'trend' => []];
+
+        if (! $includes('programs')) {
+            $programsByCategory = [];
+            $programTrend = [];
+        } elseif ($forExport) {
+            $programsByCategory = $this->labelBreakdown($programQuery, 'category');
+            $programTrend = [];
+        } else {
+            $programBreakdown = $this->labelAndTrendBreakdown($programQuery, 'category', 'event_start_at', true, $window);
+            $programsByCategory = $programBreakdown['by_label'];
+            $programTrend = $programBreakdown['trend'];
+        }
+
         return [
             'window' => [
                 'from' => $window['date_from'],
@@ -178,40 +265,26 @@ class ReportsController extends Controller
             ],
             'population' => $population,
             'certificates' => [
-                'count' => (clone $certificateQuery)->count(),
-                'trend' => $this->trend($certificateQuery, 'issued_at', true, $window),
-                'by_type' => (clone $certificateQuery)
-                    ->selectRaw('certificate_type as label, COUNT(*) as aggregate')
-                    ->groupBy('certificate_type')
-                    ->orderBy('certificate_type')
-                    ->get()
-                    ->map(fn ($row) => ['label' => (string) $row->label, 'count' => (int) $row->aggregate])
-                    ->all(),
+                'count' => $includes('certificates')
+                    ? array_sum(array_column($certificateBreakdown['by_label'], 'count'))
+                    : (! $forExport ? (clone $certificateQuery)->count() : 0),
+                'trend' => $certificateBreakdown['trend'],
+                'by_type' => $certificateBreakdown['by_label'],
                 'meaning' => 'Issuance rows represent generated and recorded certificates, not proof of physical handover. Fee snapshots are not revenue.',
             ],
             'lupon' => [
-                'count' => (clone $caseQuery)->count(),
-                'trend' => $this->trend($caseQuery, 'filed_date', false, $window),
-                'by_type' => (clone $caseQuery)
-                    ->selectRaw('case_type as label, COUNT(*) as aggregate')
-                    ->groupBy('case_type')
-                    ->orderBy('case_type')
-                    ->get()
-                    ->map(fn ($row) => ['label' => (string) $row->label, 'count' => (int) $row->aggregate])
-                    ->all(),
+                'count' => $includes('lupon')
+                    ? array_sum(array_column($luponBreakdown['by_label'], 'count'))
+                    : (! $forExport ? (clone $caseQuery)->count() : 0),
+                'trend' => $luponBreakdown['trend'],
+                'by_type' => $luponBreakdown['by_label'],
                 'meaning' => 'Counts Lupon case records by filed_date. Complaints are not counted separately.',
             ],
             'programs' => [
-                'count' => (clone $programQuery)->count(),
-                'trend' => $this->trend($programQuery, 'event_start_at', true, $window),
-                'by_category' => (clone $programQuery)
-                    ->selectRaw('category as label, COUNT(*) as aggregate')
-                    ->groupBy('category')
-                    ->orderBy('category')
-                    ->get()
-                    ->map(fn ($row) => ['label' => (string) $row->label, 'count' => (int) $row->aggregate])
-                    ->all(),
-                'attendance' => $this->attendanceBreakdown($barangayId, $window),
+                'count' => $includes('programs') ? array_sum(array_column($programsByCategory, 'count')) : 0,
+                'trend' => $programTrend,
+                'by_category' => $programsByCategory,
+                'attendance' => $includes('programs') ? $this->attendanceBreakdown($barangayId, $window) : [],
             ],
             'financial' => [
                 'available' => false,
@@ -276,21 +349,72 @@ class ReportsController extends Controller
             ->all();
     }
 
-    /** @param EloquentBuilder<CertificateIssuance>|EloquentBuilder<LuponCase>|EloquentBuilder<Announcement> $query
-     *  @return list<array{label: string, count: int}>
+    /**
+     * Aggregate the by-label and trend views in one grouped query. Their rows
+     * share the same filtered source, so grouping by label and bucket gives
+     * both totals without scanning the source twice.
+     *
+     * @param  EloquentBuilder<CertificateIssuance>|EloquentBuilder<LuponCase>|EloquentBuilder<Announcement>  $query
+     * @return array{by_label: list<array{label: string, count: int}>, trend: list<array{label: string, count: int}>}
      */
-    private function trend(EloquentBuilder $query, string $column, bool $timestamp, array $window): array
-    {
-        $granularity = $window['granularity'];
-        $expression = $this->bucketExpression($column, $timestamp, $granularity);
-        $counts = (clone $query)
-            ->selectRaw($expression.' as bucket, COUNT(*) as aggregate')
-            ->groupByRaw($expression)
-            ->get()
-            ->mapWithKeys(fn ($row) => [(string) $row->bucket => (int) $row->aggregate]);
+    private function labelAndTrendBreakdown(
+        EloquentBuilder $query,
+        string $labelColumn,
+        string $dateColumn,
+        bool $timestamp,
+        array $window
+    ): array {
+        $expression = $this->bucketExpression($dateColumn, $timestamp, $window['granularity']);
+        $rows = (clone $query)
+            ->selectRaw($labelColumn.' as label, '.$expression.' as bucket, COUNT(*) as aggregate')
+            ->groupByRaw($labelColumn.', '.$expression)
+            ->orderBy($labelColumn)
+            ->get();
 
+        $labels = [];
+        $counts = [];
+
+        foreach ($rows as $row) {
+            $label = (string) $row->label;
+            $bucket = (string) $row->bucket;
+            $count = (int) $row->aggregate;
+
+            $labels[$label] = ($labels[$label] ?? 0) + $count;
+            $counts[$bucket] = ($counts[$bucket] ?? 0) + $count;
+        }
+
+        $byLabel = [];
+        foreach ($labels as $label => $count) {
+            $byLabel[] = ['label' => $label, 'count' => $count];
+        }
+
+        return [
+            'by_label' => $byLabel,
+            'trend' => $this->trendFromCounts($counts, $timestamp, $window),
+        ];
+    }
+
+    /** @param EloquentBuilder<CertificateIssuance>|EloquentBuilder<LuponCase>|EloquentBuilder<Announcement> $query
+     * @return list<array{label: string, count: int}>
+     */
+    private function labelBreakdown(EloquentBuilder $query, string $column): array
+    {
+        return (clone $query)
+            ->selectRaw($column.' as label, COUNT(*) as aggregate')
+            ->groupBy($column)
+            ->orderBy($column)
+            ->get()
+            ->map(fn ($row) => ['label' => (string) $row->label, 'count' => (int) $row->aggregate])
+            ->all();
+    }
+
+    /** @param array<string, int> $counts
+     * @return list<array{label: string, count: int}>
+     */
+    private function trendFromCounts(array $counts, bool $timestamp, array $window): array
+    {
         $buckets = $window['buckets'];
-        if (! $timestamp && $granularity === 'hour') {
+        if (! $timestamp && $window['granularity'] === 'hour') {
             $buckets = [[
                 'key' => $window['date_from'],
                 'label' => CarbonImmutable::parse($window['date_from'], self::REPORTING_TIMEZONE)->format('M j'),
@@ -340,7 +464,7 @@ class ReportsController extends Controller
     }
 
     /** @param array{period: string, date: string, date_from: string, date_to: string, category: string} $filters
-     *  @return array<string, mixed>
+     * @return array<string, mixed>
      */
     private function window(array $filters): array
     {
@@ -410,7 +534,7 @@ class ReportsController extends Controller
     }
 
     /** @param resource $output
-     *  @param list<int|string> $row
+     * @param  list<int|string>  $row
      */
     private function writeCsvRow($output, array $row): void
     {

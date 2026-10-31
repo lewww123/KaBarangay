@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Mail\ResidentEmailVerificationMail;
 use App\Models\Resident;
-use App\Models\ResidentClaim;
 use App\Models\ResidentEmailVerificationToken;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -20,7 +19,6 @@ final class ResidentEmailVerificationService
 
     public function send(
         Resident $resident,
-        ?ResidentClaim $claim = null,
         bool $ignoreCooldown = false
     ): bool {
         $email = $this->normalizedEmail($resident->email);
@@ -41,7 +39,7 @@ final class ResidentEmailVerificationService
         $tokenHash = hash('sha256', $token);
         $expiresAt = now()->addMinutes(self::TTL_MINUTES);
 
-        DB::transaction(function () use ($resident, $claim, $email, $tokenHash, $expiresAt) {
+        DB::transaction(function () use ($resident, $email, $tokenHash, $expiresAt) {
             ResidentEmailVerificationToken::query()
                 ->where('resident_id', $resident->id)
                 ->whereNull('consumed_at')
@@ -49,7 +47,7 @@ final class ResidentEmailVerificationService
 
             ResidentEmailVerificationToken::create([
                 'resident_id' => $resident->id,
-                'resident_claim_id' => $claim?->id,
+                'resident_claim_id' => null,
                 'email' => $email,
                 'token_hash' => $tokenHash,
                 'expires_at' => $expiresAt,

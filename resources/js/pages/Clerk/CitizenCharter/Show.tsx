@@ -9,6 +9,8 @@ import {
     type CitizenCharterVersionData,
 } from '@/components/citizen-charter/charter';
 import ClerkLayout from '@/layouts/ClerkLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type Props = {
     service: CitizenCharterServiceData;
@@ -30,7 +32,11 @@ type VersionForm = {
     document: File | null;
 };
 
-export default function ClerkCitizenCharterShow({ service, user }: Props) {
+export default withDeferredPage(ClerkCitizenCharterShow, ['service'], (props) => (
+    <ClerkLayout active="citizen-charter" user={props.user}><PortalPageSkeleton list /></ClerkLayout>
+));
+
+function ClerkCitizenCharterShow({ service, user }: Props) {
     const page = usePage<{ flash?: { success?: string; error?: string } }>();
     const flash = page.props.flash;
 

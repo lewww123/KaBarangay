@@ -1,6 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import LuponLayout from '@/layouts/LuponLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type CaseItem = {
     id: number;
@@ -23,7 +25,7 @@ type CaseItem = {
 };
 
 type Props = {
-    auth: { user: { name?: string; staff_id?: string; department?: string } };
+    auth: { user: { name?: string }; staffAssignments?: { department: string; position: string }[] };
     cases: {
         data: CaseItem[];
         links: Array<{ url: string | null; label: string; active: boolean }>;
@@ -47,7 +49,11 @@ type Props = {
     statuses: string[];
 };
 
-export default function CasesIndex({
+export default withDeferredPage(CasesIndex, ['cases', 'counts'], (props) => (
+    <LuponLayout active="cases" user={props.auth.user}><PortalPageSkeleton metrics={4} /></LuponLayout>
+));
+
+function CasesIndex({
     auth,
     cases,
     filters,
@@ -67,7 +73,7 @@ export default function CasesIndex({
                 status: newFilters.status ?? status,
                 phase: newFilters.phase ?? phase,
             },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true, only: ['cases', 'filters'] }
         );
     };
 
@@ -243,7 +249,7 @@ export default function CasesIndex({
                                 const classes = `min-w-9 rounded-lg px-3 py-2 text-center text-sm font-medium ${link.active ? 'bg-[#3f6f3d] text-white' : 'text-gray-600 hover:bg-[#f4f7ef]'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`;
 
                                 return link.url ? (
-                                    <Link key={`${link.label}-${index}`} href={link.url} preserveScroll className={classes} aria-current={link.active ? 'page' : undefined}>
+                                    <Link key={`${link.label}-${index}`} href={link.url} preserveScroll only={['cases', 'filters']} className={classes} aria-current={link.active ? 'page' : undefined}>
                                         {label}
                                     </Link>
                                 ) : (

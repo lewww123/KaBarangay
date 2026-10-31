@@ -385,6 +385,25 @@ class ResidentCertificateRequestTest extends TestCase
         $this->assertSame('Near the covered court.', $payload['notes']);
     }
 
+    public function test_resident_catalog_exposes_the_same_dynamic_fields_used_for_clerk_issuance(): void
+    {
+        $scholarship = $this->createCertificate($this->barangay, [
+            'code' => 'scholarship',
+            'name' => 'Scholarship Certificate',
+        ]);
+
+        $this->withSession(['resident_id' => $this->resident->id])
+            ->get('/resident/certificates')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Resident/Certificates')
+                ->where('certificates.1.id', (string) $scholarship->id)
+                ->where('certificates.1.certificateType', 'Scholarship Certificate')
+                ->where('certificates.1.detailsFields.0.key', 'school_institution')
+                ->where('certificates.1.detailsFields.3.key', 'father_monthly_income')
+                ->where('certificates.1.detailsFields.6.key', 'mother_monthly_income'));
+    }
+
     public function test_tricycle_request_requires_business_and_franchise_details(): void
     {
         $tricycle = $this->createCertificate($this->barangay, [

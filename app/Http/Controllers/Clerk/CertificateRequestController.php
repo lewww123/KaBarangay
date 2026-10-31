@@ -130,66 +130,74 @@ class CertificateRequestController extends Controller
             $query->where('submitted_at', '<=', $dateToValue->copy()->endOfDay());
         }
 
-        $requests = $query
-            ->with([
-                'resident:id,first_name,middle_name,last_name,suffix,resident_number',
-                'certificate:id,name,code',
-            ])
-            ->orderByDesc('submitted_at')
-            ->orderByDesc('id')
-            ->paginate($perPage)
-            ->withQueryString()
-            ->through(function (CertificateRequest $certificateRequest) {
-                return [
-                    'id' => $certificateRequest->id,
-                    'reference' => $certificateRequest->reference,
-                    'certificate' => $certificateRequest->certificate?->name ?? 'Certificate',
-                    'resident' => [
-                        'name' => $certificateRequest->resident?->full_name ?? 'Unknown resident',
-                        'resident_number' => $certificateRequest->resident?->resident_number,
-                    ],
-                    'status' => $certificateRequest->status,
-                    'submitted_at' => $certificateRequest->submitted_at?->format('F j, Y') ?? '',
-                ];
-            });
+        $listingCache = [];
 
-        // Certificate-type filter options for the Clerk's own barangay only.
-        $certificateOptions = Certificate::query()
-            ->where('barangay_id', $barangayId)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Certificate $certificate) => [
-                'id' => $certificate->id,
-                'name' => $certificate->name,
-            ])
-            ->all();
+        $issuanceListing = function () use (&$listingCache, $request, $barangayId): array {
+            return $listingCache['issuance'] ??= $this->issuanceListing($request, $barangayId);
+        };
 
-        $signatories = OrgChartPosition::query()
-            ->where('barangay_id', $barangayId)
-            ->where('status', 'published')
-            ->whereNotNull('assigned_person')
-            ->where('assigned_person', '<>', '')
-            ->orderBy('title')
-            ->get(['title', 'assigned_person'])
-            ->map(fn (OrgChartPosition $position) => [
-                'name' => $position->assigned_person,
-                'title' => $position->title,
-            ])
-            ->unique(fn (array $item) => mb_strtolower($item['name'].'|'.$item['title']))
-            ->values();
-
-        [$issuances, $issuedFilters] = $this->issuanceListing($request, $barangayId);
-
-        [$allRecords, $allFilters] = $this->allListing($request, $barangayId);
+        $allListing = function () use (&$listingCache, $request, $barangayId): array {
+            return $listingCache['all'] ??= $this->allListing($request, $barangayId);
+        };
 
         return Inertia::render('Clerk/Certificates', [
-            'requests' => $requests,
-            'issuances' => $issuances,
-            'allRecords' => $allRecords,
+            'requests' => $this->deferProp(fn () => $query
+                ->with([
+                    'resident:id,first_name,middle_name,last_name,suffix,resident_number',
+                    'certificate:id,name,code',
+                ])
+                ->orderByDesc('submitted_at')
+                ->orderByDesc('id')
+                ->paginate($perPage)
+                ->withQueryString()
+                ->through(function (CertificateRequest $certificateRequest) {
+                    return [
+                        'id' => $certificateRequest->id,
+                        'reference' => $certificateRequest->reference,
+                        'certificate' => $certificateRequest->certificate?->name ?? 'Certificate',
+                        'resident' => [
+                            'name' => $certificateRequest->resident?->full_name ?? 'Unknown resident',
+                            'resident_number' => $certificateRequest->resident?->resident_number,
+                        ],
+                        'status' => $certificateRequest->status,
+                        'submitted_at' => $certificateRequest->submitted_at?->format('F j, Y') ?? '',
+                    ];
+                })),
+            'issuances' => $this->deferProp(fn () => $issuanceListing()[0]),
+            'allRecords' => $this->deferProp(fn () => $allListing()[0]),
             'statuses' => CertificateRequestWorkflow::statuses(),
-            'certificateOptions' => $certificateOptions,
-            'signatories' => $signatories,
+            'certificateOptions' => $this->deferProp(fn () => $this->rememberReference(
+                "clerk:certificate-options:{$barangayId}",
+                300,
+                fn () => Certificate::query()
+                    ->where('barangay_id', $barangayId)
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn (Certificate $certificate) => [
+                        'id' => $certificate->id,
+                        'name' => $certificate->name,
+                    ])
+                    ->all(),
+            )),
+            'signatories' => $this->deferProp(fn () => $this->rememberReference(
+                "clerk:certificate-signatories:{$barangayId}",
+                300,
+                fn () => OrgChartPosition::query()
+                    ->where('barangay_id', $barangayId)
+                    ->where('status', 'published')
+                    ->whereNotNull('assigned_person')
+                    ->where('assigned_person', '<>', '')
+                    ->orderBy('title')
+                    ->get(['title', 'assigned_person'])
+                    ->map(fn (OrgChartPosition $position) => [
+                        'name' => $position->assigned_person,
+                        'title' => $position->title,
+                    ])
+                    ->unique(fn (array $item) => mb_strtolower($item['name'].'|'.$item['title']))
+                    ->values()
+                    ->all(),
+            )),
             'filters' => [
                 'search' => $search,
                 'status' => $statusFilter ?? '',
@@ -198,8 +206,8 @@ class CertificateRequestController extends Controller
                 'date_to' => $dateToValue?->format('Y-m-d') ?? '',
                 'per_page' => $perPage,
             ],
-            'issuedFilters' => $issuedFilters,
-            'allFilters' => $allFilters,
+            'issuedFilters' => $this->deferProp(fn () => $issuanceListing()[1]),
+            'allFilters' => $this->deferProp(fn () => $allListing()[1]),
         ]);
     }
 
@@ -657,7 +665,7 @@ class CertificateRequestController extends Controller
         // Barangay scope is applied first and independently; null scope matches
         // nothing. The search predicate is grouped so its OR conditions can
         // never escape the barangay restriction.
-        $query = CertificateIssuance::query();
+        $query = CertificateIssuance::query()->where('status', CertificateIssuance::STATUS_ISSUED);
 
         if ($barangayId === null) {
             $query->whereRaw('1 = 0');
@@ -710,6 +718,7 @@ class CertificateRequestController extends Controller
                         'resident_number' => $issuance->resident_number,
                     ],
                     'purok' => $issuance->purok,
+                    'status' => $issuance->status,
                     'issued_at' => $issuance->issued_at?->format('F j, Y') ?? '',
                     'issued_by' => $issuance->issuer?->name ?? 'Unknown',
                 ];
@@ -730,8 +739,8 @@ class CertificateRequestController extends Controller
      * Combines certificate requests and issued certificates into a single
      * paginated listing using a UNION ALL of two barangay-scoped projections
      * normalised to a common row shape. An explicit `record_type` distinguishes
-     * the two sources, and issuance rows carry no request status (the UI shows
-     * a neutral "Issued" state instead). Requests and issuances are never
+     * the two sources, and issuance rows carry their persisted "issued" status.
+     * Requests and issuances are never
      * merged on the client.
      *
      * Barangay scope is derived from the authenticated user and applied to both
@@ -824,8 +833,7 @@ class CertificateRequestController extends Controller
                         'resident_number' => $row->resident_number,
                     ],
                     'purok' => $row->purok,
-                    // Issuance rows carry no request status; the UI renders a
-                    // neutral "Issued" state for them.
+                    // This is a request workflow state or the saved issuance state.
                     'status' => $row->status,
                     'occurred_at' => $occurredAt,
                 ];
@@ -932,7 +940,7 @@ class CertificateRequestController extends Controller
         ?Carbon $dateFromValue,
         ?Carbon $dateToValue,
     ): Builder {
-        $query = DB::table('certificate_issuances as i');
+        $query = DB::table('certificate_issuances as i')->where('i.status', CertificateIssuance::STATUS_ISSUED);
 
         if ($barangayId === null) {
             $query->whereRaw('1 = 0');
@@ -985,7 +993,7 @@ class CertificateRequestController extends Controller
             .' i.resident_name as resident_name_snapshot,'
             .' i.resident_number as resident_number,'
             .' i.purok as purok,'
-            .' NULL as status,'
+            .' i.status as status,'
             .' i.issued_at as occurred_at'
         );
     }

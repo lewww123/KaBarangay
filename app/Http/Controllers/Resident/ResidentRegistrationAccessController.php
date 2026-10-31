@@ -204,7 +204,11 @@ class ResidentRegistrationAccessController extends Controller
     /** @param array<string, mixed> $props */
     private function renderNoStore(Request $request, string $component, array $props): Response
     {
-        $response = Inertia::render($component, $props)->toResponse($request);
+        $page = match ($component) {
+            'Resident/RegistrationAccess' => Inertia::render('Resident/RegistrationAccess', $props),
+            'Resident/RegistrationApplication' => Inertia::render('Resident/RegistrationApplication', $props),
+        };
+        $response = $page->toResponse($request);
         $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
         $response->headers->set('Pragma', 'no-cache');
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CertificateRequest;
-use App\Models\LuponCase;
 use App\Models\Purok;
 use App\Models\Resident;
 use App\Models\Sector;
@@ -12,6 +11,8 @@ use App\Models\SectorApplication;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -55,120 +56,268 @@ class SectorController extends Controller
     {
         $barangayId = (int) $request->user()->barangay_id;
         $filters = $this->resolveMemberFilters($request);
-
-        $sectors = Sector::query()
-            ->withCount([
-                'residents',
-                'registrationSectors',
-                'registrationDocuments',
-            ])
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Sector $sector) => [
-                'id' => $sector->id,
-                'name' => $sector->name,
-                'slug' => $sector->slug,
-                'requires_proof' => $sector->requires_proof,
-                'is_active' => $sector->is_active,
-                'residents_count' => $sector->residents_count,
-                'registration_sectors_count' => $sector->registration_sectors_count,
-                'registration_documents_count' => $sector->registration_documents_count,
-            ])
-            ->values();
-
-        $generalMembers = $this->generalMemberPage($barangayId, self::GENERAL_PAGE_PARAM, $filters);
-        $pwdMembers = $this->memberPage($barangayId, 'pwd', self::PWD_PAGE_PARAM, $filters);
-        $seniorMembers = $this->memberPage($barangayId, 'senior', self::SENIOR_PAGE_PARAM, $filters);
-
-        $puroks = Purok::query()
-            ->where('barangay_id', $barangayId)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
         $certificateFilters = $this->resolveCertificateFilters($request);
-        $certificateRequests = $this->certificateRequestPage($barangayId, $certificateFilters);
-
-        $processedCertificates = CertificateRequest::query()
-            ->where('barangay_id', $barangayId)
-            ->whereIn('status', self::CERTIFICATE_MONITORING_STATUSES)
-            ->count();
-
-        $pendingSectorApplications = 0;
-        try {
-            if (Schema::hasTable('sector_applications')) {
-                $pendingSectorApplications = SectorApplication::query()
-                    ->where('barangay_id', $barangayId)
-                    ->where('status', 'under_admin_review')
-                    ->count();
-            }
-        } catch (\Throwable) {
-            $pendingSectorApplications = 0;
-        }
-
-        $openCases = 0;
-        $closedCases = 0;
-        $totalCases = 0;
-        try {
-            if (Schema::hasTable('lupon_cases')) {
-                $totalCases = LuponCase::query()
-                    ->where('barangay_id', $barangayId)
-                    ->count();
-
-                $openCases = LuponCase::query()
-                    ->where('barangay_id', $barangayId)
-                    ->whereIn('status', ['Active', 'Under Mediation', 'Under Conciliation'])
-                    ->count();
-
-                $closedCases = LuponCase::query()
-                    ->where('barangay_id', $barangayId)
-                    ->whereIn('status', ['Settled', 'Unresolved', 'Dismissed'])
-                    ->count();
-            }
-        } catch (\Throwable) {
-            $openCases = 0;
-            $closedCases = 0;
-            $totalCases = 0;
-        }
 
         $requestedTab = (string) $request->query('tab', '');
         $allowedTabs = ['applications', 'general', 'pwd', 'senior', 'certificates', 'lupon'];
         $initialTab = in_array($requestedTab, $allowedTabs, true) ? $requestedTab : 'general';
 
+        $payload = null;
+
+        $resolvePayload = function () use (
+            &$payload,
+            $barangayId,
+            $filters,
+            $certificateFilters,
+        ): array {
+            if ($payload !== null) {
+                return $payload;
+            }
+
+            $tableListing = [];
+
+            try {
+                $tableListing = Schema::getTableListing(null, false);
+            } catch (\Throwable) {
+                $tableListing = [];
+            }
+
+            $hasSectorApplications = in_array('sector_applications', $tableListing, true);
+            $hasLuponCases = in_array('lupon_cases', $tableListing, true);
+
+            $stats = $this->rememberAggregate(
+                'admin:sectors:stats:'.$barangayId.':'.md5(json_encode([
+                    'search' => $filters['search'],
+                    'purok' => $filters['purok'],
+                    'certificate_search' => $certificateFilters['search'],
+                    'sector_applications' => $hasSectorApplications,
+                    'lupon_cases' => $hasLuponCases,
+                ])),
+                30,
+                fn () => $this->sectorStatsQuery(
+                    $barangayId,
+                    $filters,
+                    $certificateFilters,
+                    $hasSectorApplications,
+                    $hasLuponCases,
+                ),
+            );
+
+            $sectors = ($this->resolvesProp('Admin/Sectors', 'sectors') || $this->resolvesProp('Admin/Sectors', 'stats')) ? Sector::query()
+                ->withCount([
+                    'residents',
+                    'registrationSectors',
+                    'registrationDocuments',
+                ])
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Sector $sector) => [
+                    'id' => $sector->id,
+                    'name' => $sector->name,
+                    'slug' => $sector->slug,
+                    'requires_proof' => $sector->requires_proof,
+                    'is_active' => $sector->is_active,
+                    'residents_count' => $sector->residents_count,
+                    'registration_sectors_count' => $sector->registration_sectors_count,
+                    'registration_documents_count' => $sector->registration_documents_count,
+                ])
+                ->values() : collect();
+
+            $puroks = Purok::hydrate($this->rememberReference('sector:purok-options:'.$barangayId, 300, fn () => Purok::query()
+                ->where('barangay_id', $barangayId)
+                ->orderBy('name')
+                ->get(['id', 'name'])->toArray()));
+
+            $purokMap = $puroks->keyBy('id');
+
+            $generalTotal = (int) ($stats->general_members ?? 0);
+            $pwdTotal = (int) ($stats->pwd_members ?? 0);
+            $seniorTotal = (int) ($stats->senior_members ?? 0);
+            $processedCertificates = (int) ($stats->processed_certificates ?? 0);
+
+            $generalMembers = $this->resolvesProp('Admin/Sectors', 'generalMembers') ? $this->generalMemberPage(
+                $barangayId,
+                self::GENERAL_PAGE_PARAM,
+                $filters,
+                (int) ($stats->filtered_general_members ?? $generalTotal),
+                $purokMap,
+            ) : null;
+            $pwdMembers = $this->resolvesProp('Admin/Sectors', 'pwdMembers') ? $this->memberPage(
+                $barangayId,
+                'pwd',
+                self::PWD_PAGE_PARAM,
+                $filters,
+                (int) ($stats->filtered_pwd_members ?? $pwdTotal),
+                $purokMap,
+            ) : null;
+            $seniorMembers = $this->resolvesProp('Admin/Sectors', 'seniorMembers') ? $this->memberPage(
+                $barangayId,
+                'senior',
+                self::SENIOR_PAGE_PARAM,
+                $filters,
+                (int) ($stats->filtered_senior_members ?? $seniorTotal),
+                $purokMap,
+            ) : null;
+
+            $certificateRequests = $this->resolvesProp('Admin/Sectors', 'certificateRequests') ? $this->certificateRequestPage(
+                $barangayId,
+                $certificateFilters,
+                (int) ($stats->filtered_certificate_requests ?? $processedCertificates),
+            ) : null;
+
+            $pendingSectorApplications = (int) ($stats->pending_sector_applications ?? 0);
+            $openCases = (int) ($stats->lupon_open ?? 0);
+            $closedCases = (int) ($stats->lupon_closed ?? 0);
+            $totalCases = (int) ($stats->lupon_total ?? 0);
+
+            return $payload = [
+                'sectors' => $sectors,
+                'stats' => [
+                    'total' => $sectors->count(),
+                    'active' => $sectors->where('is_active', true)->count(),
+                    'sectorApplications' => $pendingSectorApplications,
+                    'generalMembers' => $generalTotal,
+                    'pwdMembers' => $pwdTotal,
+                    'seniorMembers' => $seniorTotal,
+                    'certificates' => $processedCertificates,
+                    'openCases' => $openCases,
+                ],
+                'generalMembers' => $generalMembers,
+                'pwdMembers' => $pwdMembers,
+                'seniorMembers' => $seniorMembers,
+                'puroks' => $puroks,
+                'certificates' => [
+                    'processed' => $processedCertificates,
+                    'completed' => $processedCertificates,
+                ],
+                'certificateRequests' => $certificateRequests,
+                'luponSummary' => [
+                    'open' => $openCases,
+                    'closed' => $closedCases,
+                    'total' => $totalCases,
+                ],
+            ];
+        };
+
         return Inertia::render('Admin/Sectors', [
-            'sectors' => $sectors,
-            'stats' => [
-                'total' => $sectors->count(),
-                'active' => $sectors->where('is_active', true)->count(),
-                'sectorApplications' => $pendingSectorApplications,
-                'generalMembers' => $this->generalMemberScope($barangayId)->count(),
-                'pwdMembers' => $this->memberScope($barangayId, 'pwd')->count(),
-                'seniorMembers' => $this->memberScope($barangayId, 'senior')->count(),
-                'certificates' => $processedCertificates,
-                'openCases' => $openCases,
-            ],
-            'generalMembers' => $generalMembers,
-            'pwdMembers' => $pwdMembers,
-            'seniorMembers' => $seniorMembers,
-            'puroks' => $puroks,
+            'sectors' => $this->deferProp(fn () => $resolvePayload()['sectors']),
+            'stats' => $this->deferProp(fn () => $resolvePayload()['stats']),
+            'generalMembers' => $this->deferProp(fn () => $resolvePayload()['generalMembers']),
+            'pwdMembers' => $this->deferProp(fn () => $resolvePayload()['pwdMembers']),
+            'seniorMembers' => $this->deferProp(fn () => $resolvePayload()['seniorMembers']),
+            'puroks' => $this->deferProp(fn () => $resolvePayload()['puroks']),
             'filters' => [
                 'search' => $filters['search'],
                 'purok' => $filters['purok'],
             ],
-            'certificates' => [
-                'processed' => $processedCertificates,
-                'completed' => $processedCertificates,
-            ],
-            'certificateRequests' => $certificateRequests,
+            'certificates' => $this->deferProp(fn () => $resolvePayload()['certificates']),
+            'certificateRequests' => $this->deferProp(fn () => $resolvePayload()['certificateRequests']),
             'certificateFilters' => [
                 'search' => $certificateFilters['search'],
             ],
-            'luponSummary' => [
-                'open' => $openCases,
-                'closed' => $closedCases,
-                'total' => $totalCases,
-            ],
+            'luponSummary' => $this->deferProp(fn () => $resolvePayload()['luponSummary']),
             'initialTab' => $initialTab,
         ]);
+    }
+
+    /**
+     * Build every summary count in one database round trip.
+     *
+     * The filtered roster counts are only added when a filter is active; when
+     * they are absent the paginator reuses the unfiltered totals. This keeps
+     * the single query from calculating the same aggregate twice.
+     */
+    private function sectorStatsQuery(
+        int $barangayId,
+        array $filters,
+        array $certificateFilters,
+        bool $hasSectorApplications,
+        bool $hasLuponCases,
+    ): object {
+        $stats = DB::query()
+            ->selectSub(
+                $this->generalMemberScope($barangayId)->selectRaw('COUNT(*)')->toBase(),
+                'general_members',
+            )
+            ->selectSub(
+                $this->memberScope($barangayId, 'pwd')->selectRaw('COUNT(*)')->toBase(),
+                'pwd_members',
+            )
+            ->selectSub(
+                $this->memberScope($barangayId, 'senior')->selectRaw('COUNT(*)')->toBase(),
+                'senior_members',
+            )
+            ->selectSub(
+                $this->certificateRequestScope($barangayId)->selectRaw('COUNT(*)')->toBase(),
+                'processed_certificates',
+            );
+
+        if ($hasSectorApplications) {
+            $stats->selectSub(
+                SectorApplication::query()
+                    ->where('barangay_id', $barangayId)
+                    ->where('status', 'under_admin_review')
+                    ->selectRaw('COUNT(*)')
+                    ->toBase(),
+                'pending_sector_applications',
+            );
+        }
+
+        if ($hasLuponCases) {
+            $stats
+                ->selectSub(
+                    DB::table('lupon_cases')
+                        ->where('barangay_id', $barangayId)
+                        ->selectRaw('COUNT(*)'),
+                    'lupon_total',
+                )
+                ->selectSub(
+                    DB::table('lupon_cases')
+                        ->where('barangay_id', $barangayId)
+                        ->selectRaw(
+                            'SUM(CASE WHEN status IN (?, ?, ?) THEN 1 ELSE 0 END)',
+                            ['Active', 'Under Mediation', 'Under Conciliation'],
+                        ),
+                    'lupon_open',
+                )
+                ->selectSub(
+                    DB::table('lupon_cases')
+                        ->where('barangay_id', $barangayId)
+                        ->selectRaw(
+                            'SUM(CASE WHEN status IN (?, ?, ?) THEN 1 ELSE 0 END)',
+                            ['Settled', 'Unresolved', 'Dismissed'],
+                        ),
+                    'lupon_closed',
+                );
+        }
+
+        if ($filters['search'] !== '' || $filters['purok_id'] !== null) {
+            $generalFiltered = $this->generalMemberScope($barangayId);
+            $this->applyMemberFilters($generalFiltered, $filters, $barangayId);
+
+            $pwdFiltered = $this->memberScope($barangayId, 'pwd');
+            $this->applyMemberFilters($pwdFiltered, $filters, $barangayId);
+
+            $seniorFiltered = $this->memberScope($barangayId, 'senior');
+            $this->applyMemberFilters($seniorFiltered, $filters, $barangayId);
+
+            $stats
+                ->selectSub($generalFiltered->selectRaw('COUNT(*)')->toBase(), 'filtered_general_members')
+                ->selectSub($pwdFiltered->selectRaw('COUNT(*)')->toBase(), 'filtered_pwd_members')
+                ->selectSub($seniorFiltered->selectRaw('COUNT(*)')->toBase(), 'filtered_senior_members');
+        }
+
+        if ($certificateFilters['search'] !== '') {
+            $certificatesFiltered = $this->certificateRequestScope($barangayId);
+            $this->applyCertificateFilters($certificatesFiltered, $certificateFilters);
+
+            $stats->selectSub(
+                $certificatesFiltered->selectRaw('COUNT(*)')->toBase(),
+                'filtered_certificate_requests',
+            );
+        }
+
+        return $stats->first() ?? (object) [];
     }
 
     /*
@@ -201,25 +350,29 @@ class SectorController extends Controller
         int $barangayId,
         string $pageParam,
         array $filters,
+        int $total,
+        Collection &$puroks,
     ): LengthAwarePaginator {
         $query = $this->generalMemberScope($barangayId);
 
         $this->applyMemberFilters($query, $filters, $barangayId);
 
-        return $query
-            ->with('purok:id,name')
+        $paginator = $query
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->orderBy('id')
-            ->paginate(self::MEMBERS_PER_PAGE, ['*'], $pageParam)
-            ->withQueryString()
-            ->through(fn (Resident $resident) => [
-                'id' => $resident->id,
-                'resident_number' => $resident->resident_number,
-                'name' => $resident->full_name,
-                'purok' => $resident->purok?->name ?? '',
-                'status' => $resident->status,
-            ]);
+            ->paginate(self::MEMBERS_PER_PAGE, ['*'], $pageParam, null, $total)
+            ->withQueryString();
+
+        $this->hydratePuroks($paginator->getCollection(), $puroks);
+
+        return $paginator->through(fn (Resident $resident) => [
+            'id' => $resident->id,
+            'resident_number' => $resident->resident_number,
+            'name' => $resident->full_name,
+            'purok' => $resident->purok?->name ?? '',
+            'status' => $resident->status,
+        ]);
     }
 
     /**
@@ -250,25 +403,29 @@ class SectorController extends Controller
         string $slug,
         string $pageParam,
         array $filters,
+        int $total,
+        Collection &$puroks,
     ): LengthAwarePaginator {
         $query = $this->memberScope($barangayId, $slug);
 
         $this->applyMemberFilters($query, $filters, $barangayId);
 
-        return $query
-            ->with('purok:id,name')
+        $paginator = $query
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->orderBy('id')
-            ->paginate(self::MEMBERS_PER_PAGE, ['*'], $pageParam)
-            ->withQueryString()
-            ->through(fn (Resident $resident) => [
-                'id' => $resident->id,
-                'resident_number' => $resident->resident_number,
-                'name' => $resident->full_name,
-                'purok' => $resident->purok?->name ?? '',
-                'status' => $resident->status,
-            ]);
+            ->paginate(self::MEMBERS_PER_PAGE, ['*'], $pageParam, null, $total)
+            ->withQueryString();
+
+        $this->hydratePuroks($paginator->getCollection(), $puroks);
+
+        return $paginator->through(fn (Resident $resident) => [
+            'id' => $resident->id,
+            'resident_number' => $resident->resident_number,
+            'name' => $resident->full_name,
+            'purok' => $resident->purok?->name ?? '',
+            'status' => $resident->status,
+        ]);
     }
 
     /**
@@ -365,6 +522,40 @@ class SectorController extends Controller
         }
     }
 
+    /**
+     * Load purok relations from the already-loaded barangay puroks. Puroks
+     * outside that list are fetched once, preserving the original relation
+     * behavior even if legacy data points across barangays.
+     *
+     * @param  Collection<int, Resident>  $records
+     * @param  Collection<int, Purok>  $puroks
+     */
+    private function hydratePuroks(Collection $records, Collection &$puroks): void
+    {
+        if ($records->isEmpty()) {
+            return;
+        }
+
+        $missingIds = $records->pluck('purok_id')
+            ->filter()
+            ->unique()
+            ->reject(fn ($id) => $puroks->has($id))
+            ->values();
+
+        if ($missingIds->isNotEmpty()) {
+            $puroks = $puroks->union(
+                Purok::query()
+                    ->whereIn('id', $missingIds)
+                    ->get(['id', 'name'])
+                    ->keyBy('id')
+            );
+        }
+
+        foreach ($records as $record) {
+            $record->setRelation('purok', $puroks->get($record->purok_id));
+        }
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Certificate monitoring query helpers
@@ -403,16 +594,21 @@ class SectorController extends Controller
     }
 
     /**
-     * Build one page of the read-only Certificates monitoring list.
+     * The base scope for the read-only Certificates monitoring list.
      */
-    private function certificateRequestPage(
-        int $barangayId,
-        array $filters,
-    ): LengthAwarePaginator {
-        $query = CertificateRequest::query()
+    private function certificateRequestScope(int $barangayId): Builder
+    {
+        return CertificateRequest::query()
             ->where('barangay_id', $barangayId)
             ->whereIn('status', self::CERTIFICATE_MONITORING_STATUSES);
+    }
 
+    /**
+     * Apply the Certificates list search without allowing the status
+     * restriction to be bypassed.
+     */
+    private function applyCertificateFilters(Builder $query, array $filters): void
+    {
         if ($filters['search'] !== '' && $filters['tokens'] === []) {
             $query->whereRaw('1 = 0');
         }
@@ -438,6 +634,19 @@ class SectorController extends Controller
                     });
             });
         }
+    }
+
+    /**
+     * Build one page of the read-only Certificates monitoring list.
+     */
+    private function certificateRequestPage(
+        int $barangayId,
+        array $filters,
+        int $total,
+    ): LengthAwarePaginator {
+        $query = $this->certificateRequestScope($barangayId);
+
+        $this->applyCertificateFilters($query, $filters);
 
         return $query
             ->with([
@@ -446,7 +655,7 @@ class SectorController extends Controller
             ])
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
-            ->paginate(self::CERTIFICATES_PER_PAGE, ['*'], self::CERTIFICATE_PAGE_PARAM)
+            ->paginate(self::CERTIFICATES_PER_PAGE, ['*'], self::CERTIFICATE_PAGE_PARAM, null, $total)
             ->withQueryString()
             ->through(fn (CertificateRequest $certificateRequest) => [
                 'id' => $certificateRequest->id,

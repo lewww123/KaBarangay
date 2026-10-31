@@ -15,9 +15,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Mockery;
 use RuntimeException;
-use Throwable;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
+use ZipArchive;
 
 class CertificateIssuanceGenerationTest extends TestCase
 {
@@ -67,14 +67,26 @@ class CertificateIssuanceGenerationTest extends TestCase
         $response = $this->actingAs($clerk)->post('/clerk/generate-certificate', $this->validPayload());
 
         $response->assertOk();
-        $this->assertStringContainsString('attachment', (string) $response->headers->get('content-disposition'));
+        $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $disposition = (string) $response->headers->get('content-disposition');
+        $this->assertStringContainsString('attachment', $disposition);
 
         $this->assertSame(1, CertificateIssuance::query()->count());
 
         $issuance = CertificateIssuance::query()->first();
+        $this->assertMatchesRegularExpression('/filename="?'.preg_quote('Certificate_'.$issuance->reference.'.docx', '/').'"?(?:;|$)/', $disposition);
         $this->assertSame('Juan Dela Cruz', $issuance->resident_name);
         $this->assertSame('Tricycle', $issuance->certificate_type);
         $this->assertSame('CTRL-2026-0001', $issuance->control_no);
+        $this->assertSame('issued', $issuance->status);
+        $response->assertHeader('X-Certificate-Issuance-Status', 'issued');
+
+        $docxPath = $response->baseResponse->getFile()->getPathname();
+        $this->assertFileExists($docxPath);
+        $archive = new ZipArchive;
+        $this->assertSame(true, $archive->open($docxPath));
+        $this->assertNotFalse($archive->locateName('word/document.xml'));
+        $archive->close();
     }
 
     public function test_reference_format_is_issue_year_eight_alnum_and_unique(): void
@@ -363,7 +375,7 @@ class CertificateIssuanceGenerationTest extends TestCase
 
     public function test_unauthenticated_access_redirects(): void
     {
-        $this->post('/clerk/generate-certificate', $this->validPayload())->assertRedirect('/login');
+        $this->post('/clerk/generate-certificate', $this->validPayload())->assertRedirect(route('login'));
         $this->assertSame(0, CertificateIssuance::query()->count());
     }
 
@@ -460,6 +472,84 @@ class CertificateIssuanceGenerationTest extends TestCase
             ->assertOk();
 
         $this->assertSame(1, CertificateIssuance::query()->count());
+    }
+
+    public function test_preview_uses_the_real_template_without_issuing_or_advancing_a_request(): void
+    {
+        $this->requireTricycleTemplate();
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createRequest(300);
+        $auditCount = AuditLog::query()->count();
+
+        $response = $this->actingAs($clerk)->post('/clerk/certificates/preview', $this->validPayload([
+            'certificate_request_id' => $request->id,
+        ]))->assertOk();
+        $response->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $this->assertSame(0, CertificateIssuance::query()->count());
+        $this->assertSame('Pending', $request->fresh()->status);
+        $this->assertSame($auditCount, AuditLog::query()->count());
+
+        $original = new ZipArchive;
+        $preview = new ZipArchive;
+        $original->open(CertificateTemplates::path('Tricycle'));
+        $path = $response->baseResponse->getFile()->getPathname();
+        $preview->open($path);
+        try {
+            for ($index = 0; $index < $original->numFiles; $index++) {
+                $name = $original->getNameIndex($index);
+                if (str_starts_with($name, 'word/media/') || $name === 'word/styles.xml') {
+                    $this->assertSame($original->getFromName($name), $preview->getFromName($name), 'Preview must retain original template artwork/styles.');
+                }
+            }
+        } finally {
+            $original->close();
+            $preview->close();
+            @unlink($path);
+        }
+    }
+
+    public function test_manual_purok_and_dynamic_text_are_saved_and_immediately_listed_as_issued(): void
+    {
+        $this->requireTricycleTemplate();
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $response = $this->actingAs($clerk)->post('/clerk/generate-certificate', $this->validPayload([
+            'purok' => 'Purok A & B',
+            'purpose' => 'Permit for {RESIDENT_PUROK}',
+            'business_address' => '{PUROK}, San Jose',
+        ]))->assertOk();
+        $issuance = CertificateIssuance::firstOrFail();
+        $this->assertDatabaseHas('certificate_issuances', ['id' => $issuance->id, 'status' => 'issued', 'purok' => 'Purok A & B']);
+        $this->get('/clerk/certificates?tab=issued')->assertOk()->assertInertia(fn ($page) => $page
+            ->where('issuances.data.0.id', $issuance->id)
+            ->where('issuances.data.0.status', 'issued')
+            ->where('issuances.data.0.purok', 'Purok A & B'));
+
+        $archive = new ZipArchive;
+        $path = $response->baseResponse->getFile()->getPathname();
+        $archive->open($path);
+        try {
+            $xml = new \DOMDocument;
+            $this->assertTrue($xml->loadXML($archive->getFromName('word/document.xml'), LIBXML_NONET));
+            $this->assertStringContainsString('PERMIT FOR PUROK A & B', $xml->textContent);
+            $this->assertStringNotContainsString('{PUROK}', $xml->textContent);
+            $this->assertStringNotContainsString('{RESIDENT_PUROK}', $xml->textContent);
+        } finally {
+            $archive->close();
+            @unlink($path);
+        }
+    }
+
+    public function test_preview_and_generation_share_the_same_clerk_only_authorization(): void
+    {
+        $this->post('/clerk/certificates/preview', [])->assertRedirect(route('login'));
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $this->actingAs($admin)->post('/clerk/certificates/preview', [])->assertForbidden();
+        $foreignClerk = $this->createStaff($this->createBarangay('Other', 'OTHER'), 'clerk');
+        $request = $this->createRequest(0);
+        $this->actingAs($foreignClerk)->postJson('/clerk/certificates/preview', $this->validPayload([
+            'certificate_request_id' => $request->id, 'signatory_name' => '', 'signatory_title' => '',
+        ]))->assertUnprocessable()->assertJsonValidationErrors('certificate_request_id');
+        $this->assertSame(0, CertificateIssuance::count());
     }
 
     private function requireTricycleTemplate(): void

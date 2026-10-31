@@ -10,15 +10,17 @@ use App\Models\RegistrationDocument;
 use App\Models\ResidentRegistration;
 use App\Models\Sector;
 use App\Support\AuditLogger;
-use App\Support\ResidentRegistrationEmailVerificationService;
+use App\Support\RegistrationEmailOtp;
 use App\Support\ResidentRegistrationQrMatcher;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -31,59 +33,59 @@ class RegistrationController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function create(): Response
+    public function create(Request $request, RegistrationEmailOtp $otp): Response
     {
-        $barangays = Barangay::query()
+        $loadBarangays = function () {
+            $barangays = Barangay::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                    'code',
+                    'city_municipality',
+                    'province',
+                ]);
+
+            $puroks = Purok::query()
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'barangay_id',
+                    'name',
+                    'code',
+                ])
+                ->groupBy('barangay_id');
+
+            $barangays = $barangays
+                ->map(function ($barangay) use ($puroks) {
+                    return [
+                        'id' => $barangay->id,
+                        'name' => $barangay->name,
+                        'code' => $barangay->code,
+                        'city_municipality' => $barangay->city_municipality,
+                        'province' => $barangay->province,
+
+                        'puroks' => collect(
+                            $puroks->get($barangay->id, [])
+                        )->values()->map(function ($purok) {
+                            return [
+                                'id' => $purok->id,
+                                'name' => $purok->name,
+                                'code' => $purok->code,
+                            ];
+                        }),
+                    ];
+                })
+                ->values();
+
+            return $barangays;
+        };
+
+        $sectors = fn () => Sector::query()
             ->where('is_active', true)
-            ->orderBy('name')
-            ->get([
-                'id',
-                'name',
-                'code',
-                'city_municipality',
-                'province',
-            ]);
-
-        $puroks = Purok::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get([
-                'id',
-                'barangay_id',
-                'name',
-                'code',
-            ])
-            ->groupBy('barangay_id');
-
-        $barangays = $barangays
-            ->map(function ($barangay) use ($puroks) {
-                return [
-                    'id' => $barangay->id,
-                    'name' => $barangay->name,
-                    'code' => $barangay->code,
-                    'city_municipality' => $barangay->city_municipality,
-                    'province' => $barangay->province,
-
-                    'puroks' => collect(
-                        $puroks->get($barangay->id, [])
-                    )->values()->map(function ($purok) {
-                        return [
-                            'id' => $purok->id,
-                            'name' => $purok->name,
-                            'code' => $purok->code,
-                        ];
-                    }),
-                ];
-            })
-            ->values();
-
-        $sectors = Sector::query()
-            ->where('is_active', true)
-            ->whereIn('slug', [
-                'senior',
-                'pwd',
-            ])
             ->orderBy('name')
             ->get([
                 'id',
@@ -93,8 +95,9 @@ class RegistrationController extends Controller
             ]);
 
         return Inertia::render('Resident/Register', [
-            'barangays' => $barangays,
-            'sectors' => $sectors,
+            'emailVerification' => fn () => $otp->state($request),
+            'barangays' => $this->deferProp(fn () => $this->rememberReference('registration:barangay-purok-options', 300, fn () => $loadBarangays()->toArray())),
+            'sectors' => $this->deferProp(fn () => $this->rememberReference('registration:sector-options', 300, fn () => $sectors()->toArray())),
         ]);
     }
 
@@ -106,7 +109,7 @@ class RegistrationController extends Controller
 
     public function store(
         StoreResidentRegistrationRequest $request,
-        ResidentRegistrationEmailVerificationService $emailVerification,
+        RegistrationEmailOtp $emailOtp,
         ResidentRegistrationQrMatcher $qrMatcher,
     ): RedirectResponse {
         $validated = $request->validated();
@@ -128,11 +131,13 @@ class RegistrationController extends Controller
         $storedFiles = [];
 
         try {
-            $registration = DB::transaction(
-                function () use (
+            $registration = $emailOtp->withVerifiedEmail($request, $validated['email'], function (array $proof) use ($request, $validated, $qrCredentialId, $emailOtp, &$storedFiles) {
+                return DB::transaction(function () use (
                     $request,
                     $validated,
                     $qrCredentialId,
+                    $proof,
+                    $emailOtp,
                     &$storedFiles
                 ) {
                     /*
@@ -171,6 +176,7 @@ class RegistrationController extends Controller
                         'status' => 'pending',
                         'submitted_at' => now(),
                     ]);
+                    $emailOtp->recordVerification($registration, $proof);
 
                     // The submitted QR value is only resolved to a credential
                     // reference. The raw token is never persisted.
@@ -278,8 +284,8 @@ class RegistrationController extends Controller
                     }
 
                     return $registration;
-                }
-            );
+                });
+            });
         } catch (Throwable $exception) {
             /*
             |--------------------------------------------------------------------------
@@ -289,6 +295,10 @@ class RegistrationController extends Controller
 
             foreach ($storedFiles as $path) {
                 Storage::disk('local')->delete($path);
+            }
+
+            if ($exception instanceof ValidationException) {
+                throw $exception;
             }
 
             report($exception);
@@ -306,8 +316,7 @@ class RegistrationController extends Controller
                     ])
                 )
                 ->withErrors([
-                    'registration' =>
-                        'We could not complete your registration. Please try again.',
+                    'registration' => 'We could not complete your registration. Please try again.',
                 ]);
         }
 
@@ -332,11 +341,8 @@ class RegistrationController extends Controller
             $request->ip(),
         );
 
-        // Email verification is an eligibility signal for future decision
-        // notices only. It does not gate administrative review or approval.
-        if ($registration->email !== null && trim($registration->email) !== '') {
-            $emailVerification->send($registration);
-        }
+        // The single-use OTP proof and verified email snapshot were recorded
+        // atomically with this application before submission succeeded.
 
         return redirect()
             ->route(
@@ -398,7 +404,7 @@ class RegistrationController extends Controller
         */
 
         $path = $file->store(
-            'resident-verifications/' .
+            'resident-verifications/'.
                 $registration->public_id,
             'local'
         );
@@ -406,8 +412,7 @@ class RegistrationController extends Controller
         $storedFiles[] = $path;
 
         return RegistrationDocument::create([
-            'resident_registration_id' =>
-                $registration->id,
+            'resident_registration_id' => $registration->id,
 
             'sector_id' => $sectorId,
 
@@ -424,8 +429,7 @@ class RegistrationController extends Controller
                 $file->getClientOriginalName()
             ),
 
-            'mime_type' =>
-                $file->getMimeType()
+            'mime_type' => $file->getMimeType()
                 ?: 'application/octet-stream',
 
             'file_size' => $file->getSize(),

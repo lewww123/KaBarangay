@@ -5,6 +5,9 @@ namespace Tests\Feature;
 use App\Models\Announcement;
 use App\Models\Barangay;
 use App\Models\Purok;
+use App\Support\AnnouncementLifecycle;
+use App\Support\AnnouncementType;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -100,21 +103,19 @@ class AnnouncementLifecycleAndCompletionTest extends TestCase
                 ->assertOk()
                 ->assertInertia(fn ($page) => $page
                     ->component('Clerk/Announcements/Index')
-                    ->has('announcements', 1)
-                    ->where('announcements.0.title', 'Ongoing Attendance Event')
+                    ->has('announcements', 4)
                     ->where('activeTab', 'ongoing')
                     ->where('tabCounts.all', 7)
-                    ->where('tabCounts.ongoing', 1)
-                    ->where('tabCounts.pending', 1)
-                    ->where('tabCounts.approved', 3)
+                    ->where('tabCounts.ongoing', 4)
+                    ->where('tabCounts.draft', 2)
                     ->where('tabCounts.done', 1));
 
             $this->actingAs($clerk)
-                ->get('/clerk/announcements?tab=approved')
+                ->get('/clerk/announcements?tab=draft')
                 ->assertOk()
                 ->assertInertia(fn ($page) => $page
-                    ->has('announcements', 3)
-                    ->where('activeTab', 'approved'));
+                    ->has('announcements', 2)
+                    ->where('activeTab', 'draft'));
 
             $this->actingAs($clerk)
                 ->get('/clerk/announcements?tab=not-a-tab')
@@ -122,6 +123,73 @@ class AnnouncementLifecycleAndCompletionTest extends TestCase
                 ->assertInertia(fn ($page) => $page
                     ->has('announcements', 7)
                     ->where('activeTab', 'all'));
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_lifecycle_conditional_counts_match_each_existing_tab_predicate(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-23 10:00:00'));
+
+        try {
+            $rows = [
+                ['title' => 'Pending event before boundary', 'approval_status' => 'pending', 'is_published' => false, 'category' => 'Event', 'event_start_at' => now()->subSecond(), 'target_audience' => 'all'],
+                ['title' => 'Approved event at boundary', 'approval_status' => 'approved', 'category' => 'Event', 'event_start_at' => now(), 'target_audience' => 'all'],
+                ['title' => 'Approved event before boundary', 'approval_status' => 'approved', 'category' => 'Event', 'event_start_at' => now()->subSecond(), 'target_audience' => 'pwd'],
+                ['title' => 'Approved event after boundary', 'approval_status' => 'approved', 'category' => 'Event', 'event_start_at' => now()->addSecond(), 'target_audience' => 'senior_citizens'],
+                ['title' => 'Approved attendance update in past', 'approval_status' => 'approved', 'category' => 'General', 'requires_attendance' => true, 'event_start_at' => now()->subSecond(), 'target_audience' => 'pwd'],
+                ['title' => 'Approved regular update in past', 'approval_status' => 'approved', 'category' => 'General', 'requires_attendance' => false, 'event_start_at' => now()->subSecond(), 'target_audience' => 'senior_citizens'],
+                ['title' => 'Approved regular update without date', 'approval_status' => 'approved', 'category' => 'General', 'requires_attendance' => false, 'event_start_at' => null, 'target_audience' => 'all'],
+                ['title' => 'Rejected attendance event', 'approval_status' => 'rejected', 'is_published' => false, 'category' => 'General', 'requires_attendance' => true, 'event_start_at' => now()->subSecond(), 'target_audience' => 'pwd'],
+                ['title' => 'Completed event', 'approval_status' => 'approved', 'category' => 'Event', 'event_start_at' => now()->addSecond(), 'completed_at' => now(), 'target_audience' => 'all'],
+                ['title' => 'Completed pending update', 'approval_status' => 'pending', 'is_published' => false, 'category' => 'General', 'completed_at' => now(), 'target_audience' => 'senior_citizens'],
+            ];
+
+            foreach ($rows as $row) {
+                $this->createAnnouncement($this->barangay, $row);
+            }
+
+            $base = Announcement::query()->where('barangay_id', $this->barangay->id);
+            $scopes = [
+                'all audiences and kinds' => clone $base,
+                'PWD audience' => (clone $base)->where('target_audience', 'pwd'),
+                'Senior audience' => (clone $base)->where('target_audience', 'senior_citizens'),
+                'program kind' => AnnouncementType::applyProgramFilter(clone $base),
+                'update kind' => AnnouncementType::applyUpdateFilter(clone $base),
+                'empty dataset' => (clone $base)->where('id', -1),
+            ];
+
+            $capturing = false;
+            $aggregateQueries = [];
+            DB::listen(function (QueryExecuted $event) use (&$capturing, &$aggregateQueries): void {
+                if ($capturing && str_contains(strtolower($event->sql), 'announcements')) {
+                    $aggregateQueries[] = $event->sql;
+                }
+            });
+
+            foreach ($scopes as $scopeName => $scope) {
+                $expected = [];
+                foreach (AnnouncementLifecycle::TABS as $tab) {
+                    $expected[$tab] = (clone AnnouncementLifecycle::applyTab(clone $scope, $tab))->count();
+                }
+
+                $aggregateQueries = [];
+                $capturing = true;
+                $actual = AnnouncementLifecycle::counts($scope);
+                $capturing = false;
+
+                $this->assertSame($expected, $actual, $scopeName);
+                $this->assertLessThan(count(AnnouncementLifecycle::TABS), count($aggregateQueries), $scopeName.' uses fewer count queries than the previous per-tab implementation.');
+            }
+
+            $this->assertSame(1, count($aggregateQueries), 'The conditional aggregate executes as one announcements query.');
+
+            $allCounts = AnnouncementLifecycle::counts(clone $base);
+            $this->assertSame(6, $allCounts['ongoing'], 'Published records remain ongoing until explicitly completed.');
+            $this->assertSame(2, $allCounts['draft'], 'Unpublished legacy programs are drafts.');
+            $this->assertSame(2, $allCounts['done']);
+            $this->assertSame(0, AnnouncementLifecycle::counts((clone $base)->where('id', -1))['all']);
         } finally {
             Carbon::setTestNow();
         }
@@ -335,11 +403,11 @@ class AnnouncementLifecycleAndCompletionTest extends TestCase
             ]);
 
             $this->actingAs($staff)
-                ->get($portal['base'].'/programs?tab=pending')
+                ->get($portal['base'].'/programs?tab=draft')
                 ->assertOk()
                 ->assertInertia(fn ($page) => $page
-                    ->where('activeTab', 'pending')
-                    ->where('tabCounts.pending', 1));
+                    ->where('activeTab', 'draft')
+                    ->where('tabCounts.draft', 1));
         }
     }
 
@@ -750,6 +818,7 @@ class AnnouncementLifecycleAndCompletionTest extends TestCase
             ->post('/admin/announcements/'.$announcement->id.'/approve', [
                 'revision_token' => $token,
             ])
+            ->assertRedirect()
             ->assertSessionHasErrors('approval');
 
         $this->assertSame('pending', $announcement->fresh()->approval_status);
@@ -760,6 +829,7 @@ class AnnouncementLifecycleAndCompletionTest extends TestCase
                 'revision_token' => $token,
                 'rejection_reason' => 'This should not be applied.',
             ])
+            ->assertRedirect()
             ->assertSessionHasErrors('approval');
 
         $fresh = $announcement->fresh();

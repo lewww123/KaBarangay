@@ -7,7 +7,7 @@ use App\Models\Purok;
 use App\Models\Resident;
 use App\Models\ResidentRegistration;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,9 +19,9 @@ class PopulationController extends Controller
      * SCOPE / DEFINITIONS
      * -------------------
      * - Only records in the `residents` table represent the permanent
-     *   population of a barangay. A `residents` row is created exclusively
-     *   when a `resident_registrations` application is approved
-     *   (see ResidentRegistrationController::approve()).
+     *   population of a barangay. Masterlist creation and online-account
+     *   approval are distinct: registration approval links an existing
+     *   resident rather than creating another population record.
      * - A resident is part of the population only while `status = active`.
      *   Residents flagged `inactive` are reported separately and are NOT
      *   counted towards the population totals.
@@ -38,110 +38,60 @@ class PopulationController extends Controller
     {
         $barangayId = (int) $request->user()->barangay_id;
 
-        $totalResidents = Resident::query()
-            ->where('barangay_id', $barangayId)
-            ->where('status', 'active')
-            ->count();
+        $groups = null;
+        $resolveGroups = function () use ($barangayId, &$groups) {
+            $flags = Resident::query()
+                ->where('barangay_id', $barangayId)
+                ->select(['purok_id', 'status'])
+                ->withExists([
+                    'sectors as is_senior' => fn ($query) => $query->where('slug', 'senior'),
+                    'sectors as is_pwd' => fn ($query) => $query->where('slug', 'pwd'),
+                    'sectors as has_sector',
+                ]);
 
-        $seniorCitizens = $this->countBySectorSlug($barangayId, 'senior');
+            return $groups ??= DB::query()->fromSub($flags->toBase(), 'population')
+                ->selectRaw('purok_id, status, COUNT(*) as total,
+                    COUNT(CASE WHEN is_senior = true THEN 1 END) as seniors,
+                    COUNT(CASE WHEN is_pwd = true THEN 1 END) as pwd,
+                    COUNT(CASE WHEN is_senior = true AND is_pwd = true THEN 1 END) as overlap,
+                    COUNT(CASE WHEN has_sector = false THEN 1 END) as regular')
+                ->groupBy('purok_id', 'status')->get();
+        };
 
-        $pwdMembers = $this->countBySectorSlug($barangayId, 'pwd');
+        $loadStats = function () use ($resolveGroups, $barangayId): array {
+            $groups = $resolveGroups();
+            $active = $groups->where('status', 'active');
+            $pipeline = ResidentRegistration::query()->where('barangay_id', $barangayId)
+                ->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
 
-        $seniorAndPwd = Resident::query()
-            ->where('barangay_id', $barangayId)
-            ->where('status', 'active')
-            ->whereHas('sectors', fn ($query) => $query->where('slug', 'senior'))
-            ->whereHas('sectors', fn ($query) => $query->where('slug', 'pwd'))
-            ->count();
+            return [
+                'totalResidents' => (int) $active->sum('total'),
+                'seniorCitizens' => (int) $active->sum('seniors'),
+                'pwdMembers' => (int) $active->sum('pwd'),
+                'seniorAndPwd' => (int) $active->sum('overlap'),
+                'regularResidents' => (int) $active->sum('regular'),
+                'inactiveResidents' => (int) $groups->where('status', '!=', 'active')->sum('total'),
+                'pendingRegistrations' => (int) ($pipeline['pending'] ?? 0) + (int) ($pipeline['needs_correction'] ?? 0),
+                'rejectedRegistrations' => (int) ($pipeline['rejected'] ?? 0),
+            ];
+        };
 
-        $regularResidents = Resident::query()
-            ->where('barangay_id', $barangayId)
-            ->where('status', 'active')
-            ->whereDoesntHave('sectors')
-            ->count();
+        $loadPuroks = function () use ($barangayId, $resolveGroups): array {
+            $counts = $resolveGroups()->where('status', 'active')->keyBy('purok_id');
+            $options = $this->rememberReference("population:puroks:{$barangayId}", 300,
+                fn () => Purok::query()->where('barangay_id', $barangayId)->orderBy('sort_order')->orderBy('name')->get(['id', 'name'])->toArray());
 
-        $inactiveResidents = Resident::query()
-            ->where('barangay_id', $barangayId)
-            ->where('status', '!=', 'active')
-            ->count();
-
-        $pendingRegistrations = ResidentRegistration::query()
-            ->where('barangay_id', $barangayId)
-            ->whereIn('status', ['pending', 'needs_correction'])
-            ->count();
-
-        $rejectedRegistrations = ResidentRegistration::query()
-            ->where('barangay_id', $barangayId)
-            ->where('status', 'rejected')
-            ->count();
-
-        $totalsByPurok = $this->countByPurok($barangayId);
-        $seniorsByPurok = $this->countByPurok($barangayId, 'senior');
-        $pwdByPurok = $this->countByPurok($barangayId, 'pwd');
-
-        $puroks = Purok::query()
-            ->where('barangay_id', $barangayId)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Purok $purok) => [
-                'id' => $purok->id,
-                'name' => $purok->name,
-                'total' => (int) ($totalsByPurok[$purok->id] ?? 0),
-                'seniors' => (int) ($seniorsByPurok[$purok->id] ?? 0),
-                'pwd' => (int) ($pwdByPurok[$purok->id] ?? 0),
-            ])
-            ->values();
+            return array_map(fn (array $purok) => [
+                ...$purok,
+                'total' => (int) ($counts[$purok['id']]->total ?? 0),
+                'seniors' => (int) ($counts[$purok['id']]->seniors ?? 0),
+                'pwd' => (int) ($counts[$purok['id']]->pwd ?? 0),
+            ], $options);
+        };
 
         return Inertia::render('Admin/Population', [
-            'stats' => [
-                'totalResidents' => $totalResidents,
-                'seniorCitizens' => $seniorCitizens,
-                'pwdMembers' => $pwdMembers,
-                'seniorAndPwd' => $seniorAndPwd,
-                'regularResidents' => $regularResidents,
-                'inactiveResidents' => $inactiveResidents,
-                'pendingRegistrations' => $pendingRegistrations,
-                'rejectedRegistrations' => $rejectedRegistrations,
-            ],
-            'puroks' => $puroks,
+            'stats' => $this->deferProp($loadStats),
+            'puroks' => $this->deferProp($loadPuroks),
         ]);
-    }
-
-    /**
-     * Count active residents in the barangay tagged with the given sector slug.
-     */
-    private function countBySectorSlug(int $barangayId, string $slug): int
-    {
-        return Resident::query()
-            ->where('barangay_id', $barangayId)
-            ->where('status', 'active')
-            ->whereHas('sectors', fn ($query) => $query->where('slug', $slug))
-            ->count();
-    }
-
-    /**
-     * Count active residents per purok, optionally limited to a sector slug.
-     *
-     * Returns a collection keyed by purok_id. Runs a single grouped query so
-     * the purok breakdown stays constant regardless of the number of puroks.
-     *
-     * @return Collection<int, int>
-     */
-    private function countByPurok(int $barangayId, ?string $sectorSlug = null)
-    {
-        return Resident::query()
-            ->where('residents.barangay_id', $barangayId)
-            ->where('residents.status', 'active')
-            ->when(
-                $sectorSlug !== null,
-                fn ($query) => $query->whereHas(
-                    'sectors',
-                    fn ($sectorQuery) => $sectorQuery->where('slug', $sectorSlug)
-                )
-            )
-            ->selectRaw('residents.purok_id as purok_id, COUNT(*) as aggregate')
-            ->groupBy('residents.purok_id')
-            ->pluck('aggregate', 'purok_id');
     }
 }

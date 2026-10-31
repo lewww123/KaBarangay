@@ -2,6 +2,7 @@
 
 namespace Tests\Concerns;
 
+use App\Mail\RegistrationOtpMail;
 use App\Models\Announcement;
 use App\Models\Barangay;
 use App\Models\DisbursementDocument;
@@ -10,12 +11,27 @@ use App\Models\Resident;
 use App\Models\ResidentAccount;
 use App\Models\ResidentRegistration;
 use App\Models\Sector;
+use App\Models\StaffAssignment;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Support\Testing\Fakes\MailFake;
 
 trait CreatesBarangayFixtures
 {
+    private function verifyRegistrationEmailForSubmission(string $email): void
+    {
+        if (! (Mail::getFacadeRoot() instanceof MailFake)) {
+            Mail::fake();
+        }
+        $email = strtolower(trim($email));
+        $this->postJson('/register/send-otp', ['email' => $email])->assertOk();
+        $mail = Mail::sent(RegistrationOtpMail::class)->filter(fn ($mail) => $mail->hasTo($email))->last();
+        $this->postJson('/register/verify-otp', ['email' => $email, 'code' => $mail->verificationCode])
+            ->assertOk()->assertJsonPath('status', 'verified');
+    }
+
     private function createBarangay(string $name, string $code): Barangay
     {
         return Barangay::create([
@@ -29,22 +45,90 @@ trait CreatesBarangayFixtures
 
     private function createPurok(Barangay $barangay, string $name = 'Purok 1'): Purok
     {
-        return Purok::create([
-            'barangay_id' => $barangay->id,
-            'name' => $name,
-            'is_active' => true,
-        ]);
+        return Purok::firstOrCreate(
+            ['barangay_id' => $barangay->id, 'name' => $name],
+            ['is_active' => true],
+        );
     }
 
     private function createStaff(Barangay $barangay, string $role, array $attributes = []): User
     {
-        return User::factory()->create([
+        if (isset($attributes['name']) && ! isset($attributes['first_name'], $attributes['last_name'])) {
+            $nameParts = preg_split('/\s+/', trim($attributes['name']), 2);
+            $attributes['first_name'] = $nameParts[0];
+            $attributes['last_name'] = $nameParts[1] ?? 'Staff';
+        }
+
+        $resident = isset($attributes['resident_id'])
+            ? Resident::findOrFail($attributes['resident_id'])
+            : $this->createResident(
+                $barangay,
+                Purok::query()->where('barangay_id', $barangay->id)->first() ?? $this->createPurok($barangay),
+                [
+                    'first_name' => $attributes['first_name'] ?? 'Staff',
+                    'last_name' => $attributes['last_name'] ?? 'Member',
+                    'mobile' => '09'.random_int(100000000, 999999999),
+                ],
+            );
+
+        unset($attributes['first_name'], $attributes['last_name'], $attributes['mobile'], $attributes['resident_number']);
+
+        $user = User::factory()->create([
             'barangay_id' => $barangay->id,
-            'role' => $role,
-            'department' => ucfirst($role),
+            'resident_id' => $resident->id,
+            'name' => $resident->full_name,
             'status' => 'active',
             ...$attributes,
         ]);
+        $department = match ($role) {
+            'senior_staff' => 'senior',
+            'pwd_staff' => 'pwd',
+            default => $role,
+        };
+
+        if (in_array($department, ['admin', 'clerk', 'lupon', 'pwd', 'senior'], true)) {
+            StaffAssignment::create([
+                'user_id' => $user->id,
+                'resident_id' => $resident->id,
+                'barangay_id' => $barangay->id,
+                'department' => $department,
+                'position' => ucfirst(str_replace('_', ' ', $role)),
+                'is_active' => true,
+            ]);
+        }
+
+        return $user;
+    }
+
+    /** Create a resident-linked staff assignment. */
+    private function createAssignedStaff(
+        array $attributes = [],
+        string $department = 'admin',
+        string $position = 'Barangay Admin',
+    ): User {
+        $barangay = $attributes['barangay'] ?? throw new \InvalidArgumentException('A barangay is required.');
+        $purok = $attributes['purok'] ?? throw new \InvalidArgumentException('A purok is required.');
+        unset($attributes['barangay'], $attributes['purok']);
+        $attributes['mobile'] ??= '09'.random_int(100000000, 999999999);
+
+        $resident = $this->createResident($barangay, $purok, $attributes);
+        $user = User::factory()->create([
+            'barangay_id' => $barangay->id,
+            'resident_id' => $resident->id,
+            'name' => $resident->full_name,
+            'email' => 'assigned-staff-'.$resident->id.'@example.test',
+            'status' => 'active',
+        ]);
+        StaffAssignment::create([
+            'user_id' => $user->id,
+            'resident_id' => $resident->id,
+            'barangay_id' => $barangay->id,
+            'department' => $department,
+            'position' => $position,
+            'is_active' => true,
+        ]);
+
+        return $user->load(['resident.account', 'staffAssignments.barangay']);
     }
 
     private function createResident(Barangay $barangay, Purok $purok, array $attributes = []): Resident
@@ -107,6 +191,7 @@ trait CreatesBarangayFixtures
             'civil_status' => 'Single',
             'address_line' => '456 Test Street',
             'mobile' => $attributes['mobile'] ?? '09980000001',
+            'email' => $attributes['email'] ?? null,
             'password' => Hash::make('password'),
             'status' => 'pending',
             'submitted_at' => now(),

@@ -534,8 +534,8 @@ class QrCredentialRevocationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Residents')
-                ->where('residents.data.0.qrStatus', 'active')
-                ->missing('residents.data.0.token'))
+                ->where('allResidents.data.0.qrStatus', 'active')
+                ->missing('allResidents.data.0.token'))
             ->assertDontSee($activeCredential->token)
             ->assertDontSee('KBQR-');
 
@@ -543,13 +543,13 @@ class QrCredentialRevocationTest extends TestCase
             ->get('/admin/residents?resident_search=Bravo')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('residents.data.0.qrStatus', 'revoked'));
+                ->where('allResidents.data.0.qrStatus', 'revoked'));
 
         $this->actingAs($admin)
             ->get('/admin/residents?resident_search=Charlie')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('residents.data.0.qrStatus', 'none'));
+                ->where('allResidents.data.0.qrStatus', 'none'));
     }
 
     /*

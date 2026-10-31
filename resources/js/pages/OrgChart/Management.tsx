@@ -12,6 +12,8 @@ import {
 } from '@/components/org-chart/orgChart';
 import AdminLayout from '@/layouts/AdminLayout';
 import ClerkLayout from '@/layouts/ClerkLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type Props = {
     tree: OrgChartNode[];
@@ -32,7 +34,13 @@ type FormState = {
     photo: File | null;
 };
 
-export default function OrgChartManagement({
+export default withDeferredPage(OrgChartManagement, ['tree', 'positions', 'stats'], (props) => (
+    props.portal === 'admin'
+        ? <AdminLayout active="org-chart"><PortalPageSkeleton metrics={4} list /></AdminLayout>
+        : <ClerkLayout active="org-chart" user={props.user}><PortalPageSkeleton metrics={4} list /></ClerkLayout>
+));
+
+function OrgChartManagement({
     tree,
     positions,
     stats,
@@ -635,6 +643,8 @@ function PositionPhoto({
             <img
                 src={node.photo_url}
                 alt={`${node.title} official photo`}
+                loading="lazy"
+                decoding="async"
                 className={`${dimension} shrink-0 rounded-full border border-gray-200 object-cover`}
             />
         );

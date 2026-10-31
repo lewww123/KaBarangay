@@ -7,6 +7,7 @@ use App\Models\LuponCase;
 use App\Models\LuponComplaint;
 use App\Models\Resident;
 use App\Support\AuditLogger;
+use App\Support\ResidentContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,98 +38,94 @@ class LuponComplaintController extends Controller
      */
     public function index(): Response
     {
-        $resident = Resident::query()
-            ->with(['barangay', 'purok'])
-            ->where('id', session('resident_id'))
-            ->where('status', 'active')
-            ->firstOrFail();
-
-        // 1. Complaints filed by this resident
-        $myComplaints = LuponComplaint::query()
-            ->where('resident_id', $resident->id)
-            ->where('barangay_id', $resident->barangay_id)
-            ->with(['case'])
-            ->latest('created_at')
-            ->get()
-            ->map(function (LuponComplaint $complaint) {
-                return [
-                    'id' => $complaint->id,
-                    'reference' => $complaint->reference,
-                    'respondent' => $complaint->respondent_name,
-                    'respondentResidentStatus' => $complaint->respondent_resident_status,
-                    'respondentAddress' => $complaint->respondent_address,
-                    'respondentContact' => $complaint->respondent_contact,
-                    'complaintType' => $complaint->complaint_type,
-                    'incidentDate' => $complaint->incident_date?->format('F j, Y') ?? '',
-                    'incidentTime' => $complaint->incident_time ?: null,
-                    'incidentLocation' => $complaint->incident_location,
-                    'narrative' => $complaint->narrative,
-                    'requestedAction' => $complaint->requested_action,
-                    'status' => $complaint->status,
-                    'luponNote' => $complaint->lupon_note,
-                    'submittedDate' => (
-                        $complaint->submitted_at
-                        ?? $complaint->created_at
-                    )?->format('F j, Y') ?? '',
-                    'case' => $complaint->case ? [
-                        'id' => $complaint->case->id,
-                        'caseNumber' => $complaint->case->case_number,
-                        'phase' => $complaint->case->phase,
-                        'status' => $complaint->case->status,
-                    ] : null,
-                ];
-            })
-            ->values();
-
-        // 2. Verified cases where this resident is a respondent (Complaints Against Me)
-        $complaintsAgainstMe = LuponCase::query()
-            ->where('barangay_id', $resident->barangay_id)
-            ->whereHas('respondents', function ($q) use ($resident) {
-                $q->where('resident_id', $resident->id)
-                    ->where('association_status', 'verified');
-            })
-            ->with([
-                'complainants' => fn ($q) => $q->where('is_primary', true)->limit(1),
-                'hearings' => fn ($q) => $q->where('status', 'Scheduled')->orderBy('hearing_date')->limit(1),
-            ])
-            ->latest('filed_date')
-            ->get()
-            ->map(function (LuponCase $case) {
-                $complainant = $case->complainants->first();
-                $nextHearing = $case->hearings->first();
-
-                return [
-                    'id' => $case->id,
-                    'caseNumber' => $case->case_number,
-                    'caseType' => $case->case_type,
-                    'phase' => $case->phase,
-                    'status' => $case->status,
-                    'filedDate' => $case->filed_date->format('F j, Y'),
-                    'complainantName' => $complainant?->name ?? 'Complainant',
-                    'nextHearing' => $nextHearing ? [
-                        'date' => $nextHearing->hearing_date->format('F j, Y'),
-                        'time' => $nextHearing->hearing_time,
-                        'venue' => $nextHearing->venue,
-                    ] : null,
-                ];
-            })
-            ->values();
+        $resident = ResidentContext::get();
 
         return Inertia::render('Resident/Lupon', [
-            'resident' => [
-                'id' => $resident->id,
-                'fullName' => $resident->full_name,
-                'residentNumber' => $resident->resident_number,
-                'address' => trim(
-                    implode(', ', array_filter([
-                        $resident->purok?->name,
-                        $resident->barangay?->name,
-                    ]))
-                ),
-            ],
+            'resident' => $this->deferProp(function () use ($resident): array {
+                $resident->loadMissing(['barangay', 'purok']);
+
+                return [
+                    'id' => $resident->id,
+                    'fullName' => $resident->full_name,
+                    'residentNumber' => $resident->resident_number,
+                    'address' => trim(
+                        implode(', ', array_filter([
+                            $resident->purok?->name,
+                            $resident->barangay?->name,
+                        ]))
+                    ),
+                ];
+            }),
             'complaintTypes' => self::COMPLAINT_TYPES,
-            'complaints' => $myComplaints,
-            'complaintsAgainstMe' => $complaintsAgainstMe,
+            // 1. Complaints filed by this resident
+            'complaints' => $this->deferProp(fn () => LuponComplaint::query()
+                ->where('resident_id', $resident->id)
+                ->where('barangay_id', $resident->barangay_id)
+                ->with(['case'])
+                ->latest('created_at')
+                ->get()
+                ->map(function (LuponComplaint $complaint) {
+                    return [
+                        'id' => $complaint->id,
+                        'reference' => $complaint->reference,
+                        'respondent' => $complaint->respondent_name,
+                        'respondentResidentStatus' => $complaint->respondent_resident_status,
+                        'respondentAddress' => $complaint->respondent_address,
+                        'respondentContact' => $complaint->respondent_contact,
+                        'complaintType' => $complaint->complaint_type,
+                        'incidentDate' => $complaint->incident_date?->format('F j, Y') ?? '',
+                        'incidentTime' => $complaint->incident_time ?: null,
+                        'incidentLocation' => $complaint->incident_location,
+                        'narrative' => $complaint->narrative,
+                        'requestedAction' => $complaint->requested_action,
+                        'status' => $complaint->status,
+                        'luponNote' => $complaint->lupon_note,
+                        'submittedDate' => (
+                            $complaint->submitted_at
+                            ?? $complaint->created_at
+                        )?->format('F j, Y') ?? '',
+                        'case' => $complaint->case ? [
+                            'id' => $complaint->case->id,
+                            'caseNumber' => $complaint->case->case_number,
+                            'phase' => $complaint->case->phase,
+                            'status' => $complaint->case->status,
+                        ] : null,
+                    ];
+                })
+                ->values()),
+            // 2. Verified cases where this resident is a respondent (Complaints Against Me)
+            'complaintsAgainstMe' => $this->deferProp(fn () => LuponCase::query()
+                ->where('barangay_id', $resident->barangay_id)
+                ->whereHas('respondents', function ($q) use ($resident) {
+                    $q->where('resident_id', $resident->id)
+                        ->where('association_status', 'verified');
+                })
+                ->with([
+                    'complainants' => fn ($q) => $q->where('is_primary', true)->limit(1),
+                    'hearings' => fn ($q) => $q->where('status', 'Scheduled')->orderBy('hearing_date')->limit(1),
+                ])
+                ->latest('filed_date')
+                ->get()
+                ->map(function (LuponCase $case) {
+                    $complainant = $case->complainants->first();
+                    $nextHearing = $case->hearings->first();
+
+                    return [
+                        'id' => $case->id,
+                        'caseNumber' => $case->case_number,
+                        'caseType' => $case->case_type,
+                        'phase' => $case->phase,
+                        'status' => $case->status,
+                        'filedDate' => $case->filed_date->format('F j, Y'),
+                        'complainantName' => $complainant?->name ?? 'Complainant',
+                        'nextHearing' => $nextHearing ? [
+                            'date' => $nextHearing->hearing_date->format('F j, Y'),
+                            'time' => $nextHearing->hearing_time,
+                            'venue' => $nextHearing->venue,
+                        ] : null,
+                    ];
+                })
+                ->values()),
         ]);
     }
 

@@ -149,7 +149,7 @@ export default function RegistrationApplication({ application }: Props) {
                             <p className="mt-2 text-sm text-green-800">Your application email is verified. This confirms control of the address; it does not approve the application.</p>
                         ) : application.email_verification_available ? (
                             <>
-                                <p className="mt-2 text-sm text-gray-600">Enter the six-digit code sent to the email address on your application. The code expires in 10 minutes. Verification is not required for Admin review or approval.</p>
+                                <p className="mt-2 text-sm text-gray-600">Enter the six-digit code sent to the email address on your application. The code expires in 10 minutes. Email verification is required to complete Resident registration.</p>
                                 {application.email_verification_feedback && (
                                     <p role="status" className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">{application.email_verification_feedback}</p>
                                 )}

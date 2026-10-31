@@ -9,6 +9,8 @@ import {
     type Paginator,
 } from '@/components/citizen-charter/charter';
 import ClerkLayout from '@/layouts/ClerkLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type Props = {
     services: Paginator<CitizenCharterServiceData>;
@@ -48,7 +50,11 @@ const STATUS_TABS: {
     { value: 'archived', label: 'Archived', countKey: 'archived' },
 ];
 
-export default function ClerkCitizenCharterIndex({
+export default withDeferredPage(ClerkCitizenCharterIndex, ['services', 'stats'], (props) => (
+    <ClerkLayout active="citizen-charter" user={props.user}><PortalPageSkeleton metrics={4} /></ClerkLayout>
+));
+
+function ClerkCitizenCharterIndex({
     services,
     filters,
     stats,
@@ -79,6 +85,7 @@ export default function ClerkCitizenCharterIndex({
             {
                 preserveScroll: true,
                 preserveState,
+                only: ['services', 'filters'],
             }
         );
     };
@@ -312,7 +319,7 @@ export default function ClerkCitizenCharterIndex({
                                         key={idx}
                                         type="button"
                                         disabled={!link.url}
-                                        onClick={() => link.url && router.get(link.url, {}, { preserveScroll: true })}
+                                        onClick={() => link.url && router.get(link.url, {}, { preserveScroll: true, only: ['services', 'filters'] })}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
                                         className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                             link.active

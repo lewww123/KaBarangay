@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Resident;
+use App\Support\ResidentContext;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,23 +17,17 @@ class ResidentAuth
         // Check if there is a Resident ID stored in the session.
         $residentId = $request->session()->get('resident_id');
 
-        if (!$residentId) {
+        if (! $residentId) {
             return redirect()->route('resident.login');
         }
 
         // Make sure the resident still exists and is active.
-        $resident = Resident::query()
-            ->with('account')
-            ->where('id', $residentId)
-            ->where('status', 'active')
-            ->first();
+        $resident = ResidentContext::find();
 
         // If the resident no longer exists, is inactive,
         // or has no active login account, log them out.
         if (
-            !$resident ||
-            !$resident->account ||
-            !$resident->account->is_active
+            ! $resident
         ) {
             $request->session()->forget([
                 'resident_id',
@@ -47,6 +41,7 @@ class ResidentAuth
 
         // Store the verified resident ID again.
         $request->session()->put('resident_id', $resident->id);
+        $request->attributes->set(ResidentContext::ATTRIBUTE, $resident);
 
         return $next($request);
     }

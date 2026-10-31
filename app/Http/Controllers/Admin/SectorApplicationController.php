@@ -13,7 +13,7 @@ class SectorApplicationController extends Controller
     private function authorizeAdmin(Request $request): void
     {
         $user = $request->user();
-        if ($user->role !== 'admin') {
+        if (! $user->hasActiveAssignment(['admin'])) {
             abort(403, 'Unauthorized access to Barangay Administrator portal.');
         }
     }
@@ -23,7 +23,7 @@ class SectorApplicationController extends Controller
         $this->authorizeAdmin($request);
         $user = $request->user();
 
-        $applications = SectorApplication::query()
+        $applications = fn () => SectorApplication::query()
             ->with(['resident.purok', 'sector', 'submittedByUser', 'staffReviewedBy', 'adminDecidedBy', 'documents'])
             ->where('barangay_id', $user->barangay_id)
             ->latest()
@@ -31,7 +31,7 @@ class SectorApplicationController extends Controller
             ->map(fn (SectorApplication $app) => $this->formatApplicationItem($app));
 
         return Inertia::render('Admin/SectorApplications/Index', [
-            'applications' => $applications,
+            'applications' => $this->deferProp($applications),
         ]);
     }
 
@@ -44,10 +44,12 @@ class SectorApplicationController extends Controller
             abort(404);
         }
 
-        $application->load(['resident.purok', 'sector', 'submittedByUser', 'staffReviewedBy', 'adminDecidedBy', 'documents']);
-
         return Inertia::render('Admin/SectorApplications/Show', [
-            'application' => $this->formatApplicationItem($application),
+            'application' => $this->deferProp(function () use ($application): array {
+                $application->load(['resident.purok', 'sector', 'submittedByUser', 'staffReviewedBy', 'adminDecidedBy', 'documents']);
+
+                return $this->formatApplicationItem($application);
+            }),
         ]);
     }
 

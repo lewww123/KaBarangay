@@ -12,13 +12,10 @@ import PwdLayout from '@/layouts/PwdLayout';
 interface Props {
     announcement: AnnouncementDetailsRecord;
     kind?: 'auto' | 'update' | 'program';
-    user?: {
-        name?: string;
-        staff_id?: string;
-    };
+    auth?: { user?: { name?: string }; staffAssignments?: { department: string; position: string }[] };
 }
 
-export default function PwdAnnouncementShow({ announcement, user, kind = 'auto' }: Props) {
+export default function PwdAnnouncementShow({ announcement, auth, kind = 'auto' }: Props) {
     const activeTab = kind === 'update' ? 'updates' : kind === 'program' ? 'programs' : 'announcements';
     const backHref = kind === 'update' ? '/pwd/updates' : kind === 'program' ? '/pwd/programs' : '/pwd/announcements';
     const attendanceHref = isAttendanceAvailable(announcement)
@@ -26,7 +23,7 @@ export default function PwdAnnouncementShow({ announcement, user, kind = 'auto' 
         : null;
 
     return (
-        <PwdLayout active={activeTab} user={user}>
+        <PwdLayout active={activeTab} user={auth?.user}>
             <Head title={announcement.title} />
             <div className="space-y-5">
                 <AnnouncementDetails

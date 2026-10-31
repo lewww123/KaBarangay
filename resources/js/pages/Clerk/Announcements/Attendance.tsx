@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import ClerkLayout from '@/layouts/ClerkLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type AttendanceStatus = 'present' | 'claimed' | 'absent';
 type AttendanceTab = 'present' | 'claimed';
@@ -189,7 +191,11 @@ function firstValidationError(errors: Record<string, string | string[]>): string
     return undefined;
 }
 
-export default function ClerkAttendanceSheet({ announcement, attendances, residents = [], user }: Props) {
+export default withDeferredPage(ClerkAttendanceSheet, ['attendances', 'residents'], (props) => (
+    <ClerkLayout active="announcements" user={props.user}><PortalPageSkeleton metrics={3} /></ClerkLayout>
+));
+
+function ClerkAttendanceSheet({ announcement, attendances, residents = [], user }: Props) {
     const [qrInput, setQrInput] = useState('');
     const [feedback, setFeedback] = useState<{ text: string; type: Exclude<FeedbackTone, 'info'> } | null>(null);
     const [activeTab, setActiveTab] = useState<AttendanceTab>('present');

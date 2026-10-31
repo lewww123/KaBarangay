@@ -1,5 +1,9 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import ClerkLayout from '@/layouts/ClerkLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
+import CertificateDocumentPreview from '@/components/certificates/CertificateDocumentPreview';
+import { printCertificateDocument } from '@/lib/certificateDocument';
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 
@@ -511,7 +515,11 @@ function QrScanInput({
     );
 }
 
-export default function Dashboard({
+export default withDeferredPage(Dashboard, ['requests', 'issuances', 'allRecords', 'certificateOptions', 'signatories', 'issuedFilters', 'allFilters'], (props) => (
+    <ClerkLayout active="certificates" user={props.auth.user}><PortalPageSkeleton showTabs /></ClerkLayout>
+));
+
+function Dashboard({
     auth,
     certificateTypes = [],
     signatories = [],
@@ -536,7 +544,9 @@ export default function Dashboard({
     issuedFilters?: IssuanceFilters;
     allFilters?: AllRecordFilters;
 }) {
-    const [activeTab, setActiveTab] = useState<CertificateTab>('requests');
+    const [activeTab, setActiveTab] = useState<CertificateTab>(() =>
+        typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'issued' ? 'issued' : 'requests',
+    );
     const [searchQuery, setSearchQuery] = useState(filters.search);
     const [statusQuery, setStatusQuery] = useState(filters.status);
     const [certificateQuery, setCertificateQuery] = useState(
@@ -883,6 +893,11 @@ export default function Dashboard({
         null,
     );
     const [formStep, setFormStep] = useState<1 | 2>(1);
+    const [generationLoading, setGenerationLoading] = useState(false);
+    const [generationError, setGenerationError] = useState<string | null>(null);
+    const [generationOutcomeUnknown, setGenerationOutcomeUnknown] = useState(false);
+    const generationInFlightRef = useRef(false);
+    const generationOutcomeUnknownRef = useRef(false);
     // Advances only on QR workflow events, so the scan field can be focused
     // again after a scan without refocusing on ordinary renders.
     const [qrFocusSignal, setQrFocusSignal] = useState(0);
@@ -1063,6 +1078,7 @@ export default function Dashboard({
     const [detailsConfirmed, setDetailsConfirmed] = useState(false);
     const [profileLoading, setProfileLoading] = useState(false);
     const [profileError, setProfileError] = useState<string | null>(null);
+    const [documentPreviewReady, setDocumentPreviewReady] = useState(false);
 
     const isDelayedPsa = data.certificate_type === DELAYED_PSA_TYPE;
     const isMarriage = data.certificate_type === MARRIAGE_TYPE;
@@ -1464,51 +1480,130 @@ export default function Dashboard({
     };
 
     // ITO LANG ANG MAY KARAPATANG MAG-DOWNLOAD
-    const handleFinalSubmit = () => {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/clerk/generate-certificate';
+    const refreshIssuedCertificates = () => {
+        setActiveTab('issued');
+        setIssuedSearchQuery('');
+        setIssuedTypeQuery('');
+        setIssuedDateFromQuery('');
+        setIssuedDateToQuery('');
+        lastIssuedQueried.current = '';
+        setListLoading(true);
+        router.get('/clerk/certificates', {
+            ...Object.fromEntries(new URL(window.location.href).searchParams),
+            tab: 'issued', issued_page: 1,
+            issued_search: '', issued_type: '', issued_date_from: '', issued_date_to: '',
+        }, {
+            preserveState: true, preserveScroll: true, replace: true,
+            only: ['requests', 'issuances', 'allRecords', 'filters', 'issuedFilters', 'allFilters'],
+        });
+    };
 
-        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
-        if (tokenMeta) {
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = '_token';
-            csrfInput.value = tokenMeta.getAttribute('content') || '';
-            form.appendChild(csrfInput);
+    const handleFinalSubmit = async (action: 'download' | 'print' = 'download') => {
+        if (generationInFlightRef.current || generationOutcomeUnknownRef.current) {
+            return;
         }
 
-        Object.entries(data).forEach(([key, value]) => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = value;
-            form.appendChild(input);
-        });
+        generationInFlightRef.current = true;
+        setGenerationLoading(true);
+        setGenerationError(null);
 
-        // The Delayed PSA detail review is confirmed separately, and only for
-        // that certificate type.
-        const confirmation = document.createElement('input');
-        confirmation.type = 'hidden';
-        confirmation.name = 'details_confirmed';
-        confirmation.value =
-            data.certificate_type === DELAYED_PSA_TYPE && detailsConfirmed
-                ? '1'
-                : '';
-        form.appendChild(confirmation);
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const payload = new URLSearchParams();
+        Object.entries(data).forEach(([key, value]) => payload.set(key, String(value ?? '')));
+        payload.set(
+            'details_confirmed',
+            data.certificate_type === DELAYED_PSA_TYPE && detailsConfirmed ? '1' : '',
+        );
 
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
+        try {
+            const response = await fetch('/clerk/generate-certificate', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'X-CSRF-TOKEN': token,
+                },
+                body: payload.toString(),
+            });
 
-        setIsModalOpen(false);
-        setFormStep(1);
-        setResidentSource('none');
-        setLastScannedToken(null);
-        setDetailsConfirmed(false);
-        setProfileError(null);
-        reset();
-        setData('control_no', createControlNumber());
+            if (response.status === 422) {
+                const result = await response.json().catch(() => null);
+                const firstError = result?.errors
+                    ? Object.values(result.errors).flat().find((message) => typeof message === 'string')
+                    : null;
+                setGenerationError(typeof firstError === 'string'
+                    ? firstError
+                    : 'The certificate could not be generated. Review the required details and try again.');
+                return;
+            }
+
+            if (response.status >= 400 && response.status < 500) {
+                setGenerationError('The server rejected the certificate request. Review the details and try again.');
+                return;
+            }
+
+            // The controller redirects back for a missing/unavailable template
+            // or another handled generation failure. Those responses are not
+            // attachments and can be retried after the issue is corrected.
+            if (response.redirected) {
+                setGenerationError('The certificate could not be generated. Check the certificate details and template availability, then try again.');
+                return;
+            }
+
+            const disposition = response.headers.get('Content-Disposition') || '';
+            const contentType = response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase();
+            if (!response.ok || response.headers.get('X-Certificate-Issuance-Status') !== 'issued' || !/attachment/i.test(disposition) || ![
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/octet-stream',
+            ].includes(contentType || '')) {
+                throw new Error('The issuance response did not contain a DOCX attachment.');
+            }
+
+            const documentBlob = await response.blob();
+            const signature = new Uint8Array(await documentBlob.slice(0, 4).arrayBuffer());
+            if (signature[0] !== 0x50 || signature[1] !== 0x4b) {
+                throw new Error('The downloaded document is not a valid DOCX file.');
+            }
+
+            const encodedFilename = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+            const plainFilename = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+            const filename = encodedFilename
+                ? decodeURIComponent(encodedFilename)
+                : plainFilename || `Certificate_${data.control_no}.docx`;
+            if (action === 'print') {
+                await printCertificateDocument(documentBlob, `Certificate ${data.control_no}`);
+            } else {
+                const objectUrl = URL.createObjectURL(documentBlob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = objectUrl;
+                downloadLink.download = filename;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                downloadLink.remove();
+                window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+            }
+
+            refreshIssuedCertificates();
+            setIsModalOpen(false);
+            setFormStep(1);
+            setResidentSource('none');
+            setLastScannedToken(null);
+            setDetailsConfirmed(false);
+            setProfileError(null);
+            reset();
+            setData('control_no', createControlNumber());
+        } catch {
+            // A connection can fail after the server commits issuance. Block
+            // another submit in this page session to avoid issuing a duplicate.
+            generationOutcomeUnknownRef.current = true;
+            setGenerationOutcomeUnknown(true);
+            setGenerationError('The certificate may have been issued, but its download or print could not be confirmed. Check Issued / Completed before attempting another issuance.');
+            refreshIssuedCertificates();
+        } finally {
+            generationInFlightRef.current = false;
+            setGenerationLoading(false);
+        }
     };
 
     // Every reviewed detail must be present before the certificate may be
@@ -2469,6 +2564,9 @@ export default function Dashboard({
                             setIsModalOpen(true);
                             setFormStep(1);
                             setScanError(null);
+                            if (!generationOutcomeUnknownRef.current) {
+                                setGenerationError(null);
+                            }
                             setResidentSource('none');
                             setLastScannedToken(null);
                             reset();
@@ -3333,14 +3431,13 @@ export default function Dashboard({
                 {/* MODAL */}
                 {isModalOpen && (
                     <>
-                    <style>{`@page { size: 210mm 297mm; margin: 0; } @media print { html, body { margin: 0 !important; padding: 0 !important; } body * { visibility: hidden !important; } .certificate-print-page, .certificate-print-page * { visibility: visible !important; } .certificate-print-page { position: absolute !important; left: 0 !important; top: 0 !important; width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important; height: 297mm !important; max-height: 297mm !important; overflow: hidden !important; aspect-ratio: auto !important; margin: 0 !important; padding: 14mm !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }`}</style>
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                        <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
+                        <div className={`flex max-h-[90vh] w-full ${formStep === 2 ? 'max-w-6xl' : 'max-w-2xl'} flex-col overflow-hidden rounded-lg bg-white shadow-xl`}>
                             <div className="flex shrink-0 items-center justify-between bg-[#3f6f3d] px-6 py-4 text-white">
                                 <h3 className="text-lg font-bold">
                                     {formStep === 1
                                         ? 'Issue New Certificate'
-                                        : 'Certificate Preview (A4 Portrait)'}
+                                        : 'Full-Design Certificate Preview'}
                                 </h3>
                                 <button
                                     onClick={() => {
@@ -4584,19 +4681,30 @@ export default function Dashboard({
                                                 </div>
                                             )}
 
+                                            {!isDelayedPsa && (
+                                                <div>
+                                                    <label htmlFor="certificate-purok" className="mb-1 block text-xs font-semibold text-gray-600 uppercase">Purok</label>
+                                                    <input id="certificate-purok" name="purok" type="text" value={data.purok}
+                                                        onChange={(event) => setData('purok', event.target.value)}
+                                                        readOnly={data.resident_id !== ''}
+                                                        placeholder="e.g. Purok Bagong Pag-asa" maxLength={255}
+                                                        className="w-full rounded-md border px-3 py-2 text-sm read-only:bg-gray-100" />
+                                                    <p className="mt-1 text-xs text-gray-500">Saved with the issued certificate. Linked residents use their profile purok. Templates support {'{PUROK}'} and {'{RESIDENT_PUROK}'}.</p>
+                                                </div>
+                                            )}
                                             <div className="mt-4 flex justify-end border-t pt-4">
                                                 <button
                                                     type="submit"
                                                     className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#315b30]"
                                                 >
-                                                    Proceed to Text Preview
+                                                    Preview Certificate Design
                                                     &rarr;
                                                 </button>
                                             </div>
                                         </form>
                                     </>
                                 ) : (
-                                    /* STEP 2: PLAIN TEXT DOCUMENT PREVIEW */
+                                    /* STEP 2: THE GENERATED TEMPLATE, INCLUDING ITS ORIGINAL ARTWORK */
                                     <div className="bg-gray-100 p-6">
                                         <div className="mx-auto mb-4 max-w-[500px]">
                                             {residentSource === 'qr' ? (
@@ -4623,35 +4731,39 @@ export default function Dashboard({
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="certificate-print-page mx-auto box-border aspect-[210/297] w-full max-w-[210mm] overflow-y-auto rounded-sm border border-gray-300 bg-white p-6 text-center font-serif break-words text-gray-800 shadow-lg sm:p-8">
-                                            <p className="mb-2 text-right font-mono text-xs">Control No. {data.control_no}</p>
-                                            <h2 className="mb-8 text-xl font-bold tracking-[0.2em]">
-                                                C E R T I F I C A T I O N
-                                            </h2>
-
-                                            {renderDocumentPreview()}
-                                        </div>
+                                        <CertificateDocumentPreview
+                                            body={new URLSearchParams({ ...data, details_confirmed: detailsConfirmed ? '1' : '' }).toString()}
+                                            onReady={setDocumentPreviewReady}
+                                        />
 
                                         <div className="mt-6 flex items-center justify-between">
                                             <button
                                                 type="button"
                                                 onClick={() => setFormStep(1)}
+                                                disabled={generationLoading}
                                                 className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50"
                                             >
                                                 &larr; Back to Edit
                                             </button>
                                             <div className="flex gap-2">
-                                                <button type="button" onClick={() => window.print()} className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Print Preview</button>
+                                                <button type="button" onClick={() => void handleFinalSubmit('print')}
+                                                    disabled={!documentPreviewReady || generationLoading || generationOutcomeUnknown || !canIssueCertificate}
+                                                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50">Print Certificate</button>
                                                 <button
                                                     type="button"
-                                                    onClick={handleFinalSubmit}
-                                                    disabled={processing || !canIssueCertificate}
-                                                    className={`rounded-md bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:bg-blue-700 ${processing || !canIssueCertificate ? 'cursor-not-allowed opacity-50' : ''}`}
+                                                    onClick={() => void handleFinalSubmit('download')}
+                                                    disabled={processing || generationLoading || generationOutcomeUnknown || !canIssueCertificate}
+                                                    className={`rounded-md bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:bg-blue-700 ${processing || generationLoading || generationOutcomeUnknown || !canIssueCertificate ? 'cursor-not-allowed opacity-50' : ''}`}
                                                 >
-                                                    Confirm & Download Original.docx
+                                                    {generationLoading ? 'Generating & downloading...' : 'Confirm & Download Original.docx'}
                                                 </button>
                                             </div>
                                         </div>
+                                        {generationError && (
+                                            <p role="alert" className={`mt-3 rounded-md border px-3 py-2 text-sm ${generationOutcomeUnknown ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800'}`}>
+                                                {generationError}
+                                            </p>
+                                        )}
                                     </div>
                                 )}
                             </div>

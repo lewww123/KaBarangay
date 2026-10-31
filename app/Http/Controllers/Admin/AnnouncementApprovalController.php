@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\RecordsAnnouncementApprovalActivity;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\AnnouncementApprovalLog;
+use App\Support\AnnouncementType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -24,7 +25,7 @@ class AnnouncementApprovalController extends Controller
 
     public function index()
     {
-        $announcements = Announcement::with(['author:id,name,role', 'sector:id,name', 'reviewer:id,name', 'approvalLogs.actor:id,name'])
+        $announcements = fn () => Announcement::with(['author:id,name', 'sector:id,name', 'reviewer:id,name', 'approvalLogs.actor:id,name'])
             ->where('barangay_id', auth()->user()->barangay_id)
             ->latest()
             ->get()
@@ -35,7 +36,7 @@ class AnnouncementApprovalController extends Controller
             ]);
 
         return Inertia::render('Admin/AnnouncementApprovals', [
-            'announcements' => $announcements,
+            'announcements' => $this->deferProp($announcements),
         ]);
     }
 
@@ -48,6 +49,13 @@ class AnnouncementApprovalController extends Controller
      */
     private function currentPublication(Announcement $announcement): ?array
     {
+        if (AnnouncementType::isEvent($announcement)) {
+            return $announcement->is_published ? [
+                'published_at' => $announcement->created_at?->toIso8601String(),
+                'published_by' => $announcement->author?->name,
+            ] : null;
+        }
+
         if (! $announcement->is_published || $announcement->approval_status !== 'approved') {
             return null;
         }
@@ -208,6 +216,12 @@ class AnnouncementApprovalController extends Controller
      */
     private function ensureReviewable(Announcement $announcement): void
     {
+        if (AnnouncementType::isEvent($announcement)) {
+            throw ValidationException::withMessages([
+                'approval' => 'Programs are published directly by staff and do not require admin approval.',
+            ]);
+        }
+
         if ($announcement->completed_at !== null) {
             throw ValidationException::withMessages([
                 'approval' => 'Completed announcements cannot be approved or rejected.',

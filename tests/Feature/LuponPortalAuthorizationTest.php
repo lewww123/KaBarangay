@@ -33,7 +33,6 @@ class LuponPortalAuthorizationTest extends TestCase
     public function test_active_lupon_staff_can_access_the_dashboard(): void
     {
         $lupon = $this->createStaff($this->barangay, 'lupon', [
-            'staff_id' => 'LUP-001',
             'name' => 'Lupon User',
         ]);
 
@@ -96,17 +95,14 @@ class LuponPortalAuthorizationTest extends TestCase
     public function test_successful_lupon_login_redirects_to_the_lupon_dashboard(): void
     {
         $this->createStaff($this->barangay, 'lupon', [
-            'staff_id' => 'LUP-002',
             'name' => 'Lupon User',
         ]);
 
         $response = $this
-            ->withSession([
-                'selected_barangay_id' => $this->barangay->id,
-                'login_department' => 'lupon',
-            ])
-            ->post('/staff-login', [
-                'staff_id' => 'LUP-002',
+            ->post('/login', [
+                'barangay_id' => $this->barangay->id,
+                'department' => 'lupon',
+                'position' => 'Lupon',
                 'full_name' => 'Lupon User',
                 'password' => 'password',
             ]);
@@ -119,27 +115,23 @@ class LuponPortalAuthorizationTest extends TestCase
     {
         $this->assertSame(
             route('clerk.dashboard'),
-            $this->attemptStaffLogin('clerk', 'CLK-001', 'Clerk User')
+            $this->attemptStaffLogin('clerk', 'Clerk User')
         );
         $this->assertSame(
             route('senior.dashboard'),
-            $this->attemptStaffLogin('senior', 'SNR-001', 'Senior User')
+            $this->attemptStaffLogin('senior', 'Senior User')
         );
         $this->assertSame(
             route('pwd.dashboard'),
-            $this->attemptStaffLogin('pwd', 'PWD-001', 'Pwd User')
-        );
-        $this->assertSame(
-            route('barangay.select'),
-            $this->attemptStaffLogin('staff', 'STF-001', 'Legacy Staff')
+            $this->attemptStaffLogin('pwd', 'Pwd User')
         );
         $this->assertSame(
             route('admin.dashboard'),
-            $this->attemptStaffLogin('admin', 'ADM-001', 'Admin User')
+            $this->attemptStaffLogin('admin', 'Admin User')
         );
     }
 
-    public function test_dashboard_payload_contains_no_case_data_or_mock_metrics(): void
+    public function test_dashboard_exposes_only_barangay_scoped_operational_metrics(): void
     {
         $lupon = $this->createStaff($this->barangay, 'lupon');
 
@@ -149,7 +141,9 @@ class LuponPortalAuthorizationTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Lupon/Dashboard')
                 ->has('userName')
-                ->missing('stats')
+                ->has('metrics')
+                ->has('deadlines')
+                ->has('schedule')
                 ->missing('cases')
                 ->missing('luponCases')
                 ->missing('recentAnnouncements')
@@ -178,7 +172,7 @@ class LuponPortalAuthorizationTest extends TestCase
     {
         $source = file_get_contents(resource_path('js/pages/Lupon/Dashboard.tsx'));
 
-        foreach (['/lupon/complaints', '/lupon/cases', '/lupon/hearings', 'Lupon work queues'] as $expected) {
+        foreach (['/lupon/complaints', '/lupon/cases', '/lupon/hearings', 'Case Desk Overview'] as $expected) {
             $this->assertStringContainsString($expected, $source);
         }
 
@@ -202,20 +196,18 @@ class LuponPortalAuthorizationTest extends TestCase
             ->assertInertia(fn ($page) => $page->component('Resident/Lupon'));
     }
 
-    private function attemptStaffLogin(string $department, string $staffId, string $name): string
+    private function attemptStaffLogin(string $department, string $name): string
     {
+        $this->app['auth']->logout();
         $this->createStaff($this->barangay, $department, [
-            'staff_id' => $staffId,
             'name' => $name,
         ]);
 
         $response = $this
-            ->withSession([
-                'selected_barangay_id' => $this->barangay->id,
-                'login_department' => $department,
-            ])
-            ->post('/staff-login', [
-                'staff_id' => $staffId,
+            ->post('/login', [
+                'barangay_id' => $this->barangay->id,
+                'department' => $department,
+                'position' => ucfirst($department),
                 'full_name' => $name,
                 'password' => 'password',
             ]);

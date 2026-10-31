@@ -1,5 +1,6 @@
-import { router, Head } from '@inertiajs/react';
+import { Deferred, router, Head } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
+import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import AdminLayout from '@/layouts/AdminLayout';
 
 type CountPoint = { label: string; count: number };
@@ -7,11 +8,11 @@ type Filters = { period: string; date: string; date_from: string; date_to: strin
 type Props = {
     filters: Filters;
     window: { from: string; to: string; label: string; timezone: string; boundary: string };
-    population: { metrics: Record<string, number>; sectors: CountPoint[]; distribution_note: string };
-    certificates: { count: number; trend: CountPoint[]; by_type: CountPoint[]; meaning: string };
-    lupon: { count: number; trend: CountPoint[]; by_type: CountPoint[]; meaning: string };
-    programs: { count: number; trend: CountPoint[]; by_category: CountPoint[]; attendance: CountPoint[] };
-    financial: { available: boolean; message: string };
+    population?: { metrics: Record<string, number>; sectors: CountPoint[]; distribution_note: string };
+    certificates?: { count: number; trend: CountPoint[]; by_type: CountPoint[]; meaning: string };
+    lupon?: { count: number; trend: CountPoint[]; by_type: CountPoint[]; meaning: string };
+    programs?: { count: number; trend: CountPoint[]; by_category: CountPoint[]; attendance: CountPoint[] };
+    financial?: { available: boolean; message: string };
 };
 
 const categoryLabels: Record<string, string> = {
@@ -26,11 +27,11 @@ const categoryLabels: Record<string, string> = {
 export default function Reports({
     filters: initialFilters,
     window,
-    population,
-    certificates,
-    lupon,
-    programs,
-    financial,
+    population = { metrics: {}, sectors: [], distribution_note: '' },
+    certificates = { count: 0, trend: [], by_type: [], meaning: '' },
+    lupon = { count: 0, trend: [], by_type: [], meaning: '' },
+    programs = { count: 0, trend: [], by_category: [], attendance: [] },
+    financial = { available: false, message: '' },
 }: Props) {
     const [filters, setFilters] = useState(initialFilters);
     const [loading, setLoading] = useState(false);
@@ -40,6 +41,7 @@ export default function Reports({
         event.preventDefault();
         setErrors({});
         router.get('/admin/reports', filters, {
+            only: ['filters', 'window', 'population', 'certificates', 'lupon', 'programs', 'financial'],
             preserveScroll: true,
             preserveState: true,
             replace: true,
@@ -131,6 +133,16 @@ export default function Reports({
                     </div>
                 </form>
 
+                <Deferred
+                    data={['population', 'certificates', 'lupon', 'programs', 'financial']}
+                    fallback={
+                        <AdminPageSkeleton
+                            metrics={6}
+                            rows={5}
+                            columns={3}
+                        />
+                    }
+                >
                 <section aria-labelledby="summary-heading">
                     <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
                         <div>
@@ -197,6 +209,7 @@ export default function Reports({
                         <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">{financial.message} Certificate fee snapshots and payment statuses are not treated as collected revenue.</div>
                     </section>
                 )}
+                </Deferred>
             </AdminLayout>
         </>
     );

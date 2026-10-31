@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Clerk;
 
 use App\Http\Controllers\Concerns\ManagesAnnouncementAttendance;
 use App\Http\Controllers\Concerns\ManagesAnnouncementCompletion;
+use App\Http\Controllers\Concerns\PublishesPrograms;
 use App\Http\Controllers\Concerns\RecordsAnnouncementApprovalActivity;
 use App\Http\Controllers\Concerns\ValidatesAnnouncementEventDetails;
 use App\Http\Controllers\Controller;
@@ -20,6 +21,7 @@ class AnnouncementController extends Controller
 {
     use ManagesAnnouncementAttendance;
     use ManagesAnnouncementCompletion;
+    use PublishesPrograms;
     use RecordsAnnouncementApprovalActivity;
     use ValidatesAnnouncementEventDetails;
 
@@ -39,25 +41,24 @@ class AnnouncementController extends Controller
             ? AnnouncementLifecycle::TAB_ALL
             : AnnouncementLifecycle::normalizeTab($request->query('tab'));
 
-        $announcements = AnnouncementLifecycle::applyTab(clone $query, $activeTab)
-            ->with(['author:id,name', 'completer:id,name'])
-            ->latest()
-            ->get()
-            ->map(fn (Announcement $announcement) => [
-                ...$announcement->toArray(),
-                'attendance_available' => $announcement->attendanceIsAvailable(),
-                'type' => AnnouncementType::for($announcement),
-            ]);
-
         return Inertia::render('Clerk/Announcements/Index', [
-            'announcements' => $announcements,
+            'announcements' => $this->deferProp(fn () => AnnouncementLifecycle::applyTab(clone $query, $activeTab)
+                ->with(['author:id,name', 'completer:id,name'])
+                ->latest()
+                ->get()
+                ->map(fn (Announcement $announcement) => [
+                    ...$announcement->toArray(),
+                    'attendance_available' => $announcement->attendanceIsAvailable(),
+                    'type' => AnnouncementType::for($announcement),
+                ])),
             'kind' => $kind,
             'activeTab' => $activeTab,
-            'tabCounts' => AnnouncementLifecycle::counts($query),
+            'tabCounts' => $this->deferProp(fn () => AnnouncementLifecycle::counts($query)),
             'user' => [
                 'name' => $request->user()->name,
-                'staff_id' => $request->user()->staff_id,
-                'department' => 'Clerk',
+                'staffAssignments' => $request->user()->staffAssignments()
+                    ->where('department', 'clerk')->where('is_active', true)
+                    ->get(['department', 'position']),
             ],
         ]);
     }
@@ -78,8 +79,9 @@ class AnnouncementController extends Controller
             'kind' => $kind,
             'user' => [
                 'name' => $request->user()->name,
-                'staff_id' => $request->user()->staff_id,
-                'department' => 'Clerk',
+                'staffAssignments' => $request->user()->staffAssignments()
+                    ->where('department', 'clerk')->where('is_active', true)
+                    ->get(['department', 'position']),
             ],
         ]);
     }
@@ -107,6 +109,10 @@ class AnnouncementController extends Controller
             $validated['location'] = null;
         } elseif ($kind === 'program') {
             $validated['category'] = 'Event';
+        }
+
+        if ($requiresEvent && $kind !== 'update') {
+            return $this->publishProgram($request, $validated);
         }
 
         $isDirectUpdate = $kind === 'update';
@@ -175,6 +181,10 @@ class AnnouncementController extends Controller
             $validated['location'] = null;
         } elseif ($kind === 'program') {
             $validated['category'] = 'Event';
+        }
+
+        if ($requiresEvent && $kind !== 'update') {
+            return $this->publishProgram($request, $validated, $announcement);
         }
 
         $isDirectUpdate = $kind === 'update';
@@ -248,23 +258,22 @@ class AnnouncementController extends Controller
         $this->authorizeBarangay($request, $announcement);
         $this->ensureAttendanceIsOpen($announcement);
 
-        $attendances = AnnouncementAttendance::with(['resident' => function ($query) {
+        $attendances = fn () => AnnouncementAttendance::with(['resident' => function ($query) {
             $query->select('id', 'first_name', 'last_name', 'middle_name', 'suffix', 'resident_number');
         }])
             ->where('announcement_id', $announcement->id)
             ->latest()
             ->get();
 
-        $residents = $this->eligibleResidentsQuery($announcement, $request->user()->barangay_id)
+        $residents = fn () => $this->eligibleResidentsQuery($announcement, $request->user()->barangay_id)
             ->get(['id', 'first_name', 'last_name', 'middle_name', 'suffix', 'resident_number']);
 
         return Inertia::render('Clerk/Announcements/Attendance', [
             'announcement' => $announcement,
-            'attendances' => $attendances,
-            'residents' => $residents,
+            'attendances' => $this->deferProp($attendances),
+            'residents' => $this->deferProp($residents),
             'user' => [
                 'name' => $request->user()->name,
-                'staff_id' => $request->user()->staff_id,
                 'department' => 'Clerk',
             ],
         ]);

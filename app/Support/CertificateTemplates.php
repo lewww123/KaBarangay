@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use PhpOffice\PhpWord\TemplateProcessor;
 use RuntimeException;
 
 class CertificateTemplates
@@ -44,6 +43,7 @@ class CertificateTemplates
         'Indigency' => [
             'current_date',
             'purok',
+            'purpose',
             "resident\u{2019}s_name",
             'signatory_name',
         ],
@@ -145,7 +145,7 @@ class CertificateTemplates
             );
         }
 
-        $variables = (new TemplateProcessor($templatePath))->getVariables();
+        $variables = CertificatePlaceholders::templateVariables($templatePath);
         sort($variables);
 
         sort($expected);

@@ -66,7 +66,6 @@ class ResidentCertificateAuditEventsTest extends TestCase
     private function portalAdmin(): User
     {
         return $this->createStaff($this->barangay, 'admin', [
-            'staff_id' => 'ADM-001',
             'name' => 'Portal Admin',
             'email' => 'portal.admin@example.test',
         ]);
@@ -75,7 +74,6 @@ class ResidentCertificateAuditEventsTest extends TestCase
     private function portalClerk(): User
     {
         return $this->createStaff($this->barangay, 'clerk', [
-            'staff_id' => 'CLK-001',
             'name' => 'Portal Clerk',
             'email' => 'portal.clerk@example.test',
         ]);
@@ -124,13 +122,14 @@ class ResidentCertificateAuditEventsTest extends TestCase
             'live_identity_photo' => $this->pngUpload('selfie.png'),
         ];
 
+        $this->verifyRegistrationEmailForSubmission($payload['email']);
         $this->post('/resident/register', $payload)->assertRedirect();
 
         $registration = ResidentRegistration::query()
             ->where('mobile', '09981112222')
             ->firstOrFail();
 
-        $rows = $this->rows();
+        $rows = $this->rows()->where('event', 'resident_registration.submitted')->values();
 
         $this->assertCount(1, $rows);
 
@@ -189,15 +188,19 @@ class ResidentCertificateAuditEventsTest extends TestCase
     {
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000011',
+            'email' => 'approved@example.test',
         ]);
+        $candidate = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170000011']);
+        $candidate->account()->delete();
+        $candidate->update(['source' => 'admin', 'email' => $registration->email]);
 
         $admin = $this->portalAdmin();
 
         $this->actingAs($admin)
-            ->post('/admin/residents/'.$registration->id.'/approve')
-            ->assertRedirect();
+            ->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => $candidate->id])
+            ->assertRedirect()->assertSessionHasNoErrors();
 
-        $rows = $this->rows();
+        $rows = $this->rows()->where('event', 'resident_registration.approved')->values();
 
         $this->assertCount(1, $rows);
 
@@ -216,7 +219,7 @@ class ResidentCertificateAuditEventsTest extends TestCase
         $this->assertSame('approved', $registration->refresh()->status);
     }
 
-    public function test_approval_from_needs_correction_records_the_actual_previous_status(): void
+    public function test_approval_from_needs_correction_is_blocked_without_a_false_approval_event(): void
     {
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000012',
@@ -227,16 +230,12 @@ class ResidentCertificateAuditEventsTest extends TestCase
 
         $this->actingAs($admin)
             ->post('/admin/residents/'.$registration->id.'/approve')
-            ->assertRedirect();
+            ->assertUnprocessable();
 
         $rows = $this->rows();
 
-        $this->assertCount(1, $rows);
-        $this->assertSame('resident_registration.approved', $rows[0]->event);
-        $this->assertSame(
-            ['previous_status' => 'needs_correction', 'new_status' => 'approved'],
-            json_decode($rows[0]->context, true)
-        );
+        $this->assertCount(0, $rows);
+        $this->assertSame('needs_correction', $registration->fresh()->status);
     }
 
     public function test_rejection_records_one_event_and_never_records_the_reason(): void

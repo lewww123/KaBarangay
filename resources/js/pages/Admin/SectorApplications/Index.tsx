@@ -1,4 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
+import { Deferred, Head, Link } from '@inertiajs/react';
+import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import { useState, useMemo } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import type { SectorApplicationItem } from '@/components/sectors/types';
@@ -7,7 +8,11 @@ interface Props {
     applications: SectorApplicationItem[];
 }
 
-export default function AdminSectorApplicationsIndex({ applications = [] }: Props) {
+export default function AdminSectorApplicationsIndex(props: Props) {
+    return <Deferred data="applications" fallback={<AdminLayout active="sector-applications"><AdminPageSkeleton /></AdminLayout>}><SectorApplicationsContent {...props} /></Deferred>;
+}
+
+function SectorApplicationsContent({ applications = [] }: Props) {
     const [search, setSearch] = useState('');
     const [sectorFilter, setSectorFilter] = useState<'all' | 'senior' | 'pwd'>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | string>('all');

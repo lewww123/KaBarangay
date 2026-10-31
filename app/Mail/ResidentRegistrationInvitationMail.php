@@ -8,7 +8,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class ResidentClaimInvitationMail extends Mailable
+class ResidentRegistrationInvitationMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -27,7 +27,7 @@ class ResidentClaimInvitationMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            text: 'emails.resident-claim-invitation',
+            text: 'emails.resident-registration-invitation',
             with: [
                 'residentName' => $this->residentName,
                 'registrationUrl' => $this->registrationUrl,

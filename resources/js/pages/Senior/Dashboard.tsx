@@ -1,11 +1,14 @@
-import { Head, Link } from '@inertiajs/react';
+import { Deferred, Head, Link } from '@inertiajs/react';
 import SeniorLayout from '@/layouts/SeniorLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import { formatAnnouncementStatusLabel, isAttendanceAvailable } from '@/components/announcements/announcement';
 
 interface Announcement {
     id: number;
     title: string;
     category: string;
     approval_status: 'pending' | 'approved' | 'rejected';
+    program_status?: 'draft' | 'ongoing' | 'done' | null;
     requires_attendance: boolean;
     created_at: string;
 }
@@ -16,12 +19,22 @@ interface Props {
         totalResidents: number;
         totalAnnouncements: number;
         pendingAnnouncements: number;
+        draftPrograms?: number;
         approvedAnnouncements: number;
     };
     recentAnnouncements: Announcement[];
 }
 
-export default function SeniorDashboard({ userName, stats, recentAnnouncements = [] }: Props) {
+export default function SeniorDashboard({
+    userName,
+    stats = {
+        totalResidents: 0,
+        totalAnnouncements: 0,
+        pendingAnnouncements: 0,
+        approvedAnnouncements: 0,
+    },
+    recentAnnouncements = [],
+}: Props) {
     return (
         <SeniorLayout active="dashboard">
             <Head title="Senior Citizens Desk Portal" />
@@ -51,6 +64,10 @@ export default function SeniorDashboard({ userName, stats, recentAnnouncements =
                     </div>
                 </div>
 
+                <Deferred
+                    data={['stats', 'recentAnnouncements']}
+                    fallback={<PortalPageSkeleton metrics={4} rows={5} />}
+                >
                 {/* STATS OVERVIEW */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -73,10 +90,10 @@ export default function SeniorDashboard({ userName, stats, recentAnnouncements =
 
                     <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm">
                         <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                            Programs Pending Approval
+                            Draft Programs
                         </span>
                         <p className="mt-2 text-3xl font-extrabold text-amber-900">
-                            {stats.pendingAnnouncements}
+                            {stats.draftPrograms ?? 0}
                         </p>
                     </div>
 
@@ -145,11 +162,11 @@ export default function SeniorDashboard({ userName, stats, recentAnnouncements =
                                                         ? 'bg-red-100 text-red-800'
                                                         : 'bg-amber-100 text-amber-800'
                                                 }`}>
-                                                    {item.approval_status}
+                                                    {formatAnnouncementStatusLabel(item)}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3.5 text-right">
-                                                {item.approval_status === 'approved' && item.requires_attendance ? (
+                                                {isAttendanceAvailable(item) ? (
                                                     <Link
                                                         href={`/senior/announcements/${item.id}/attendance`}
                                                         className="inline-flex rounded-lg bg-amber-800 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-900 transition"
@@ -167,6 +184,7 @@ export default function SeniorDashboard({ userName, stats, recentAnnouncements =
                         </table>
                     </div>
                 </div>
+                </Deferred>
             </div>
         </SeniorLayout>
     );

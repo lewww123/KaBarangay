@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\PresentsCitizenCharterDocuments;
 use App\Http\Controllers\Controller;
 use App\Models\CitizenCharterService;
 use App\Models\Resident;
+use App\Support\ResidentContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,43 +31,44 @@ class CitizenCharterController extends Controller
             ->where('barangay_id', $resident->barangay_id)
             ->visibleToResidents();
 
-        // Get available categories for filtering
-        $categories = (clone $baseQuery)
-            ->whereNotNull('category')
-            ->where('category', '!=', '')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category')
-            ->values();
-
-        $services = (clone $baseQuery)
-            ->with('currentVersion')
-            ->when($category !== '', function ($query) use ($category) {
-                $query->where('category', $category);
-            })
-            ->when($search !== '', function ($query) use ($search) {
-                $like = '%'.$search.'%';
-
-                $query->where(function ($query) use ($like) {
-                    $query->where('title', 'like', $like)
-                        ->orWhere('category', 'like', $like)
-                        ->orWhere('description', 'like', $like);
-                });
-            })
-            ->orderBy('display_order')
-            ->latest('id')
-            ->paginate(12)
-            ->withQueryString()
-            ->through(
-                fn (CitizenCharterService $service) => $this->servicePayload(
-                    $service,
-                    false
-                )
-            );
-
         return Inertia::render('Resident/CitizenCharter', [
-            'services' => $services,
-            'categories' => $categories,
+            'services' => $this->deferProp(fn () => (clone $baseQuery)
+                ->with('currentVersion')
+                ->when($category !== '', function ($query) use ($category) {
+                    $query->where('category', $category);
+                })
+                ->when($search !== '', function ($query) use ($search) {
+                    $like = '%'.$search.'%';
+
+                    $query->where(function ($query) use ($like) {
+                        $query->where('title', 'like', $like)
+                            ->orWhere('category', 'like', $like)
+                            ->orWhere('description', 'like', $like);
+                    });
+                })
+                ->orderBy('display_order')
+                ->latest('id')
+                ->paginate(12)
+                ->withQueryString()
+                ->through(
+                    fn (CitizenCharterService $service) => $this->servicePayload(
+                        $service,
+                        false
+                    )
+                )),
+            // Get available categories for filtering
+            'categories' => $this->deferProp(fn () => $this->rememberReference(
+                "resident:citizen-charter:categories:{$resident->barangay_id}",
+                300,
+                fn () => (clone $baseQuery)
+                    ->whereNotNull('category')
+                    ->where('category', '!=', '')
+                    ->distinct()
+                    ->orderBy('category')
+                    ->pluck('category')
+                    ->values()
+                    ->all(),
+            )),
             'filters' => [
                 'search' => $search,
                 'category' => $category,
@@ -122,10 +124,7 @@ class CitizenCharterController extends Controller
 
     private function resident(Request $request): Resident
     {
-        return Resident::query()
-            ->whereKey($request->session()->get('resident_id'))
-            ->where('status', 'active')
-            ->firstOrFail();
+        return ResidentContext::get();
     }
 
     private function authorizeVisible(

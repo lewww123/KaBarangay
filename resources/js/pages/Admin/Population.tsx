@@ -1,4 +1,5 @@
-import { Head } from '@inertiajs/react';
+import { Deferred, Head } from '@inertiajs/react';
+import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import AdminLayout from '@/layouts/AdminLayout';
 
 type PurokRecord = {
@@ -25,7 +26,11 @@ type Props = {
     puroks: PurokRecord[];
 };
 
-export default function Population({ stats, puroks }: Props) {
+export default function Population(props: Props) {
+    return <Deferred data={['stats', 'puroks']} fallback={<AdminLayout active="population"><AdminPageSkeleton metrics={4} /></AdminLayout>}><PopulationContent {...props} /></Deferred>;
+}
+
+function PopulationContent({ stats, puroks }: Props) {
     const hasPopulation = stats.totalResidents > 0;
 
     return (

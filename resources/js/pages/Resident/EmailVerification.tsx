@@ -46,10 +46,10 @@ export default function EmailVerification({ status, title, message }: Props) {
 
                 <div className="mt-6 flex flex-col gap-2">
                     <Link
-                        href="/resident/claim"
+                        href="/resident/register"
                         className="rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#315b30]"
                     >
-                        Return to Claim Page
+                        Return to Registration
                     </Link>
                     <Link
                         href="/resident/login"

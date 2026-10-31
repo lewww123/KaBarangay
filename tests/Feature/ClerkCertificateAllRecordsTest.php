@@ -119,7 +119,7 @@ class ClerkCertificateAllRecordsTest extends TestCase
         $this->assertSame(2, $this->actingAs($clerk)->get('/clerk/certificates')->inertiaProps('allRecords.total'));
     }
 
-    public function test_issuance_rows_carry_no_request_status(): void
+    public function test_issuance_rows_carry_their_saved_issued_status(): void
     {
         $clerk = $this->createStaff($this->barangay, 'clerk');
 
@@ -130,7 +130,7 @@ class ClerkCertificateAllRecordsTest extends TestCase
             ->keyBy('record_type');
 
         $this->assertSame('Pending', $rows['request']['status']);
-        $this->assertNull($rows['issuance']['status']);
+        $this->assertSame('issued', $rows['issuance']['status']);
     }
 
     public function test_all_records_search_spans_both_sources(): void

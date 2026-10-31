@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Models\Resident;
 use Illuminate\Validation\ValidationException;
-use PhpOffice\PhpWord\TemplateProcessor;
 use RuntimeException;
 
 /**
@@ -127,7 +126,7 @@ class ResidencyCertificate
         // PHPWord repairs the macros that the template splits across Word runs
         // (the proofing markers) while it reads the document, so the variable
         // list is the list the merge will actually write to.
-        $variables = (new TemplateProcessor($templatePath))->getVariables();
+        $variables = CertificatePlaceholders::templateVariables($templatePath);
         sort($variables);
 
         $expected = self::TEMPLATE_KEYS;
@@ -237,7 +236,7 @@ class ResidencyCertificate
             return '';
         }
 
-        return 'PUROK '.mb_strtoupper($name);
+        return preg_match('/^purok\b/i', $name) ? mb_strtoupper($name) : 'PUROK '.mb_strtoupper($name);
     }
 
     /**

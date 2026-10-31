@@ -16,8 +16,10 @@ class SeniorController extends Controller
 {
     private function authorizeSeniorStaff(Request $request): void
     {
-        $user = $request->user();
-        if (! in_array($user->role, ['senior', 'senior_staff', 'admin'], true)) {
+        if (! $request->user()->staffAssignments()
+            ->where('department', 'senior')
+            ->where('is_active', true)
+            ->exists()) {
             abort(403, 'Unauthorized access to Senior Citizens Portal.');
         }
     }
@@ -27,32 +29,37 @@ class SeniorController extends Controller
         $this->authorizeSeniorStaff($request);
         $user = $request->user();
 
-        $seniorResidentsCount = Resident::where('status', 'active')
-            ->where('barangay_id', $user->barangay_id)
-            ->whereHas('sectors', fn ($s) => $s->where('slug', 'senior'))
-            ->count();
+        $barangayId = $user->barangay_id;
 
         return Inertia::render('Senior/Dashboard', [
             'userName' => $user->name,
-            'stats' => [
-                'totalResidents' => $seniorResidentsCount,
-                'totalAnnouncements' => Announcement::where('barangay_id', $user->barangay_id)
-                    ->where('target_audience', 'senior_citizens')
-                    ->count(),
-                'pendingAnnouncements' => Announcement::where('barangay_id', $user->barangay_id)
-                    ->where('target_audience', 'senior_citizens')
-                    ->where('approval_status', 'pending')
-                    ->count(),
-                'approvedAnnouncements' => Announcement::where('barangay_id', $user->barangay_id)
-                    ->where('target_audience', 'senior_citizens')
-                    ->where('approval_status', 'approved')
-                    ->count(),
-            ],
-            'recentAnnouncements' => Announcement::where('barangay_id', $user->barangay_id)
+            'stats' => $this->deferProp(fn () => $this->rememberAggregate(
+                "senior:dashboard:stats:v2:{$barangayId}",
+                30,
+                function () use ($barangayId): array {
+                    $announcements = Announcement::query()
+                        ->where('barangay_id', $barangayId)
+                        ->where('target_audience', 'senior_citizens');
+
+                    $counts = $announcements->selectRaw("COUNT(*) as total, COUNT(CASE WHEN approval_status = 'pending' THEN 1 END) as pending, COUNT(CASE WHEN approval_status = 'approved' AND (program_status IS NULL OR program_status != 'draft') THEN 1 END) as approved")
+                        ->selectRaw("COUNT(CASE WHEN program_status = 'draft' OR (program_status IS NULL AND (category = 'Event' OR requires_attendance = true) AND completed_at IS NULL AND (approval_status != 'approved' OR is_published = false)) THEN 1 END) as draft_programs")
+                        ->selectSub(Resident::query()->where('status', 'active')->where('barangay_id', $barangayId)
+                            ->whereHas('sectors', fn ($query) => $query->where('slug', 'senior'))->selectRaw('COUNT(*)'), 'residents')->first();
+
+                    return [
+                        'totalResidents' => (int) $counts->residents,
+                        'totalAnnouncements' => (int) $counts->total,
+                        'pendingAnnouncements' => (int) $counts->pending,
+                        'draftPrograms' => (int) $counts->draft_programs,
+                        'approvedAnnouncements' => (int) $counts->approved,
+                    ];
+                },
+            )),
+            'recentAnnouncements' => $this->deferProp(fn () => Announcement::where('barangay_id', $barangayId)
                 ->where('target_audience', 'senior_citizens')
                 ->latest()
                 ->take(5)
-                ->get(),
+                ->get()),
         ]);
     }
 
@@ -61,37 +68,44 @@ class SeniorController extends Controller
         $this->authorizeSeniorStaff($request);
         $user = $request->user();
 
-        $residents = Resident::query()
-            ->with(['purok:id,name', 'sectors:id,name,slug', 'qrCredential:id,resident_id,is_active,revoked_at'])
-            ->where('barangay_id', $user->barangay_id)
-            ->where('status', 'active')
-            ->whereHas('sectors', fn ($s) => $s->where('slug', 'senior'))
-            ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->get()
-            ->map(fn (Resident $r) => [
-                'id' => $r->id,
-                'resident_number' => $r->resident_number,
-                'full_name' => $r->full_name,
-                'sex' => $r->sex,
-                'purok' => $r->purok?->name ?? '—',
-                'status' => $r->status,
-                'has_qr' => (bool) ($r->qrCredential?->is_active && ! $r->qrCredential?->revoked_at),
-                'sectors' => $r->sectors->map(fn ($s) => [
-                    'id' => $s->id,
-                    'name' => $s->name,
-                    'slug' => $s->slug,
-                ])->values(),
-            ]);
-
-        $puroks = Purok::where('barangay_id', $user->barangay_id)
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        $barangayId = $user->barangay_id;
 
         return Inertia::render('Senior/Residents/Index', [
-            'auth' => ['user' => ['name' => $user->name, 'staff_id' => 'SNR-001']],
-            'residents' => $residents,
-            'puroks' => $puroks,
+            'auth' => $this->authProps($user),
+            'residents' => $this->deferProp(fn () => Resident::query()
+                ->with(['purok:id,name', 'sectors:id,name,slug', 'qrCredential:id,resident_id,is_active,revoked_at'])
+                ->where('barangay_id', $barangayId)
+                ->where('status', 'active')
+                ->whereHas('sectors', fn ($s) => $s->where('slug', 'senior'))
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->get()
+                ->map(fn (Resident $r) => [
+                    'id' => $r->id,
+                    'resident_number' => $r->resident_number,
+                    'full_name' => $r->full_name,
+                    'sex' => $r->sex,
+                    'purok' => $r->purok?->name ?? '—',
+                    'status' => $r->status,
+                    'has_qr' => (bool) ($r->qrCredential?->is_active && ! $r->qrCredential?->revoked_at),
+                    'sectors' => $r->sectors->map(fn ($s) => [
+                        'id' => $s->id,
+                        'name' => $s->name,
+                        'slug' => $s->slug,
+                    ])->values(),
+                ])),
+            'puroks' => $this->deferProp(fn () => $this->rememberReference(
+                "senior:purok-options:{$barangayId}",
+                300,
+                fn () => Purok::where('barangay_id', $barangayId)
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn (Purok $purok) => [
+                        'id' => $purok->id,
+                        'name' => $purok->name,
+                    ])
+                    ->all(),
+            )),
         ]);
     }
 
@@ -100,17 +114,15 @@ class SeniorController extends Controller
         $this->authorizeSeniorStaff($request);
         $user = $request->user();
 
-        $applications = SectorApplication::query()
-            ->with(['resident.purok', 'sector', 'submittedByUser', 'staffReviewedBy', 'adminDecidedBy', 'documents'])
-            ->where('barangay_id', $user->barangay_id)
-            ->whereHas('sector', fn ($q) => $q->where('slug', 'senior'))
-            ->latest()
-            ->get()
-            ->map(fn (SectorApplication $app) => $this->formatApplicationItem($app));
-
         return Inertia::render('Senior/Applications/Index', [
-            'auth' => ['user' => ['name' => $user->name, 'staff_id' => 'SNR-001']],
-            'applications' => $applications,
+            'auth' => $this->authProps($user),
+            'applications' => $this->deferProp(fn () => SectorApplication::query()
+                ->with(['resident.purok', 'sector', 'submittedByUser', 'staffReviewedBy', 'adminDecidedBy', 'documents'])
+                ->where('barangay_id', $user->barangay_id)
+                ->whereHas('sector', fn ($q) => $q->where('slug', 'senior'))
+                ->latest()
+                ->get()
+                ->map(fn (SectorApplication $app) => $this->formatApplicationItem($app))),
         ]);
     }
 
@@ -120,7 +132,7 @@ class SeniorController extends Controller
         $user = $request->user();
 
         return Inertia::render('Senior/Applications/Create', [
-            'auth' => ['user' => ['name' => $user->name, 'staff_id' => 'SNR-001']],
+            'auth' => $this->authProps($user),
         ]);
     }
 
@@ -174,11 +186,13 @@ class SeniorController extends Controller
             abort(404);
         }
 
-        $application->load(['resident.purok', 'sector', 'submittedByUser', 'staffReviewedBy', 'adminDecidedBy', 'documents']);
-
         return Inertia::render('Senior/Applications/Show', [
-            'auth' => ['user' => ['name' => $user->name, 'staff_id' => 'SNR-001']],
-            'application' => $this->formatApplicationItem($application),
+            'auth' => $this->authProps($user),
+            'application' => $this->deferProp(function () use ($application): array {
+                $application->loadMissing(['resident.purok', 'sector', 'submittedByUser', 'staffReviewedBy', 'adminDecidedBy', 'documents']);
+
+                return $this->formatApplicationItem($application);
+            }),
         ]);
     }
 
@@ -280,6 +294,16 @@ class SeniorController extends Controller
                 'verification_status' => $doc->verification_status,
                 'url' => route('sector-applications.documents.show', [$app->id, $doc->id]),
             ])->values()->all(),
+        ];
+    }
+
+    private function authProps($user): array
+    {
+        return [
+            'user' => ['name' => $user->name],
+            'staffAssignments' => $user->staffAssignments()
+                ->where('department', 'senior')->where('is_active', true)
+                ->get(['department', 'position']),
         ];
     }
 }

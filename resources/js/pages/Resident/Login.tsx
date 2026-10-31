@@ -1072,13 +1072,13 @@ export default function Login() {
 
                                     <Link
 
-                                        href="/resident/claim"
+                                        href="/resident/register"
 
                                         className="font-semibold text-[#3f6f3d] hover:underline"
 
                                     >
 
-                                        Claim your existing account
+                                        Register your online account
 
                                     </Link>
 

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Http\Middleware\EnsureResidentRegistrationAccess;
 use App\Mail\ResidentRegistrationEmailVerificationMail;
 use App\Models\Barangay;
 use App\Models\Purok;
@@ -16,7 +15,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
 
@@ -187,7 +185,7 @@ class ResidentRegistrationCorrectionTest extends TestCase
             'email_snapshot' => 'new-address@example.test',
         ]);
         Mail::assertSent(ResidentRegistrationEmailVerificationMail::class);
-        $this->assertSame(0, ResidentAccount::query()->count());
+        $this->assertSame(1, ResidentAccount::query()->count());
         $this->assertDatabaseMissing('residents', ['resident_registration_id' => $registration->id]);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'resident_registration.resubmitted',
@@ -299,10 +297,10 @@ class ResidentRegistrationCorrectionTest extends TestCase
         $this->post('/resident/application/'.$registration->public_id.'/correction', [
             'fields' => [],
             'documents' => [
-                'valid_id' => UploadedFile::fake()->image('new-id.jpg'),
-                'live_identity_photo' => UploadedFile::fake()->image('new-photo.png'),
+                'valid_id' => $this->imageUpload('new-id.jpg'),
+                'live_identity_photo' => $this->imageUpload('new-photo.png'),
                 'senior_proof' => UploadedFile::fake()->create('new-senior.pdf', 100, 'application/pdf'),
-                'pwd_proof' => UploadedFile::fake()->image('new-pwd.jpg'),
+                'pwd_proof' => $this->imageUpload('new-pwd.jpg'),
             ],
         ])->assertRedirect();
 
@@ -376,7 +374,7 @@ class ResidentRegistrationCorrectionTest extends TestCase
 
         $this->post('/resident/application/'.$registration->public_id.'/correction', [
             'fields' => [],
-            'documents' => ['valid_id' => UploadedFile::fake()->image('replacement.jpg')],
+            'documents' => ['valid_id' => $this->imageUpload('replacement.jpg')],
         ])->assertSessionHasErrors('correction');
 
         $this->assertSame('needs_correction', $registration->fresh()->status);
@@ -412,7 +410,7 @@ class ResidentRegistrationCorrectionTest extends TestCase
         ?int $sectorId,
         string $filename
     ): RegistrationDocument {
-        $file = UploadedFile::fake()->image($filename);
+        $file = $this->imageUpload($filename);
         $path = $file->store('resident-verifications/'.$registration->public_id, 'local');
 
         return RegistrationDocument::create([
@@ -422,10 +420,20 @@ class ResidentRegistrationCorrectionTest extends TestCase
             'disk' => 'local',
             'path' => $path,
             'original_name' => $filename,
-            'mime_type' => 'image/jpeg',
+            'mime_type' => 'image/png',
             'file_size' => 100,
             'sha256' => hash('sha256', $filename),
             'verification_status' => 'pending',
         ]);
+    }
+
+    private function imageUpload(string $filename): UploadedFile
+    {
+        // Real PNG bytes exercise upload validation without requiring GD merely
+        // to generate a test fixture; production image validation is unchanged.
+        return UploadedFile::fake()->createWithContent($filename, base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            true,
+        ));
     }
 }

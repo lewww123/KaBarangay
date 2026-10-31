@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AnnouncementApprovalController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CertificateRequestController as AdminCertificateRequestController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -7,7 +8,6 @@ use App\Http\Controllers\Admin\EmergencyContactController as AdminEmergencyConta
 use App\Http\Controllers\Admin\OrgChartController as AdminOrgChartController;
 use App\Http\Controllers\Admin\PopulationController;
 use App\Http\Controllers\Admin\ReportsController;
-use App\Http\Controllers\Admin\ResidentClaimController as AdminResidentClaimController;
 use App\Http\Controllers\Admin\ResidentController as AdminResidentController;
 use App\Http\Controllers\Admin\ResidentRegistrationController;
 use App\Http\Controllers\Admin\SectorApplicationController as AdminSectorApplicationController;
@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Admin\StaffManagementController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Auth\StaffLoginController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\Clerk\AnnouncementController as ClerkAnnouncementController;
 use App\Http\Controllers\Clerk\CertificateController as ClerkCertificateController;
@@ -41,11 +42,11 @@ use App\Http\Controllers\Resident\OrgChartController as ResidentOrgChartControll
 use App\Http\Controllers\Resident\PasswordResetController;
 use App\Http\Controllers\Resident\QrVerificationController;
 use App\Http\Controllers\Resident\RegistrationController;
+use App\Http\Controllers\Resident\RegistrationOtpController;
 use App\Http\Controllers\Resident\RegistrationEmailVerificationController;
+use App\Http\Controllers\Resident\ResidentEmailVerificationController;
 use App\Http\Controllers\Resident\ResidentRegistrationAccessController;
 use App\Http\Controllers\Resident\ResidentRegistrationCorrectionController;
-use App\Http\Controllers\Resident\ResidentClaimController as ResidentClaimController;
-use App\Http\Controllers\Resident\ResidentEmailVerificationController;
 use App\Http\Controllers\Resident\SectorApplicationController as ResidentSectorApplicationController;
 use App\Http\Controllers\Resident\SettingsController as ResidentSettingsController;
 use App\Http\Controllers\SectorApplicationDocumentController;
@@ -59,6 +60,7 @@ use App\Models\SharedEmergencyContact;
 use App\Support\AuditLogger;
 use App\Support\PhoneNumber;
 use App\Support\QrAttendanceProof;
+use App\Support\ResidentContext;
 use App\Support\ResidentEmailVerificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -72,29 +74,11 @@ use Inertia\Inertia;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', [AuthController::class, 'selectBarangay'])->name('barangay.select');
-Route::post('/select-barangay', [AuthController::class, 'storeBarangay'])->name('barangay.store');
-
-/*
-|--------------------------------------------------------------------------
-| Department & Staff Login
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/department-login', [AuthController::class, 'departmentLogin'])->name('department.login');
-Route::post('/department-login', [AuthController::class, 'processDepartmentLogin'])->middleware('throttle:login-department')->name('department.login.store');
-
-Route::get('/staff-login', [AuthController::class, 'staffLogin'])->name('staff.login');
-Route::post('/staff-login', [AuthController::class, 'processStaffLogin'])->middleware('throttle:login-staff')->name('staff.login.store');
-
-/*
-|--------------------------------------------------------------------------
-| Laravel Auth Login Redirect
-|--------------------------------------------------------------------------
-*/
-
-Route::redirect('/login', '/staff-login')->name('login');
-
+Route::redirect('/', '/resident/login')->name('home');
+Route::post('/register/send-otp', [RegistrationOtpController::class, 'send'])
+    ->middleware('throttle:registration-otp-send')->name('register.send-otp');
+Route::post('/register/verify-otp', [RegistrationOtpController::class, 'verify'])
+    ->middleware('throttle:registration-otp-verify')->name('register.verify-otp');
 /*
 |--------------------------------------------------------------------------
 | Public Resident QR Verification
@@ -150,10 +134,6 @@ Route::prefix('resident')->name('resident.')->group(function () {
         ->middleware('throttle:10,1')
         ->name('registration.email.verify');
 
-    Route::get('/claim', [ResidentClaimController::class, 'create'])->name('claim');
-    Route::post('/claim', [ResidentClaimController::class, 'store'])->middleware('throttle:5,1')->name('claim.store');
-    Route::get('/claim/submitted/{publicId}', [ResidentClaimController::class, 'submitted'])->name('claim.submitted');
-    Route::post('/claim/{publicId}/resend-verification', [ResidentClaimController::class, 'resendVerification'])->middleware('throttle:3,1')->name('claim.resend-verification');
     Route::get('/email/verify/{token}', [ResidentEmailVerificationController::class, 'verify'])->middleware('throttle:10,1')->name('email.verify');
 
     Route::get('/forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('forgot-password');
@@ -169,139 +149,162 @@ Route::prefix('resident')->name('resident.')->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::get('/', function () {
-            $resident = Resident::query()
-                ->with(['barangay', 'sectors', 'qrCredential'])
-                ->where('id', session('resident_id'))
-                ->where('status', 'active')
-                ->firstOrFail();
+            $resident = ResidentContext::get();
 
-            $qrUrl = $resident->qrCredential && $resident->qrCredential->is_active && ! $resident->qrCredential->revoked_at
+            $qrUrl = function () use ($resident) {
+                $resident->loadMissing('qrCredential');
+
+                return $resident->qrCredential && $resident->qrCredential->is_active && ! $resident->qrCredential->revoked_at
                 ? route('resident.qr.verify', ['token' => $resident->qrCredential->token])
                 : null;
+            };
 
-            $sectorSlugs = $resident->sectors->pluck('slug')->toArray();
+            $latestAnnouncement = function () use ($resident) {
+                $sectorSlugs = $resident->loadMissing('sectors')->sectors->pluck('slug')->toArray();
 
-            $latestAnnouncement = Announcement::query()
-                ->where('approval_status', 'approved')
-                ->where('is_published', true)
-                ->where('barangay_id', $resident->barangay_id)
-                ->where(function ($query) use ($sectorSlugs) {
-                    $query->where('target_audience', 'all');
-                    if (in_array('senior', $sectorSlugs)) {
-                        $query->orWhere('target_audience', 'senior_citizens');
-                    }
-                    if (in_array('pwd', $sectorSlugs)) {
-                        $query->orWhere('target_audience', 'pwd');
-                    }
-                })
-                ->latest()
-                ->first();
-
-            $sharedEmergencyContacts = [];
-            $barangayHotlines = [];
-
-            try {
-                if (Schema::hasTable('shared_emergency_contacts')) {
-                    $sharedEmergencyContacts = SharedEmergencyContact::query()
-                        ->active()
-                        ->verified()
-                        ->orderBy('display_order')
-                        ->orderBy('id')
-                        ->get()
-                        ->map(fn (SharedEmergencyContact $contact) => [
-                            'id' => $contact->id,
-                            'category' => EmergencyContact::CATEGORY_EMERGENCY_HOTLINE,
-                            'service_type' => $contact->service_type,
-                            'sub_category' => $contact->service_type,
-                            'name' => $contact->name,
-                            'label' => $contact->label,
-                            'phone_number' => $contact->phone_number,
-                            'coverage_area' => $contact->coverage_area,
-                            'can_call' => (bool) $contact->can_call,
-                            'can_sms' => (bool) $contact->can_sms,
-                            'tel_uri' => $contact->telUri(),
-                            'sms_uri' => $contact->smsUri(),
-                        ])
-                        ->values()
-                        ->all();
-                }
-            } catch (Throwable) {
-                $sharedEmergencyContacts = [];
-            }
-
-            try {
-                if (Schema::hasTable('emergency_contacts')) {
-                    $sharedPhones = [];
-
-                    foreach ($sharedEmergencyContacts as $sharedContact) {
-                        $normalized = PhoneNumber::normalize($sharedContact['phone_number']);
-
-                        if ($normalized !== '') {
-                            $sharedPhones[$normalized] = true;
+                return Announcement::query()
+                    ->where('approval_status', 'approved')
+                    ->where('is_published', true)
+                    ->where('barangay_id', $resident->barangay_id)
+                    ->where(function ($query) use ($sectorSlugs) {
+                        $query->where('target_audience', 'all');
+                        if (in_array('senior', $sectorSlugs)) {
+                            $query->orWhere('target_audience', 'senior_citizens');
                         }
-                    }
+                        if (in_array('pwd', $sectorSlugs)) {
+                            $query->orWhere('target_audience', 'pwd');
+                        }
+                    })
+                    ->latest()
+                    ->first();
+            };
 
-                    $barangayHotlines = EmergencyContact::query()
-                        ->where('barangay_id', $resident->barangay_id)
-                        ->where('category', EmergencyContact::CATEGORY_BARANGAY_HOTLINE)
-                        ->where('is_active', true)
-                        ->orderBy('display_order')
-                        ->orderBy('id')
-                        ->get()
-                        ->map(fn (EmergencyContact $contact) => [
-                            'id' => $contact->id,
-                            'category' => $contact->category,
-                            'sub_category' => $contact->sub_category,
-                            'name' => $contact->name,
-                            'label' => $contact->label,
-                            'phone_number' => $contact->phone_number,
-                            'can_call' => (bool) $contact->can_call,
-                            'can_sms' => (bool) $contact->can_sms,
-                            'tel_uri' => 'tel:'.PhoneNumber::normalize($contact->phone_number),
-                            'sms_uri' => 'sms:'.PhoneNumber::normalize($contact->phone_number),
-                        ])
-                        ->filter(function (array $contact) use ($sharedPhones) {
-                            $normalized = PhoneNumber::normalize($contact['phone_number']);
-
-                            return $normalized === '' || ! isset($sharedPhones[$normalized]);
-                        })
-                        ->values()
-                        ->all();
+            $contacts = null;
+            $resolveContacts = function () use ($resident, &$contacts): array {
+                if ($contacts !== null) {
+                    return $contacts;
                 }
-            } catch (Throwable) {
+
+                $sharedEmergencyContacts = [];
                 $barangayHotlines = [];
-            }
+
+                try {
+                    if (Schema::hasTable('shared_emergency_contacts')) {
+                        $sharedEmergencyContacts = SharedEmergencyContact::query()
+                            ->active()
+                            ->verified()
+                            ->orderBy('display_order')
+                            ->orderBy('id')
+                            ->get()
+                            ->map(fn (SharedEmergencyContact $contact) => [
+                                'id' => $contact->id,
+                                'category' => EmergencyContact::CATEGORY_EMERGENCY_HOTLINE,
+                                'service_type' => $contact->service_type,
+                                'sub_category' => $contact->service_type,
+                                'name' => $contact->name,
+                                'label' => $contact->label,
+                                'phone_number' => $contact->phone_number,
+                                'coverage_area' => $contact->coverage_area,
+                                'can_call' => (bool) $contact->can_call,
+                                'can_sms' => (bool) $contact->can_sms,
+                                'tel_uri' => $contact->telUri(),
+                                'sms_uri' => $contact->smsUri(),
+                            ])
+                            ->values()
+                            ->all();
+                    }
+                } catch (Throwable) {
+                    $sharedEmergencyContacts = [];
+                }
+
+                try {
+                    if (Schema::hasTable('emergency_contacts')) {
+                        $sharedPhones = [];
+
+                        foreach ($sharedEmergencyContacts as $sharedContact) {
+                            $normalized = PhoneNumber::normalize($sharedContact['phone_number']);
+
+                            if ($normalized !== '') {
+                                $sharedPhones[$normalized] = true;
+                            }
+                        }
+
+                        $barangayHotlines = EmergencyContact::query()
+                            ->where('barangay_id', $resident->barangay_id)
+                            ->where('category', EmergencyContact::CATEGORY_BARANGAY_HOTLINE)
+                            ->where('is_active', true)
+                            ->orderBy('display_order')
+                            ->orderBy('id')
+                            ->get()
+                            ->map(fn (EmergencyContact $contact) => [
+                                'id' => $contact->id,
+                                'category' => $contact->category,
+                                'sub_category' => $contact->sub_category,
+                                'name' => $contact->name,
+                                'label' => $contact->label,
+                                'phone_number' => $contact->phone_number,
+                                'can_call' => (bool) $contact->can_call,
+                                'can_sms' => (bool) $contact->can_sms,
+                                'tel_uri' => 'tel:'.PhoneNumber::normalize($contact->phone_number),
+                                'sms_uri' => 'sms:'.PhoneNumber::normalize($contact->phone_number),
+                            ])
+                            ->filter(function (array $contact) use ($sharedPhones) {
+                                $normalized = PhoneNumber::normalize($contact['phone_number']);
+
+                                return $normalized === '' || ! isset($sharedPhones[$normalized]);
+                            })
+                            ->values()
+                            ->all();
+                    }
+                } catch (Throwable) {
+                    $barangayHotlines = [];
+                }
+
+                return $contacts = compact('sharedEmergencyContacts', 'barangayHotlines');
+            };
+
+            $defer = fn (Closure $callback) => config('inertia.defer_heavy_props', true)
+                ? Inertia::defer($callback)
+                : $callback();
 
             return Inertia::render('Resident/Dashboard', [
-                'resident' => [
-                    'id' => $resident->id,
-                    'first_name' => $resident->first_name,
-                    'middle_name' => $resident->middle_name,
-                    'last_name' => $resident->last_name,
-                    'suffix' => $resident->suffix,
-                    'full_name' => $resident->full_name,
-                    'resident_number' => $resident->resident_number,
-                    'barangay' => [
-                        'id' => $resident->barangay?->id,
-                        'name' => $resident->barangay?->name,
-                        'code' => $resident->barangay?->code,
-                        'city_municipality' => $resident->barangay?->city_municipality,
-                        'province' => $resident->barangay?->province,
-                    ],
-                    'sectors' => $resident->sectors->map(fn ($sector) => [
-                        'id' => $sector->id,
-                        'name' => $sector->name,
-                        'slug' => $sector->slug,
-                    ])->values(),
-                ],
-                'qrUrl' => $qrUrl,
-                'latestAnnouncement' => $latestAnnouncement ? [
-                    'id' => $latestAnnouncement->id,
-                    'title' => $latestAnnouncement->title,
-                    'created_at' => $latestAnnouncement->created_at->format('F j, Y'),
-                ] : null,
-                'sharedEmergencyContacts' => $sharedEmergencyContacts,
-                'barangayHotlines' => $barangayHotlines,
+                'resident' => $defer(function () use ($resident): array {
+                    $resident->loadMissing(['barangay', 'sectors']);
+
+                    return [
+                        'id' => $resident->id,
+                        'first_name' => $resident->first_name,
+                        'middle_name' => $resident->middle_name,
+                        'last_name' => $resident->last_name,
+                        'suffix' => $resident->suffix,
+                        'full_name' => $resident->full_name,
+                        'resident_number' => $resident->resident_number,
+                        'barangay' => [
+                            'id' => $resident->barangay?->id,
+                            'name' => $resident->barangay?->name,
+                            'code' => $resident->barangay?->code,
+                            'city_municipality' => $resident->barangay?->city_municipality,
+                            'province' => $resident->barangay?->province,
+                        ],
+                        'sectors' => $resident->sectors->map(fn ($sector) => [
+                            'id' => $sector->id,
+                            'name' => $sector->name,
+                            'slug' => $sector->slug,
+                        ])->values(),
+                    ];
+                }),
+                'qrUrl' => $defer($qrUrl),
+                'latestAnnouncement' => $defer(function () use ($latestAnnouncement): ?array {
+                    $announcement = $latestAnnouncement();
+
+                    return $announcement ? [
+                        'id' => $announcement->id,
+                        'title' => $announcement->title,
+                        'created_at' => $announcement->created_at->format('F j, Y'),
+                    ] : null;
+                }),
+                'sharedEmergencyContacts' => $defer(fn () => $resolveContacts()['sharedEmergencyContacts']),
+                'barangayHotlines' => $defer(fn () => $resolveContacts()['barangayHotlines']),
             ]);
         })->name('dashboard');
 
@@ -314,6 +317,7 @@ Route::prefix('resident')->name('resident.')->group(function () {
 
         Route::get('/announcements', [ResidentAnnouncementController::class, 'index'])->name('announcements');
         Route::get('/announcements/{announcement}', [ResidentAnnouncementController::class, 'show'])->name('announcements.show');
+        Route::get('/programs', [ResidentAnnouncementController::class, 'programs'])->name('programs');
         Route::get('/updates', [ResidentAnnouncementController::class, 'index'])->name('updates')->defaults('kind', 'updates');
         Route::get('/updates/{announcement}', [ResidentAnnouncementController::class, 'show'])->name('updates.show')->defaults('kind', 'updates');
 
@@ -339,18 +343,14 @@ Route::prefix('resident')->name('resident.')->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::get('/profile', function () {
-            $resident = Resident::query()
-                ->with(['barangay', 'purok', 'account', 'sectors', 'qrCredential'])
-                ->where('id', session('resident_id'))
-                ->where('status', 'active')
-                ->firstOrFail();
+            $resident = ResidentContext::get();
+            $loadProfile = function () use ($resident): array {
+                $resident->loadMissing(['barangay', 'purok', 'account', 'sectors', 'qrCredential']);
+                $birthdate = $resident->birthdate;
+                $age = $birthdate ? $birthdate->age : 0;
+                $qrCredential = $resident->qrCredential;
 
-            $birthdate = $resident->birthdate;
-            $age = $birthdate ? $birthdate->age : 0;
-            $qrCredential = $resident->qrCredential;
-
-            return Inertia::render('Resident/Profile', [
-                'profile' => [
+                return [
                     'fullName' => $resident->full_name,
                     'residentId' => $resident->resident_number,
                     'birthdate' => $birthdate ? $birthdate->format('F j, Y') : 'Not provided',
@@ -372,7 +372,11 @@ Route::prefix('resident')->name('resident.')->group(function () {
                     'qrToken' => ($qrCredential?->is_active && ! $qrCredential?->revoked_at)
                         ? $qrCredential->token
                         : null,
-                ],
+                ];
+            };
+
+            return Inertia::render('Resident/Profile', [
+                'profile' => config('inertia.defer_heavy_props', true) ? Inertia::defer($loadProfile) : $loadProfile(),
             ]);
         })->name('profile');
 
@@ -476,6 +480,12 @@ Route::prefix('resident')->name('resident.')->group(function () {
 | Admin & Staff Authentication Group
 |--------------------------------------------------------------------------
 */
+
+Route::domain('staff.kabarangay.com')->group(function () {
+    Route::get('/', [StaffLoginController::class, 'showLoginForm'])->middleware('guest')->name('login');
+    Route::post('/login', [StaffLoginController::class, 'login'])
+        ->middleware(['guest', 'throttle:login-staff'])
+        ->name('login.store');
 
 Route::middleware('auth')->group(function () {
 
@@ -605,17 +615,19 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
+        // Announcement review uses the controller's completed-state and revision guards.
+        Route::get('/announcements/approvals', [AnnouncementApprovalController::class, 'index'])->name('announcements.approvals');
+        Route::post('/announcements/{announcement}/approve', [AnnouncementApprovalController::class, 'approve'])->name('announcements.approve');
+        Route::post('/announcements/{announcement}/reject', [AnnouncementApprovalController::class, 'reject'])->name('announcements.reject');
+
         // Resident QR Scanner
         Route::inertia('/qr-scanner', 'Admin/QrScanner')->name('qr-scanner');
 
         // Resident Masterlist / Claims
         Route::post('/residents', [AdminResidentController::class, 'store'])->name('residents.store');
+        Route::get('/residents/households/search', [AdminResidentController::class, 'searchHouseholds'])->name('residents.households.search');
+        Route::patch('/residents/{resident}/household', [AdminResidentController::class, 'updateHousehold'])->name('residents.household.update');
         Route::get('/residents/{resident}/qr/credential', [AdminResidentController::class, 'showQrCredential'])->name('residents.qr.credential');
-        Route::get('/resident-claims', [AdminResidentClaimController::class, 'index'])->name('resident-claims.index');
-        Route::get('/resident-claims/{claim}/details', [AdminResidentClaimController::class, 'show'])->name('resident-claims.show');
-        Route::post('/resident-claims/{claim}/approve', [AdminResidentClaimController::class, 'approve'])->name('resident-claims.approve');
-        Route::post('/resident-claims/{claim}/reject', [AdminResidentClaimController::class, 'reject'])->name('resident-claims.reject');
-        Route::post('/resident-claims/{claim}/notification/retry', [AdminResidentClaimController::class, 'retryNotification'])->name('resident-claims.notification.retry');
 
         // Resident Registrations
         Route::get('/residents', [ResidentRegistrationController::class, 'index'])->name('residents');
@@ -626,6 +638,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/residents/{registration}/correction', [ResidentRegistrationController::class, 'requestCorrection'])->name('residents.correction');
         Route::post('/residents/{registration}/approve', [ResidentRegistrationController::class, 'approve'])->name('residents.approve');
         Route::post('/residents/{registration}/reject', [ResidentRegistrationController::class, 'reject'])->name('residents.reject');
+        Route::post('/resident-registration-notifications/{notification}/retry', [ResidentRegistrationController::class, 'retryNotification'])->name('resident-registration-notifications.retry');
         Route::patch('/residents/{resident}/status', [ResidentRegistrationController::class, 'updateResidentStatus'])->name('residents.status');
         Route::patch('/residents/{resident}/account-status', [ResidentRegistrationController::class, 'updateAccountStatus'])->name('residents.account-status');
         Route::post('/residents/{resident}/qr/revoke', [ResidentRegistrationController::class, 'revokeQrCredential'])->name('residents.qr.revoke');
@@ -642,9 +655,10 @@ Route::middleware('auth')->group(function () {
 
         // Staff Management
         Route::get('/staff', [StaffManagementController::class, 'index'])->name('staff');
+        Route::get('/staff/residents', [StaffManagementController::class, 'searchResidents'])->name('staff.residents.search');
         Route::post('/staff', [StaffManagementController::class, 'store'])->name('staff.store');
-        Route::put('/staff/{user}', [StaffManagementController::class, 'update'])->name('staff.update');
-        Route::patch('/staff/{user}/status', [StaffManagementController::class, 'updateStatus'])->name('staff.status');
+        Route::put('/staff/{staff_assignment}', [StaffManagementController::class, 'update'])->name('staff.update');
+        Route::patch('/staff/{staff_assignment}/deactivate', [StaffManagementController::class, 'deactivate'])->name('staff.deactivate');
 
         Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log');
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports');
@@ -692,6 +706,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/certificates/requests/{certificateRequest}/confirm-payment', [ClerkCertificateRequestController::class, 'confirmPayment'])->name('certificates.requests.confirm-payment');
             Route::post('/certificates/requests/{certificateRequest}/release', [ClerkCertificateRequestController::class, 'confirmRelease'])->name('certificates.requests.release');
             Route::post('/generate-certificate', [CertificateController::class, 'generate'])->name('certificates.generate');
+            Route::post('/certificates/preview', [CertificateController::class, 'preview'])->name('certificates.preview');
 
             // Certificate form support data: the resident values the Clerk needs
             // to fill the Delayed PSA Registration form for a linked resident.
@@ -855,6 +870,7 @@ Route::middleware('auth')->group(function () {
         // aggregate access is exposed in this batch.
         Route::get('/complaints', [LuponComplaintController::class, 'index'])->name('complaints.index');
         Route::patch('/complaints/{complaint}/status', [LuponComplaintController::class, 'updateStatus'])->name('complaints.status');
+        Route::post('/complaints/{complaint}/verify-fee', [LuponComplaintController::class, 'verifyFee'])->name('complaints.verify-fee');
         Route::post('/complaints/{complaint}/promote', [LuponCaseController::class, 'promote'])->name('complaints.promote');
 
         // Lupon Case Management
@@ -875,4 +891,5 @@ Route::middleware('auth')->group(function () {
         // Settlements
         Route::post('/cases/{case}/settlements', [LuponSettlementController::class, 'store'])->name('cases.settlements.store');
     });
+});
 });

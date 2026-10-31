@@ -1,4 +1,5 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Deferred, Head, router, usePage } from '@inertiajs/react';
+import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import { useState } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 
@@ -24,7 +25,11 @@ type Props = {
     sharedEmergencyContacts: ContactItem[];
 };
 
-export default function EmergencyNumbersIndex({
+export default function EmergencyNumbersIndex(props: Props) {
+    return <Deferred data={['barangayHotlines', 'sharedEmergencyContacts']} fallback={<AdminLayout active="emergency-numbers"><AdminPageSkeleton rows={3} /></AdminLayout>}><EmergencyNumbersContent {...props} /></Deferred>;
+}
+
+function EmergencyNumbersContent({
     barangayHotlines,
     sharedEmergencyContacts,
 }: Props) {

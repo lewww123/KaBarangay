@@ -6,6 +6,8 @@ use App\Models\Barangay;
 use App\Models\CertificateIssuance;
 use App\Models\OrgChartPosition;
 use App\Support\CertificateTemplates;
+use DOMDocument;
+use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PhpOffice\PhpWord\TemplateProcessor;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -89,6 +91,7 @@ class IndigencyCertificateIntegrationTest extends TestCase
         $values = [
             "resident\u{2019}s_name" => mb_strtoupper('Juan Dela Cruz'),
             'purok' => mb_strtoupper('Purok 1'),
+            'purpose' => mb_strtoupper('Financial Assistance'),
             'current_date' => date('jS \d\a\y \o\f F Y'),
             'signatory_name' => mb_strtoupper('Hon. Test'),
         ];
@@ -113,6 +116,46 @@ class IndigencyCertificateIntegrationTest extends TestCase
                     $xml,
                     "Unresolved merge field [{$key}] remains in the generated document."
                 );
+            }
+        } finally {
+            @unlink($output);
+        }
+    }
+
+    public function test_indigency_merge_fields_retain_their_official_run_formatting(): void
+    {
+        $this->requireIndigencyTemplate();
+
+        $source = $this->archiveDocumentXml(CertificateTemplates::path('Indigency'));
+        $this->assertNotFalse($source, 'The Indigency template is not a readable DOCX archive.');
+
+        $processor = new TemplateProcessor(CertificateTemplates::path('Indigency'));
+        $processor->setValue("resident\u{2019}s_name", 'JUAN DELA CRUZ');
+        $processor->setValue('purok', 'PUROK 1');
+        $processor->setValue('purpose', 'FINANCIAL ASSISTANCE');
+
+        $output = tempnam(sys_get_temp_dir(), 'indigency_format_').'.docx';
+
+        try {
+            $processor->saveAs($output);
+            $rendered = $this->archiveDocumentXml($output);
+            $this->assertNotFalse($rendered, 'The rendered Indigency document is not a readable DOCX archive.');
+
+            foreach ([
+                '${resident’s_name}' => 'JUAN DELA CRUZ',
+                '${purok}' => 'PUROK 1',
+                '${purpose}' => 'FINANCIAL ASSISTANCE',
+            ] as $placeholder => $value) {
+                $sourceProperties = $this->runPropertiesForText($source, $placeholder);
+                $renderedProperties = $this->runPropertiesForText($rendered, $value);
+
+                $this->assertSame(
+                    $sourceProperties,
+                    $renderedProperties,
+                    "Replacement for [{$placeholder}] changed its official run formatting."
+                );
+                $this->assertStringContainsString('<w:b/>', $renderedProperties);
+                $this->assertStringContainsString('<w:u w:val="single"/>', $renderedProperties);
             }
         } finally {
             @unlink($output);
@@ -251,6 +294,28 @@ class IndigencyCertificateIntegrationTest extends TestCase
         $zip->close();
 
         return $xml;
+    }
+
+    private function runPropertiesForText(string $xml, string $text): string
+    {
+        $document = new DOMDocument;
+        $this->assertTrue($document->loadXML($xml), 'The DOCX document XML is invalid.');
+
+        $xpath = new DOMXPath($document);
+        $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+
+        foreach ($xpath->query('//w:t') ?: [] as $textNode) {
+            if (! str_contains($textNode->textContent, $text)) {
+                continue;
+            }
+
+            $run = $textNode->parentNode;
+            $properties = $xpath->query('./w:rPr', $run)?->item(0);
+
+            return $properties instanceof \DOMElement ? $document->saveXML($properties) : '';
+        }
+
+        $this->fail("Unable to locate a formatted run for [{$text}].");
     }
 
     /**

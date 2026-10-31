@@ -1,5 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
+import { Deferred, Head, Link } from '@inertiajs/react';
 import ResidentLayout from '@/layouts/ResidentLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 
 type Props = {
     viewerRole?: 'complainant' | 'respondent';
@@ -36,7 +37,18 @@ type Props = {
     };
 };
 
-export default function ResidentLuponCaseShow({ viewerRole = 'complainant', caseData }: Props) {
+export default function ResidentLuponCaseShow(props: Props) {
+    return (
+        <Deferred
+            data="caseData"
+            fallback={<ResidentLayout active="lupon"><PortalPageSkeleton list /></ResidentLayout>}
+        >
+            <LuponCaseContent {...props} />
+        </Deferred>
+    );
+}
+
+function LuponCaseContent({ viewerRole = 'complainant', caseData }: Props) {
     return (
         <ResidentLayout active="lupon">
             <Head title={`Case ${caseData.caseNumber}`} />

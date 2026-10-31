@@ -1,4 +1,7 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Deferred, Head, Link, useForm } from '@inertiajs/react';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import EmailVerificationSection from '@/components/registration/EmailVerificationSection';
+import useRegistrationEmailOtp, { type RegistrationEmailVerification, type RegistrationEmailOtpControls } from '@/hooks/useRegistrationEmailOtp';
 import {
     ChangeEvent,
     FormEvent,
@@ -37,6 +40,7 @@ type Sector = {
 type Props = {
     barangays?: Barangay[];
     sectors?: Sector[];
+    emailVerification?: RegistrationEmailVerification;
 };
 
 type ClientErrors = Record<string, string>;
@@ -52,9 +56,24 @@ const STEP_TITLES = [
     'Review & Submit',
 ];
 
-export default function Register({ barangays, sectors }: Props) {
+export default function Register(props: Props) {
+    return (
+        <Deferred
+            data={['barangays', 'sectors']}
+            fallback={<main className="mx-auto max-w-3xl p-6"><Head title="Resident Registration" /><PortalPageSkeleton list rows={3} /></main>}
+        >
+            <RegistrationContent {...props} />
+        </Deferred>
+    );
+}
+
+function RegistrationContent({ barangays, sectors, emailVerification }: Props) {
     const safeBarangays = Array.isArray(barangays) ? barangays : [];
     const safeSectors = Array.isArray(sectors) ? sectors : [];
+    const regularSector = safeSectors.find((sector) => sector.slug === 'regular');
+    const membershipSectors = safeSectors.filter(
+        (sector) => sector.slug !== 'regular',
+    );
 
     const [step, setStep] = useState(1);
     const [clientErrors, setClientErrors] = useState<ClientErrors>({});
@@ -86,7 +105,8 @@ export default function Register({ barangays, sectors }: Props) {
         address_line: '',
         sectors: [] as string[],
         mobile: '',
-        email: '',
+        email: emailVerification?.email ?? '',
+        email_verified: emailVerification?.status === 'verified',
         qr_token: '',
         password: '',
         password_confirmation: '',
@@ -95,6 +115,8 @@ export default function Register({ barangays, sectors }: Props) {
         senior_proof: null as File | null,
         pwd_proof: null as File | null,
     });
+
+    const emailOtp = useRegistrationEmailOtp(data.email, emailVerification);
 
     const selectedBarangay = useMemo(
         () =>
@@ -146,6 +168,22 @@ export default function Register({ barangays, sectors }: Props) {
             behavior: 'smooth',
         });
     };
+
+    useEffect(() => {
+        setData('email_verified', emailOtp.verified);
+    }, [emailOtp.verified, setData]);
+
+    useEffect(() => {
+        if (emailOtp.verified) {
+            setClientErrors((current) => {
+                if (!('email_verification' in current)) return current;
+                const next = { ...current };
+                delete next.email_verification;
+                return next;
+            });
+            clearErrors('email_verification' as never);
+        }
+    }, [emailOtp.verified, clearErrors]);
 
     const chooseBarangay = (value: string) => {
         setData('barangay_id', value);
@@ -281,11 +319,13 @@ export default function Register({ barangays, sectors }: Props) {
                     'Enter a valid Philippine mobile number, for example 09171234567.';
             }
 
-            if (
-                data.email.trim() &&
-                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)
-            ) {
+            if (!data.email.trim()) {
+                nextErrors.email = 'Email address is required.';
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
                 nextErrors.email = 'Enter a valid email address.';
+            }
+            if (!emailOtp.verified) {
+                nextErrors.email_verification = 'Verify your email with an OTP before continuing.';
             }
 
             if (!data.password) {
@@ -340,6 +380,13 @@ export default function Register({ barangays, sectors }: Props) {
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
+        if (!emailOtp.verified) {
+            setClientErrors({ email_verification: 'Verify your email with an OTP before submitting registration.' });
+            setStep(5);
+            scrollTop();
+            return;
+        }
+
         if (!validateStep(6)) {
             return;
         }
@@ -350,6 +397,9 @@ export default function Register({ barangays, sectors }: Props) {
             forceFormData: true,
             preserveScroll: true,
             onError: (serverErrors) => {
+                if ('email_verification' in serverErrors) {
+                    emailOtp.reset();
+                }
                 const keys = Object.keys(serverErrors);
 
                 if (
@@ -396,6 +446,7 @@ export default function Register({ barangays, sectors }: Props) {
                         [
                             'mobile',
                             'email',
+                            'email_verification',
                             'password',
                             'password_confirmation',
                         ].includes(key),
@@ -405,6 +456,12 @@ export default function Register({ barangays, sectors }: Props) {
                 }
 
                 scrollTop();
+                const messages = Object.values(serverErrors).filter(
+                    (value): value is string => typeof value === 'string',
+                );
+                emailOtp.showError(messages.length > 0
+                    ? messages.join('\n')
+                    : 'Please correct the highlighted fields and try again.');
             },
             onFinish: () => setData('qr_token', ''),
         });
@@ -434,6 +491,13 @@ export default function Register({ barangays, sectors }: Props) {
             <Head title="Create Resident Account" />
 
             <div className="min-h-screen bg-[#f7f6f0]">
+                {emailOtp.feedback && (
+                    <div role={emailOtp.feedback.kind === 'error' ? 'alert' : 'status'} aria-live={emailOtp.feedback.kind === 'error' ? 'assertive' : 'polite'}
+                        className={`fixed top-4 right-4 z-[100] flex max-w-[calc(100vw-2rem)] items-start gap-3 rounded-xl border p-4 text-sm shadow-lg sm:max-w-md ${emailOtp.feedback.kind === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-900'}`}>
+                        <span className="whitespace-pre-line">{emailOtp.feedback.message}</span>
+                        <button type="button" aria-label="Dismiss notification" onClick={emailOtp.dismissFeedback} className="font-bold">×</button>
+                    </div>
+                )}
                 <PublicHeader />
 
                 <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
@@ -444,10 +508,9 @@ export default function Register({ barangays, sectors }: Props) {
                             </h1>
 
                             <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                                Create your account under the barangay where you
-                                currently reside. Your barangay, address, sector
-                                documents, and live identity photo will be reviewed
-                                before your account is activated.
+                                Your resident record must first be added by your barangay Admin.
+                                Submit this application so staff can verify your identity and
+                                link your online account to that existing record.
                             </p>
                         </div>
 
@@ -539,7 +602,8 @@ export default function Register({ barangays, sectors }: Props) {
 
                                 {step === 3 && (
                                     <SectorInformationStep
-                                        sectors={safeSectors}
+                                        regularSector={regularSector}
+                                        membershipSectors={membershipSectors}
                                         selectedSlugs={data.sectors}
                                         regularSelected={regularResidentSelected}
                                         error={
@@ -575,6 +639,7 @@ export default function Register({ barangays, sectors }: Props) {
                                 {step === 5 && (
                                     <AccountSecurityStep
                                         data={data}
+                                        emailOtp={emailOtp}
                                         errors={fieldError}
                                         setData={setData}
                                         clearFieldError={clearFieldError}
@@ -603,7 +668,7 @@ export default function Register({ barangays, sectors }: Props) {
                                         sex={data.sex}
                                         civilStatus={data.civil_status}
                                         mobile={data.mobile}
-                                        email={data.email}
+                                        email={emailOtp.verified ? `${data.email} · OTP verified` : data.email}
                                         sectorNames={selectedSectorNames}
                                         validId={data.valid_id}
                                         livePhoto={data.live_identity_photo}
@@ -674,7 +739,8 @@ export default function Register({ barangays, sectors }: Props) {
                                     <button
                                         type="button"
                                         onClick={nextStep}
-                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99]"
+                                        disabled={step === 5 && (!emailOtp.verified || emailOtp.busy !== null)}
+                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         Continue
                                         <ArrowRightIcon />
@@ -682,7 +748,7 @@ export default function Register({ barangays, sectors }: Props) {
                                 ) : (
                                     <button
                                         type="submit"
-                                        disabled={processing}
+                                        disabled={processing || !emailOtp.verified}
                                         className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {processing ? (
@@ -1036,14 +1102,16 @@ function PersonalInformationStep({
 }
 
 function SectorInformationStep({
-    sectors,
+    regularSector,
+    membershipSectors,
     selectedSlugs,
     regularSelected,
     error,
     onToggleRegular,
     onToggle,
 }: {
-    sectors: Sector[];
+    regularSector?: Sector;
+    membershipSectors: Sector[];
     selectedSlugs: string[];
     regularSelected: boolean;
     error?: string;
@@ -1059,7 +1127,7 @@ function SectorInformationStep({
                 description="Choose the classification that applies to you. Select Regular Resident if you are not registering as a Senior Citizen or PWD. If both Senior Citizen and PWD apply to you, you may select both."
             />
 
-            {sectors.length === 0 && (
+            {membershipSectors.length === 0 && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                     <p className="text-sm font-bold text-amber-900">
                         Senior Citizen and PWD options are not available.
@@ -1073,7 +1141,7 @@ function SectorInformationStep({
 
             <div className="grid gap-4 sm:grid-cols-3">
                 <SectorCard
-                    title="Regular Resident"
+                    title={regularSector?.name ?? 'Regular Resident'}
                     selected={regularSelected}
                     disabled={hasSectorSelection}
                     description="Choose this if you are not registering under Senior Citizen or PWD."
@@ -1081,7 +1149,7 @@ function SectorInformationStep({
                     onClick={onToggleRegular}
                 />
 
-                {sectors.map((sector) => (
+                {membershipSectors.map((sector) => (
                     <SectorCard
                         key={sector.id}
                         title={sector.name}
@@ -1145,7 +1213,7 @@ function SectorInformationStep({
                     </p>
 
                     <div className="mt-2 flex flex-wrap gap-2">
-                        {sectors
+                        {membershipSectors
                             .filter((sector) =>
                                 selectedSlugs.includes(sector.slug),
                             )
@@ -1326,6 +1394,7 @@ function IdentityVerificationStep({
 
 function AccountSecurityStep({
     data,
+    emailOtp,
     errors,
     setData,
     clearFieldError,
@@ -1334,6 +1403,7 @@ function AccountSecurityStep({
     togglePassword,
     togglePasswordConfirmation,
 }: {
+    emailOtp: RegistrationEmailOtpControls;
     data: {
         mobile: string;
         email: string;
@@ -1370,16 +1440,14 @@ function AccountSecurityStep({
                         }}
                     />
 
-                    <InputField
-                        label="Email Address"
-                        type="email"
-                        value={data.email}
-                        placeholder="name@example.com"
-                        helper="Optional. Verify it to receive decision emails. Verification is not required for Admin approval."
-                        error={errors('email')}
-                        onChange={(value) => {
+                    <EmailVerificationSection
+                        email={data.email}
+                        controls={emailOtp}
+                        error={errors('email') || errors('email_verification')}
+                        onEmailChange={(value) => {
                             setData('email', value);
                             clearFieldError('email');
+                            clearFieldError('email_verification');
                         }}
                     />
                 </div>

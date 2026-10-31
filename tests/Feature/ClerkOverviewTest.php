@@ -38,7 +38,12 @@ class ClerkOverviewTest extends TestCase
     public function test_clerk_overview_renders_real_backend_data(): void
     {
         $otherBarangay = $this->createBarangay('Barangay Two', 'BRGY-TWO');
-        $clerk = $this->createStaff($this->barangay, 'clerk', ['name' => 'Clerk Person']);
+        $clerk = $this->createAssignedStaff([
+            'barangay' => $this->barangay,
+            'purok' => $this->purok,
+            'first_name' => 'Clerk',
+            'last_name' => 'Person',
+        ], 'clerk', 'Barangay Clerk');
 
         $this->createResident($this->barangay, $this->purok, ['mobile' => '09170005001']);
         $this->createAnnouncement($this->barangay, [
@@ -77,7 +82,7 @@ class ClerkOverviewTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Clerk/Dashboard')
                 ->where('userName', 'Clerk Person')
-                ->where('stats.totalResidents', 1)
+                ->where('stats.totalResidents', 2)
                 ->where('stats.totalAnnouncements', 3)
                 ->where('stats.approvedAnnouncements', 2)
                 ->where('stats.pendingAnnouncements', 1)
@@ -131,7 +136,7 @@ class ClerkOverviewTest extends TestCase
         $announcement = $response->inertiaProps('recentAnnouncements')[0];
 
         $this->assertSame(
-            ['id', 'title', 'category', 'approval_status', 'is_published', 'created_at'],
+            ['id', 'title', 'category', 'program_status', 'requires_attendance', 'approval_status', 'is_published', 'created_at'],
             array_keys($announcement)
         );
         $this->assertArrayNotHasKey('content', $announcement);

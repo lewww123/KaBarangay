@@ -54,12 +54,12 @@ class AdminResidentManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Residents')
-                ->has('residents.data', 1)
-                ->where('residents.data.0.id', $own->id)
-                ->where('residents.total', 1)
-                ->where('residents.data.0.residentId', $own->resident_number)
-                ->where('residents.data.0.status', 'active')
-                ->where('residents.data.0.accountActive', true));
+                ->has('allResidents.data', 2)
+                ->where('allResidents.data.0.id', $own->id)
+                ->where('allResidents.total', 2)
+                ->where('allResidents.data.0.reference', $own->resident_number)
+                ->where('allResidents.data.0.status', 'active')
+                ->where('allResidents.data.0.accountActive', true));
     }
 
     public function test_index_paginates_residents(): void
@@ -77,17 +77,17 @@ class AdminResidentManagementTest extends TestCase
             ->get('/admin/residents')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('residents.total', 20)
-                ->where('residents.per_page', 15)
-                ->has('residents.data', 15)
-                ->where('residents.current_page', 1));
+                ->where('allResidents.total', 21)
+                ->where('allResidents.per_page', 15)
+                ->has('allResidents.data', 15)
+                ->where('allResidents.current_page', 1));
 
         $this->actingAs($admin)
-            ->get('/admin/residents?page=2')
+            ->get('/admin/residents?all_page=2')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('residents.current_page', 2)
-                ->has('residents.data', 5));
+                ->where('allResidents.current_page', 2)
+                ->has('allResidents.data', 6));
     }
 
     public function test_index_searches_residents_server_side(): void
@@ -110,8 +110,8 @@ class AdminResidentManagementTest extends TestCase
             ->get('/admin/residents?resident_search=Juan')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('residents.data', 1)
-                ->where('residents.data.0.id', $target->id)
+                ->has('allResidents.data', 1)
+                ->where('allResidents.data.0.id', $target->id)
                 ->where('filters.resident_search', 'Juan'));
 
         // Search by resident number.
@@ -119,8 +119,8 @@ class AdminResidentManagementTest extends TestCase
             ->get('/admin/residents?resident_search='.$target->resident_number)
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('residents.data', 1)
-                ->where('residents.data.0.id', $target->id));
+                ->has('allResidents.data', 1)
+                ->where('allResidents.data.0.id', $target->id));
     }
 
     public function test_index_returns_empty_results_when_search_matches_nothing(): void
@@ -135,8 +135,8 @@ class AdminResidentManagementTest extends TestCase
             ->get('/admin/residents?resident_search=NobodyMatchesThis')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('residents.data', 0)
-                ->where('residents.total', 0));
+                ->has('allResidents.data', 0)
+                ->where('allResidents.total', 0));
     }
 
     /*

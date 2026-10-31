@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import SeniorLayout from '@/layouts/SeniorLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type AttendanceStatus = 'present' | 'claimed' | 'absent';
 type AttendanceTab = 'present' | 'claimed';
@@ -57,7 +59,7 @@ interface Props {
     announcement: Announcement;
     attendances: AttendanceItem[];
     residents?: Resident[];
-    user?: { name?: string; staff_id?: string };
+    auth?: { user?: { name?: string }; staffAssignments?: { department: string; position: string }[] };
 }
 
 const feedbackToneClasses: Record<FeedbackTone, string> = {
@@ -189,7 +191,11 @@ function firstValidationError(errors: Record<string, string | string[]>): string
     return undefined;
 }
 
-export default function SeniorAttendanceSheet({ announcement, attendances, residents = [], user }: Props) {
+export default withDeferredPage(SeniorAttendanceSheet, ['attendances', 'residents'], (props) => (
+    <SeniorLayout active="announcements" user={props.auth?.user}><PortalPageSkeleton metrics={3} /></SeniorLayout>
+));
+
+function SeniorAttendanceSheet({ announcement, attendances, residents = [], auth }: Props) {
     const [qrInput, setQrInput] = useState('');
     const [feedback, setFeedback] = useState<{ text: string; type: Exclude<FeedbackTone, 'info'> } | null>(null);
     const [activeTab, setActiveTab] = useState<AttendanceTab>('present');
@@ -456,7 +462,7 @@ export default function SeniorAttendanceSheet({ announcement, attendances, resid
     });
 
     return (
-        <SeniorLayout active="announcements" user={user}>
+        <SeniorLayout active="announcements" user={auth?.user}>
             <Head title={`Attendance - ${announcement.title}`} />
 
             <div className="space-y-6 max-w-7xl mx-auto pb-10">

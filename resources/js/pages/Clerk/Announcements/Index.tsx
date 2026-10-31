@@ -4,6 +4,7 @@ import AnnouncementAttendanceOption from '@/components/announcements/Announcemen
 import AnnouncementImportanceBadge from '@/components/announcements/AnnouncementImportanceBadge';
 import AnnouncementLifecycleTabs from '@/components/announcements/AnnouncementLifecycleTabs';
 import AnnouncementReviewSummary from '@/components/announcements/AnnouncementReviewSummary';
+import ProgramStatusSelect from '@/components/announcements/ProgramStatusSelect';
 import MarkAnnouncementDoneButton from '@/components/announcements/MarkAnnouncementDoneButton';
 import {
     ANNOUNCEMENT_IMPORTANCE_OPTIONS,
@@ -11,6 +12,7 @@ import {
     canMarkAnnouncementDone,
     formatAnnouncementPostedAt,
     formatApprovalStatusLabel,
+    formatAnnouncementStatusLabel,
     formatAudienceLabel,
     formatAnnouncementType,
     isAttendanceAvailable,
@@ -20,6 +22,8 @@ import {
     type AnnouncementTabCounts,
 } from '@/components/announcements/announcement';
 import ClerkLayout from '@/layouts/ClerkLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 import { toDateTimeLocalValue } from '@/lib/utils';
 
 interface Announcement {
@@ -31,6 +35,7 @@ interface Announcement {
     target_audience: string;
     type?: 'event' | 'informational';
     approval_status: 'pending' | 'approved' | 'rejected';
+    program_status?: 'draft' | 'ongoing' | 'done' | null;
     is_published: boolean;
     rejection_reason?: string | null;
     requires_attendance: boolean;
@@ -58,7 +63,11 @@ interface Props {
     };
 }
 
-export default function ClerkAnnouncementsIndex({
+export default withDeferredPage(ClerkAnnouncementsIndex, ['announcements', 'tabCounts'], (props) => (
+    <ClerkLayout active="announcements" user={props.user}><PortalPageSkeleton list showTabs /></ClerkLayout>
+));
+
+function ClerkAnnouncementsIndex({
     announcements,
     activeTab,
     tabCounts,
@@ -81,6 +90,7 @@ export default function ClerkAnnouncementsIndex({
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         title: '',
+        program_status: 'ongoing',
         content: '',
         category: isProgram ? 'Event' : 'General',
         importance: 'normal',
@@ -111,6 +121,7 @@ export default function ClerkAnnouncementsIndex({
         setFormType(forcedFormType ?? type);
         setData({
             title: item.title,
+            program_status: item.program_status === 'draft' ? 'draft' : 'ongoing',
             content: item.content,
             category: isProgram ? 'Event' : isUpdate && item.category === 'Event' ? 'General' : item.category || 'General',
             importance: item.importance || 'normal',
@@ -126,7 +137,7 @@ export default function ClerkAnnouncementsIndex({
         router.get(
             basePath,
             { tab },
-            { preserveScroll: true, preserveState: true, replace: true },
+            { preserveScroll: true, preserveState: true, replace: true, only: ['announcements', 'tabCounts', 'activeTab', 'kind'] },
         );
     };
 
@@ -314,7 +325,7 @@ export default function ClerkAnnouncementsIndex({
                                         <tr key={item.id} className="hover:bg-gray-50/80">
                                             <td className="px-5 py-3.5 font-semibold text-gray-900">
                                                 {item.title}
-                                                {item.rejection_reason && (
+                                                {!isEventAnnouncement(item) && item.rejection_reason && (
                                                     <p className={`mt-1 text-xs font-normal ${item.approval_status === 'rejected' ? 'text-red-600' : 'text-amber-600'}`}>
                                                         {item.approval_status === 'rejected'
                                                             ? `Returned for revision: ${item.rejection_reason}`
@@ -369,7 +380,7 @@ export default function ClerkAnnouncementsIndex({
                                                             ? 'bg-red-100 text-red-800'
                                                             : 'bg-amber-100 text-amber-800'
                                                     }`}>
-                                                        {formatApprovalStatusLabel(item.approval_status)}
+                                                        {formatAnnouncementStatusLabel(item)}
                                                     </span>
                                                 )}
                                             </td>
@@ -583,12 +594,13 @@ export default function ClerkAnnouncementsIndex({
                                     </>
                                 )}
 
+                                {reviewType === 'event' && <ProgramStatusSelect value={data.program_status} onChange={(value) => setData('program_status', value)} />}
                                 <AnnouncementReviewSummary
                                     type={reviewType}
                                     audience={data.target_audience}
                                     requiresAttendance={data.requires_attendance}
-                                    willResubmit={Boolean(editingItem) && !isUpdate}
-                                    directPublish={isUpdate}
+                                    willResubmit={Boolean(editingItem) && !isUpdate && reviewType !== 'event'}
+                                    directPublish={isUpdate || reviewType === 'event'}
                                 />
 
                                 <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
@@ -610,7 +622,7 @@ export default function ClerkAnnouncementsIndex({
                                             : isUpdate
                                               ? editingItem ? 'Republish Update' : 'Publish Update'
                                               : isProgram
-                                                ? editingItem ? 'Resubmit Program' : 'Submit Program for Approval'
+                                                ? data.program_status === 'draft' ? 'Save Draft' : 'Publish Program'
                                                 : editingItem
                                                   ? 'Update Announcement'
                                                   : 'Submit for Approval'}

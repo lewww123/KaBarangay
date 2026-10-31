@@ -5,7 +5,8 @@ import {
     type FormEvent,
     type ReactNode,
 } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { Deferred, router, usePage } from '@inertiajs/react';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import { QRCodeSVG } from 'qrcode.react';
 import ResidentLayout from '@/layouts/ResidentLayout';
 
@@ -45,6 +46,14 @@ type Notification = {
 };
 
 export default function Profile() {
+    return (
+        <Deferred data="profile" fallback={<ResidentLayout active="profile"><PortalPageSkeleton list rows={4} /></ResidentLayout>}>
+            <ProfileContent />
+        </Deferred>
+    );
+}
+
+function ProfileContent() {
     const { profile: serverProfile } =
         usePage<PageProps>().props;
 

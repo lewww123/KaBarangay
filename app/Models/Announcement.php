@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AnnouncementType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,6 +31,7 @@ class Announcement extends Model
         'title',
         'content',
         'category',
+        'program_status',
         'importance',
         'target_audience',
         'target_sector_id',
@@ -55,7 +57,20 @@ class Announcement extends Model
 
     public function attendanceIsAvailable(): bool
     {
+        if (AnnouncementType::isEvent($this) && $this->program_status === 'draft') {
+            return false;
+        }
+
         return $this->approval_status === 'approved' && $this->requires_attendance === true;
+    }
+
+    public function getProgramStatusAttribute(?string $value): ?string
+    {
+        if (! AnnouncementType::isEvent($this)) {
+            return null;
+        }
+
+        return $value ?? ($this->completed_at !== null ? 'done' : ($this->approval_status === 'approved' && $this->is_published ? 'ongoing' : 'draft'));
     }
 
     public function revisionToken(): string
@@ -74,13 +89,13 @@ class Announcement extends Model
     protected static function booted()
     {
         static::addGlobalScope('barangay', function (Builder $builder) {
-            if (auth()->check() && auth()->user()->role !== 'super_admin') {
+            if (auth()->check()) {
                 $builder->where('barangay_id', auth()->user()->barangay_id);
             }
         });
 
         static::creating(function ($model) {
-            if (auth()->check() && auth()->user()->role !== 'super_admin') {
+            if (auth()->check()) {
                 $model->barangay_id = $model->barangay_id ?? auth()->user()->barangay_id;
                 $model->created_by = $model->created_by ?? auth()->id();
             }

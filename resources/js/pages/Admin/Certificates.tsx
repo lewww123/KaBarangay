@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Deferred, Head, router, usePage } from '@inertiajs/react';
+import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import AdminLayout from '@/layouts/AdminLayout';
 
 interface CertificateRequestDetailRow {
@@ -80,7 +81,11 @@ function formatPeso(value: number): string {
     return `₱${value.toFixed(2)}`;
 }
 
-export default function AdminCertificates({ requests, stats, statuses = [], filters }: Props) {
+export default function AdminCertificates(props: Props) {
+    return <Deferred data={['requests', 'stats']} fallback={<AdminLayout active="certificates"><AdminPageSkeleton metrics={4} /></AdminLayout>}><CertificatesContent {...props} /></Deferred>;
+}
+
+function CertificatesContent({ requests, stats, statuses = [], filters }: Props) {
     const { flash } = usePage<{ flash?: { success?: string | null } }>().props;
 
     const paginator: Paginator<CertificateRequestRow> =

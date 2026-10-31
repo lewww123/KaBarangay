@@ -21,25 +21,31 @@ trait ManagesOrgChart
     {
         $user = $request->user();
 
-        $positions = OrgChartPosition::query()
-            ->where('barangay_id', $user->barangay_id)
-            ->orderBy('title')
-            ->get();
+        $positions = null;
+        $resolvePositions = function () use ($user, &$positions) {
+            return $positions ??= OrgChartPosition::query()
+                ->where('barangay_id', $user->barangay_id)
+                ->orderBy('title')
+                ->get();
+        };
 
         return Inertia::render('OrgChart/Management', [
-            'tree' => $this->chartTree($positions, $this->photoRouteName()),
-            'positions' => $this->chartFlat($positions, $this->photoRouteName()),
-            'stats' => [
-                'total' => $positions->count(),
-                'draft' => $positions->where('status', 'draft')->count(),
-                'published' => $positions->where('status', 'published')->count(),
-                'archived' => $positions->where('status', 'archived')->count(),
-            ],
+            'tree' => $this->deferProp(fn () => $this->chartTree($resolvePositions(), $this->photoRouteName())),
+            'positions' => $this->deferProp(fn () => $this->chartFlat($resolvePositions(), $this->photoRouteName())),
+            'stats' => $this->deferProp(function () use ($resolvePositions): array {
+                $positions = $resolvePositions();
+
+                return [
+                    'total' => $positions->count(),
+                    'draft' => $positions->where('status', 'draft')->count(),
+                    'published' => $positions->where('status', 'published')->count(),
+                    'archived' => $positions->where('status', 'archived')->count(),
+                ];
+            }),
             'portal' => $this->portal(),
             'user' => [
                 'name' => $user->name,
-                'staff_id' => $user->staff_id,
-                'department' => $user->department ?: ucfirst($this->portal()),
+                'department' => ucfirst($this->portal()),
             ],
         ]);
     }
@@ -359,30 +365,29 @@ trait ManagesOrgChart
         }
 
         $seen = [];
-        $current = OrgChartPosition::query()
+        $parents = OrgChartPosition::query()
             ->where('barangay_id', $position->barangay_id)
-            ->whereKey($parentId)
-            ->first();
+            ->pluck('parent_id', 'id')
+            ->all();
 
-        while ($current !== null) {
-            if ((int) $current->id === (int) $position->id) {
+        $currentId = $parentId;
+
+        while (array_key_exists($currentId, $parents)) {
+            if ($currentId === (int) $position->id) {
                 return true;
             }
 
-            if (isset($seen[$current->id])) {
+            if (isset($seen[$currentId])) {
                 return true;
             }
 
-            $seen[$current->id] = true;
+            $seen[$currentId] = true;
 
-            if ($current->parent_id === null) {
+            if ($parents[$currentId] === null) {
                 break;
             }
 
-            $current = OrgChartPosition::query()
-                ->where('barangay_id', $position->barangay_id)
-                ->whereKey($current->parent_id)
-                ->first();
+            $currentId = (int) $parents[$currentId];
         }
 
         return false;

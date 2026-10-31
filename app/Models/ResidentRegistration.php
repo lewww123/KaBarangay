@@ -33,6 +33,39 @@ class ResidentRegistration extends Model
                         'updated_at' => now(),
                     ]);
             }
+
+            if (Schema::hasTable('resident_notification_outbox')) {
+                $notifications = ResidentNotification::query()
+                    ->where('resident_registration_id', $registration->getKey())
+                    ->where('type', ResidentNotification::TYPE_REGISTRATION_DECISION)
+                    ->whereIn('status', [
+                        ResidentNotification::STATUS_PENDING,
+                        ResidentNotification::STATUS_FAILED,
+                    ]);
+
+                $leasedNotifications = clone $notifications;
+                $leasedNotifications->whereNotNull('lease_token')
+                    ->update([
+                        'status' => ResidentNotification::STATUS_FAILED,
+                        'failed_at' => now(),
+                        'failure_class' => 'recipient_changed_during_delivery',
+                        'last_error' => 'Recipient changed while delivery was in progress; outcome may be ambiguous.',
+                        'lease_token' => null,
+                        'lease_expires_at' => null,
+                        'updated_at' => now(),
+                    ]);
+
+                $notifications->whereNull('lease_token')
+                    ->update([
+                        'status' => ResidentNotification::STATUS_DEFERRED,
+                        'deferred_at' => now(),
+                        'failure_class' => 'recipient_email_changed',
+                        'last_error' => 'The verified recipient address changed.',
+                        'lease_token' => null,
+                        'lease_expires_at' => null,
+                        'updated_at' => now(),
+                    ]);
+            }
         });
     }
 
@@ -179,5 +212,13 @@ class ResidentRegistration extends Model
             ResidentRegistrationCorrectionCycle::class,
             'resident_registration_id'
         )->orderBy('cycle_number');
+    }
+
+    public function latestDecisionNotification(): HasOne
+    {
+        return $this->hasMany(ResidentNotification::class, 'resident_registration_id')
+            ->where('type', ResidentNotification::TYPE_REGISTRATION_DECISION)
+            ->one()
+            ->latestOfMany();
     }
 }

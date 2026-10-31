@@ -33,8 +33,4 @@ class ResidentEmailVerificationToken extends Model
         return $this->belongsTo(Resident::class);
     }
 
-    public function claim(): BelongsTo
-    {
-        return $this->belongsTo(ResidentClaim::class, 'resident_claim_id');
-    }
 }

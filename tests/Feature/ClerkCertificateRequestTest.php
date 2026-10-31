@@ -110,7 +110,7 @@ class ClerkCertificateRequestTest extends TestCase
 
     public function test_unauthenticated_access_redirects_to_login(): void
     {
-        $this->get('/clerk/certificates')->assertRedirect('/login');
+        $this->get('/clerk/certificates')->assertRedirect(route('login'));
     }
 
     public function test_unauthorized_roles_receive_403(): void
@@ -510,7 +510,7 @@ class ClerkCertificateRequestTest extends TestCase
         $this->assertStringContainsString('switchMode', $source);
         $this->assertStringContainsString('MANUAL ENTRY', $source);
         $this->assertStringContainsString('QR VERIFIED', $source);
-        $this->assertStringContainsString("form.action = '/clerk/generate-certificate'", $source);
+        $this->assertStringContainsString("fetch('/clerk/generate-certificate'", $source);
 
         // The scan input keeps autofocus on mount so a handheld scanner can type
         // into it, and the "Scan another" control remains available.
@@ -539,7 +539,7 @@ class ClerkCertificateRequestTest extends TestCase
     {
         $source = file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx'));
 
-        $scanner = $this->section($source, 'function QrScanInput', 'export default function Dashboard');
+        $scanner = $this->section($source, 'function QrScanInput', 'export default withDeferredPage');
 
         // The scanner must not render its own inner <form>; nesting a form inside
         // the modal's outer form made the lookup button/Enter submit the outer
@@ -602,6 +602,47 @@ class ClerkCertificateRequestTest extends TestCase
         // Errors stay inline; no browser alert() and no navigation on failure.
         $this->assertStringNotContainsString('window.alert', $source);
         $this->assertStringNotContainsString('alert(', $source);
+    }
+
+    public function test_certificate_confirmation_shares_one_issuance_request_between_download_and_explicit_print_actions(): void
+    {
+        $source = file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx'));
+        $submitHandler = $this->section($source, "const handleFinalSubmit = async (action: 'download' | 'print' = 'download') => {", '// Every reviewed detail');
+
+        // Confirmation sends exactly one explicit generation request, then
+        // validates and saves the returned attachment without printing.
+        $this->assertStringContainsString("fetch('/clerk/generate-certificate'", $submitHandler);
+        $this->assertStringContainsString("method: 'POST'", $submitHandler);
+        $this->assertStringContainsString('response.blob()', $submitHandler);
+        $this->assertStringContainsString('downloadLink.download = filename', $submitHandler);
+        $this->assertStringContainsString('response.headers.get(\'Content-Disposition\')', $submitHandler);
+        $this->assertStringContainsString('if (response.status === 422)', $submitHandler);
+        $this->assertStringContainsString('if (response.redirected)', $submitHandler);
+        $this->assertStringNotContainsString('window.print()', $submitHandler);
+
+        // Printing is explicit and uses the persisted document in an isolated
+        // print frame rather than printing the surrounding application modal.
+        $this->assertStringContainsString(
+            "onClick={() => void handleFinalSubmit('print')}",
+            $source,
+        );
+        $this->assertStringContainsString("onClick={() => void handleFinalSubmit('download')}", $source);
+        $this->assertStringNotContainsString('window.open(', $source);
+        $this->assertStringNotContainsString('useEffect(() => window.print()', $source);
+
+        // Native form submission is gone, so frontend response handling is
+        // explicit and independent of the print path.
+        $this->assertStringNotContainsString('form.submit()', $source);
+        $this->assertStringContainsString('generationOutcomeUnknownRef.current = true', $submitHandler);
+    }
+
+    public function test_certificate_generation_returns_the_persisted_docx_as_an_attachment(): void
+    {
+        $controller = file_get_contents(base_path('app/Http/Controllers/CertificateController.php'));
+        $this->assertStringContainsString('AuditLogger::record(', $controller);
+        $this->assertStringContainsString("'Certificate_'.\$issuance->reference.'.docx'", $controller);
+        $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.wordprocessingml.document', $controller);
+        $this->assertStringContainsString('return response()->download(', $controller);
     }
 
     public function test_qr_lookup_failure_keeps_the_form_state(): void
@@ -699,6 +740,7 @@ class ClerkCertificateRequestTest extends TestCase
             ->assertJsonPath('fee', '300.00')
             ->assertJsonPath('business_name', 'Juan Store')
             ->assertJsonPath('business_address', 'Purok 1, Barangay One')
+            ->assertJsonPath('detail_values.franchise_no', 'FR-123')
             ->assertJsonPath('notes', 'Please process this request.')
             ->assertJsonPath('details.0.label', 'Franchise No.')
             ->assertJsonPath('details.0.value', 'FR-123');

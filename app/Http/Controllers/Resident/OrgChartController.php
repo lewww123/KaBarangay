@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ManagesOrgChart;
 use App\Http\Controllers\Controller;
 use App\Models\OrgChartPosition;
 use App\Models\Resident;
+use App\Support\ResidentContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,14 +20,16 @@ class OrgChartController extends Controller
     {
         $resident = $this->resident($request);
 
-        $positions = OrgChartPosition::query()
-            ->where('barangay_id', $resident->barangay_id)
-            ->where('status', 'published')
-            ->orderBy('title')
-            ->get();
-
         return Inertia::render('Resident/OrgChart', [
-            'tree' => $this->chartTree($positions, $this->photoRouteName()),
+            'tree' => $this->deferProp(function () use ($resident) {
+                $positions = OrgChartPosition::query()
+                    ->where('barangay_id', $resident->barangay_id)
+                    ->where('status', 'published')
+                    ->orderBy('title')
+                    ->get();
+
+                return $this->chartTree($positions, $this->photoRouteName());
+            }),
             'resident' => [
                 'full_name' => $resident->full_name,
             ],
@@ -50,10 +53,7 @@ class OrgChartController extends Controller
 
     private function resident(Request $request): Resident
     {
-        return Resident::query()
-            ->whereKey($request->session()->get('resident_id'))
-            ->where('status', 'active')
-            ->firstOrFail();
+        return ResidentContext::get();
     }
 
     protected function portal(): string

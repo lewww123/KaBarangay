@@ -6,7 +6,6 @@ use App\Models\Resident;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use PhpOffice\PhpWord\TemplateProcessor;
 use RuntimeException;
 
 /**
@@ -150,7 +149,7 @@ class DelayedPsaCertificate
             );
         }
 
-        $variables = (new TemplateProcessor($templatePath))->getVariables();
+        $variables = CertificatePlaceholders::templateVariables($templatePath);
         sort($variables);
 
         $expected = self::TEMPLATE_KEYS;

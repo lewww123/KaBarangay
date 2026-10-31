@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureStaffRole;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LocalAdminRequestDiagnostics;
 use App\Http\Middleware\ResidentAuth;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,6 +18,22 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
+        $middleware->redirectUsersTo(function (Request $request): string {
+            $department = $request->user()?->staffAssignments()
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->value('department');
+
+            return match ($department) {
+                'admin' => route('admin.dashboard'),
+                'clerk' => route('clerk.dashboard'),
+                'lupon' => route('lupon.dashboard'),
+                'pwd' => route('pwd.dashboard'),
+                'senior' => route('senior.dashboard'),
+                default => route('login'),
+            };
+        });
+
         // Trust Cloudflare Tunnel / reverse proxy.
         // Needed so Laravel recognizes the original HTTPS request.
         $middleware->trustProxies(at: '*');
@@ -27,10 +44,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureStaffRole::class,
         ]);
 
-        $middleware->web(append: [
-            HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
-        ]);
+        $middleware->web(
+            append: [
+                HandleInertiaRequests::class,
+                AddLinkHeadersForPreloadedAssets::class,
+            ],
+            prepend: [LocalAdminRequestDiagnostics::class],
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

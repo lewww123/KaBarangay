@@ -6,7 +6,6 @@ use App\Models\Resident;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
-use PhpOffice\PhpWord\TemplateProcessor;
 use RuntimeException;
 use Throwable;
 
@@ -149,7 +148,7 @@ class MarriageCohabitationCertificate
         // PHPWord repairs the macros that the template splits across Word runs
         // (the proofing markers) while it reads the document, so the variable
         // list is the list the merge will actually write to.
-        $variables = (new TemplateProcessor($templatePath))->getVariables();
+        $variables = CertificatePlaceholders::templateVariables($templatePath);
         sort($variables);
 
         $expected = self::TEMPLATE_KEYS;
@@ -279,7 +278,7 @@ class MarriageCohabitationCertificate
             return '';
         }
 
-        return 'PUROK '.mb_strtoupper($name);
+        return preg_match('/^purok\b/i', $name) ? mb_strtoupper($name) : 'PUROK '.mb_strtoupper($name);
     }
 
     /**

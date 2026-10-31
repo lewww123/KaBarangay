@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreResidentRequest;
 use App\Models\Barangay;
+use App\Models\Household;
 use App\Models\Resident;
 use App\Models\ResidentQrCredential;
 use App\Support\AuditLogger;
@@ -37,11 +38,28 @@ class ResidentController extends Controller
 
             $this->assertContactIsUnique($barangay->id, $validated);
 
+            $household = null;
+            if (($validated['household_mode'] ?? 'none') === 'new') {
+                $household = Household::query()->create([
+                    'barangay_id' => $barangay->id,
+                    'purok_id' => $validated['purok_id'],
+                    'household_code' => 'HH-'.Str::upper(Str::random(8)),
+                ]);
+            } elseif (($validated['household_mode'] ?? 'none') === 'existing') {
+                $household = Household::query()
+                    ->where('barangay_id', $barangay->id)
+                    ->findOrFail($validated['household_id']);
+            }
+
             $resident = Resident::query()->create([
                 'public_id' => (string) Str::uuid(),
                 'resident_registration_id' => null,
                 'barangay_id' => $barangay->id,
                 'purok_id' => $validated['purok_id'],
+                'household_id' => $household?->id,
+                'household_relationship' => $household
+                    ? (($validated['household_mode'] ?? null) === 'new' ? 'Head' : $validated['household_relationship'])
+                    : null,
                 'resident_number' => $this->residentNumbers->next(
                     $barangay,
                     (int) $validated['purok_id']
@@ -62,6 +80,10 @@ class ResidentController extends Controller
                 'status' => 'active',
                 'approved_at' => now(),
             ]);
+
+            if ($household && ($validated['household_mode'] ?? null) === 'new') {
+                $household->update(['head_resident_id' => $resident->id]);
+            }
 
             ResidentQrCredential::query()->create([
                 'resident_id' => $resident->id,
@@ -142,6 +164,100 @@ class ResidentController extends Controller
                 ]),
             ])
             ->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
+    public function searchHouseholds(Request $request): JsonResponse
+    {
+        $query = trim((string) $request->query('q', ''));
+
+        if (mb_strlen($query) < 2) {
+            return response()->json(['data' => []]);
+        }
+
+        $like = '%'.$query.'%';
+        $households = Household::query()
+            ->where('barangay_id', $request->user()->barangay_id)
+            ->with(['head:id,first_name,middle_name,last_name,suffix', 'purok:id,name'])
+            ->withCount('members')
+            ->where(function ($builder) use ($like) {
+                $builder->where('household_code', 'like', $like)
+                    ->orWhereHas('head', function ($head) use ($like) {
+                        $head->where('first_name', 'like', $like)
+                            ->orWhere('middle_name', 'like', $like)
+                            ->orWhere('last_name', 'like', $like);
+                    });
+            })
+            ->orderBy('household_code')
+            ->limit(15)
+            ->get()
+            ->map(fn (Household $household) => [
+                'id' => $household->id,
+                'code' => $household->household_code,
+                'head' => $household->head?->full_name ?? 'No head assigned',
+                'purok' => $household->purok?->name,
+                'members_count' => $household->members_count,
+            ]);
+
+        return response()->json(['data' => $households]);
+    }
+
+    public function updateHousehold(Request $request, Resident $resident): RedirectResponse
+    {
+        abort_unless(
+            (int) $resident->barangay_id === (int) $request->user()->barangay_id,
+            404
+        );
+
+        $validated = $request->validate([
+            'household_mode' => ['required', 'in:none,new,existing'],
+            'household_id' => ['required_if:household_mode,existing', 'nullable', 'integer'],
+            'household_relationship' => ['required_unless:household_mode,none', 'nullable', 'string', 'max:100'],
+        ]);
+
+        DB::transaction(function () use ($request, $resident, $validated) {
+            $resident = Resident::query()->lockForUpdate()->findOrFail($resident->id);
+            $household = null;
+
+            if ($validated['household_mode'] === 'new') {
+                $household = Household::query()->create([
+                    'barangay_id' => $resident->barangay_id,
+                    'purok_id' => $resident->purok_id,
+                    'household_code' => 'HH-'.Str::upper(Str::random(8)),
+                    'head_resident_id' => $resident->id,
+                ]);
+            }
+
+            if ($validated['household_mode'] === 'existing') {
+                $household = Household::query()
+                    ->where('barangay_id', $request->user()->barangay_id)
+                    ->find($validated['household_id']);
+
+                if (! $household) {
+                    throw ValidationException::withMessages([
+                        'household_id' => 'Choose a household in your barangay.',
+                    ]);
+                }
+            }
+
+            $resident->update([
+                'household_id' => $household?->id,
+                'household_relationship' => $household
+                    ? ($validated['household_mode'] === 'new' ? 'Head' : $validated['household_relationship'])
+                    : null,
+            ]);
+        });
+
+        AuditLogger::record(
+            'resident.household_updated',
+            $resident->barangay_id,
+            $request->user()->id,
+            'resident',
+            $resident->id,
+            [],
+            $request->ip(),
+        );
+
+        return back()->with('success', 'Resident household assignment updated.');
     }
 
     /**

@@ -811,34 +811,25 @@ class AnnouncementManagementTest extends TestCase
         $announcement = $this->createAnnouncement($this->barangay, [
             'title' => 'Completed Event',
             'category' => 'Event',
-            'approval_status' => 'pending',
-            'is_published' => false,
+            'created_by' => $clerk->id,
+            'approval_status' => 'approved',
+            'program_status' => 'ongoing',
+            'is_published' => true,
         ]);
-
-        $this->actingAs($admin)
-            ->post('/admin/announcements/'.$announcement->id.'/approve', [
-                'revision_token' => $this->revisionToken($announcement),
-            ])
-            ->assertRedirect();
 
         $this->actingAs($clerk)
             ->post('/clerk/announcements/'.$announcement->id.'/complete')
             ->assertRedirect();
-
-        $publicationLog = AnnouncementApprovalLog::query()
-            ->where('announcement_id', $announcement->id)
-            ->where('action', 'approved')
-            ->firstOrFail();
 
         $this->actingAs($admin)
             ->get('/admin/announcements/approvals')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/AnnouncementApprovals')
-                ->where('announcements.0.publication.published_by', $admin->name)
+                ->where('announcements.0.publication.published_by', $clerk->name)
                 ->where(
                     'announcements.0.publication.published_at',
-                    $publicationLog->created_at->toIso8601String()
+                    $announcement->created_at->toIso8601String()
                 ));
     }
 
@@ -1120,8 +1111,8 @@ class AnnouncementManagementTest extends TestCase
         $announcement = Announcement::query()->where('title', 'Senior Assembly')->firstOrFail();
 
         $this->assertSame('senior_citizens', $announcement->target_audience);
-        $this->assertSame('pending', $announcement->approval_status);
-        $this->assertFalse($announcement->is_published);
+        $this->assertSame('ongoing', $announcement->program_status);
+        $this->assertTrue($announcement->is_published);
         $this->assertSame('Barangay Hall', $announcement->location);
         $this->assertNotNull($announcement->event_start_at);
         $this->assertSame('2026-11-15 08:30:00', $announcement->event_start_at->format('Y-m-d H:i:s'));
@@ -1145,8 +1136,8 @@ class AnnouncementManagementTest extends TestCase
         $announcement = Announcement::query()->where('title', 'PWD Assembly')->firstOrFail();
 
         $this->assertSame('pwd', $announcement->target_audience);
-        $this->assertSame('pending', $announcement->approval_status);
-        $this->assertFalse($announcement->is_published);
+        $this->assertSame('ongoing', $announcement->program_status);
+        $this->assertTrue($announcement->is_published);
         $this->assertSame('Barangay Gym', $announcement->location);
         $this->assertNotNull($announcement->event_start_at);
         $this->assertSame('2026-12-05 13:00:00', $announcement->event_start_at->format('Y-m-d H:i:s'));
@@ -1269,8 +1260,8 @@ class AnnouncementManagementTest extends TestCase
             'id' => $announcement->id,
             'category' => 'Event',
             'location' => 'Barangay Gym',
-            'approval_status' => 'pending',
-            'is_published' => false,
+            'program_status' => 'ongoing',
+            'is_published' => true,
         ]);
     }
 
@@ -1407,7 +1398,7 @@ class AnnouncementManagementTest extends TestCase
 
         $this->assertSame('Attendance Event Updated', $announcement->title);
         $this->assertTrue($announcement->requires_attendance);
-        $this->assertSame('pending', $announcement->approval_status);
+        $this->assertSame('ongoing', $announcement->program_status);
     }
 
     public function test_editing_event_to_informational_does_not_require_event_fields(): void
@@ -1535,7 +1526,7 @@ class AnnouncementManagementTest extends TestCase
         }
     }
 
-    public function test_clerk_program_route_forces_event_details_and_awaits_approval(): void
+    public function test_clerk_program_route_forces_event_details_and_publishes_directly(): void
     {
         $clerk = $this->createStaff($this->barangay, 'clerk');
 
@@ -1552,8 +1543,8 @@ class AnnouncementManagementTest extends TestCase
         $announcement = Announcement::query()->latest('id')->firstOrFail();
 
         $this->assertSame('Event', $announcement->category);
-        $this->assertSame('pending', $announcement->approval_status);
-        $this->assertFalse($announcement->is_published);
+        $this->assertSame('ongoing', $announcement->program_status);
+        $this->assertTrue($announcement->is_published);
         $this->assertTrue($announcement->requires_attendance);
     }
 

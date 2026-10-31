@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CertificateIssuance extends Model
 {
+    public const STATUS_ISSUED = 'issued';
+
+    protected $attributes = ['status' => self::STATUS_ISSUED];
+
     protected $fillable = [
         'barangay_id',
         'certificate_request_id',
@@ -14,6 +18,7 @@ class CertificateIssuance extends Model
         'reference',
         'control_no',
         'certificate_type',
+        'status',
         'resident_name',
         'resident_number',
         'purok',

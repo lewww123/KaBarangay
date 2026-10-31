@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Barangay;
 use App\Models\LuponCase;
+use App\Models\LuponCaseParty;
 use App\Models\LuponComplaint;
 use App\Models\LuponHearing;
 use App\Models\Purok;
@@ -11,6 +12,7 @@ use App\Models\Resident;
 use App\Models\ResidentQrCredential;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
@@ -36,7 +38,23 @@ class LuponCaseManagementTest extends TestCase
         $this->barangay = $this->createBarangay('Barangay One', 'BRGY-ONE');
         $this->purok = $this->createPurok($this->barangay, 'Purok 1');
         $this->resident = $this->createResident($this->barangay, $this->purok);
-        $this->luponStaff = $this->createStaff($this->barangay, 'lupon');
+        $this->luponStaff = $this->createAssignedStaff([
+            'barangay' => $this->barangay,
+            'purok' => $this->purok,
+        ], 'lupon', 'Lupon Secretary');
+    }
+
+    public function test_lupon_qr_lookup_starts_keyboard_wedge_in_complainant_field_and_keeps_enter_lookup(): void
+    {
+        $source = file_get_contents(base_path('resources/js/pages/Lupon/Cases/Create.tsx'));
+
+        $this->assertStringContainsString('complainantInputRef.current?.focus({ preventScroll: true })', $source);
+        $this->assertStringContainsString("e.key === 'Enter'", $source);
+        $this->assertStringContainsString('e.preventDefault()', $source);
+        $this->assertStringContainsString('handleComplainantLookup()', $source);
+        $this->assertStringContainsString('handleRespondentLookup()', $source);
+        $this->assertStringContainsString('value={complainantLookup.query}', $source);
+        $this->assertStringContainsString('value={respondentLookup.query}', $source);
     }
 
     private function createComplaint(
@@ -276,6 +294,107 @@ class LuponCaseManagementTest extends TestCase
                 ->where('filters.phase', 'Kapitan')
                 ->where('filters.status', 'Under Mediation')
                 ->has('cases.links'));
+    }
+
+    public function test_lupon_case_index_preserves_party_names_and_counts_without_loading_party_residents(): void
+    {
+        $case = LuponCase::create([
+            'barangay_id' => $this->barangay->id,
+            'origin' => 'manual',
+            'case_number' => 'KP-2026-INDEX-PARTIES',
+            'title' => 'Party loading check',
+            'case_type' => 'Property / Boundary Dispute',
+            'phase' => 'Kapitan',
+            'status' => 'Under Mediation',
+            'created_by' => $this->luponStaff->id,
+            'assigned_to' => $this->luponStaff->id,
+            'filed_date' => now()->toDateString(),
+        ]);
+
+        LuponCaseParty::create([
+            'case_id' => $case->id,
+            'party_type' => 'complainant',
+            'resident_id' => $this->resident->id,
+            'name' => 'Resident complainant snapshot',
+            'is_resident' => true,
+            'is_primary' => true,
+        ]);
+        LuponCaseParty::create([
+            'case_id' => $case->id,
+            'party_type' => 'complainant',
+            'name' => 'Non-resident complainant',
+            'is_resident' => false,
+            'is_primary' => false,
+        ]);
+        LuponCaseParty::create([
+            'case_id' => $case->id,
+            'party_type' => 'respondent',
+            'resident_id' => $this->resident->id,
+            'name' => 'Resident respondent snapshot',
+            'is_resident' => true,
+            'is_primary' => true,
+        ]);
+        LuponCaseParty::create([
+            'case_id' => $case->id,
+            'party_type' => 'respondent',
+            'name' => 'Non-resident respondent',
+            'is_resident' => false,
+            'is_primary' => false,
+        ]);
+
+        $olderCase = LuponCase::create([
+            'barangay_id' => $this->barangay->id,
+            'origin' => 'manual',
+            'case_number' => 'KP-2026-INDEX-OLDER',
+            'title' => 'Older case',
+            'case_type' => 'Noise / Disturbance',
+            'phase' => 'Kapitan',
+            'status' => 'Active',
+            'created_by' => $this->luponStaff->id,
+            'assigned_to' => $this->luponStaff->id,
+            'filed_date' => now()->subDay()->toDateString(),
+        ]);
+        LuponCaseParty::create([
+            'case_id' => $olderCase->id,
+            'party_type' => 'complainant',
+            'name' => 'Older non-resident complainant',
+            'is_resident' => false,
+            'is_primary' => true,
+        ]);
+        LuponCaseParty::create([
+            'case_id' => $olderCase->id,
+            'party_type' => 'respondent',
+            'name' => 'Older non-resident respondent',
+            'is_resident' => false,
+            'is_primary' => true,
+        ]);
+
+        $capture = false;
+        $residentSelects = [];
+        DB::listen(function ($query) use (&$capture, &$residentSelects): void {
+            $sql = strtolower($query->sql);
+            if ($capture && str_starts_with(ltrim($sql), 'select') && str_contains($sql, 'from "residents"')) {
+                $residentSelects[] = $query->sql;
+            }
+        });
+
+        $capture = true;
+        $response = $this->actingAs($this->luponStaff)->get('/lupon/cases')->assertOk();
+        $capture = false;
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Lupon/Cases/Index')
+            ->has('cases.data', 2)
+            ->where('cases.data.0.caseNumber', 'KP-2026-INDEX-PARTIES')
+            ->where('cases.data.0.complainantName', 'Resident complainant snapshot')
+            ->where('cases.data.0.respondentName', 'Resident respondent snapshot')
+            ->where('cases.data.0.complainantsCount', 2)
+            ->where('cases.data.0.respondentsCount', 2)
+            ->where('cases.data.1.caseNumber', 'KP-2026-INDEX-OLDER')
+            ->where('cases.data.1.complainantName', 'Older non-resident complainant')
+            ->has('cases.links'));
+
+        $this->assertCount(0, $residentSelects, 'The index uses party snapshots and does not need resident models.');
     }
 
     public function test_can_record_settlement_for_case(): void
@@ -677,7 +796,6 @@ class LuponCaseManagementTest extends TestCase
 
         // Authenticated as resident -> 403
         $residentUser = User::factory()->create([
-            'role' => 'resident',
             'barangay_id' => $this->barangay->id,
         ]);
 

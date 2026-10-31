@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\LoginAttempt;
 use App\Models\SuspiciousLoginAlert;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -149,9 +150,13 @@ class AuditLogController extends Controller
         | can never leak another barangay's account details.
         |
         */
-        $records = $query
+        $records = fn () => $query
             ->with(['actor' => function ($actorQuery) use ($barangayId) {
-                $actorQuery->select(['id', 'name', 'role']);
+                $actorQuery->select(['id', 'name'])->with([
+                    'staffAssignments' => fn ($query) => $query
+                        ->select(['id', 'user_id', 'department', 'is_active'])
+                        ->where('is_active', true),
+                ]);
 
                 if ($barangayId === null) {
                     $actorQuery->whereRaw('1 = 0');
@@ -172,7 +177,7 @@ class AuditLogController extends Controller
                         : [
                             'id' => $auditLog->actor->id,
                             'name' => $auditLog->actor->name,
-                            'role' => $auditLog->actor->role,
+                            'department' => $auditLog->actor->staffAssignments->first()?->department,
                         ],
                     'created_at' => $auditLog->created_at === null
                         ? null
@@ -183,25 +188,33 @@ class AuditLogController extends Controller
                 ];
             });
 
-        $loginAttempts = $this->loadSecuritySection(
+        $security = [];
+        $loginAttempts = fn () => $this->loadSecuritySection(
             fn () => $this->loginAttempts($barangayId),
         );
 
-        $alerts = $this->loadSecuritySection(
+        $alerts = fn () => $this->loadSecuritySection(
             fn () => $this->suspiciousAlerts(),
         );
 
+        $resolveAttempts = function () use (&$security, $loginAttempts): array {
+            return $security['attempts'] ??= $loginAttempts();
+        };
+        $resolveAlerts = function () use (&$security, $alerts): array {
+            return $security['alerts'] ??= $alerts();
+        };
+
         return Inertia::render('Admin/AuditLog', [
             'tab' => $tab,
-            'logs' => $records,
+            'logs' => $this->deferProp($records),
             'events' => self::SUPPORTED_EVENTS,
             'filters' => [
                 'event' => $eventFilter,
             ],
-            'loginAttempts' => $loginAttempts['paginator'],
-            'loginAttemptsAvailable' => $loginAttempts['available'],
-            'alerts' => $alerts['paginator'],
-            'alertsAvailable' => $alerts['available'],
+            'loginAttempts' => $this->deferProp(fn () => $resolveAttempts()['paginator']),
+            'loginAttemptsAvailable' => $this->deferProp(fn () => $resolveAttempts()['available']),
+            'alerts' => $this->deferProp(fn () => $resolveAlerts()['paginator']),
+            'alertsAvailable' => $this->deferProp(fn () => $resolveAlerts()['available']),
         ]);
     }
 
@@ -249,7 +262,7 @@ class AuditLogController extends Controller
      */
     private function emptyPaginator(): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        return new \Illuminate\Pagination\LengthAwarePaginator(
+        return new LengthAwarePaginator(
             items: [],
             total: 0,
             perPage: self::PAGE_SIZE,

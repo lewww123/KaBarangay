@@ -11,7 +11,7 @@ class StoreResidentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === 'admin';
+        return $this->user()?->hasActiveAssignment(['admin']) ?? false;
     }
 
     protected function prepareForValidation(): void
@@ -64,6 +64,17 @@ class StoreResidentRequest extends FormRequest
             'address_line' => ['required', 'string', 'max:500'],
             'mobile' => ['required', 'regex:/^09\d{9}$/'],
             'email' => ['nullable', 'email:rfc', 'max:255'],
+            'household_mode' => ['nullable', Rule::in(['none', 'new', 'existing'])],
+            'household_id' => [
+                Rule::requiredIf($this->household_mode === 'existing'),
+                'nullable',
+                'integer',
+                Rule::exists('households', 'id')->where('barangay_id', $barangayId),
+            ],
+            'household_relationship' => [
+                Rule::requiredIf(in_array($this->household_mode, ['new', 'existing'], true)),
+                'nullable', 'string', 'max:100',
+            ],
         ];
     }
 

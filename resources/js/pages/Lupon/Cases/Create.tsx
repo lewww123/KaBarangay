@@ -1,7 +1,9 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import axios from 'axios';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import LuponLayout from '@/layouts/LuponLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type ResidentOption = {
     id: number;
@@ -11,7 +13,7 @@ type ResidentOption = {
 };
 
 type Props = {
-    auth: { user: { name?: string; staff_id?: string; department?: string } };
+    auth: { user: { name?: string }; staffAssignments?: { department: string; position: string }[] };
     caseTypes: string[];
     residents: ResidentOption[];
 };
@@ -29,7 +31,11 @@ type PartyLookupState = {
     } | null;
 };
 
-export default function CreateCase({ auth, caseTypes, residents }: Props) {
+export default withDeferredPage(CreateCase, ['residents'], (props) => (
+    <LuponLayout active="cases" user={props.auth.user}><PortalPageSkeleton list rows={3} /></LuponLayout>
+));
+
+function CreateCase({ auth, caseTypes, residents }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         case_type: caseTypes[0] || 'Property / Boundary Dispute',
         custom_case_type: '',
@@ -68,6 +74,12 @@ export default function CreateCase({ auth, caseTypes, residents }: Props) {
 
     const complainantInputRef = useRef<HTMLInputElement | null>(null);
     const respondentInputRef = useRef<HTMLInputElement | null>(null);
+
+    // Start keyboard-wedge scans in the first resident lookup field. The
+    // respondent field is focused only when the operator selects it.
+    useEffect(() => {
+        complainantInputRef.current?.focus({ preventScroll: true });
+    }, []);
 
     // QR Lookup Handler for Complainant
     const handleComplainantLookup = async (tokenQuery?: string) => {

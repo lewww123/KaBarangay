@@ -39,7 +39,7 @@ final class QrAttendanceProof
 
         return Crypt::encryptString(json_encode([
             'jti' => $jti,
-            'staff_id' => $staff->id,
+            'user_id' => $staff->id,
             'resident_id' => $resident->id,
             'announcement_id' => $announcement->id,
             'expires_at' => now()->addSeconds(self::TTL_SECONDS)->getTimestamp(),
@@ -62,7 +62,7 @@ final class QrAttendanceProof
         }
 
         if (
-            (int) ($payload['staff_id'] ?? 0) !== (int) $staff->id
+            (int) ($payload['user_id'] ?? 0) !== (int) $staff->id
             || (int) ($payload['resident_id'] ?? 0) !== $residentId
             || (int) ($payload['announcement_id'] ?? 0) !== $announcementId
         ) {

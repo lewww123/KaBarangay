@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Deferred, Head, Link, router, useForm } from '@inertiajs/react';
 import {
     FormEvent,
     ReactNode,
@@ -7,6 +7,7 @@ import {
     useState,
 } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import AdminLayout from '@/layouts/AdminLayout';
 
 type Sector = {
@@ -53,6 +54,7 @@ type PendingRegistration = {
     last_resubmitted_at?: string | null;
     correction_field_options?: string[];
     correction_document_options?: string[];
+    decision_notification?: { id: number; status: string; attempts: number } | null;
 };
 
 type ResidentCandidate = {
@@ -73,13 +75,17 @@ type Stats = {
     totalResidents: number;
     activeResidents: number;
     pendingRegistrations: number;
-    pendingClaims: number;
+    totalHouseholds: number;
 };
 
 type Purok = {
     id: number;
     name: string;
+    household_count: number;
+    resident_count: number;
 };
+
+type Household = { id: number; code: string; head: string; purok: string | null; members_count: number };
 
 type Paginator<T> = {
     data: T[];
@@ -106,6 +112,8 @@ type AllResidentRow = {
     qrStatus: 'active' | 'revoked' | 'none' | null;
 };
 
+type HouseholdRow = Household;
+
 type ResidentDetails = {
     id: number;
     resident_number: string;
@@ -127,7 +135,9 @@ type ResidentDetails = {
     purok: string | null;
     account_exists: boolean;
     account_active: boolean;
+    household: { id: number; code: string; head: string | null; relationship: string | null; members: Array<{ id: number; full_name: string; relationship: string | null }> } | null;
     sectors: Sector[];
+    decision_notification?: { id: number; status: string; attempts: number } | null;
 };
 
 type RegistrationDetails = {
@@ -192,6 +202,7 @@ type Props = {
     rejectedRegistrations?: Paginator<PendingRegistration>;
     puroks?: Purok[];
     addedByAdmin?: Paginator<Resident>;
+    households?: Paginator<HouseholdRow>;
     filters?: {
         resident_search?: string;
         registration_search?: string;
@@ -206,7 +217,8 @@ type Tab =
     | 'added_by_admin'
     | 'pending'
     | 'needs_correction'
-    | 'rejected';
+    | 'rejected'
+    | 'households';
 
 type ResidentStatus = 'active' | 'inactive';
 
@@ -249,6 +261,7 @@ const RESIDENT_PARTIAL_PROPS = [
     'needsCorrectionRegistrations',
     'rejectedRegistrations',
     'addedByAdmin',
+    'households',
     'filters',
 ];
 
@@ -259,12 +272,13 @@ export default function Residents({
     rejectedRegistrations,
     puroks = [],
     addedByAdmin,
+    households,
     filters,
     stats = {
         totalResidents: 0,
         activeResidents: 0,
         pendingRegistrations: 0,
-        pendingClaims: 0,
+        totalHouseholds: 0,
     },
     flash,
 }: Props) {
@@ -287,6 +301,7 @@ export default function Residents({
 
     const rejectedPaginator: RegistrationPaginator =
         rejectedRegistrations ?? emptyPaginator<PendingRegistration>();
+    const householdPaginator = households ?? emptyPaginator<HouseholdRow>();
 
     const pendingRows = Array.isArray(pendingPaginator.data)
         ? pendingPaginator.data
@@ -304,7 +319,11 @@ export default function Residents({
         ? addedByAdminPaginator.data
         : [];
 
-    const [activeTab, setActiveTab] = useState<Tab>('all');
+    const [activeTab, setActiveTab] = useState<Tab>(() =>
+        new URLSearchParams(window.location.search).get('tab') === 'households'
+            ? 'households'
+            : 'all',
+    );
     const [registrationSearch, setRegistrationSearch] = useState(
         filters?.registration_search ?? '',
     );
@@ -318,6 +337,7 @@ export default function Residents({
     const [rejectingApplication, setRejectingApplication] =
         useState<PendingRegistration | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
+    const [emailSafeRejectionReason, setEmailSafeRejectionReason] = useState('');
     const [rejectError, setRejectError] = useState('');
     const [processingReject, setProcessingReject] = useState(false);
 
@@ -342,7 +362,12 @@ export default function Residents({
         address_line: '',
         mobile: '',
         email: '',
+        household_mode: 'none',
+        household_id: '',
+        household_relationship: '',
     });
+    const [householdSearch, setHouseholdSearch] = useState('');
+    const [householdMatches, setHouseholdMatches] = useState<Household[]>([]);
 
     const lastQueried = useRef(filters?.resident_search ?? '');
     const lastQueriedRegistration = useRef(
@@ -357,11 +382,17 @@ export default function Residents({
     const navigateResidentsWith = (
         overrides: Record<string, string | number | undefined>,
     ) => {
+        const only = 'purok' in overrides
+            ? RESIDENT_PARTIAL_PROPS
+            : 'all_page' in overrides || 'added_page' in overrides
+                ? ['allResidents', 'addedByAdmin', 'filters']
+                : ['pendingRegistrations', 'needsCorrectionRegistrations', 'rejectedRegistrations', 'filters'];
         router.get(
             '/admin/residents',
             {
                 resident_search: approvedSearch.trim() || undefined,
                 registration_search: registrationSearch.trim() || undefined,
+                tab: activeTab === 'households' ? 'households' : undefined,
                 purok: selectedPurokId ?? undefined,
                 added_page: addedByAdminPaginator.current_page,
                 all_page: allPaginator.current_page,
@@ -371,7 +402,7 @@ export default function Residents({
                 ...overrides,
             },
             {
-                only: RESIDENT_PARTIAL_PROPS,
+                only,
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
@@ -419,12 +450,31 @@ export default function Residents({
         return () => window.clearTimeout(timer);
     }, [registrationSearch, activeTab]);
 
+    useEffect(() => {
+        if (createResidentForm.data.household_mode !== 'existing' || householdSearch.trim().length < 2) {
+            setHouseholdMatches([]);
+            return;
+        }
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+            fetch(`/admin/residents/households/search?q=${encodeURIComponent(householdSearch.trim())}`, { headers: { Accept: 'application/json' }, signal: controller.signal })
+                .then((response) => response.ok ? response.json() : Promise.reject())
+                .then((payload: { data?: Household[] }) => setHouseholdMatches(Array.isArray(payload.data) ? payload.data : []))
+                .catch(() => setHouseholdMatches([]));
+        }, 250);
+        return () => { window.clearTimeout(timer); controller.abort(); };
+    }, [householdSearch, createResidentForm.data.household_mode]);
+
     const navigateResidents = (url: string) => {
+        const tabProps: Record<string, string> = {
+            all: 'allResidents', added_by_admin: 'addedByAdmin', households: 'households', pending: 'pendingRegistrations',
+            needs_correction: 'needsCorrectionRegistrations', rejected: 'rejectedRegistrations',
+        };
         router.get(
             url,
             {},
             {
-                only: RESIDENT_PARTIAL_PROPS,
+                only: tabProps[activeTab] ? [tabProps[activeTab], 'filters'] : RESIDENT_PARTIAL_PROPS,
                 preserveState: true,
                 preserveScroll: true,
             },
@@ -440,6 +490,7 @@ export default function Residents({
             purok: purokId ?? undefined,
             all_page: 1,
             added_page: 1,
+            household_page: 1,
             pending_page: 1,
             needs_correction_page: 1,
             rejected_page: 1,
@@ -664,6 +715,7 @@ export default function Residents({
         setSelectedApplication(null);
         setRejectingApplication(application);
         setRejectionReason('');
+        setEmailSafeRejectionReason('');
         setRejectError('');
         setApproveError('');
     };
@@ -724,6 +776,7 @@ export default function Residents({
         }
 
         const reason = rejectionReason.trim();
+        const emailSafeReason = emailSafeRejectionReason.trim();
 
         if (reason.length < 5) {
             setRejectError('Please enter a clear rejection reason.');
@@ -735,12 +788,13 @@ export default function Residents({
 
         router.post(
             `/admin/residents/${rejectingApplication.id}/reject`,
-            { reason },
+            { reason, email_safe_reason: emailSafeReason || null },
             {
                 preserveScroll: true,
                 onSuccess: () => {
                     setRejectingApplication(null);
                     setRejectionReason('');
+                    setEmailSafeRejectionReason('');
                     setRejectError('');
                 },
                 onError: (errors) => {
@@ -755,6 +809,17 @@ export default function Residents({
                 },
             },
         );
+    };
+
+    const retryDecisionNotification = (notificationId: number) => {
+        router.post(`/admin/resident-registration-notifications/${notificationId}/retry`, {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (details?.resident) {
+                    openResidentDetails(details.resident.id);
+                }
+            },
+        });
     };
 
     return (
@@ -781,11 +846,32 @@ export default function Residents({
                     </div>
                 </div>
 
-                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Deferred
+                    data={[
+                        'allResidents',
+                        'pendingRegistrations',
+                        'needsCorrectionRegistrations',
+                        'rejectedRegistrations',
+                        'puroks',
+                        'addedByAdmin',
+                        'households',
+                        'stats',
+                    ]}
+                    fallback={
+                        <AdminPageSkeleton
+                            metrics={2}
+                            rows={7}
+                            columns={4}
+                            showTabs
+                        />
+                    }
+                >
+                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <SummaryCard
                         title="Total Residents"
                         value={stats.totalResidents}
                     />
+                    <SummaryCard title="Households" value={stats.totalHouseholds} />
                     <SummaryCard
                         title="Active Residents"
                         value={stats.activeResidents}
@@ -805,17 +891,15 @@ export default function Residents({
                             active={activeTab === 'all'}
                             onClick={() => setActiveTab('all')}
                         />
+                        <TabButton label={`Households (${householdPaginator.total})`} active={activeTab === 'households'} onClick={() => setActiveTab('households')} />
                         <TabButton
                             label={`Added by Admin (${addedByAdminPaginator.total})`}
                             active={activeTab === 'added_by_admin'}
                             onClick={() => setActiveTab('added_by_admin')}
                         />
-                        <Link
-                            href="/admin/resident-claims"
-                            className="inline-flex min-h-11 items-center whitespace-nowrap border-b-2 border-transparent px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700"
-                        >
-                            Online Accounts
-                        </Link>
+                        <TabButton label={`Pending Accounts (${pendingPaginator.total})`} active={activeTab === 'pending'} onClick={() => setActiveTab('pending')} />
+                        <TabButton label={`Needs Correction (${needsCorrectionPaginator.total})`} active={activeTab === 'needs_correction'} onClick={() => setActiveTab('needs_correction')} />
+                        <TabButton label={`Rejected (${rejectedPaginator.total})`} active={activeTab === 'rejected'} onClick={() => setActiveTab('rejected')} />
                     </div>
 
                     <div className="pb-3">
@@ -892,6 +976,9 @@ export default function Residents({
                         }
                     />
                 )}
+                {activeTab === 'households' && (
+                    <HouseholdsTable paginator={householdPaginator} onNavigate={navigateResidents} />
+                )}
 
                 {activeTab === 'pending' && (
                     <PendingRegistrationsTable
@@ -903,6 +990,7 @@ export default function Residents({
                         onReject={openReject}
                         onApprove={openApplicationReview}
                         processingApproveId={processingApproveId}
+                        onRetryNotification={retryDecisionNotification}
                     />
                 )}
 
@@ -916,6 +1004,7 @@ export default function Residents({
                         onReject={openReject}
                         onApprove={openApplicationReview}
                         processingApproveId={processingApproveId}
+                        onRetryNotification={retryDecisionNotification}
                     />
                 )}
 
@@ -928,8 +1017,10 @@ export default function Residents({
                         onView={(application) =>
                             openRegistrationDetails(application.id)
                         }
+                        onRetryNotification={retryDecisionNotification}
                     />
                 )}
+                </Deferred>
 
                 {selectedApplication && (
                     <ApplicationModal
@@ -975,6 +1066,8 @@ export default function Residents({
                                 setRejectError('');
                             }
                         }}
+                        emailSafeReason={emailSafeRejectionReason}
+                        setEmailSafeReason={setEmailSafeRejectionReason}
                         error={rejectError}
                         processing={processingReject}
                         onCancel={() => {
@@ -984,6 +1077,7 @@ export default function Residents({
 
                             setRejectingApplication(null);
                             setRejectionReason('');
+                            setEmailSafeRejectionReason('');
                             setRejectError('');
                         }}
                         onSubmit={rejectRegistration}
@@ -1019,6 +1113,14 @@ export default function Residents({
                                             {safePuroks.map((purok) => (
                                                 <option key={purok.id} value={purok.id}>{purok.name}</option>
                                             ))}
+                                        </select>
+                                    </CreateField>
+
+                                    <CreateField label="Household" error={createResidentForm.errors.household_mode}>
+                                        <select value={createResidentForm.data.household_mode} onChange={(event) => { createResidentForm.setData('household_mode', event.target.value); createResidentForm.setData('household_id', ''); }} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+                                            <option value="none">No household assignment</option>
+                                            <option value="new">Create household, set as head</option>
+                                            <option value="existing">Attach to existing household</option>
                                         </select>
                                     </CreateField>
 
@@ -1069,6 +1171,23 @@ export default function Residents({
                                     </CreateField>
                                 </div>
 
+                                {createResidentForm.data.household_mode === 'existing' && (
+                                    <div className="rounded-lg border border-gray-200 p-3">
+                                        <CreateField label="Search household head or code" error={createResidentForm.errors.household_id}>
+                                            <input value={householdSearch} onChange={(event) => { setHouseholdSearch(event.target.value); createResidentForm.setData('household_id', ''); }} placeholder="Name or HH code" className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                                        </CreateField>
+                                        <div className="mt-2 space-y-1">
+                                            {householdMatches.map((household) => <button type="button" key={household.id} onClick={() => { createResidentForm.setData('household_id', String(household.id)); setHouseholdSearch(`${household.code} · ${household.head}`); setHouseholdMatches([]); }} className="block w-full rounded border border-gray-200 px-3 py-2 text-left text-xs hover:bg-gray-50">{household.code} · {household.head} · {household.members_count} member(s)</button>)}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {createResidentForm.data.household_mode !== 'none' && (
+                                    <CreateField label="Relationship to household head" error={createResidentForm.errors.household_relationship}>
+                                        <input value={createResidentForm.data.household_relationship} onChange={(event) => createResidentForm.setData('household_relationship', event.target.value)} placeholder={createResidentForm.data.household_mode === 'new' ? 'Head' : 'e.g. Spouse, Child'} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required />
+                                    </CreateField>
+                                )}
+
                                 <CreateField label="Address" error={createResidentForm.errors.address_line}>
                                     <textarea value={createResidentForm.data.address_line} onChange={(event) => createResidentForm.setData('address_line', event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" required />
                                 </CreateField>
@@ -1091,11 +1210,26 @@ export default function Residents({
                 )}
 
                 {details && (
-                    <ResidentDetailsModal details={details} onClose={closeDetails} />
+                    <ResidentDetailsModal
+                        details={details}
+                        onClose={closeDetails}
+                        onRetryNotification={retryDecisionNotification}
+                    />
                 )}
             </AdminLayout>
         </>
     );
+}
+
+function HouseholdsTable({ paginator, onNavigate }: { paginator: Paginator<HouseholdRow>; onNavigate: (url: string) => void }) {
+    return <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <div className="overflow-x-auto"><table className="w-full min-w-[640px]">
+            <thead className="border-b border-gray-200 bg-[#fafaf7]"><tr><TableHead>Household Code</TableHead><TableHead>Family Head</TableHead><TableHead>Purok</TableHead><TableHead>Members</TableHead></tr></thead>
+            <tbody>{paginator.data.map((household) => <tr key={household.id} className="border-b border-gray-100"><td className="px-5 py-4 font-mono text-xs font-semibold text-[#3f6f3d]">{household.code}</td><td className="px-5 py-4 text-sm text-gray-800">{household.head}</td><td className="px-5 py-4 text-sm text-gray-600">{household.purok}</td><td className="px-5 py-4 text-sm text-gray-600">{household.members_count}</td></tr>)}
+            {paginator.data.length === 0 && <tr><td colSpan={4} className="px-5 py-12 text-center text-sm text-gray-500">No households match this filter.</td></tr>}</tbody>
+        </table></div>
+        <Pagination paginator={paginator} onNavigate={onNavigate} label="households" />
+    </div>;
 }
 
 function AddedByAdminResidentsTable({
@@ -1360,6 +1494,7 @@ function PendingRegistrationsTable({
     onReject,
     onApprove,
     processingApproveId,
+    onRetryNotification,
 }: {
     applications: PendingRegistration[];
     paginator: RegistrationPaginator;
@@ -1369,6 +1504,7 @@ function PendingRegistrationsTable({
     onReject: (application: PendingRegistration) => void;
     onApprove: (application: PendingRegistration) => void;
     processingApproveId: number | null;
+    onRetryNotification: (notificationId: number) => void;
 }) {
     return (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -1403,6 +1539,11 @@ function PendingRegistrationsTable({
                                     <p className="mt-0.5 text-xs text-gray-400">
                                         {application.mobile}
                                     </p>
+                                    {application.decision_notification && (
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Decision email: {application.decision_notification.status}
+                                        </p>
+                                    )}
                                 </td>
 
                                 <td className="px-5 py-4 text-sm text-gray-600">
@@ -1426,6 +1567,14 @@ function PendingRegistrationsTable({
                                         >
                                             View
                                         </button>
+
+                                        {application.decision_notification?.status === 'failed' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onRetryNotification(application.decision_notification!.id)}
+                                                className="rounded-md border border-amber-300 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-50"
+                                            >Retry email</button>
+                                        )}
 
                                         <button
                                             type="button"
@@ -1605,12 +1754,14 @@ function RejectedRegistrationsTable({
     onNavigate,
     searchActive,
     onView,
+    onRetryNotification,
 }: {
     applications: PendingRegistration[];
     paginator: RegistrationPaginator;
     onNavigate: (url: string) => void;
     searchActive: boolean;
     onView: (application: PendingRegistration) => void;
+    onRetryNotification: (notificationId: number) => void;
 }) {
     return (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -1645,6 +1796,11 @@ function RejectedRegistrationsTable({
                                     <p className="mt-0.5 text-xs text-gray-400">
                                         {application.mobile}
                                     </p>
+                                    {application.decision_notification && (
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Decision email: {application.decision_notification.status}
+                                        </p>
+                                    )}
                                 </td>
 
                                 <td className="px-5 py-4 text-sm text-gray-600">
@@ -1665,6 +1821,13 @@ function RejectedRegistrationsTable({
 
                                 <td className="px-5 py-4">
                                     <div className="flex justify-end">
+                                        {application.decision_notification?.status === 'failed' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onRetryNotification(application.decision_notification!.id)}
+                                                className="mr-2 rounded-md border border-amber-300 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-50"
+                                            >Retry email</button>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => onView(application)}
@@ -1743,33 +1906,39 @@ function fullNameOf(person: {
         .join(' ');
 }
 
-function ResidentDetailsBody({ resident }: { resident: ResidentDetails }) {
+function ResidentDetailsBody({
+    resident,
+    onRetryNotification,
+}: {
+    resident: ResidentDetails;
+    onRetryNotification: (notificationId: number) => void;
+}) {
     return (
         <div className="space-y-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Info label="Resident ID" value={resident.resident_number} />
                 <Info label="Full Name" value={fullNameOf(resident)} />
-                <Info label="Birthdate" value={resident.birthdate || '�?"'} />
-                <Info label="Sex" value={resident.sex || '�?"'} />
+                <Info label="Birthdate" value={resident.birthdate || '—'} />
+                <Info label="Sex" value={resident.sex || '—'} />
                 <Info
                     label="Civil Status"
-                    value={resident.civil_status || '�?"'}
+                    value={resident.civil_status || '—'}
                 />
-                <Info label="Mobile" value={resident.mobile || '�?"'} />
-                <Info label="Email" value={resident.email || '�?"'} />
+                <Info label="Mobile" value={resident.mobile || '—'} />
+                <Info label="Email" value={resident.email || '—'} />
                 <Info
                     label="Email Verification"
                     value={resident.email_verified ? 'Verified' : 'Unverified'}
                 />
-                <Info label="Address" value={resident.address_line || '�?"'} />
-                <Info label="Barangay" value={resident.barangay || '�?"'} />
-                <Info label="Purok" value={resident.purok || '�?"'} />
+                <Info label="Address" value={resident.address_line || '—'} />
+                <Info label="Barangay" value={resident.barangay || '—'} />
+                <Info label="Purok" value={resident.purok || '—'} />
                 <Info
                     label="Resident Status"
-                    value={resident.status || '�?"'}
+                    value={resident.status || '—'}
                 />
                 <Info label="Source" value={resident.source === 'admin' ? 'Admin-created' : 'Registration'} />
-                <Info label="Approved At" value={resident.approved_at || '�?"'} />
+                <Info label="Approved At" value={resident.approved_at || '—'} />
                 <Info
                     label="Portal Account"
                     value={
@@ -1782,7 +1951,37 @@ function ResidentDetailsBody({ resident }: { resident: ResidentDetails }) {
                 />
             </div>
 
+            {resident.decision_notification && (
+                <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+                    <p className="text-xs text-gray-600">
+                        Registration email: {resident.decision_notification.status} · {resident.decision_notification.attempts} attempt(s)
+                    </p>
+                    {resident.decision_notification.status === 'failed' && (
+                        <button
+                            type="button"
+                            onClick={() => onRetryNotification(resident.decision_notification!.id)}
+                            className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50"
+                        >Retry email</button>
+                    )}
+                </div>
+            )}
+
             <ResidentQrPanel residentId={resident.id} />
+
+            <div className="rounded-lg border border-gray-200 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Family / Household</p>
+                {resident.household ? <>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <Info label="Household code" value={resident.household.code} />
+                        <Info label="Family head" value={resident.household.head || 'Not assigned'} />
+                        <Info label="Relationship" value={resident.household.relationship || 'Not recorded'} />
+                    </div>
+                    <div className="mt-4 border-t border-gray-100 pt-3">
+                        <p className="text-xs font-medium text-gray-600">Members</p>
+                        <div className="mt-2 space-y-1 text-xs text-gray-600">{resident.household.members.map((member) => <p key={member.id}>{member.full_name}{member.relationship ? ` · ${member.relationship}` : ''}</p>)}</div>
+                    </div>
+                </> : <p className="mt-2 text-sm text-gray-500">No household assignment.</p>}
+            </div>
 
             <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
@@ -2009,9 +2208,11 @@ function RegistrationDetailsBody({
 function ResidentDetailsModal({
     details,
     onClose,
+    onRetryNotification,
 }: {
     details: DetailsState;
     onClose: () => void;
+    onRetryNotification: (notificationId: number) => void;
 }) {
     const isResident = details.type === 'resident';
 
@@ -2040,7 +2241,10 @@ function ResidentDetailsModal({
                     {!details.loading &&
                         !details.error &&
                         details.resident && (
-                            <ResidentDetailsBody resident={details.resident} />
+                            <ResidentDetailsBody
+                                resident={details.resident}
+                                onRetryNotification={onRetryNotification}
+                            />
                         )}
 
                     {!details.loading &&
@@ -2558,6 +2762,8 @@ function ApplicationDocuments({
                             <img
                                 src={document.url}
                                 alt={document.label}
+                                loading="lazy"
+                                decoding="async"
                                 className="h-56 w-full object-contain p-3"
                             />
                         </a>
@@ -2606,6 +2812,8 @@ function RejectModal({
     application,
     reason,
     setReason,
+    emailSafeReason,
+    setEmailSafeReason,
     error,
     processing,
     onCancel,
@@ -2614,6 +2822,8 @@ function RejectModal({
     application: PendingRegistration;
     reason: string;
     setReason: (value: string) => void;
+    emailSafeReason: string;
+    setEmailSafeReason: (value: string) => void;
     error: string;
     processing: boolean;
     onCancel: () => void;
@@ -2632,12 +2842,12 @@ function RejectModal({
                     <div className="p-5">
                         <div className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3">
                             <p className="text-xs leading-5 text-red-700">
-                                A rejection reason is required. This will be saved with the application so the resident can be informed why the request was rejected.
+                                The internal review note is required and visible to authorized staff. The separate resident-facing explanation is optional and is the only reason text included in the email.
                             </p>
                         </div>
 
                         <label className="mb-1.5 block text-xs font-medium text-gray-700">
-                            Reason for rejection
+                            Internal review note
                             <span className="ml-1 text-red-500">*</span>
                         </label>
 
@@ -2667,6 +2877,19 @@ function RejectModal({
                                 {reason.length}/1000
                             </p>
                         </div>
+
+                        <label className="mb-1.5 mt-4 block text-xs font-medium text-gray-700">
+                            Resident-facing explanation (optional)
+                        </label>
+                        <textarea
+                            value={emailSafeReason}
+                            onChange={(event) => setEmailSafeReason(event.target.value)}
+                            rows={3}
+                            maxLength={1000}
+                            placeholder="Write only the explanation appropriate to send to the applicant."
+                            className={[inputClass, 'resize-none'].join(' ')}
+                        />
+                        <p className="mt-1 text-[11px] text-gray-500">If omitted, the rejection decision is still saved, but no rejection email is sent.</p>
                     </div>
 
                     <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
@@ -2794,7 +3017,7 @@ function PurokTabs({
                                 : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
                         }`}
                     >
-                        {purok.name}
+                        {purok.name} ({purok.resident_count} residents, {purok.household_count} households)
                     </button>
                 ))}
 

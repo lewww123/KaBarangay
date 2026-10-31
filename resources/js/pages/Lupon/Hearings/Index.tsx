@@ -1,6 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { type FormEvent, useState } from 'react';
 import LuponLayout from '@/layouts/LuponLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type Hearing = {
     id: number;
@@ -18,7 +20,7 @@ type Hearing = {
 };
 
 type Props = {
-    auth: { user: { name?: string; staff_id?: string; department?: string } };
+    auth: { user: { name?: string }; staffAssignments?: { department: string; position: string }[] };
     hearings: {
         data: Hearing[];
         links: Array<{ url: string | null; label: string; active: boolean }>;
@@ -31,7 +33,11 @@ type Props = {
     outcomes: string[];
 };
 
-export default function HearingsIndex({ auth, hearings, filters, phases, statuses, outcomes }: Props) {
+export default withDeferredPage(HearingsIndex, ['hearings'], (props) => (
+    <LuponLayout active="hearings" user={props.auth.user}><PortalPageSkeleton /></LuponLayout>
+));
+
+function HearingsIndex({ auth, hearings, filters, phases, statuses, outcomes }: Props) {
     const [search, setSearch] = useState(filters.search);
     const [phase, setPhase] = useState(filters.phase);
     const [status, setStatus] = useState(filters.status);
@@ -39,7 +45,7 @@ export default function HearingsIndex({ auth, hearings, filters, phases, statuse
 
     const applyFilters = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        router.get('/lupon/hearings', { search, phase, status, outcome }, { preserveState: true, preserveScroll: true });
+        router.get('/lupon/hearings', { search, phase, status, outcome }, { preserveState: true, preserveScroll: true, only: ['hearings', 'filters'] });
     };
 
     const clearFilters = () => {
@@ -47,7 +53,7 @@ export default function HearingsIndex({ auth, hearings, filters, phases, statuse
         setPhase('');
         setStatus('');
         setOutcome('');
-        router.get('/lupon/hearings', {}, { preserveState: true, preserveScroll: true });
+        router.get('/lupon/hearings', {}, { preserveState: true, preserveScroll: true, only: ['hearings', 'filters'] });
     };
 
     return (
@@ -135,7 +141,7 @@ export default function HearingsIndex({ auth, hearings, filters, phases, statuse
                                 const label = link.label.replace('&laquo;', '‹').replace('&raquo;', '›');
                                 const classes = `min-w-9 rounded-lg px-3 py-2 text-center text-sm font-medium ${link.active ? 'bg-[#3f6f3d] text-white' : 'text-gray-600 hover:bg-[#f4f7ef]'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`;
                                 return link.url ? (
-                                    <Link key={`${link.label}-${index}`} href={link.url} preserveScroll className={classes} aria-current={link.active ? 'page' : undefined}>{label}</Link>
+                                    <Link key={`${link.label}-${index}`} href={link.url} preserveScroll only={['hearings', 'filters']} className={classes} aria-current={link.active ? 'page' : undefined}>{label}</Link>
                                 ) : (
                                     <span key={`${link.label}-${index}`} className={classes} aria-disabled="true">{label}</span>
                                 );

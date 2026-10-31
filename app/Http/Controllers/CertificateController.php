@@ -8,6 +8,7 @@ use App\Models\OrgChartPosition;
 use App\Models\Resident;
 use App\Support\AuditLogger;
 use App\Support\CertificateRequestDetails;
+use App\Support\CertificatePlaceholders;
 use App\Support\CertificateRequestWorkflow;
 use App\Support\CertificateTemplates;
 use App\Support\DelayedPsaCertificate;
@@ -17,10 +18,12 @@ use Closure;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\TemplateProcessor;
 use Throwable;
 
@@ -35,6 +38,16 @@ class CertificateController extends Controller
 
     public function generate(Request $request)
     {
+        return $this->renderCertificate($request, false);
+    }
+
+    public function preview(Request $request)
+    {
+        return $this->renderCertificate($request, true);
+    }
+
+    private function renderCertificate(Request $request, bool $preview)
+    {
         // The validation rules are certificate-type dependent, so the
         // submitted type is read first to build the right rule set. The type
         // itself is still validated below, and an unknown type simply falls
@@ -42,7 +55,11 @@ class CertificateController extends Controller
         $submittedType = $request->input('certificate_type');
         $submittedType = is_string($submittedType) ? $submittedType : '';
 
-        $validated = $request->validate($this->rulesFor($submittedType));
+        $rules = $this->rulesFor($submittedType);
+        if ($preview) {
+            unset($rules['details_confirmed']);
+        }
+        $validated = $request->validate($rules);
 
         // Barangay and issuer are derived exclusively from the authenticated
         // server-side user; client-supplied values are never trusted.
@@ -223,6 +240,13 @@ class CertificateController extends Controller
         // server-stored fee; manual generation stores null.
         $feeSnapshot = $linkedRequest !== null ? $linkedRequest->fee : null;
 
+        // A request may supply the resident even when no resident_id was sent.
+        // Use that resident's authoritative identity for both preview and issue.
+        if ($resident !== null) {
+            $validated['resident_name'] = $resident->full_name;
+            $validated['purok'] = $resident->purok?->name ?? $validated['purok'] ?? null;
+        }
+
         // The purok that is printed on the certificate and recorded on the
         // issuance history. For the Delayed PSA certificate it is resolved
         // from the linked resident profile first, with the clerk-entered
@@ -287,11 +311,21 @@ class CertificateController extends Controller
             $purokSnapshot = (string) $residencyDetails['purok'];
         }
 
+        $validated['purok'] = $purokSnapshot;
+        foreach ($validated as $key => $value) {
+            if ($key !== 'purok' && is_string($value)) {
+                $validated[$key] = CertificatePlaceholders::replaceText($value, $purokSnapshot ?? '');
+            }
+        }
+
         // Build the document first. This must complete before any issuance is
         // recorded, and the filename must be unique so concurrent generations
         // never overwrite one another.
-        $outputPath = storage_path('app/public/Certificate_'.Str::uuid().'.docx');
+        $outputDirectory = storage_path('app/certificates');
+        File::ensureDirectoryExists($outputDirectory);
+        $outputPath = $outputDirectory.'/Certificate_'.Str::uuid().'.docx';
 
+        $originalEscaping = Settings::isOutputEscapingEnabled();
         try {
             $this->buildDocument(
                 $templatePath,
@@ -302,12 +336,23 @@ class CertificateController extends Controller
                 $marriageDetails,
                 $residencyDetails,
             );
+            CertificatePlaceholders::fillDocx($outputPath, mb_strtoupper($purokSnapshot ?? ''));
         } catch (Throwable $exception) {
             report($exception);
+            $this->cleanup($outputPath);
 
             return back()->withErrors([
                 'certificate_type' => 'The certificate could not be generated. Please try again.',
             ]);
+        } finally {
+            Settings::setOutputEscapingEnabled($originalEscaping);
+        }
+
+        if ($preview) {
+            return response()->download($outputPath, 'Certificate_Preview.docx', [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Cache-Control' => 'private, no-store, max-age=0',
+            ])->deleteFileAfterSend(true);
         }
 
         // Persist the issuance record before returning the download. A
@@ -363,7 +408,15 @@ class CertificateController extends Controller
             $request->ip(),
         );
 
-        return response()->download($outputPath)->deleteFileAfterSend(true);
+        return response()->download(
+            $outputPath,
+            'Certificate_'.$issuance->reference.'.docx',
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Cache-Control' => 'private, no-store, max-age=0',
+                'X-Certificate-Issuance-Status' => $issuance->status,
+            ],
+        )->deleteFileAfterSend(true);
     }
 
     /**
@@ -458,7 +511,11 @@ class CertificateController extends Controller
         ?array $marriageDetails = null,
         ?array $residencyDetails = null,
     ): void {
+        Settings::setOutputEscapingEnabled(true);
         $templateProcessor = new TemplateProcessor($templatePath);
+        foreach (['PUROK', 'RESIDENT_PUROK'] as $alias) {
+            $templateProcessor->setValue($alias, mb_strtoupper($validated['purok'] ?? ''));
+        }
 
         if (DelayedPsaCertificate::isType($certType)) {
             // The Delayed PSA template has its own merge-field contract, so
@@ -565,6 +622,7 @@ class CertificateController extends Controller
             'certificate_request_id' => $linkedRequest?->id,
             'resident_id' => $resident?->id,
             'certificate_type' => $certType,
+            'status' => CertificateIssuance::STATUS_ISSUED,
             'control_no' => $validated['control_no'],
             // The Marriage Cohabitation certificate names the resident from
             // the resident profile, so its snapshot is the trusted name and

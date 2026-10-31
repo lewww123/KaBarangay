@@ -121,7 +121,7 @@ class AnnouncementAuditEventsTest extends TestCase
 
         $row = $this->rows()->first();
 
-        $this->assertSame('announcement.created', $row->event);
+        $this->assertSame('program.published', $row->event);
         $this->assertSame('senior_citizens', $announcement->target_audience);
         $this->assertSame($senior->id, (int) $row->actor_id);
         $this->assertSame($announcement->id, (int) $row->entity_id);
@@ -143,7 +143,7 @@ class AnnouncementAuditEventsTest extends TestCase
 
         $row = $this->rows()->first();
 
-        $this->assertSame('announcement.created', $row->event);
+        $this->assertSame('program.published', $row->event);
         $this->assertSame('pwd', $announcement->target_audience);
         $this->assertSame($pwd->id, (int) $row->actor_id);
     }
@@ -456,23 +456,16 @@ class AnnouncementAuditEventsTest extends TestCase
 
         $row = $rows->first();
 
-        $this->assertSame('announcement.resubmitted', $row->event);
+        $this->assertSame('program.published', $row->event);
         $this->assertSame($senior->id, (int) $row->actor_id);
         $this->assertSame($this->barangay->id, (int) $row->barangay_id);
         $this->assertSame('announcement', $row->entity_type);
         $this->assertSame($announcement->id, (int) $row->entity_id);
         $this->assertSame(
-            ['previous_status' => 'approved', 'new_status' => 'pending'],
+            ['new_status' => 'ongoing'],
             json_decode($row->context, true)
         );
-
-        $this->assertDatabaseHas('announcement_approval_logs', [
-            'announcement_id' => $announcement->id,
-            'actor_id' => $senior->id,
-            'action' => 'resubmitted',
-            'previous_status' => 'approved',
-            'new_status' => 'pending',
-        ]);
+        $this->assertDatabaseMissing('announcement_approval_logs', ['announcement_id' => $announcement->id, 'action' => 'resubmitted']);
     }
 
     public function test_senior_deletion_records_deleted_event(): void
@@ -540,22 +533,15 @@ class AnnouncementAuditEventsTest extends TestCase
 
         $row = $rows->first();
 
-        $this->assertSame('announcement.resubmitted', $row->event);
+        $this->assertSame('program.published', $row->event);
         $this->assertSame($pwd->id, (int) $row->actor_id);
         $this->assertSame($this->barangay->id, (int) $row->barangay_id);
         $this->assertSame($announcement->id, (int) $row->entity_id);
         $this->assertSame(
-            ['previous_status' => 'approved', 'new_status' => 'pending'],
+            ['new_status' => 'ongoing'],
             json_decode($row->context, true)
         );
-
-        $this->assertDatabaseHas('announcement_approval_logs', [
-            'announcement_id' => $announcement->id,
-            'actor_id' => $pwd->id,
-            'action' => 'resubmitted',
-            'previous_status' => 'approved',
-            'new_status' => 'pending',
-        ]);
+        $this->assertDatabaseMissing('announcement_approval_logs', ['announcement_id' => $announcement->id, 'action' => 'resubmitted']);
     }
 
     public function test_pwd_deletion_records_deleted_event(): void

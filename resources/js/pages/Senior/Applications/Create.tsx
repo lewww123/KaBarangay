@@ -3,7 +3,7 @@ import SeniorLayout from '@/layouts/SeniorLayout';
 import SectorApplicationWizard from '@/components/sectors/SectorApplicationWizard';
 
 interface Props {
-    auth?: { user?: { name?: string; staff_id?: string; department?: string } };
+    auth?: { user?: { name?: string }; staffAssignments?: { department: string; position: string }[] };
 }
 
 export default function SeniorApplicationCreate({ auth }: Props) {

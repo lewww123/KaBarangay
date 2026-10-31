@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Resident;
 use App\Models\SectorApplication;
 use App\Services\SectorApplicationService;
+use App\Support\ResidentContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,48 +21,12 @@ class SectorApplicationController extends Controller
             abort(401, 'Resident authentication required.');
         }
 
-        return Resident::query()
-            ->with(['barangay', 'sectors', 'purok'])
-            ->where('id', $residentId)
-            ->where('status', 'active')
-            ->firstOrFail();
+        return ResidentContext::get(['barangay', 'sectors', 'purok']);
     }
 
     public function index(): Response
     {
         $resident = $this->getAuthenticatedResident();
-
-        $applications = SectorApplication::query()
-            ->with(['sector', 'staffReviewedBy', 'adminDecidedBy', 'documents'])
-            ->where('resident_id', $resident->id)
-            ->latest()
-            ->get()
-            ->map(fn (SectorApplication $app) => [
-                'id' => $app->id,
-                'tracking_number' => $app->tracking_number,
-                'resident_id' => $app->resident_id,
-                'resident_number' => $resident->resident_number,
-                'applicant_name' => $resident->full_name,
-                'purok' => $resident->purok?->name ?? '—',
-                'sector' => $app->sector->slug,
-                'sector_name' => $app->sector->name,
-                'submission_type' => $app->submission_type,
-                'status' => $app->status,
-                'submitted_at' => $app->created_at->format('M d, Y'),
-                'reviewed_by_staff_name' => $app->staffReviewedBy?->name,
-                'staff_review_notes' => $app->staff_review_notes,
-                'admin_decision_notes' => $app->admin_decision_notes,
-                'admin_decided_at' => $app->admin_decided_at?->format('M d, Y'),
-                'documents' => $app->documents->map(fn ($doc) => [
-                    'id' => $doc->id,
-                    'title' => $doc->title,
-                    'type' => $doc->document_type,
-                    'file_name' => $doc->original_name,
-                    'file_size' => round($doc->file_size / 1024) . ' KB',
-                    'verification_status' => $doc->verification_status,
-                    'url' => route('sector-applications.documents.show', [$app->id, $doc->id]),
-                ])->values()->all(),
-            ]);
 
         return Inertia::render('Resident/SectorApplications/Index', [
             'resident' => [
@@ -75,7 +40,37 @@ class SectorApplicationController extends Controller
                     'slug' => $s->slug,
                 ])->values(),
             ],
-            'applications' => $applications,
+            'applications' => $this->deferProp(fn () => SectorApplication::query()
+                ->with(['sector', 'staffReviewedBy', 'adminDecidedBy', 'documents'])
+                ->where('resident_id', $resident->id)
+                ->latest()
+                ->get()
+                ->map(fn (SectorApplication $app) => [
+                    'id' => $app->id,
+                    'tracking_number' => $app->tracking_number,
+                    'resident_id' => $app->resident_id,
+                    'resident_number' => $resident->resident_number,
+                    'applicant_name' => $resident->full_name,
+                    'purok' => $resident->purok?->name ?? '—',
+                    'sector' => $app->sector->slug,
+                    'sector_name' => $app->sector->name,
+                    'submission_type' => $app->submission_type,
+                    'status' => $app->status,
+                    'submitted_at' => $app->created_at->format('M d, Y'),
+                    'reviewed_by_staff_name' => $app->staffReviewedBy?->name,
+                    'staff_review_notes' => $app->staff_review_notes,
+                    'admin_decision_notes' => $app->admin_decision_notes,
+                    'admin_decided_at' => $app->admin_decided_at?->format('M d, Y'),
+                    'documents' => $app->documents->map(fn ($doc) => [
+                        'id' => $doc->id,
+                        'title' => $doc->title,
+                        'type' => $doc->document_type,
+                        'file_name' => $doc->original_name,
+                        'file_size' => round($doc->file_size / 1024).' KB',
+                        'verification_status' => $doc->verification_status,
+                        'url' => route('sector-applications.documents.show', [$app->id, $doc->id]),
+                    ])->values()->all(),
+                ])),
         ]);
     }
 
@@ -96,7 +91,7 @@ class SectorApplicationController extends Controller
                 $formattedDocs[] = [
                     'file' => $file,
                     'type' => $validated['sector'] === 'senior' ? 'senior_proof' : 'pwd_proof',
-                    'title' => ucfirst($validated['sector']) . ' Proof Document #' . ($index + 1),
+                    'title' => ucfirst($validated['sector']).' Proof Document #'.($index + 1),
                 ];
             }
         }
@@ -109,7 +104,7 @@ class SectorApplicationController extends Controller
         );
 
         return redirect()->route('resident.sector-applications')
-            ->with('success', 'Your application ' . $application->tracking_number . ' has been submitted.');
+            ->with('success', 'Your application '.$application->tracking_number.' has been submitted.');
     }
 
     /**
@@ -120,7 +115,7 @@ class SectorApplicationController extends Controller
         $resident = $this->getAuthenticatedResident();
 
         // Fetch the application without performing any state change.
-        $application = \App\Models\SectorApplication::with(['sector', 'documents'])
+        $application = SectorApplication::with(['sector', 'documents'])
             ->where('id', $id)
             ->where('resident_id', $resident->id)
             ->firstOrFail();
@@ -136,7 +131,7 @@ class SectorApplicationController extends Controller
                 'sector' => $application->sector->slug,
                 'details' => $application->details,
                 'correction_notes' => $application->correction_notes,
-                'documents' => $application->documents->map(fn($doc) => [
+                'documents' => $application->documents->map(fn ($doc) => [
                     'id' => $doc->id,
                     'title' => $doc->title,
                     'type' => $doc->document_type,
@@ -160,7 +155,7 @@ class SectorApplicationController extends Controller
         ]);
 
         // Derive the sector from the existing application record (server-side, not from request)
-        $existingApp = \App\Models\SectorApplication::with('sector')
+        $existingApp = SectorApplication::with('sector')
             ->where('id', $id)
             ->where('resident_id', $resident->id)
             ->firstOrFail();
@@ -172,7 +167,7 @@ class SectorApplicationController extends Controller
                 $formattedDocs[] = [
                     'file' => $file,
                     'type' => $sectorSlug === 'senior' ? 'senior_proof' : 'pwd_proof',
-                    'title' => 'Correction Document #' . ($index + 1),
+                    'title' => 'Correction Document #'.($index + 1),
                 ];
             }
         }
@@ -185,6 +180,6 @@ class SectorApplicationController extends Controller
         );
 
         return redirect()->route('resident.sector-applications')
-            ->with('success', 'Your corrected application ' . $application->tracking_number . ' has been resubmitted.');
+            ->with('success', 'Your corrected application '.$application->tracking_number.' has been resubmitted.');
     }
 }

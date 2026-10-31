@@ -3,9 +3,10 @@
 namespace App\Support;
 
 use App\Mail\ResidentApprovalMail;
-use App\Mail\ResidentClaimInvitationMail;
+use App\Mail\LuponSummonsIssuedMail;
+use App\Mail\ResidentRegistrationInvitationMail;
+use App\Models\LuponCase;
 use App\Models\Resident;
-use App\Models\ResidentClaim;
 use App\Models\ResidentNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,18 +16,16 @@ use Throwable;
 
 final class ResidentNotificationService
 {
-    public function enqueueApprovalConfirmation(
-        Resident $resident,
-        ResidentClaim $claim
-    ): ResidentNotification {
+    public function enqueueRegistrationInvitation(Resident $resident): ResidentNotification
+    {
         return ResidentNotification::query()->firstOrCreate(
             [
-                'event_key' => 'resident.approval.'.$claim->id,
+                'event_key' => 'resident.registration-invitation.'.$resident->id,
             ],
             [
-                'type' => ResidentNotification::TYPE_APPROVAL_CONFIRMATION,
+                'type' => ResidentNotification::TYPE_REGISTRATION_INVITATION,
                 'resident_id' => $resident->id,
-                'resident_claim_id' => $claim->id,
+                'resident_claim_id' => null,
                 'recipient_email' => (string) $resident->email,
                 'recipient_name' => $resident->full_name,
                 'status' => ResidentNotification::STATUS_PENDING,
@@ -34,19 +33,17 @@ final class ResidentNotificationService
         );
     }
 
-    public function enqueueRegistrationInvitation(Resident $resident): ResidentNotification
+    public function enqueueLuponSummons(Resident $resident, LuponCase $case): ResidentNotification
     {
         return ResidentNotification::query()->firstOrCreate(
+            ['event_key' => 'lupon.summons-issued.'.$case->id.'.'.$resident->id],
             [
-                'event_key' => 'resident.claim-invitation.'.$resident->id,
-            ],
-            [
-                'type' => ResidentNotification::TYPE_CLAIM_INVITATION,
+                'type' => ResidentNotification::TYPE_LUPON_SUMMONS_ISSUED,
                 'resident_id' => $resident->id,
-                'resident_claim_id' => null,
                 'recipient_email' => (string) $resident->email,
                 'recipient_name' => $resident->full_name,
                 'status' => ResidentNotification::STATUS_PENDING,
+                'context' => ['case_number' => $case->case_number],
             ],
         );
     }
@@ -107,10 +104,15 @@ final class ResidentNotificationService
                     residentName: $notification->recipient_name,
                     loginUrl: route('resident.login'),
                 ),
-            ResidentNotification::TYPE_CLAIM_INVITATION =>
-                new ResidentClaimInvitationMail(
+            ResidentNotification::TYPE_REGISTRATION_INVITATION =>
+                new ResidentRegistrationInvitationMail(
                     residentName: $notification->recipient_name,
                     registrationUrl: route('resident.register'),
+                ),
+            ResidentNotification::TYPE_LUPON_SUMMONS_ISSUED =>
+                new LuponSummonsIssuedMail(
+                    residentName: $notification->recipient_name,
+                    caseNumber: (string) ($notification->context['case_number'] ?? 'KP case'),
                 ),
             default => throw new LogicException(
                 'Unsupported resident notification type.'

@@ -159,7 +159,8 @@ class AdminAuditLogTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->where('logs.data.0.actor.id', $admin->id)
                 ->where('logs.data.0.actor.name', $admin->name)
-                ->where('logs.data.0.actor.role', 'admin')
+                ->where('logs.data.0.actor.department', 'admin')
+                ->missing('logs.data.0.actor.role')
                 ->missing('logs.data.0.actor.email')
                 ->missing('logs.data.0.actor.staff_id')
                 ->missing('logs.data.0.actor.password'));

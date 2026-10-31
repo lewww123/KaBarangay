@@ -64,7 +64,7 @@ class ClerkCertificateIssuanceTest extends TestCase
 
     public function test_unauthenticated_access_redirects_to_login(): void
     {
-        $this->get('/clerk/certificates?tab=issued')->assertRedirect('/login');
+        $this->get('/clerk/certificates?tab=issued')->assertRedirect(route('login'));
     }
 
     public function test_unauthorized_roles_receive_403(): void
@@ -280,6 +280,7 @@ class ClerkCertificateIssuanceTest extends TestCase
             'certificate_type',
             'resident',
             'purok',
+            'status',
             'issued_at',
             'issued_by',
         ], array_keys($row));

@@ -1,11 +1,12 @@
-import { Head, router } from '@inertiajs/react';
+import { Deferred, Head, router } from '@inertiajs/react';
+import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import AdminLayout from '@/layouts/AdminLayout';
 import { useEffect, useRef, useState } from 'react';
 
 interface Actor {
     id: number;
     name: string;
-    role: string;
+    department: string | null;
 }
 
 interface AuditLogEntry {
@@ -125,7 +126,11 @@ function formatEventLabel(event: string): string {
         .join(' · ');
 }
 
-export default function AuditLog({
+export default function AuditLog(props: Props) {
+    return <Deferred data={['logs', 'loginAttempts', 'loginAttemptsAvailable', 'alerts', 'alertsAvailable']} fallback={<AdminLayout active="audit-log"><AdminPageSkeleton showTabs /></AdminLayout>}><AuditLogContent {...props} /></Deferred>;
+}
+
+function AuditLogContent({
     logs,
     events,
     filters,
@@ -269,6 +274,7 @@ export default function AuditLog({
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
+                only: ['logs', 'filters'],
             },
         );
     };

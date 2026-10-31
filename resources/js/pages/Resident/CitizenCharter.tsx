@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Deferred, Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import {
@@ -8,6 +8,7 @@ import {
     type Paginator,
 } from '@/components/citizen-charter/charter';
 import ResidentLayout from '@/layouts/ResidentLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 
 type Props = {
     services: Paginator<CitizenCharterServiceData>;
@@ -21,7 +22,18 @@ type Props = {
     };
 };
 
-export default function ResidentCitizenCharter({
+export default function ResidentCitizenCharter(props: Props) {
+    return (
+        <Deferred
+            data={['services', 'categories']}
+            fallback={<ResidentLayout active="charter"><PortalPageSkeleton list /></ResidentLayout>}
+        >
+            <CitizenCharterContent {...props} />
+        </Deferred>
+    );
+}
+
+function CitizenCharterContent({
     services,
     categories,
     filters,
@@ -38,6 +50,7 @@ export default function ResidentCitizenCharter({
             },
             {
                 preserveScroll: true,
+                only: ['services', 'filters'],
             }
         );
     };
@@ -214,7 +227,7 @@ export default function ResidentCitizenCharter({
                                     key={idx}
                                     type="button"
                                     disabled={!link.url}
-                                    onClick={() => link.url && router.get(link.url, {}, { preserveScroll: true })}
+                                    onClick={() => link.url && router.get(link.url, {}, { preserveScroll: true, only: ['services', 'filters'] })}
                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                     className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                         link.active

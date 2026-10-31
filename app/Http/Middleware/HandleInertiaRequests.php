@@ -38,16 +38,31 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            'name' => config('app.name'),
-            'auth' => [
-                'user' => $request->user(),
-            ],
-            'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'warning' => fn () => $request->session()->get('warning'),
-                'error' => fn () => $request->session()->get('error'),
-                'info' => fn () => $request->session()->get('info'),
-                'attendance_outcome' => fn () => $request->session()->get('attendance_outcome'),
+            'name' => fn () => config('app.name'),
+            'auth' => function () use ($request): array {
+                $user = $request->user();
+
+                return [
+                    'user' => $user,
+                    'staffAssignments' => \Inertia\Inertia::optional(fn () => $user?->staffAssignments()
+                        ->where('is_active', true)
+                        ->with('barangay:id,name')
+                        ->select(['id', 'user_id', 'barangay_id', 'department', 'position'])
+                        ->get()
+                        ->map(fn ($assignment) => [
+                            'department' => $assignment->department,
+                            'position' => $assignment->position,
+                            'barangay' => $assignment->barangay?->name,
+                        ])
+                        ->values() ?? []),
+                ];
+            },
+            'flash' => fn () => [
+                'success' => $request->session()->get('success'),
+                'warning' => $request->session()->get('warning'),
+                'error' => $request->session()->get('error'),
+                'info' => $request->session()->get('info'),
+                'attendance_outcome' => $request->session()->get('attendance_outcome'),
             ],
             // Certificate types and whether an approved template is available.
             // Drives the "Coming Soon" state in the clerk certificate form.

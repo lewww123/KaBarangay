@@ -47,7 +47,7 @@ class LuponCaseController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized access to Lupon cases.');
         }
 
@@ -58,8 +58,7 @@ class LuponCaseController extends Controller
         $query = LuponCase::query()
             ->where('barangay_id', $user->barangay_id)
             ->with([
-                'complainants.resident',
-                'respondents',
+                'parties',
                 'hearings' => fn ($q) => $q->latest('hearing_date')->limit(1),
             ])
             ->latest('filed_date');
@@ -81,48 +80,59 @@ class LuponCaseController extends Controller
             $query->where('phase', $phaseFilter);
         }
 
-        $cases = $query->paginate(15)->withQueryString()->through(function (LuponCase $case) {
-            $primaryComplainant = $case->complainants->firstWhere('is_primary', true) ?? $case->complainants->first();
-            $primaryRespondent = $case->respondents->firstWhere('is_primary', true) ?? $case->respondents->first();
-            $latestHearing = $case->hearings->first();
-
-            return [
-                'id' => $case->id,
-                'caseNumber' => $case->case_number,
-                'origin' => $case->origin,
-                'title' => $case->title,
-                'caseType' => $case->case_type,
-                'phase' => $case->phase,
-                'status' => $case->status,
-                'filedDate' => $case->filed_date->format('F j, Y'),
-                'complainantName' => $primaryComplainant?->name ?? 'Unknown',
-                'respondentName' => $primaryRespondent?->name ?? 'Unknown',
-                'complainantsCount' => $case->complainants->count(),
-                'respondentsCount' => $case->respondents->count(),
-                'latestHearing' => $latestHearing ? [
-                    'number' => $latestHearing->hearing_number,
-                    'date' => $latestHearing->hearing_date->format('F j, Y'),
-                    'time' => $latestHearing->hearing_time,
-                    'status' => $latestHearing->status,
-                ] : null,
-            ];
-        });
-
-        $counts = [
-            'total' => LuponCase::where('barangay_id', $user->barangay_id)->count(),
-            'active' => LuponCase::where('barangay_id', $user->barangay_id)->whereIn('status', ['Active', 'Under Mediation', 'Under Conciliation'])->count(),
-            'settled' => LuponCase::where('barangay_id', $user->barangay_id)->where('status', 'Settled')->count(),
-            'unresolved' => LuponCase::where('barangay_id', $user->barangay_id)->where('status', 'Unresolved')->count(),
-        ];
+        $barangayId = $user->barangay_id;
 
         return Inertia::render('Lupon/Cases/Index', [
-            'cases' => $cases,
+            'cases' => $this->deferProp(fn () => $query->paginate(15)->withQueryString()->through(function (LuponCase $case) {
+                $case->setRelation('complainants', $case->parties->where('party_type', 'complainant')->values());
+                $case->setRelation('respondents', $case->parties->where('party_type', 'respondent')->values());
+                $primaryComplainant = $case->complainants->firstWhere('is_primary', true) ?? $case->complainants->first();
+                $primaryRespondent = $case->respondents->firstWhere('is_primary', true) ?? $case->respondents->first();
+                $latestHearing = $case->hearings->first();
+
+                return [
+                    'id' => $case->id,
+                    'caseNumber' => $case->case_number,
+                    'origin' => $case->origin,
+                    'title' => $case->title,
+                    'caseType' => $case->case_type,
+                    'phase' => $case->phase,
+                    'status' => $case->status,
+                    'filedDate' => $case->filed_date->format('F j, Y'),
+                    'complainantName' => $primaryComplainant?->name ?? 'Unknown',
+                    'respondentName' => $primaryRespondent?->name ?? 'Unknown',
+                    'complainantsCount' => $case->complainants->count(),
+                    'respondentsCount' => $case->respondents->count(),
+                    'latestHearing' => $latestHearing ? [
+                        'number' => $latestHearing->hearing_number,
+                        'date' => $latestHearing->hearing_date->format('F j, Y'),
+                        'time' => $latestHearing->hearing_time,
+                        'status' => $latestHearing->status,
+                    ] : null,
+                ];
+            })),
             'filters' => [
                 'search' => $search ?? '',
                 'status' => $statusFilter ?? '',
                 'phase' => $phaseFilter ?? '',
             ],
-            'counts' => $counts,
+            'counts' => $this->deferProp(fn () => $this->rememberAggregate(
+                "lupon:cases:counts:{$barangayId}",
+                30,
+                function () use ($barangayId): array {
+                    $counts = LuponCase::query()
+                        ->where('barangay_id', $barangayId)
+                        ->selectRaw("COUNT(*) as total, COUNT(CASE WHEN status IN ('Active', 'Under Mediation', 'Under Conciliation') THEN 1 END) as active, COUNT(CASE WHEN status = 'Settled' THEN 1 END) as settled, COUNT(CASE WHEN status = 'Unresolved' THEN 1 END) as unresolved")
+                        ->first();
+
+                    return [
+                        'total' => (int) $counts->total,
+                        'active' => (int) $counts->active,
+                        'settled' => (int) $counts->settled,
+                        'unresolved' => (int) $counts->unresolved,
+                    ];
+                },
+            )),
             'phases' => self::PHASES,
             'statuses' => self::STATUSES,
         ]);
@@ -135,25 +145,23 @@ class LuponCaseController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized access.');
         }
 
-        $residents = Resident::query()
-            ->where('barangay_id', $user->barangay_id)
-            ->where('status', 'active')
-            ->select('id', 'first_name', 'middle_name', 'last_name', 'resident_number', 'mobile')
-            ->get()
-            ->map(fn ($r) => [
-                'id' => $r->id,
-                'name' => $r->full_name,
-                'residentNumber' => $r->resident_number,
-                'mobile' => $r->mobile,
-            ]);
-
         return Inertia::render('Lupon/Cases/Create', [
             'caseTypes' => self::CASE_TYPES,
-            'residents' => $residents,
+            'residents' => $this->deferProp(fn () => Resident::query()
+                ->where('barangay_id', $user->barangay_id)
+                ->where('status', 'active')
+                ->select('id', 'first_name', 'middle_name', 'last_name', 'resident_number', 'mobile')
+                ->get()
+                ->map(fn ($r) => [
+                    'id' => $r->id,
+                    'name' => $r->full_name,
+                    'residentNumber' => $r->resident_number,
+                    'mobile' => $r->mobile,
+                ])),
         ]);
     }
 
@@ -164,7 +172,7 @@ class LuponCaseController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized access.');
         }
 
@@ -235,7 +243,7 @@ class LuponCaseController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -277,7 +285,7 @@ class LuponCaseController extends Controller
         }
 
         $resolvedCaseType = $validated['case_type'] === 'Other'
-            ? 'Other: ' . trim($validated['custom_case_type'])
+            ? 'Other: '.trim($validated['custom_case_type'])
             : $validated['case_type'];
 
         $newCase = $this->createManualCaseWithRetry($validated, $resolvedCaseType, $user, $request);
@@ -370,6 +378,7 @@ class LuponCaseController extends Controller
             } catch (QueryException $exception) {
                 if ($this->isUniqueViolation($exception)) {
                     $attempts++;
+
                     continue;
                 }
                 throw $exception;
@@ -386,7 +395,7 @@ class LuponCaseController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized access to Lupon cases.');
         }
 
@@ -394,17 +403,20 @@ class LuponCaseController extends Controller
             abort(403, 'Unauthorized access to case from another barangay.');
         }
 
-        $case->load([
-            'complaint.resident',
-            'complainants.resident',
-            'respondents.resident',
-            'hearings.officer',
-            'settlement.recorder',
-            'creator',
-            'assignedStaff',
-        ]);
+        $loadCase = function () use ($case): void {
+            $case->load([
+                'complaint',
+                'parties.resident',
+                'hearings.officer',
+                'settlement.recorder',
+                'creator',
+                'assignedStaff',
+            ]);
+            $case->setRelation('complainants', $case->parties->where('party_type', 'complainant')->values());
+            $case->setRelation('respondents', $case->parties->where('party_type', 'respondent')->values());
+        };
 
-        $barangayResidents = Resident::query()
+        $barangayResidents = fn () => Resident::query()
             ->where('barangay_id', $user->barangay_id)
             ->where('status', 'active')
             ->select('id', 'first_name', 'middle_name', 'last_name', 'resident_number')
@@ -416,71 +428,75 @@ class LuponCaseController extends Controller
             ]);
 
         return Inertia::render('Lupon/Cases/Show', [
-            'caseData' => [
-                'id' => $case->id,
-                'caseNumber' => $case->case_number,
-                'origin' => $case->origin,
-                'title' => $case->title,
-                'caseType' => $case->case_type,
-                'phase' => $case->phase,
-                'status' => $case->status,
-                'filedDate' => $case->filed_date->format('F j, Y'),
-                'promotedAt' => $case->promoted_at?->format('F j, Y g:i A'),
-                'createdByName' => $case->creator?->name,
-                'assignedStaffName' => $case->assignedStaff?->name,
-                'complaint' => $case->complaint ? [
-                    'id' => $case->complaint->id,
-                    'reference' => $case->complaint->reference,
-                    'incidentDate' => $case->complaint->incident_date?->format('F j, Y'),
-                    'incidentLocation' => $case->complaint->incident_location,
-                    'narrative' => $case->complaint->narrative,
-                    'requestedAction' => $case->complaint->requested_action,
-                    'luponNote' => $case->complaint->lupon_note,
-                ] : null,
-                'complainants' => $case->complainants->map(fn ($p) => [
-                    'id' => $p->id,
-                    'name' => $p->name,
-                    'isResident' => $p->is_resident,
-                    'residentNumber' => $p->resident?->resident_number,
-                    'address' => $p->address,
-                    'contactNumber' => $p->contact_number,
-                    'isPrimary' => $p->is_primary,
-                ]),
-                'respondents' => $case->respondents->map(fn ($p) => [
-                    'id' => $p->id,
-                    'name' => $p->name,
-                    'isResident' => $p->is_resident,
-                    'residentId' => $p->resident_id,
-                    'residentName' => $p->resident?->full_name,
-                    'residentNumber' => $p->resident?->resident_number,
-                    'associationStatus' => $p->association_status,
-                    'verifiedAt' => $p->verified_at?->format('F j, Y'),
-                    'address' => $p->address,
-                    'contactNumber' => $p->contact_number,
-                    'isPrimary' => $p->is_primary,
-                ]),
-                'hearings' => $case->hearings->map(fn ($h) => [
-                    'id' => $h->id,
-                    'hearingNumber' => $h->hearing_number,
-                    'phase' => $h->phase,
-                    'date' => $h->hearing_date->format('F j, Y'),
-                    'time' => $h->hearing_time,
-                    'venue' => $h->venue,
-                    'status' => $h->status,
-                    'outcome' => $h->outcome,
-                    'notes' => $h->notes,
-                    'officerName' => $h->officer?->name,
-                ]),
-                'settlement' => $case->settlement ? [
-                    'id' => $case->settlement->id,
-                    'settlementType' => $case->settlement->settlement_type,
-                    'settlementDate' => $case->settlement->settlement_date->format('F j, Y'),
-                    'terms' => $case->settlement->terms,
-                    'status' => $case->settlement->status,
-                    'recordedByName' => $case->settlement->recorder?->name,
-                ] : null,
-            ],
-            'barangayResidents' => $barangayResidents,
+            'caseData' => $this->deferProp(function () use ($case, $loadCase): array {
+                $loadCase();
+
+                return [
+                    'id' => $case->id,
+                    'caseNumber' => $case->case_number,
+                    'origin' => $case->origin,
+                    'title' => $case->title,
+                    'caseType' => $case->case_type,
+                    'phase' => $case->phase,
+                    'status' => $case->status,
+                    'filedDate' => $case->filed_date->format('F j, Y'),
+                    'promotedAt' => $case->promoted_at?->format('F j, Y g:i A'),
+                    'createdByName' => $case->creator?->name,
+                    'assignedStaffName' => $case->assignedStaff?->name,
+                    'complaint' => $case->complaint ? [
+                        'id' => $case->complaint->id,
+                        'reference' => $case->complaint->reference,
+                        'incidentDate' => $case->complaint->incident_date?->format('F j, Y'),
+                        'incidentLocation' => $case->complaint->incident_location,
+                        'narrative' => $case->complaint->narrative,
+                        'requestedAction' => $case->complaint->requested_action,
+                        'luponNote' => $case->complaint->lupon_note,
+                    ] : null,
+                    'complainants' => $case->complainants->map(fn ($p) => [
+                        'id' => $p->id,
+                        'name' => $p->name,
+                        'isResident' => $p->is_resident,
+                        'residentNumber' => $p->resident?->resident_number,
+                        'address' => $p->address,
+                        'contactNumber' => $p->contact_number,
+                        'isPrimary' => $p->is_primary,
+                    ]),
+                    'respondents' => $case->respondents->map(fn ($p) => [
+                        'id' => $p->id,
+                        'name' => $p->name,
+                        'isResident' => $p->is_resident,
+                        'residentId' => $p->resident_id,
+                        'residentName' => $p->resident?->full_name,
+                        'residentNumber' => $p->resident?->resident_number,
+                        'associationStatus' => $p->association_status,
+                        'verifiedAt' => $p->verified_at?->format('F j, Y'),
+                        'address' => $p->address,
+                        'contactNumber' => $p->contact_number,
+                        'isPrimary' => $p->is_primary,
+                    ]),
+                    'hearings' => $case->hearings->map(fn ($h) => [
+                        'id' => $h->id,
+                        'hearingNumber' => $h->hearing_number,
+                        'phase' => $h->phase,
+                        'date' => $h->hearing_date->format('F j, Y'),
+                        'time' => $h->hearing_time,
+                        'venue' => $h->venue,
+                        'status' => $h->status,
+                        'outcome' => $h->outcome,
+                        'notes' => $h->notes,
+                        'officerName' => $h->officer?->name,
+                    ]),
+                    'settlement' => $case->settlement ? [
+                        'id' => $case->settlement->id,
+                        'settlementType' => $case->settlement->settlement_type,
+                        'settlementDate' => $case->settlement->settlement_date->format('F j, Y'),
+                        'terms' => $case->settlement->terms,
+                        'status' => $case->settlement->status,
+                        'recordedByName' => $case->settlement->recorder?->name,
+                    ] : null,
+                ];
+            }),
+            'barangayResidents' => $this->deferProp($barangayResidents),
             'availablePhases' => self::PHASES,
             'availableStatuses' => self::STATUSES,
         ]);
@@ -493,7 +509,7 @@ class LuponCaseController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized access.');
         }
 
@@ -531,7 +547,7 @@ class LuponCaseController extends Controller
         while ($attempts < $maxAttempts) {
             try {
                 return DB::transaction(function () use ($complaint, $user, $request) {
-                    $complaint->loadMissing('resident');
+                    $complaint->loadMissing(['resident.purok:id,name', 'barangay:id,name']);
 
                     $caseNumber = $this->generateCaseNumber($complaint->barangay_id);
 
@@ -594,6 +610,7 @@ class LuponCaseController extends Controller
             } catch (QueryException $exception) {
                 if ($this->isUniqueViolation($exception)) {
                     $attempts++;
+
                     continue;
                 }
 
@@ -621,7 +638,7 @@ class LuponCaseController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -675,7 +692,7 @@ class LuponCaseController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -760,7 +777,7 @@ class LuponCaseController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -769,8 +786,8 @@ class LuponCaseController extends Controller
         }
 
         $validated = $request->validate([
-            'phase' => ['required', 'string', 'in:' . implode(',', self::PHASES)],
-            'status' => ['required', 'string', 'in:' . implode(',', self::STATUSES)],
+            'phase' => ['required', 'string', 'in:'.implode(',', self::PHASES)],
+            'status' => ['required', 'string', 'in:'.implode(',', self::STATUSES)],
         ]);
 
         $previousStatus = $case->status;
@@ -814,7 +831,7 @@ class LuponCaseController extends Controller
         }
 
         do {
-            $candidate = $prefix . str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+            $candidate = $prefix.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
             $sequence++;
         } while (LuponCase::where('case_number', $candidate)->exists());
 

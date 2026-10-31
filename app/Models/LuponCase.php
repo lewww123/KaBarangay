@@ -18,6 +18,11 @@ class LuponCase extends Model
         'case_type',
         'phase',
         'status',
+        'payment_status',
+        'fee_amount',
+        'or_number',
+        'paid_at',
+        'form_7_issued_at',
         'created_by',
         'assigned_to',
         'filed_date',
@@ -29,6 +34,9 @@ class LuponCase extends Model
         return [
             'filed_date' => 'date',
             'promoted_at' => 'datetime',
+            'fee_amount' => 'decimal:2',
+            'paid_at' => 'datetime',
+            'form_7_issued_at' => 'datetime',
         ];
     }
 

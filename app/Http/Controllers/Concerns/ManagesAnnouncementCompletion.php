@@ -33,11 +33,11 @@ trait ManagesAnnouncementCompletion
         }
 
         if (
-            $announcement->approval_status !== 'approved'
+            $announcement->program_status !== 'ongoing'
             || ! AnnouncementLifecycle::isEvent($announcement)
         ) {
             throw ValidationException::withMessages([
-                'completion' => 'Only approved event announcements can be marked as done.',
+                'completion' => 'Only ongoing programs can be marked as done.',
             ]);
         }
 
@@ -48,12 +48,15 @@ trait ManagesAnnouncementCompletion
                 ->whereKey($announcement->getKey())
                 ->whereNull('completed_at')
                 ->where('approval_status', 'approved')
+                ->where('is_published', true)
+                ->where(fn (Builder $query) => $query->where('program_status', 'ongoing')->orWhereNull('program_status'))
                 ->where(function (Builder $query) {
                     AnnouncementLifecycle::applyEventFilter($query);
                 })
                 ->update([
                     'completed_at' => $completedAt,
                     'completed_by' => $actorId,
+                    'program_status' => 'done',
                 ]);
 
             if ($affected === 0) {

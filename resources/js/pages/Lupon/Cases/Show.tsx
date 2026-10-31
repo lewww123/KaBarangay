@@ -1,6 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import LuponLayout from '@/layouts/LuponLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type ResidentOption = {
     id: number;
@@ -23,7 +25,7 @@ type RespondentParty = {
 };
 
 type Props = {
-    auth: { user: { name?: string; staff_id?: string; department?: string } };
+    auth: { user: { name?: string }; staffAssignments?: { department: string; position: string }[] };
     caseData: {
         id: number;
         caseNumber: string;
@@ -81,7 +83,11 @@ type Props = {
     availableStatuses: string[];
 };
 
-export default function CaseShow({
+export default withDeferredPage(CaseShow, ['caseData', 'barangayResidents'], (props) => (
+    <LuponLayout active="cases" user={props.auth.user}><PortalPageSkeleton list /></LuponLayout>
+));
+
+function CaseShow({
     auth,
     caseData,
     barangayResidents = [],

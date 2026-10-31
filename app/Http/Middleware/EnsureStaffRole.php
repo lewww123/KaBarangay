@@ -27,7 +27,7 @@ class EnsureStaffRole
             abort(403, 'This account is inactive.');
         }
 
-        if (! in_array($user->role, $allowedRoles, true)) {
+        if (! $user->hasActiveAssignment($allowedRoles)) {
             abort(403, 'Unauthorized access.');
         }
 

@@ -8,8 +8,6 @@ type SeniorLayoutProps = {
     active: SeniorPage;
     user?: {
         name?: string;
-        staff_id?: string;
-        department?: string;
     };
 };
 
@@ -40,7 +38,7 @@ export default function SeniorLayout({
 
                 <div className="flex items-center gap-3">
                     <span className="hidden text-sm sm:inline">
-                        {user?.name || 'Senior Staff'} ({user?.staff_id || 'SNR-001'})
+                        {user?.name || 'Senior Staff'}
                     </span>
 
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#315b30] font-semibold">
@@ -136,6 +134,8 @@ function SidebarLink({
 }) {
     return (
         <Link
+            prefetch="hover"
+            cacheFor="10s"
             href={href}
             className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition ${
                 active

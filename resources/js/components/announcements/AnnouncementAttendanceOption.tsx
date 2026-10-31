@@ -39,7 +39,7 @@ export default function AnnouncementAttendanceOption({
                 <p id={helpId} className="mt-0.5 text-[10px] text-gray-500">
                     Optional. Turn this on only if this event needs resident
                     attendance tracking or aid-claim recording. The attendance
-                    sheet becomes available after Admin approval.
+                    sheet becomes available when the program is published.
                 </p>
             </div>
         </div>

@@ -63,7 +63,7 @@ return [
 
     'providers' => [
         'users' => [
-            'driver' => 'eloquent',
+            'driver' => 'cached-eloquent',
             'model' => env('AUTH_MODEL', User::class),
         ],
 
@@ -113,5 +113,10 @@ return [
     */
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+
+    'user_cache' => [
+        'store' => env('AUTH_USER_CACHE_STORE', 'file'),
+        'ttl_seconds' => env('AUTH_USER_CACHE_TTL', 30),
+    ],
 
 ];

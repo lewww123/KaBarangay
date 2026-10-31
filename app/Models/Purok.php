@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Observers\ReferenceDataObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[ObservedBy(ReferenceDataObserver::class)]
 class Purok extends Model
 {
     use HasFactory;
@@ -58,5 +61,10 @@ class Purok extends Model
     public function residents(): HasMany
     {
         return $this->hasMany(Resident::class);
+    }
+
+    public function households(): HasMany
+    {
+        return $this->hasMany(Household::class);
     }
 }

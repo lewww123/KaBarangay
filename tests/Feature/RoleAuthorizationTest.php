@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Barangay;
+use App\Models\Purok;
 use App\Models\ResidentRegistration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -14,11 +15,14 @@ class RoleAuthorizationTest extends TestCase
 
     private Barangay $barangay;
 
+    private Purok $purok;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->barangay = $this->createBarangay('Barangay One', 'BRGY-ONE');
+        $this->purok = $this->createPurok($this->barangay);
     }
 
     public function test_guests_are_redirected_to_login_from_protected_portals(): void
@@ -73,7 +77,8 @@ class RoleAuthorizationTest extends TestCase
 
     public function test_pwd_role_can_access_pwd_portal(): void
     {
-        $pwd = $this->createStaff($this->barangay, 'pwd');
+        $purok = $this->createPurok($this->barangay);
+        $pwd = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'pwd', 'PWD Staff');
 
         $this->actingAs($pwd)
             ->get('/pwd/dashboard')
@@ -83,8 +88,9 @@ class RoleAuthorizationTest extends TestCase
 
     public function test_pwd_staff_and_senior_staff_can_access_their_portals(): void
     {
-        $pwdStaff = $this->createStaff($this->barangay, 'pwd_staff');
-        $seniorStaff = $this->createStaff($this->barangay, 'senior_staff');
+        $purok = $this->createPurok($this->barangay);
+        $pwdStaff = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'pwd', 'PWD Staff');
+        $seniorStaff = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'senior', 'Senior Staff');
 
         $this->actingAs($pwdStaff)->get('/pwd/dashboard')->assertOk();
         $this->actingAs($seniorStaff)->get('/senior/dashboard')->assertOk();
@@ -92,21 +98,23 @@ class RoleAuthorizationTest extends TestCase
 
     public function test_senior_and_clerk_can_access_their_portals(): void
     {
-        $senior = $this->createStaff($this->barangay, 'senior');
+        $purok = $this->createPurok($this->barangay);
+        $senior = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'senior', 'Senior Staff');
         $clerk = $this->createStaff($this->barangay, 'clerk');
 
         $this->actingAs($senior)->get('/senior/dashboard')->assertOk();
         $this->actingAs($clerk)->get('/clerk/dashboard')->assertOk();
     }
 
-    public function test_admin_can_access_every_portal(): void
+    public function test_assigned_admin_cannot_bypass_sector_assignment_checks(): void
     {
-        $admin = $this->createStaff($this->barangay, 'admin');
+        $purok = $this->createPurok($this->barangay);
+        $admin = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'admin', 'Barangay Admin');
 
         $this->actingAs($admin)->get('/admin')->assertOk();
         $this->actingAs($admin)->get('/clerk/dashboard')->assertOk();
-        $this->actingAs($admin)->get('/senior/dashboard')->assertOk();
-        $this->actingAs($admin)->get('/pwd/dashboard')->assertOk();
+        $this->actingAs($admin)->get('/senior/dashboard')->assertForbidden();
+        $this->actingAs($admin)->get('/pwd/dashboard')->assertForbidden();
     }
 
     public function test_lupon_cannot_access_admin_portal(): void
@@ -135,19 +143,19 @@ class RoleAuthorizationTest extends TestCase
 
     public function test_lupon_login_redirects_to_lupon_dashboard(): void
     {
-        $this->createStaff($this->barangay, 'lupon', [
-            'staff_id' => 'LUP-001',
-            'name' => 'Lupon User',
-        ]);
+        $user = $this->createAssignedStaff([
+            'barangay' => $this->barangay,
+            'purok' => $this->purok,
+            'first_name' => 'Lupon',
+            'last_name' => 'User',
+        ], 'lupon', 'Lupon');
 
         $response = $this
-            ->withSession([
-                'selected_barangay_id' => $this->barangay->id,
-                'login_department' => 'lupon',
-            ])
-            ->post('/staff-login', [
-                'staff_id' => 'LUP-001',
-                'full_name' => 'Lupon User',
+            ->post('/login', [
+                'barangay_id' => $this->barangay->id,
+                'department' => 'lupon',
+                'position' => 'Lupon',
+                'full_name' => $user->resident->full_name,
                 'password' => 'password',
             ]);
 
@@ -155,43 +163,36 @@ class RoleAuthorizationTest extends TestCase
         $this->assertAuthenticated();
     }
 
-    public function test_unknown_role_login_redirects_to_barangay_selection(): void
+    public function test_unknown_department_is_rejected(): void
     {
-        $this->createStaff($this->barangay, 'staff', [
-            'staff_id' => 'STF-001',
-            'name' => 'Legacy Staff',
-        ]);
-
         $response = $this
-            ->withSession([
-                'selected_barangay_id' => $this->barangay->id,
-                'login_department' => 'staff',
-            ])
-            ->post('/staff-login', [
-                'staff_id' => 'STF-001',
+            ->from('/')
+            ->post('/login', [
+                'barangay_id' => $this->barangay->id,
+                'department' => 'staff',
+                'position' => 'Staff',
                 'full_name' => 'Legacy Staff',
                 'password' => 'password',
             ]);
 
-        $response->assertRedirect(route('barangay.select'));
-        $response->assertSessionHas('info');
+        $response->assertSessionHasErrors('department');
     }
 
     public function test_pwd_role_login_redirects_to_pwd_dashboard(): void
     {
-        $this->createStaff($this->barangay, 'pwd', [
-            'staff_id' => 'PWD-001',
-            'name' => 'Pwd User',
-        ]);
+        $user = $this->createAssignedStaff([
+            'barangay' => $this->barangay,
+            'purok' => $this->purok,
+            'first_name' => 'Pwd',
+            'last_name' => 'User',
+        ], 'pwd', 'Pwd');
 
         $this
-            ->withSession([
-                'selected_barangay_id' => $this->barangay->id,
-                'login_department' => 'pwd',
-            ])
-            ->post('/staff-login', [
-                'staff_id' => 'PWD-001',
-                'full_name' => 'Pwd User',
+            ->post('/login', [
+                'barangay_id' => $this->barangay->id,
+                'department' => 'pwd',
+                'position' => 'Pwd',
+                'full_name' => $user->resident->full_name,
                 'password' => 'password',
             ])
             ->assertRedirect(route('pwd.dashboard'));
@@ -199,19 +200,19 @@ class RoleAuthorizationTest extends TestCase
 
     public function test_admin_login_redirects_to_admin_dashboard(): void
     {
-        $this->createStaff($this->barangay, 'admin', [
-            'staff_id' => 'ADM-001',
-            'name' => 'Admin User',
-        ]);
+        $user = $this->createAssignedStaff([
+            'barangay' => $this->barangay,
+            'purok' => $this->purok,
+            'first_name' => 'Admin',
+            'last_name' => 'User',
+        ], 'admin', 'Admin');
 
         $this
-            ->withSession([
-                'selected_barangay_id' => $this->barangay->id,
-                'login_department' => 'admin',
-            ])
-            ->post('/staff-login', [
-                'staff_id' => 'ADM-001',
-                'full_name' => 'Admin User',
+            ->post('/login', [
+                'barangay_id' => $this->barangay->id,
+                'department' => 'admin',
+                'position' => 'Admin',
+                'full_name' => $user->resident->full_name,
                 'password' => 'password',
             ])
             ->assertRedirect(route('admin.dashboard'));
@@ -223,7 +224,7 @@ class RoleAuthorizationTest extends TestCase
 
         $this->actingAs($lupon)
             ->post('/logout')
-            ->assertRedirect(route('barangay.select'));
+            ->assertRedirect(route('login'));
     }
 
     public function test_staff_qr_api_requires_authentication(): void

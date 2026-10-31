@@ -38,7 +38,7 @@ class BarangayIsolationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Clerk/Dashboard')
-                ->where('stats.totalResidents', 2));
+                ->where('stats.totalResidents', 3));
     }
 
     public function test_senior_dashboard_counts_are_scoped_to_own_barangay(): void
@@ -51,7 +51,7 @@ class BarangayIsolationTest extends TestCase
         $this->createResident($this->other, $otherPurok, ['resident_number' => 'B-2', 'mobile' => '09172220002']);
         $this->assignSector($seniorResident, 'senior');
 
-        $senior = $this->createStaff($this->barangay, 'senior');
+        $senior = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'senior', 'Senior Staff');
 
         $this->actingAs($senior)
             ->get('/senior/dashboard')
@@ -69,7 +69,7 @@ class BarangayIsolationTest extends TestCase
         $this->createResident($this->barangay, $purok, ['resident_number' => 'A-1', 'mobile' => '09171110001']);
         $this->createResident($this->other, $otherPurok, ['resident_number' => 'B-1', 'mobile' => '09172220001']);
 
-        $pwd = $this->createStaff($this->barangay, 'pwd_staff');
+        $pwd = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'pwd', 'PWD Staff');
 
         $this->actingAs($pwd)
             ->get('/pwd/dashboard')
@@ -116,7 +116,8 @@ class BarangayIsolationTest extends TestCase
             'approval_status' => 'approved',
         ]);
 
-        $senior = $this->createStaff($this->barangay, 'senior');
+        $purok = $this->createPurok($this->barangay, 'Senior Purok');
+        $senior = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'senior', 'Senior Staff');
 
         $this->actingAs($senior)
             ->get('/senior/dashboard')
@@ -146,7 +147,8 @@ class BarangayIsolationTest extends TestCase
             'approval_status' => 'approved',
         ]);
 
-        $senior = $this->createStaff($this->barangay, 'senior');
+        $purok = $this->createPurok($this->barangay, 'Senior Purok');
+        $senior = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'senior', 'Senior Staff');
 
         $this->actingAs($senior)
             ->get('/senior/dashboard')
@@ -184,7 +186,8 @@ class BarangayIsolationTest extends TestCase
             'approval_status' => 'approved',
         ]);
 
-        $pwd = $this->createStaff($this->barangay, 'pwd_staff');
+        $purok = $this->createPurok($this->barangay, 'PWD Purok');
+        $pwd = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'pwd', 'PWD Staff');
 
         $this->actingAs($pwd)
             ->get('/pwd/dashboard')
@@ -211,7 +214,8 @@ class BarangayIsolationTest extends TestCase
             'approval_status' => 'approved',
         ]);
 
-        $pwd = $this->createStaff($this->barangay, 'pwd_staff');
+        $purok = $this->createPurok($this->barangay, 'PWD Purok');
+        $pwd = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'pwd', 'PWD Staff');
 
         $this->actingAs($pwd)
             ->get('/pwd/dashboard')
@@ -302,16 +306,21 @@ class BarangayIsolationTest extends TestCase
     public function test_same_barangay_registration_can_be_approved(): void
     {
         $purok = $this->createPurok($this->barangay, 'Purok 1');
-        $registration = $this->createPendingRegistration($this->barangay, $purok);
+        $registration = $this->createPendingRegistration($this->barangay, $purok, ['email' => 'applicant@example.test']);
+        $candidate = $this->createResident($this->barangay, $purok);
+        $candidate->account()->delete();
+        $candidate->update(['source' => 'admin', 'email' => $registration->email]);
 
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
-            ->post('/admin/residents/'.$registration->id.'/approve')
-            ->assertRedirect();
+            ->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => $candidate->id])
+            ->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('residents', [
-            'resident_registration_id' => $registration->id,
+        $this->assertDatabaseHas('resident_registrations', [
+            'id' => $registration->id,
+            'matched_resident_id' => $candidate->id,
+            'status' => 'approved',
             'barangay_id' => $this->barangay->id,
         ]);
     }

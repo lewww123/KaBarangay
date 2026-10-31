@@ -482,7 +482,7 @@ class MarriageCohabitationCertificateIntegrationTest extends TestCase
     public function test_marriage_purok_uses_the_template_prefix(): void
     {
         $this->assertSame('PUROK MASUNURIN', MarriageCohabitationCertificate::formatPurok('Masunurin'));
-        $this->assertSame('PUROK PUROK 1', MarriageCohabitationCertificate::formatPurok('Purok 1'));
+        $this->assertSame('PUROK 1', MarriageCohabitationCertificate::formatPurok('Purok 1'));
         $this->assertSame('', MarriageCohabitationCertificate::formatPurok('  '));
     }
 

@@ -6,6 +6,7 @@ use App\Models\Barangay;
 use App\Models\Purok;
 use App\Models\RegistrationDocument;
 use App\Models\Resident;
+use App\Models\ResidentAccount;
 use App\Models\ResidentQrCredential;
 use App\Models\ResidentRegistration;
 use App\Models\Sector;
@@ -71,8 +72,8 @@ class AdminResidentRegistrationTest extends TestCase
                 ->component('Admin/Residents')
                 ->has('pendingRegistrations.data', 1)
                 ->where('pendingRegistrations.data.0.id', $own->id)
-                ->where('stats.totalResidents', 1)
-                ->where('stats.activeResidents', 1)
+                ->where('stats.totalResidents', 2)
+                ->where('stats.activeResidents', 2)
                 ->where('stats.pendingRegistrations', 1));
     }
 
@@ -116,7 +117,7 @@ class AdminResidentRegistrationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Residents')
-                ->where('allResidents.total', 2)
+                ->where('allResidents.total', 3)
                 ->where('allResidents.data.0.reference', $adminLinked->resident_number)
                 ->where('allResidents.data.1.reference', $verifiedRegistration->resident_number)
                 ->where('addedByAdmin.total', 2)
@@ -135,7 +136,7 @@ class AdminResidentRegistrationTest extends TestCase
 
     public function test_index_redirects_guests_to_login(): void
     {
-        $this->get('/admin/residents')->assertRedirect('/login');
+        $this->get('/admin/residents')->assertRedirect(route('login'));
     }
 
     /*
@@ -300,7 +301,6 @@ class AdminResidentRegistrationTest extends TestCase
 
         $this->assertSame('needs_correction', $registration->fresh()->status);
         $this->assertDatabaseMissing('residents', ['resident_registration_id' => $registration->id]);
-        $this->assertDatabaseMissing('resident_accounts', ['resident_id' => 1]);
     }
 
     public function test_double_approval_is_prevented(): void
@@ -309,7 +309,7 @@ class AdminResidentRegistrationTest extends TestCase
             'mobile' => '09170000022',
         ]);
         $candidate->account()->delete();
-        $candidate->update(['email' => 'applicant@example.test']);
+        $candidate->update(['source' => 'admin', 'email' => 'applicant@example.test']);
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000022',
             'email' => 'applicant@example.test',
@@ -384,8 +384,8 @@ class AdminResidentRegistrationTest extends TestCase
         $this->assertDatabaseMissing('residents', [
             'resident_registration_id' => $registration->id,
         ]);
-        $this->assertSame(0, Resident::query()->count());
-        $this->assertSame(0, \App\Models\ResidentAccount::query()->count());
+        $this->assertSame(1, Resident::query()->count());
+        $this->assertSame(1, ResidentAccount::query()->count());
         $this->assertSame('pending', $registration->fresh()->status);
     }
 
@@ -442,10 +442,12 @@ class AdminResidentRegistrationTest extends TestCase
         $own = $this->createResident($this->barangay, $this->purok, [
             'first_name' => 'Possible', 'last_name' => 'Match', 'mobile' => '09170000061',
         ]);
+        $own->update(['source' => 'admin']);
         $otherPurok = $this->createPurok($this->other, 'Purok 2');
         $foreign = $this->createResident($this->other, $otherPurok, [
             'first_name' => 'Possible', 'last_name' => 'Match', 'mobile' => '09170000062',
         ]);
+        $foreign->update(['source' => 'admin']);
 
         $admin = $this->createStaff($this->barangay, 'admin');
 
@@ -495,7 +497,7 @@ class AdminResidentRegistrationTest extends TestCase
         $candidate = $this->createResident($this->barangay, $this->purok, [
             'mobile' => '09170000071',
         ]);
-        $candidate->update(['email' => 'same@example.test']);
+        $candidate->update(['source' => 'admin', 'email' => 'same@example.test']);
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000071', 'email' => 'same@example.test',
         ]);
@@ -511,24 +513,51 @@ class AdminResidentRegistrationTest extends TestCase
         $this->assertNull($registration->fresh()->matched_resident_id);
     }
 
-    public function test_candidate_email_conflict_keeps_application_pending(): void
+    public function test_approval_syncs_a_different_verified_registration_email_to_the_selected_resident(): void
     {
         $candidate = $this->createResident($this->barangay, $this->purok, [
             'mobile' => '09170000072',
         ]);
         $candidate->account()->delete();
-        $candidate->update(['email' => 'official@example.test']);
+        $candidate->update(['source' => 'admin', 'email' => 'official@example.test']);
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000072', 'email' => 'applicant@example.test',
         ]);
+        $registration->forceFill(['email_verified_at' => now()])->save();
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
             ->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => $candidate->id])
-            ->assertSessionHasErrors('resident_id');
+            ->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertSame('pending', $registration->fresh()->status);
-        $this->assertSame(0, $candidate->account()->count());
+        $this->assertSame('approved', $registration->fresh()->status);
+        $candidate->refresh();
+        $this->assertSame('applicant@example.test', $candidate->email);
+        $this->assertNotNull($candidate->email_verified_at);
+        $this->assertSame(1, $candidate->account()->count());
+    }
+
+    public function test_approval_populates_a_blank_selected_resident_email_from_the_registration(): void
+    {
+        $candidate = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09170000076',
+        ]);
+        $candidate->account()->delete();
+        $candidate->update(['source' => 'admin', 'email' => '']);
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000076', 'email' => 'verified@example.test',
+        ]);
+        $registration->forceFill(['email_verified_at' => now()])->save();
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($admin)
+            ->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => $candidate->id])
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $candidate->refresh();
+        $this->assertSame('verified@example.test', $candidate->email);
+        $this->assertNotNull($candidate->email_verified_at);
+        $this->assertSame('approved', $registration->fresh()->status);
     }
 
     public function test_two_applications_cannot_link_the_same_resident(): void
@@ -537,7 +566,7 @@ class AdminResidentRegistrationTest extends TestCase
             'mobile' => '09170000073',
         ]);
         $candidate->account()->delete();
-        $candidate->update(['email' => 'same@example.test']);
+        $candidate->update(['source' => 'admin', 'email' => 'same@example.test']);
         $first = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000073', 'email' => 'same@example.test',
         ]);
@@ -568,7 +597,7 @@ class AdminResidentRegistrationTest extends TestCase
             'mobile' => '09170000075',
         ]);
         $candidate->account()->delete();
-        $candidate->update(['email' => 'rollback@example.test']);
+        $candidate->update(['source' => 'admin', 'email' => 'rollback@example.test']);
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000075',
             'email' => 'rollback@example.test',
@@ -607,7 +636,7 @@ class AdminResidentRegistrationTest extends TestCase
             'first_name' => 'Official', 'last_name' => 'Resident', 'mobile' => '09170000051',
         ]);
         $candidate->account()->delete();
-        $candidate->update(['email' => 'applicant@example.test']);
+        $candidate->update(['source' => 'admin', 'email' => 'applicant@example.test']);
         $oldResidentNumber = $candidate->resident_number;
         $lineageRegistrationId = $candidate->resident_registration_id;
         $qr = ResidentQrCredential::create([
@@ -636,7 +665,7 @@ class AdminResidentRegistrationTest extends TestCase
         $this->assertSame('approved', $registration->status);
         $this->assertSame($lineageRegistrationId, $candidate->resident_registration_id);
         $this->assertSame($oldResidentNumber, $candidate->resident_number);
-        $this->assertSame(1, Resident::query()->count());
+        $this->assertSame(2, Resident::query()->count());
         $this->assertSame(1, $candidate->account()->count());
         $this->assertTrue($candidate->account->is_active);
         $this->assertSame($qr->id, $candidate->qrCredential()->value('id'));

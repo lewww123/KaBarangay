@@ -76,11 +76,11 @@ class SectorApplicationWorkflowTest extends TestCase
         ]);
 
         $this->adminA = $this->createStaff($this->barangayA, 'admin');
-        $this->seniorStaffA = $this->createStaff($this->barangayA, 'senior_staff');
-        $this->pwdStaffA = $this->createStaff($this->barangayA, 'pwd_staff');
+        $this->seniorStaffA = $this->createAssignedStaff(['barangay' => $this->barangayA, 'purok' => $this->purokA], 'senior', 'Senior Staff');
+        $this->pwdStaffA = $this->createAssignedStaff(['barangay' => $this->barangayA, 'purok' => $this->purokA], 'pwd', 'PWD Staff');
 
         $this->adminB = $this->createStaff($this->barangayB, 'admin');
-        $this->seniorStaffB = $this->createStaff($this->barangayB, 'senior_staff');
+        $this->seniorStaffB = $this->createAssignedStaff(['barangay' => $this->barangayB, 'purok' => $this->purokB], 'senior', 'Senior Staff');
 
         $this->residentA = $this->createResident($this->barangayA, $this->purokA, [
             'first_name' => 'Juan',
@@ -93,6 +93,18 @@ class SectorApplicationWorkflowTest extends TestCase
             'last_name' => 'Santos',
             'mobile' => '09170000002',
         ]);
+    }
+
+    public function test_sector_qr_lookup_keeps_keyboard_wedge_and_manual_enter_support(): void
+    {
+        $source = file_get_contents(base_path('resources/js/components/sectors/SectorApplicationWizard.tsx'));
+
+        $this->assertStringContainsString('lookupInputRef.current?.focus({ preventScroll: true })', $source);
+        $this->assertStringContainsString("e.key === 'Enter'", $source);
+        $this->assertStringContainsString('e.preventDefault()', $source);
+        $this->assertStringContainsString('handleResidentLookup()', $source);
+        $this->assertStringContainsString('value={lookupQuery}', $source);
+        $this->assertStringContainsString('onChange={(e) => setLookupQuery(e.target.value)}', $source);
     }
 
     public function test_senior_staff_can_submit_senior_application(): void
@@ -488,18 +500,40 @@ class SectorApplicationWorkflowTest extends TestCase
             'first_name' => 'General',
             'last_name' => 'Applicant',
             'mobile' => '09991112233',
+            'email' => 'general.applicant@example.test',
         ]);
 
-        $response = $this->actingAs($this->adminA)->post("/admin/residents/{$pendingReg->id}/approve");
-        $response->assertRedirect();
+        $candidate = $this->createResident($this->barangayA, $this->purokA, [
+            'first_name' => 'General',
+            'last_name' => 'Applicant',
+            'mobile' => '09991112234',
+        ]);
+        $candidate->account()->delete();
+        $candidate->update(['source' => 'admin', 'email' => $pendingReg->email]);
+        $originalRegistrationId = $candidate->resident_registration_id;
+        $residentCount = Resident::query()->count();
+
+        $response = $this->actingAs($this->adminA)->post("/admin/residents/{$pendingReg->id}/approve", [
+            'resident_id' => $candidate->id,
+        ]);
+        $response->assertRedirect()->assertSessionHasNoErrors();
 
         $pendingReg->refresh();
         $this->assertSame('approved', $pendingReg->status);
+        $this->assertSame($candidate->id, $pendingReg->matched_resident_id);
+        $this->assertSame($this->adminA->id, $pendingReg->matched_by);
+        $this->assertNotNull($pendingReg->reviewed_at);
+        $this->assertSame($residentCount, Resident::query()->count());
 
         $this->assertDatabaseHas('residents', [
-            'resident_registration_id' => $pendingReg->id,
+            'id' => $candidate->id,
+            'resident_registration_id' => $originalRegistrationId,
             'barangay_id' => $this->barangayA->id,
             'status' => 'active',
+        ]);
+        $this->assertDatabaseHas('resident_accounts', [
+            'resident_id' => $candidate->id,
+            'is_active' => true,
         ]);
     }
 

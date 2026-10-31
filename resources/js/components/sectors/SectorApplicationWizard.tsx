@@ -1,6 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import axios from 'axios';
-import { useRef, useState, FormEvent } from 'react';
+import { useEffect, useRef, useState, FormEvent } from 'react';
 import type { SectorApplicantResident, SectorType } from './types';
 
 interface Props {
@@ -47,6 +47,12 @@ export default function SectorApplicationWizard({
     const [submissionError, setSubmissionError] = useState<string | null>(null);
 
     const lookupInputRef = useRef<HTMLInputElement | null>(null);
+
+    // Keyboard-wedge scanners send keystrokes to the focused control. Focus
+    // the lookup field when this step appears; manual entry remains editable.
+    useEffect(() => {
+        lookupInputRef.current?.focus({ preventScroll: true });
+    }, []);
 
     // Call existing QR verify-token API contract
     const handleResidentLookup = async (overrideToken?: string) => {

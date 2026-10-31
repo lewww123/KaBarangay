@@ -32,13 +32,13 @@ class SectorApplicationService
         array $documents = []
     ): SectorApplication {
         // Enforce staff role authorization for the target sector
-        if ($sectorSlug === 'senior' && ! in_array($staff->role, ['senior', 'senior_staff'], true)) {
+        if ($sectorSlug === 'senior' && ! $staff->hasActiveAssignment(['senior'])) {
             throw ValidationException::withMessages([
                 'sector' => 'You are not authorized to submit applications for the Senior sector.',
             ]);
         }
 
-        if ($sectorSlug === 'pwd' && ! in_array($staff->role, ['pwd', 'pwd_staff'], true)) {
+        if ($sectorSlug === 'pwd' && ! $staff->hasActiveAssignment(['pwd'])) {
             throw ValidationException::withMessages([
                 'sector' => 'You are not authorized to submit applications for the PWD sector.',
             ]);
@@ -533,11 +533,11 @@ class SectorApplicationService
 
         $sectorSlug = $application->sector->slug;
 
-        if ($sectorSlug === 'senior' && ! in_array($staff->role, ['senior', 'senior_staff'], true)) {
+        if ($sectorSlug === 'senior' && ! $staff->hasActiveAssignment(['senior'])) {
             abort(403, 'Unauthorized access: Senior staff privileges required.');
         }
 
-        if ($sectorSlug === 'pwd' && ! in_array($staff->role, ['pwd', 'pwd_staff'], true)) {
+        if ($sectorSlug === 'pwd' && ! $staff->hasActiveAssignment(['pwd'])) {
             abort(403, 'Unauthorized access: PWD staff privileges required.');
         }
     }

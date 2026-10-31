@@ -50,64 +50,50 @@ class DisbursementDocumentController extends Controller
         $baseQuery = DisbursementDocument::query()
             ->where('barangay_id', $user->barangay_id);
 
-        $stats = [
-            'total' => (clone $baseQuery)->count(),
-            'draft' => (clone $baseQuery)
-                ->where('is_published', false)
-                ->whereNull('archived_at')
-                ->count(),
-            'published' => (clone $baseQuery)
-                ->where('is_published', true)
-                ->whereNull('archived_at')
-                ->count(),
-            'archived' => (clone $baseQuery)
-                ->whereNotNull('archived_at')
-                ->count(),
-        ];
-
-        $documents = (clone $baseQuery)
-            ->with('uploader:id,name')
-            ->when($status === 'draft', function ($query) {
-                $query->where('is_published', false)
-                    ->whereNull('archived_at');
-            })
-            ->when($status === 'published', function ($query) {
-                $query->where('is_published', true)
-                    ->whereNull('archived_at');
-            })
-            ->when($status === 'archived', function ($query) {
-                $query->whereNotNull('archived_at');
-            })
-            ->when($search !== '', function ($query) use ($search) {
-                $like = '%'.$search.'%';
-
-                $query->where(function ($query) use ($like) {
-                    $query->where('title', 'like', $like)
-                        ->orWhere('original_name', 'like', $like);
-                });
-            })
-            ->latest('created_at')
-            ->latest('id')
-            ->paginate(15)
-            ->withQueryString()
-            ->through(
-                fn (DisbursementDocument $document) => $this->documentPayload(
-                    $document,
-                    true
-                )
-            );
-
         return Inertia::render('Clerk/Disbursements/Index', [
-            'documents' => $documents,
+            'documents' => $this->deferProp(fn () => (clone $baseQuery)
+                ->with('uploader:id,name')
+                ->when($status === 'draft', function ($query) {
+                    $query->where('is_published', false)
+                        ->whereNull('archived_at');
+                })
+                ->when($status === 'published', function ($query) {
+                    $query->where('is_published', true)
+                        ->whereNull('archived_at');
+                })
+                ->when($status === 'archived', function ($query) {
+                    $query->whereNotNull('archived_at');
+                })
+                ->when($search !== '', function ($query) use ($search) {
+                    $like = '%'.$search.'%';
+
+                    $query->where(function ($query) use ($like) {
+                        $query->where('title', 'like', $like)
+                            ->orWhere('original_name', 'like', $like);
+                    });
+                })
+                ->latest('created_at')
+                ->latest('id')
+                ->paginate(15)
+                ->withQueryString()
+                ->through(
+                    fn (DisbursementDocument $document) => $this->documentPayload(
+                        $document,
+                        true
+                    )
+                )),
             'filters' => [
                 'search' => $search,
                 'status' => $status,
             ],
-            'stats' => $stats,
+            'stats' => $this->deferProp(fn () => $this->rememberAggregate(
+                "clerk:disbursements:stats:{$user->barangay_id}",
+                30,
+                fn (): array => $this->publicationCounts($baseQuery),
+            )),
             'user' => [
                 'name' => $user->name,
-                'staff_id' => $user->staff_id,
-                'department' => $user->department ?: 'Clerk',
+                'department' => 'Clerk',
             ],
         ]);
     }
@@ -215,8 +201,7 @@ class DisbursementDocumentController extends Controller
             'csvPreview' => $this->csvPreview($disbursementDocument),
             'user' => [
                 'name' => $request->user()->name,
-                'staff_id' => $request->user()->staff_id,
-                'department' => $request->user()->department ?: 'Clerk',
+                'department' => 'Clerk',
             ],
         ]);
     }

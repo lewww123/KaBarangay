@@ -15,6 +15,8 @@ class Resident extends Model
         'resident_registration_id',
         'barangay_id',
         'purok_id',
+        'household_id',
+        'household_relationship',
         'resident_number',
         'source',
         'created_by',
@@ -90,6 +92,11 @@ class Resident extends Model
         return $this->belongsTo(Purok::class);
     }
 
+    public function household(): BelongsTo
+    {
+        return $this->belongsTo(Household::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Login Account
@@ -99,6 +106,16 @@ class Resident extends Model
     public function account(): HasOne
     {
         return $this->hasOne(ResidentAccount::class);
+    }
+
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class);
+    }
+
+    public function staffAssignments(): HasMany
+    {
+        return $this->hasMany(StaffAssignment::class);
     }
 
     /*
@@ -136,11 +153,6 @@ class Resident extends Model
     | Claims / Verification / Notifications
     |--------------------------------------------------------------------------
     */
-
-    public function claims(): HasMany
-    {
-        return $this->hasMany(ResidentClaim::class);
-    }
 
     public function emailVerificationTokens(): HasMany
     {

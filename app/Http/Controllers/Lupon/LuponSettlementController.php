@@ -17,7 +17,7 @@ class LuponSettlementController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized.');
         }
 

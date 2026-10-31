@@ -5,8 +5,7 @@ export type AnnouncementImportance = 'low' | 'normal' | 'high' | 'urgent';
 export type AnnouncementTab =
     | 'all'
     | 'ongoing'
-    | 'pending'
-    | 'approved'
+    | 'draft'
     | 'done';
 
 export type AnnouncementTabCounts = Record<AnnouncementTab, number>;
@@ -17,8 +16,7 @@ export const ANNOUNCEMENT_TABS: Array<{
 }> = [
     { value: 'all', label: 'All' },
     { value: 'ongoing', label: 'Ongoing' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Approved' },
+    { value: 'draft', label: 'Draft' },
     { value: 'done', label: 'Done' },
 ];
 
@@ -33,6 +31,7 @@ export const ANNOUNCEMENT_IMPORTANCE_OPTIONS: Array<{
 ];
 
 export interface AnnouncementEligibilityRecord {
+    program_status?: string | null;
     approval_status?: string | null;
     category?: string | null;
     type?: string | null;
@@ -74,6 +73,7 @@ export function canMarkAnnouncementDone(
 ): boolean {
     return (
         !record.completed_at &&
+        record.program_status !== 'draft' &&
         record.approval_status === 'approved' &&
         isEventAnnouncement(record)
     );
@@ -82,7 +82,7 @@ export function canMarkAnnouncementDone(
 export function isAttendanceAvailable(
     record: AnnouncementEligibilityRecord,
 ): boolean {
-    if (record.approval_status !== 'approved') {
+    if (record.approval_status !== 'approved' || record.program_status === 'draft') {
         return false;
     }
 
@@ -115,6 +115,14 @@ export function formatApprovalStatusLabel(status?: string | null): string {
     }
 
     return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+export function formatAnnouncementStatusLabel(record: AnnouncementEligibilityRecord & { completed_at?: string | null; is_published?: boolean }): string {
+    if (isEventAnnouncement(record)) {
+        return formatApprovalStatusLabel(record.program_status ?? (record.completed_at ? 'done' : record.approval_status === 'approved' && record.is_published ? 'ongoing' : 'draft'));
+    }
+
+    return formatApprovalStatusLabel(record.approval_status);
 }
 
 export function formatAnnouncementPostedAt(value?: string | null): string {
@@ -194,7 +202,7 @@ export function formatAttendanceReviewLabel(
     requiresAttendance: unknown,
 ): string {
     return toBoolean(requiresAttendance)
-        ? 'Enabled - available after approval'
+        ? 'Enabled - available when published'
         : 'Not enabled - no attendance sheet';
 }
 
@@ -214,8 +222,8 @@ export function formatAttendanceSetting(
     }
 
     if (record.approval_status === 'rejected') {
-        return 'Enabled - unavailable until approved';
+        return 'Enabled - available when published';
     }
 
-    return 'Enabled - available after approval';
+    return 'Enabled - available when published';
 }

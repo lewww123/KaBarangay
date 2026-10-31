@@ -46,6 +46,30 @@ class CertificateSeeder extends Seeder
                 'requires_business_details' => false,
             ],
             [
+                'code' => 'marriage-cohabitation',
+                'name' => 'Marriage Cohabitation',
+                'fee' => 100,
+                'description' => 'Certification for couples living together who need proof of cohabitation.',
+                'requirements' => [
+                    'Approved KaBarangay resident account',
+                    'Partner name and age',
+                    'Years living together',
+                ],
+                'requires_business_details' => false,
+            ],
+            [
+                'code' => 'scholarship',
+                'name' => 'Scholarship Certificate',
+                'fee' => 50,
+                'description' => 'Certification for scholarship applications and educational assistance.',
+                'requirements' => [
+                    'Approved KaBarangay resident account',
+                    'School or institution',
+                    'Household income details, if applicable',
+                ],
+                'requires_business_details' => false,
+            ],
+            [
                 'code' => 'barangay-clearance',
                 'name' => 'Barangay Clearance',
                 'fee' => 0,
@@ -139,8 +163,7 @@ class CertificateSeeder extends Seeder
                         'fee' => $certificate['fee'],
                         'description' => $certificate['description'],
                         'requirements' => $certificate['requirements'],
-                        'requires_business_details' =>
-                            $certificate['requires_business_details'],
+                        'requires_business_details' => $certificate['requires_business_details'],
                         'is_active' => true,
                     ]
                 );
@@ -148,9 +171,9 @@ class CertificateSeeder extends Seeder
         }
 
         $this->command?->info(
-            'Successfully seeded 9 certificate types for '
-            . $barangays->count()
-            . ' barangay(s).'
+            'Successfully seeded '.count($certificates).' certificate types for '
+            .$barangays->count()
+            .' barangay(s).'
         );
     }
 }

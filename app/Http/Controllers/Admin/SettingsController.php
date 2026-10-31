@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Barangay;
 use App\Models\Resident;
-use App\Models\User;
+use App\Models\StaffAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
@@ -47,9 +47,8 @@ class SettingsController extends Controller
     private const STAFF_COLUMNS = [
         'name' => 'Name',
         'email' => 'Email',
-        'staff_id' => 'Staff ID',
         'department' => 'Department',
-        'role' => 'Role',
+        'position' => 'Position',
         'status' => 'Status',
     ];
 
@@ -89,9 +88,9 @@ class SettingsController extends Controller
         $barangayName = null;
 
         if ($admin->barangay_id !== null) {
-            $barangayName = Barangay::query()
+            $barangayName = $this->rememberReference('settings:barangay-name:'.$admin->barangay_id, 300, fn () => Barangay::query()
                 ->whereKey($admin->barangay_id)
-                ->value('name');
+                ->value('name'));
         }
 
         return Inertia::render('Admin/Settings', [
@@ -143,19 +142,18 @@ class SettingsController extends Controller
         $admin = $request->user();
 
         $rows = $this->staffQuery($admin->barangay_id)
-            ->orderBy('name')
+            ->orderBy('user_id')
             ->get();
 
         return $this->csvDownload(
             'staff-'.now()->format('Y-m-d').'.csv',
             self::STAFF_COLUMNS,
-            $rows->map(fn (User $user) => [
-                'name' => $user->name,
-                'email' => $user->email,
-                'staff_id' => $user->staff_id,
-                'department' => $user->department,
-                'role' => $user->role,
-                'status' => $user->status,
+            $rows->map(fn (StaffAssignment $assignment) => [
+                'name' => $assignment->user?->name,
+                'email' => $assignment->user?->email,
+                'department' => $assignment->department,
+                'position' => $assignment->position,
+                'status' => $assignment->is_active ? 'active' : 'inactive',
             ]),
         );
     }
@@ -430,13 +428,15 @@ class SettingsController extends Controller
 
     private function staffQuery(?int $barangayId)
     {
-        $query = User::query()->where('role', '!=', 'super_admin');
+        $query = StaffAssignment::query()->with('user:id,name,email');
 
         if ($barangayId === null) {
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where('barangay_id', $barangayId);
+        return $query
+            ->where('barangay_id', $barangayId)
+            ->whereIn('department', ['admin', 'clerk', 'lupon', 'pwd', 'senior']);
     }
 
     /*

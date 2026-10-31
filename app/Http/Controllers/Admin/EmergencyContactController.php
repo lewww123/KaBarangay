@@ -25,45 +25,53 @@ class EmergencyContactController extends Controller
         $user = $request->user();
         $barangayId = (int) $user->barangay_id;
 
-        $barangayHotlines = [];
-
-        try {
-            if (Schema::hasTable('emergency_contacts')) {
-                $barangayHotlines = EmergencyContact::query()
-                    ->where('barangay_id', $barangayId)
-                    ->where('category', EmergencyContact::CATEGORY_BARANGAY_HOTLINE)
-                    ->orderBy('display_order')
-                    ->orderBy('id')
-                    ->get()
-                    ->map(fn (EmergencyContact $contact) => $this->transformHotline($contact))
-                    ->values()
-                    ->all();
-            }
-        } catch (\Throwable) {
+        $loadHotlines = function () use ($barangayId): array {
             $barangayHotlines = [];
-        }
 
-        $sharedEmergencyContacts = [];
-
-        try {
-            if (Schema::hasTable('shared_emergency_contacts')) {
-                $sharedEmergencyContacts = SharedEmergencyContact::query()
-                    ->active()
-                    ->verified()
-                    ->orderBy('display_order')
-                    ->orderBy('id')
-                    ->get()
-                    ->map(fn (SharedEmergencyContact $contact) => $this->transformShared($contact))
-                    ->values()
-                    ->all();
+            try {
+                if (Schema::hasTable('emergency_contacts')) {
+                    $barangayHotlines = EmergencyContact::query()
+                        ->where('barangay_id', $barangayId)
+                        ->where('category', EmergencyContact::CATEGORY_BARANGAY_HOTLINE)
+                        ->orderBy('display_order')
+                        ->orderBy('id')
+                        ->get()
+                        ->map(fn (EmergencyContact $contact) => $this->transformHotline($contact))
+                        ->values()
+                        ->all();
+                }
+            } catch (\Throwable) {
+                $barangayHotlines = [];
             }
-        } catch (\Throwable) {
+
+            return $barangayHotlines;
+        };
+
+        $loadSharedContacts = function (): array {
             $sharedEmergencyContacts = [];
-        }
+
+            try {
+                if (Schema::hasTable('shared_emergency_contacts')) {
+                    $sharedEmergencyContacts = SharedEmergencyContact::query()
+                        ->active()
+                        ->verified()
+                        ->orderBy('display_order')
+                        ->orderBy('id')
+                        ->get()
+                        ->map(fn (SharedEmergencyContact $contact) => $this->transformShared($contact))
+                        ->values()
+                        ->all();
+                }
+            } catch (\Throwable) {
+                $sharedEmergencyContacts = [];
+            }
+
+            return $sharedEmergencyContacts;
+        };
 
         return Inertia::render('Admin/EmergencyNumbers/Index', [
-            'barangayHotlines' => $barangayHotlines,
-            'sharedEmergencyContacts' => $sharedEmergencyContacts,
+            'barangayHotlines' => $this->deferProp($loadHotlines),
+            'sharedEmergencyContacts' => $this->deferProp($loadSharedContacts),
         ]);
     }
 

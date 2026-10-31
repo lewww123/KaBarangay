@@ -1,6 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import LuponLayout from '@/layouts/LuponLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import withDeferredPage from '@/components/withDeferredPage';
 
 type ComplaintStatus = 'Submitted' | 'Under Review' | 'Accepted' | 'Rejected';
 
@@ -29,11 +31,19 @@ type Complaint = {
     } | null;
 };
 
+type Paginator<T> = {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    prev_page_url: string | null;
+    next_page_url: string | null;
+};
+
 type PageProps = {
-    auth: { user: { name?: string; staff_id?: string; department?: string } };
+    auth: { user: { name?: string }; staffAssignments?: { department: string; position: string }[] };
     userName?: string;
     barangayName?: string | null;
-    complaints: Complaint[];
+    complaints: Paginator<Complaint>;
     statuses: ComplaintStatus[];
     activeStatusFilter: ComplaintStatus | null;
     stats: {
@@ -43,7 +53,11 @@ type PageProps = {
     flash?: { success?: string | null };
 };
 
-export default function LuponComplaints({
+export default withDeferredPage(LuponComplaints, ['complaints', 'stats'], (props) => (
+    <LuponLayout active="complaints" user={props.auth.user} barangayName={props.barangayName}><PortalPageSkeleton metrics={4} /></LuponLayout>
+));
+
+function LuponComplaints({
     auth,
     userName,
     barangayName = null,
@@ -64,7 +78,7 @@ export default function LuponComplaints({
         router.get(
             status ? `/lupon/complaints?status=${encodeURIComponent(status)}` : '/lupon/complaints',
             {},
-            { preserveState: true, preserveScroll: true },
+            { preserveState: true, preserveScroll: true, only: ['complaints', 'activeStatusFilter'] },
         );
     };
 
@@ -140,7 +154,7 @@ export default function LuponComplaints({
                     </div>
                 </div>
 
-                {complaints.length === 0 ? (
+                {complaints.data.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-gray-300 bg-[#fafaf7] p-10 text-center">
                         <h2 className="text-base font-semibold text-gray-800">No complaints found</h2>
                         <p className="mx-auto mt-2 max-w-xl text-sm text-gray-500">
@@ -151,7 +165,7 @@ export default function LuponComplaints({
                     </div>
                 ) : (
                     <div className="grid gap-4">
-                        {complaints.map((complaint) => (
+                        {complaints.data.map((complaint) => (
                             <ComplaintRow
                                 key={complaint.id}
                                 complaint={complaint}
@@ -163,6 +177,28 @@ export default function LuponComplaints({
                                 }}
                             />
                         ))}
+                    </div>
+                )}
+
+                {complaints.last_page > 1 && (
+                    <div className="flex items-center justify-between border-t border-gray-200 pt-4 text-sm">
+                        <button
+                            type="button"
+                            disabled={!complaints.prev_page_url}
+                            onClick={() => complaints.prev_page_url && router.visit(complaints.prev_page_url, { preserveScroll: true })}
+                            className="rounded-md border border-gray-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            Previous
+                        </button>
+                        <span className="text-gray-600">Page {complaints.current_page} of {complaints.last_page}</span>
+                        <button
+                            type="button"
+                            disabled={!complaints.next_page_url}
+                            onClick={() => complaints.next_page_url && router.visit(complaints.next_page_url, { preserveScroll: true })}
+                            className="rounded-md border border-gray-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            Next
+                        </button>
                     </div>
                 )}
 

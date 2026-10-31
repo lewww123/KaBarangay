@@ -168,17 +168,24 @@ class DelayedPsaCertificateIntegrationTest extends TestCase
             }
 
             // The printed values must be present in the document.
-            $this->assertStringContainsString('CTRL-2026-0042', $xml);
-            $this->assertStringContainsString('JUAN DELA CRUZ', $xml);
-            $this->assertStringContainsString('PUROK 1', $xml);
-            $this->assertStringContainsString('1st day of January 1990', $xml);
-            $this->assertStringContainsString('MALE', $xml);
-            $this->assertStringContainsString('FILIPINO', $xml);
-            $this->assertStringContainsString('PUERTO PRINCESA CITY', $xml);
-            $this->assertStringContainsString('PEDRO DELA CRUZ', $xml);
-            $this->assertStringContainsString('MARIA DELA CRUZ', $xml);
-            $this->assertStringContainsString('12 JUNE 1985, PUERTO PRINCESA CITY', $xml);
-            $this->assertStringContainsString('1995 up to present', $xml);
+            $text = html_entity_decode(strip_tags($xml), ENT_QUOTES | ENT_XML1, 'UTF-8');
+            $this->assertStringContainsString('CTRL-2026-0042', $text);
+            $this->assertStringContainsString('JUAN DELA CRUZ', $text);
+            $this->assertStringContainsString('PUROK 1', $text);
+            $this->assertStringContainsString('1st day of January 1990', $text);
+            $this->assertStringContainsString('MALE', $text);
+            $this->assertStringContainsString('FILIPINO', $text);
+            $this->assertStringContainsString('PEDRO DELA CRUZ', $text);
+            $this->assertStringContainsString('MARIA DELA CRUZ', $text);
+            // Only the declared merge fields are editable in the provisioned
+            // DOCX. Its literal birthplace, marriage, and residency wording is
+            // not a placeholder and must not be mistaken for a failed merge.
+            foreach (DelayedPsaCertificate::TEMPLATE_KEYS as $key) {
+                $expected = DelayedPsaCertificate::templateValues($values)[$key];
+                if ($expected !== '') {
+                    $this->assertStringContainsString($expected, $text, "Missing merged value for [{$key}].");
+                }
+            }
         } finally {
             @unlink($output);
         }
@@ -446,7 +453,7 @@ class DelayedPsaCertificateIntegrationTest extends TestCase
                 'purok' => '',
             ]));
 
-        $response->assertSessionHasErrors(['date_of_birth', 'sex', 'purok']);
+        $response->assertSessionHasErrors('resident_id');
         $this->assertSame(0, CertificateIssuance::query()->count());
     }
 
@@ -577,7 +584,7 @@ class DelayedPsaCertificateIntegrationTest extends TestCase
 
         // The reviewed details must be confirmed before the certificate can be
         // downloaded.
-        $this->assertStringContainsString("confirmation.name = 'details_confirmed';", $source);
+        $this->assertStringContainsString("payload.set( 'details_confirmed',", $source);
         $this->assertStringContainsString('detailsConfirmed', $source);
         $this->assertStringContainsString('canIssueCertificate', $source);
 

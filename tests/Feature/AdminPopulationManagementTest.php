@@ -85,8 +85,8 @@ class AdminPopulationManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Population')
-                ->where('stats.totalResidents', 2)
-                ->where('stats.regularResidents', 2)
+                ->where('stats.totalResidents', 3)
+                ->where('stats.regularResidents', 3)
                 ->where('stats.seniorCitizens', 0)
                 ->where('stats.pwdMembers', 0));
     }
@@ -104,7 +104,7 @@ class AdminPopulationManagementTest extends TestCase
             ->get('/admin/population')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.totalResidents', 1)
+                ->where('stats.totalResidents', 2)
                 ->where('stats.inactiveResidents', 1));
     }
 
@@ -123,10 +123,10 @@ class AdminPopulationManagementTest extends TestCase
             ->get('/admin/population')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.totalResidents', 1)
+                ->where('stats.totalResidents', 2)
                 ->has('puroks', 1)
                 ->where('puroks.0.name', 'Purok 1')
-                ->where('puroks.0.total', 1));
+                ->where('puroks.0.total', 2));
     }
 
     public function test_other_barangay_pending_registrations_are_not_counted(): void
@@ -168,7 +168,7 @@ class AdminPopulationManagementTest extends TestCase
             ->get('/admin/population')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.totalResidents', 0)
+                ->where('stats.totalResidents', 1)
                 ->where('stats.pendingRegistrations', 2)
                 ->where('stats.rejectedRegistrations', 1));
     }
@@ -195,11 +195,11 @@ class AdminPopulationManagementTest extends TestCase
             ->get('/admin/population')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.totalResidents', 3)
+                ->where('stats.totalResidents', 4)
                 ->where('stats.seniorCitizens', 1)
                 ->where('stats.pwdMembers', 1)
                 ->where('stats.seniorAndPwd', 0)
-                ->where('stats.regularResidents', 1));
+                ->where('stats.regularResidents', 2));
     }
 
     public function test_a_resident_in_both_sectors_is_counted_once_per_category(): void
@@ -214,11 +214,11 @@ class AdminPopulationManagementTest extends TestCase
             ->get('/admin/population')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.totalResidents', 1)
+                ->where('stats.totalResidents', 2)
                 ->where('stats.seniorCitizens', 1)
                 ->where('stats.pwdMembers', 1)
                 ->where('stats.seniorAndPwd', 1)
-                ->where('stats.regularResidents', 0));
+                ->where('stats.regularResidents', 1));
     }
 
     public function test_unrelated_sectors_do_not_inflate_senior_or_pwd_counts(): void
@@ -232,10 +232,10 @@ class AdminPopulationManagementTest extends TestCase
             ->get('/admin/population')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.totalResidents', 1)
+                ->where('stats.totalResidents', 2)
                 ->where('stats.seniorCitizens', 0)
                 ->where('stats.pwdMembers', 0)
-                ->where('stats.regularResidents', 0));
+                ->where('stats.regularResidents', 1));
     }
 
     /*
@@ -265,7 +265,7 @@ class AdminPopulationManagementTest extends TestCase
                 ->component('Admin/Population')
                 ->has('puroks', 2)
                 ->where('puroks.0.name', 'Purok 1')
-                ->where('puroks.0.total', 2)
+                ->where('puroks.0.total', 3)
                 ->where('puroks.0.seniors', 1)
                 ->where('puroks.0.pwd', 0)
                 ->where('puroks.1.name', 'Purok 2')
@@ -285,7 +285,7 @@ class AdminPopulationManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('puroks', 2)
-                ->where('puroks.0.total', 0)
+                ->where('puroks.0.total', 1)
                 ->where('puroks.0.seniors', 0)
                 ->where('puroks.0.pwd', 0));
     }
@@ -299,7 +299,7 @@ class AdminPopulationManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Population')
-                ->where('stats.totalResidents', 0)
+                ->where('stats.totalResidents', 1)
                 ->has('puroks', 1));
     }
 

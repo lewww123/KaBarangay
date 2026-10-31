@@ -32,7 +32,10 @@ class LuponComplaintReviewTest extends TestCase
         $this->barangay = $this->createBarangay('Barangay One', 'BRGY-ONE');
         $this->purok = $this->createPurok($this->barangay, 'Purok 1');
         $this->resident = $this->createResident($this->barangay, $this->purok);
-        $this->lupon = $this->createStaff($this->barangay, 'lupon');
+        $this->lupon = $this->createAssignedStaff([
+            'barangay' => $this->barangay,
+            'purok' => $this->purok,
+        ], 'lupon', 'Lupon Secretary');
     }
 
     public function test_lupon_queue_lists_only_own_barangay_complaints(): void
@@ -51,9 +54,9 @@ class LuponComplaintReviewTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Lupon/Complaints')
-                ->has('complaints', 1)
-                ->where('complaints.0.id', $own->id)
-                ->where('complaints.0.reference', 'LUP-2026-00001'));
+                ->has('complaints.data', 1)
+                ->where('complaints.data.0.id', $own->id)
+                ->where('complaints.data.0.reference', 'LUP-2026-00001'));
     }
 
     public function test_queue_can_be_filtered_by_status(): void
@@ -72,8 +75,8 @@ class LuponComplaintReviewTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Lupon/Complaints')
-                ->has('complaints', 1)
-                ->where('complaints.0.reference', 'LUP-2026-00002')
+                ->has('complaints.data', 1)
+                ->where('complaints.data.0.reference', 'LUP-2026-00002')
                 ->where('activeStatusFilter', 'Accepted'));
     }
 
@@ -86,7 +89,7 @@ class LuponComplaintReviewTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Lupon/Complaints')
-                ->has('complaints', 1)
+                ->has('complaints.data', 1)
                 ->where('activeStatusFilter', null));
     }
 
@@ -120,7 +123,7 @@ class LuponComplaintReviewTest extends TestCase
                         'Rejected' => 1,
                     ],
                 ])
-                ->has('complaints', 2));
+                ->has('complaints.data', 2));
     }
 
     public function test_lupon_can_move_complaint_from_submitted_to_under_review(): void

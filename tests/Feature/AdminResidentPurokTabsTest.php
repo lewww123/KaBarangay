@@ -73,8 +73,8 @@ class AdminResidentPurokTabsTest extends TestCase
             ->get('/admin/residents')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('puroks', 0)
-                ->where('residents.total', 0)
+                ->has('puroks', 1)
+                ->where('allResidents.total', 1)
                 ->where('filters.purok_id', null));
     }
 
@@ -103,8 +103,8 @@ class AdminResidentPurokTabsTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->has('pendingRegistrations.data', 1)
                 ->where('pendingRegistrations.data.0.id', $ownPending->id)
-                ->has('residents.data', 1)
-                ->where('residents.data.0.id', $ownResident->id)
+                ->has('allResidents.data', 2)
+                ->where('allResidents.data.0.id', $ownResident->id)
                 ->where('filters.purok_id', null));
     }
 
@@ -138,8 +138,8 @@ class AdminResidentPurokTabsTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->has('pendingRegistrations.data', 1)
                 ->where('pendingRegistrations.data.0.id', $purokOnePending->id)
-                ->where('residents.total', 1)
-                ->where('residents.data.0.id', $purokOneResident->id)
+                ->where('allResidents.total', 2)
+                ->where('allResidents.data.0.id', $purokOneResident->id)
                 ->where('filters.purok_id', $this->purok->id));
     }
 
@@ -158,8 +158,8 @@ class AdminResidentPurokTabsTest extends TestCase
             ->get('/admin/residents?purok='.$this->purokTwo->id)
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('residents.total', 1)
-                ->where('residents.data.0.id', $second->id));
+                ->where('allResidents.total', 1)
+                ->where('allResidents.data.0.id', $second->id));
     }
 
     /*
@@ -191,24 +191,24 @@ class AdminResidentPurokTabsTest extends TestCase
             ->get('/admin/residents?resident_search=Alpha')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('residents.total', 21));
+                ->where('allResidents.total', 21));
 
         // Scoped to Purok 1 only.
         $this->actingAs($admin)
             ->get('/admin/residents?purok='.$this->purok->id.'&resident_search=Alpha')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('residents.total', 18)
-                ->where('residents.current_page', 1)
-                ->has('residents.data', 15)
+                ->where('allResidents.total', 18)
+                ->where('allResidents.current_page', 1)
+                ->has('allResidents.data', 15)
                 ->where('filters.purok_id', $this->purok->id));
 
         $this->actingAs($admin)
-            ->get('/admin/residents?purok='.$this->purok->id.'&resident_search=Alpha&page=2')
+            ->get('/admin/residents?purok='.$this->purok->id.'&resident_search=Alpha&all_page=2')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('residents.current_page', 2)
-                ->has('residents.data', 3));
+                ->where('allResidents.current_page', 2)
+                ->has('allResidents.data', 3));
     }
 
     public function test_pagination_links_preserve_purok_and_search(): void
@@ -227,7 +227,7 @@ class AdminResidentPurokTabsTest extends TestCase
             ->assertOk()
             ->assertInertia(function ($page) {
                 $props = $page->toArray()['props'];
-                $next = $props['residents']['next_page_url'];
+                $next = $props['allResidents']['next_page_url'];
 
                 $this->assertNotNull($next);
                 $this->assertStringContainsString(
@@ -265,8 +265,8 @@ class AdminResidentPurokTabsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('filters.purok_id', null)
-                ->where('residents.total', 1)
-                ->where('residents.data.0.id', $ownResident->id));
+                ->where('allResidents.total', 2)
+                ->where('allResidents.data.0.id', $ownResident->id));
     }
 
     public function test_invalid_purok_identifiers_are_ignored_safely(): void
@@ -282,8 +282,8 @@ class AdminResidentPurokTabsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('filters.purok_id', null)
-                ->where('residents.total', 1)
-                ->where('residents.data.0.id', $ownResident->id));
+                ->where('allResidents.total', 2)
+                ->where('allResidents.data.0.id', $ownResident->id));
 
         $this->actingAs($admin)
             ->get('/admin/residents?purok=not-a-number')

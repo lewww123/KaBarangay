@@ -1,10 +1,11 @@
-import { Head } from '@inertiajs/react';
+import { Deferred, Head } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     flattenOrgChart,
     type OrgChartNode,
 } from '@/components/org-chart/orgChart';
 import ResidentLayout from '@/layouts/ResidentLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 
 type Props = {
     tree: OrgChartNode[];
@@ -13,7 +14,18 @@ type Props = {
     };
 };
 
-export default function ResidentOrgChart({ tree, resident }: Props) {
+export default function ResidentOrgChart(props: Props) {
+    return (
+        <Deferred
+            data="tree"
+            fallback={<ResidentLayout active="org-chart"><PortalPageSkeleton list /></ResidentLayout>}
+        >
+            <OrgChartContent {...props} />
+        </Deferred>
+    );
+}
+
+function OrgChartContent({ tree, resident }: Props) {
     const positions = flattenOrgChart(tree);
     const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -301,6 +313,8 @@ function ResidentPhoto({
             <img
                 src={node.photo_url}
                 alt={`${node.title} official photo`}
+                loading="lazy"
+                decoding="async"
                 className={`${dimension} shrink-0 rounded-full border border-gray-200 object-cover`}
             />
         );

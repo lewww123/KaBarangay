@@ -196,13 +196,14 @@ class ResidencyCertificateIntegrationTest extends TestCase
         $resident = $this->createResident($this->barangay, $this->purok);
         $clerk = $this->createStaff($this->barangay, 'clerk');
 
-        $this->actingAs($clerk)
+        $response = $this->actingAs($clerk)
             ->post('/clerk/generate-certificate', $this->validPayload([
                 'resident_id' => $resident->id,
-            ]))
-            ->assertOk();
+            ]));
 
-        $document = $this->latestGeneratedCertificate();
+        $response->assertOk();
+
+        $document = $response->baseResponse->getFile()?->getPathname();
 
         try {
             $this->assertNotNull($document, 'The generated certificate document was not found.');
@@ -230,14 +231,15 @@ class ResidencyCertificateIntegrationTest extends TestCase
         $resident = $this->createResident($this->barangay, $this->purok);
         $clerk = $this->createStaff($this->barangay, 'clerk');
 
-        $this->actingAs($clerk)
+        $response = $this->actingAs($clerk)
             ->post('/clerk/generate-certificate', $this->validPayload([
                 'resident_id' => $resident->id,
                 'current_date' => '1st day of January 1999',
-            ]))
-            ->assertOk();
+            ]));
 
-        $document = $this->latestGeneratedCertificate();
+        $response->assertOk();
+
+        $document = $response->baseResponse->getFile()?->getPathname();
 
         try {
             $this->assertNotNull($document, 'The generated certificate document was not found.');
@@ -335,7 +337,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
         $this->assertSame('Juan Dela Cruz', $issuance->resident_name);
         $this->assertSame('Masunurin', $issuance->purok);
 
-        $document = $this->latestGeneratedCertificate();
+        $document = $response->baseResponse->getFile()?->getPathname();
 
         try {
             $this->assertNotNull($document, 'The generated certificate document was not found.');
@@ -440,6 +442,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
                 ->post('/clerk/generate-certificate', $this->validPayload([
                     'resident_id' => $resident->id,
                     'years_of_residency' => $years,
+                    'control_no' => 'CTRL-2026-'.str_pad($years, 4, '0', STR_PAD_LEFT),
                 ]))
                 ->assertOk();
         }
@@ -559,7 +562,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
     public function test_residency_purok_uses_the_template_prefix(): void
     {
         $this->assertSame('PUROK MASUNURIN', ResidencyCertificate::formatPurok('Masunurin'));
-        $this->assertSame('PUROK PUROK 1', ResidencyCertificate::formatPurok('Purok 1'));
+        $this->assertSame('PUROK 1', ResidencyCertificate::formatPurok('Purok 1'));
         $this->assertSame('', ResidencyCertificate::formatPurok('  '));
     }
 

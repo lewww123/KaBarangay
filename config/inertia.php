@@ -61,6 +61,8 @@ return [
     |
     */
 
+    'defer_heavy_props' => env('INERTIA_DEFER_HEAVY_PROPS', true),
+
     'testing' => [
 
         'ensure_pages_exist' => true,

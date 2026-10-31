@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\PresentsDisbursementDocuments;
 use App\Http\Controllers\Controller;
 use App\Models\DisbursementDocument;
 use App\Models\Resident;
+use App\Support\ResidentContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,22 +20,20 @@ class DisbursementDocumentController extends Controller
     {
         $resident = $this->resident($request);
 
-        $documents = DisbursementDocument::query()
-            ->where('barangay_id', $resident->barangay_id)
-            ->visibleToResidents()
-            ->orderByDesc('published_at')
-            ->orderByDesc('id')
-            ->paginate(12)
-            ->withQueryString()
-            ->through(
-                fn (DisbursementDocument $document) => $this->documentPayload(
-                    $document,
-                    false
-                )
-            );
-
         return Inertia::render('Resident/Disbursement', [
-            'documents' => $documents,
+            'documents' => $this->deferProp(fn () => DisbursementDocument::query()
+                ->where('barangay_id', $resident->barangay_id)
+                ->visibleToResidents()
+                ->orderByDesc('published_at')
+                ->orderByDesc('id')
+                ->paginate(12)
+                ->withQueryString()
+                ->through(
+                    fn (DisbursementDocument $document) => $this->documentPayload(
+                        $document,
+                        false
+                    )
+                )),
             'resident' => [
                 'full_name' => $resident->full_name,
             ],
@@ -85,10 +84,7 @@ class DisbursementDocumentController extends Controller
 
     private function resident(Request $request): Resident
     {
-        return Resident::query()
-            ->whereKey($request->session()->get('resident_id'))
-            ->where('status', 'active')
-            ->firstOrFail();
+        return ResidentContext::get();
     }
 
     private function authorizeVisible(

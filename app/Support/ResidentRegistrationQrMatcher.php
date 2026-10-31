@@ -30,13 +30,15 @@ final class ResidentRegistrationQrMatcher
             ->whereHas('resident', fn ($query) => $query
                 ->where('barangay_id', $barangayId)
                 ->where('status', 'active'))
-            ->first(['id', 'resident_id']);
+            ->first(['id', 'resident_id', 'token']);
 
         // Keep matching byte-exact even on databases with case-insensitive
         // collations. The raw value is never returned, stored, or logged.
         if ($credential === null || ! hash_equals((string) $credential->token, $rawToken)) {
             return null;
         }
+
+        unset($credential->token);
 
         return $credential;
     }

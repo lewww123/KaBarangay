@@ -1,0 +1,59 @@
+KA BARANGAY AUDIT REPORT
+Date: 10/27/2026 2:35:08 PM
+
+=== AFFECTED COMPONENTS ===
+
+1. ADMIN UI
+  - Routes: web.php (lines ~607-609 - announcements/approvals, approve, reject)
+  - Controller: app/Http/Controllers/Admin/AnnouncementApprovalController.php
+  - Layout: resources/js/layouts/AdminLayout.tsx (Program Approvals sidebar link line ~80-86)
+  - Page: resources/js/pages/Admin/AnnouncementApprovals.tsx
+  - Dashboard: resources/js/pages/Dashboard.tsx (Program Approvals card)
+  - Dashboard Controller: app/Http/Controllers/Admin/DashboardController.php
+
+2. BACKEND LOGIC
+  - Models: Announcement.php (approval_status, approvalLogs relations)
+  - Concerns: RecordsAnnouncementApprovalActivity
+  - Support: AnnouncementLifecycle.php
+  - Clerk/Senior/PWD controllers still enforce approval workflow
+
+3. TESTS
+  - tests/Feature/AdminDashboardTest.php
+  - tests/Feature/AdminSectorManagementTest.php
+
+=== AUDIT COMPLETE ===
+
+=== PROPOSED CHANGES ===
+
+ADMIN UI:
+  1. Remove Program Approvals link from AdminLayout sidebar
+  2. Remove admin routes for announcements approvals (GET /admin/announcements/approvals, POST approve/reject)
+  3. Remove/disable AnnouncementApprovalController usage or delete routes
+  4. Update Admin Dashboard: replace Program Approvals card with Total Programs and Total Announcements cards
+  5. Remove approval-related notifications/actions from admin dashboard
+  6. Possibly remove AnnouncementApprovals.tsx page or leave it unused
+
+BACKEND:
+  1. Update DashboardController to compute total programs and total announcements counts (scoped to barangay)
+  2. Need to determine counting logic: Programs vs Announcements distinction based on existing schema
+     - From Clerk: programs have category Event (kind=program sets category Event), updates have category != Event
+     - Also routes: /clerk/programs vs /clerk/updates
+     - So likely: Total Programs = announcements where category is Event (or submitted as program)? Or count by kind/category as per existing business rule
+     - Total Announcements = all announcements? Or updates/non-program announcements? Need to be precise.
+
+TESTS:
+  - AdminDashboardTest expects pendingAnnouncements stats and Program Approvals card behavior
+  - May need to update tests to match new requirements
+
+=== BUSINESS RULE CONFLICTS / CLARIFICATIONS NEEDED ===
+  1. Counting logic: Need to confirm how to distinguish Programs vs Announcements. Based on codebase: programs are created with category Event (kind=program). Updates are not Events. But the requirement says  Total Programs and Total Announcements as two separate counts. Are they disjoint sets? Or overlapping?
+  2. Does removing admin approval affect the approval workflow for submissions from Clerk/Senior/PWD? The requirement says Remove the Admin-side approval functionality only. But if programs currently require admin approval and we remove admin approval UI/routes, do programs still need approval by someone else? Or are they auto-published? The instruction says Do not introduce a replacement approval workflow or automatic publishing rules without verifying the existing requirements. This is ambiguous - need to be careful not to change backend behavior for non-admin users.
+  3. The Clerk dashboard still shows pendingAnnouncements counts and references programs pending approval. We need to preserve Clerk/staff workflows - so we must not break their functionality.
+  4. Tests may need updating - the instruction says run focused tests but also says do not stage/commit/push. We need to see if tests need to change to match new requirements.
+
+=== END REPORT ===
+
+INFERRED COUNTING LOGIC (based on existing rules):
+  - Programs: announcements with category == " Event\ (programs are forced to Event category by Clerk/Senior/PWD controllers)
+ - Announcements/Updates: announcements that are not programs (category != \Event\ or other categories like General) - likely all announcements except those classified as programs? Or just count of updates separately.
+ - Need to look up exact requirement again: \Display two count cards: Total Programs Total Announcements\ - could mean total count of program-type announcements and total count of announcement-type (non-program) items. They are likely disjoint sets based on category assignment rules.

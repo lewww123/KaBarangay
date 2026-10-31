@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\Resident;
 use App\Support\AnnouncementType;
+use App\Support\ResidentContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -40,15 +41,6 @@ class AnnouncementController extends Controller
 
         $baseQuery = $this->visibleAnnouncements($resident, $kind, $period);
 
-        $categories = (clone $baseQuery)
-            ->reorder()
-            ->select('category')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category')
-            ->filter()
-            ->values();
-
         $query = clone $baseQuery;
 
         if ($filters['q'] !== '') {
@@ -68,27 +60,45 @@ class AnnouncementController extends Controller
             $query->where('importance', $filters['importance']);
         }
 
-        $paginator = $query->latest()->paginate(self::PER_PAGE)->withQueryString();
+        $paginator = null;
 
-        $paginator->through(fn (Announcement $announcement): array => [
-            ...$announcement->toArray(),
-            'type' => AnnouncementType::for($announcement),
-        ]);
+        $resolvePaginator = function () use (&$paginator, $query) {
+            return $paginator ??= $query
+                ->latest()
+                ->orderByDesc('id')
+                ->paginate(self::PER_PAGE)
+                ->withQueryString()
+                ->through(fn (Announcement $announcement): array => [
+                    ...$announcement->toArray(),
+                    'type' => AnnouncementType::for($announcement),
+                ]);
+        };
 
         return Inertia::render('Resident/Announcements', [
-            'announcements' => $paginator->items(),
-            'categories' => $categories,
+            'announcements' => $this->deferProp(fn () => $resolvePaginator()->items()),
+            'categories' => $this->deferProp(fn () => (clone $baseQuery)
+                ->reorder()
+                ->select('category')
+                ->distinct()
+                ->orderBy('category')
+                ->pluck('category')
+                ->filter()
+                ->values()),
             'filters' => $filters,
             'kind' => $kind,
             'period' => $period,
-            'pagination' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-                'from' => $paginator->firstItem(),
-                'to' => $paginator->lastItem(),
-            ],
+            'pagination' => $this->deferProp(function () use ($resolvePaginator): array {
+                $page = $resolvePaginator();
+
+                return [
+                    'current_page' => $page->currentPage(),
+                    'last_page' => $page->lastPage(),
+                    'per_page' => $page->perPage(),
+                    'total' => $page->total(),
+                    'from' => $page->firstItem(),
+                    'to' => $page->lastItem(),
+                ];
+            }),
         ]);
     }
 
@@ -96,8 +106,7 @@ class AnnouncementController extends Controller
         Request $request,
         Announcement $announcement,
         string $kind = 'announcements',
-    ): Response
-    {
+    ): Response {
         $resident = $this->currentResident();
         $kind = $kind === 'updates' ? 'updates' : 'announcements';
         $period = $kind === 'updates' && $request->query('period') === 'past'
@@ -118,12 +127,33 @@ class AnnouncementController extends Controller
         ]);
     }
 
+    public function programs(): Response
+    {
+        $resident = $this->currentResident();
+
+        return Inertia::render('Resident/Programs', [
+            'programs' => $this->deferProp(fn () => $this->visiblePrograms($resident)
+                ->orderByRaw('event_start_at is null')
+                ->orderBy('event_start_at')
+                ->orderByDesc('id')
+                ->get()
+                ->map(fn (Announcement $program): array => [
+                    'id' => $program->id,
+                    'title' => $program->title,
+                    'description' => $program->content,
+                    'category' => $program->category,
+                    'schedule' => $program->event_start_at?->toIso8601String(),
+                    'location' => $program->location,
+                    'eligibility' => $this->eligibilityLabel($program),
+                    'requires_attendance' => $program->requires_attendance,
+                ])
+                ->values()),
+        ]);
+    }
+
     private function currentResident(): Resident
     {
-        return Resident::query()
-            ->with('sectors')
-            ->whereKey((int) session('resident_id'))
-            ->firstOrFail();
+        return ResidentContext::get(['sectors']);
     }
 
     /**
@@ -133,8 +163,7 @@ class AnnouncementController extends Controller
         Resident $resident,
         string $kind = 'announcements',
         string $period = 'current',
-    ): Builder
-    {
+    ): Builder {
         $sectorSlugs = $resident->sectors->pluck('slug')->toArray();
 
         $query = Announcement::with(['author:id,name', 'sector:id,name'])
@@ -168,5 +197,25 @@ class AnnouncementController extends Controller
                     ->whereNull('completed_at');
             });
         });
+    }
+
+    /** @return Builder<Announcement> */
+    private function visiblePrograms(Resident $resident): Builder
+    {
+        $query = $this->visibleAnnouncements($resident);
+
+        return AnnouncementType::applyProgramFilter($query)
+            ->where(fn (Builder $status) => $status
+                ->where('program_status', 'ongoing')
+                ->orWhereNull('program_status'));
+    }
+
+    private function eligibilityLabel(Announcement $program): string
+    {
+        return match ($program->target_audience) {
+            'senior_citizens' => 'Senior Citizens',
+            'pwd' => 'Persons with Disabilities',
+            default => 'All Residents',
+        };
     }
 }

@@ -10,11 +10,13 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "bacon/bacon-qr-code": "3.1.1",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
-        "phpoffice/phpword": "^1.1"
+        "phpoffice/phpword": "^1.1",
+        "resend/resend-php": "1.17.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",

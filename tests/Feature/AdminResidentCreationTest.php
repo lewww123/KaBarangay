@@ -2,19 +2,17 @@
 
 namespace Tests\Feature;
 
-use App\Mail\ResidentClaimInvitationMail;
-use App\Models\AuditLog;
+use App\Mail\ResidentRegistrationInvitationMail;
 use App\Models\Barangay;
 use App\Models\Purok;
 use App\Models\Resident;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
 
 class AdminResidentCreationTest extends TestCase
 {
-    use CreatesBarangayFixtures, RefreshDatabase;
+    use CreatesBarangayFixtures;
 
     private Barangay $barangay;
 
@@ -27,6 +25,8 @@ class AdminResidentCreationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Invitation delivery requires a real commit, not RefreshDatabase's outer transaction.
+        $this->artisan('migrate:fresh');
 
         $this->withoutVite();
         $this->barangay = $this->createBarangay('Barangay One', 'BRGY-ONE');
@@ -46,11 +46,11 @@ class AdminResidentCreationTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertSessionHas('success', 'Resident created. No registration invitation was sent because no email address was provided.');
 
-        $resident = Resident::query()->firstOrFail();
+        $resident = Resident::query()->where('mobile', '09175550101')->sole();
 
         $this->assertNull($resident->email);
         $this->assertNull($resident->email_verified_at);
-        $this->assertDatabaseCount('resident_accounts', 0);
+        $this->assertDatabaseCount('resident_accounts', 1);
         $this->assertDatabaseCount('resident_notification_outbox', 0);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'resident.created',
@@ -82,7 +82,7 @@ class AdminResidentCreationTest extends TestCase
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        $resident = Resident::query()->firstOrFail();
+        $resident = Resident::query()->where('mobile', '09175550101')->sole();
 
         $this->assertSame('resident@example.test', $resident->email);
         $this->assertNull($resident->email_verified_at);
@@ -90,7 +90,7 @@ class AdminResidentCreationTest extends TestCase
             'resident_id' => $resident->id,
             'recipient_email' => 'resident@example.test',
         ]);
-        Mail::assertSent(ResidentClaimInvitationMail::class);
+        Mail::assertSent(ResidentRegistrationInvitationMail::class);
     }
 
     public function test_invalid_supplied_email_is_rejected(): void
@@ -103,7 +103,7 @@ class AdminResidentCreationTest extends TestCase
             ->assertRedirect('/admin/residents')
             ->assertSessionHasErrors('email');
 
-        $this->assertDatabaseCount('residents', 0);
+        $this->assertDatabaseCount('residents', 1);
     }
 
     public function test_duplicate_supplied_email_is_rejected_within_the_barangay(): void
@@ -120,7 +120,7 @@ class AdminResidentCreationTest extends TestCase
             ->assertRedirect('/admin/residents')
             ->assertSessionHasErrors('email');
 
-        $this->assertDatabaseCount('residents', 1);
+        $this->assertDatabaseCount('residents', 2);
     }
 
     public function test_same_email_in_another_barangay_does_not_block_creation(): void
@@ -136,7 +136,7 @@ class AdminResidentCreationTest extends TestCase
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        $this->assertSame(2, Resident::query()->count());
+        $this->assertSame(3, Resident::query()->count());
     }
 
     public function test_phone_number_remains_required_and_duplicate_protected(): void
@@ -185,7 +185,7 @@ class AdminResidentCreationTest extends TestCase
             ->assertRedirect('/admin/residents')
             ->assertSessionHasErrors('purok_id');
 
-        $this->assertDatabaseCount('residents', 0);
+        $this->assertDatabaseCount('residents', 2);
     }
 
     /** @return array<string, int|string> */

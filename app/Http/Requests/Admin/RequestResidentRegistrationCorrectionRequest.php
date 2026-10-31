@@ -10,7 +10,7 @@ class RequestResidentRegistrationCorrectionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === 'admin';
+        return $this->user()?->hasActiveAssignment(['admin']) ?? false;
     }
 
     public function rules(): array

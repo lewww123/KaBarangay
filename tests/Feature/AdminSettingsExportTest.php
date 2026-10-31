@@ -264,32 +264,26 @@ class AdminSettingsExportTest extends TestCase
     |--------------------------------------------------------------------------
     */
 
-    public function test_null_barangay_admin_exports_no_records(): void
+    public function test_null_barangay_admin_is_denied_export_access(): void
     {
         $this->createResident($this->barangay, $this->purok, ['resident_number' => 'A-1']);
 
         $admin = User::factory()->create([
             'barangay_id' => null,
-            'role' => 'admin',
-            'department' => 'Admin',
             'status' => 'active',
         ]);
 
-        $residents = $this->actingAs($admin)
+        $this->actingAs($admin)
             ->get('/admin/settings/export/residents')
-            ->getContent();
+            ->assertForbidden();
 
-        $staff = $this->actingAs($admin)
+        $this->actingAs($admin)
             ->get('/admin/settings/export/staff')
-            ->getContent();
-
-        $this->assertStringNotContainsString('A-1', $residents);
-        $this->assertStringNotContainsString('@example.test', $staff);
+            ->assertForbidden();
 
         $this->actingAs($admin)
             ->get('/admin/settings')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('barangay.name', null));
+            ->assertForbidden();
     }
 
     public function test_resident_is_not_exported_with_a_client_supplied_barangay_id(): void

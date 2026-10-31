@@ -1,6 +1,7 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Deferred, Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import ResidentLayout from '@/layouts/ResidentLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import type { SectorApplicationItem, SectorType } from '@/components/sectors/types';
 
 interface Props {
@@ -18,7 +19,18 @@ interface Props {
     applications: SectorApplicationItem[];
 }
 
-export default function ResidentSectorApplicationsIndex({ resident, applications = [] }: Props) {
+export default function ResidentSectorApplicationsIndex(props: Props) {
+    return (
+        <Deferred
+            data="applications"
+            fallback={<ResidentLayout active="sectors"><PortalPageSkeleton list /></ResidentLayout>}
+        >
+            <SectorApplicationsContent {...props} />
+        </Deferred>
+    );
+}
+
+function SectorApplicationsContent({ resident, applications = [] }: Props) {
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [selectedSector, setSelectedSector] = useState<SectorType>('senior');
     const [selfServiceNotes, setSelfServiceNotes] = useState('');

@@ -1,6 +1,7 @@
-import { Head, router } from '@inertiajs/react';
+import { Deferred, Head, router } from '@inertiajs/react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import ResidentLayout from '@/layouts/ResidentLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 
 /*
 |--------------------------------------------------------------------------
@@ -105,7 +106,18 @@ function defaultDetails(certificate?: Certificate): Record<string, string> {
 |--------------------------------------------------------------------------
 */
 
-export default function Certificates({ resident, certificates, requests, errors }: PageProps) {
+export default function Certificates(props: PageProps) {
+    return (
+        <Deferred
+            data={['resident', 'certificates', 'requests']}
+            fallback={<ResidentLayout active="certificates"><PortalPageSkeleton showTabs /></ResidentLayout>}
+        >
+            <CertificatesContent {...props} />
+        </Deferred>
+    );
+}
+
+function CertificatesContent({ resident, certificates, requests, errors }: PageProps) {
     const [activeTab, setActiveTab] = useState<Tab>('request');
     const [step, setStep] = useState<Step>('form');
     
@@ -479,7 +491,7 @@ export default function Certificates({ resident, certificates, requests, errors 
                                             <>
                                                 <div className="mt-5">
                                                     <label htmlFor="purpose" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
-                                                        Purpose *
+                                                        Purpose / Requirement For *
                                                     </label>
                                                     <select
                                                         id="purpose"
@@ -493,6 +505,9 @@ export default function Certificates({ resident, certificates, requests, errors 
                                                         <option value="School Requirement">School Requirement</option>
                                                         <option value="Government Requirement">Government Requirement</option>
                                                         <option value="Financial Assistance">Financial Assistance</option>
+                                                        <option value="DSWD Assistance">DSWD Assistance</option>
+                                                        <option value="Medical Assistance">Medical Assistance</option>
+                                                        <option value="Scholarship">Scholarship</option>
                                                         <option value="Business">Business</option>
                                                         <option value="Personal">Personal</option>
                                                         <option value="Other">Other</option>
@@ -526,6 +541,21 @@ export default function Certificates({ resident, certificates, requests, errors 
                                                 <h3 className="text-base font-semibold text-gray-800">Business Information</h3>
                                                 <p className="mt-1 text-sm text-gray-500">Enter the business information required for this certificate.</p>
                                                 <div className="mt-4 space-y-4">
+                                                    <div>
+                                                        <label className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
+                                                            Business Owner
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={resident.full_name}
+                                                            readOnly
+                                                            aria-readonly="true"
+                                                            className={`${inputClass} cursor-not-allowed bg-gray-50 text-gray-600`}
+                                                        />
+                                                        <p className="mt-2 text-xs text-gray-500">
+                                                            The verified Resident account holder is used as the business owner.
+                                                        </p>
+                                                    </div>
                                                     <div>
                                                         <label htmlFor="businessName" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
                                                             Business Name *
@@ -657,6 +687,7 @@ export default function Certificates({ resident, certificates, requests, errors 
 
                                         {selectedCertificate.requiresBusinessDetails && (
                                             <>
+                                                <ReviewRow label="Business Owner" value={resident.full_name} />
                                                 <ReviewRow label="Business Name" value={businessName} />
                                                 <ReviewRow label="Business Address" value={businessAddress} />
                                             </>

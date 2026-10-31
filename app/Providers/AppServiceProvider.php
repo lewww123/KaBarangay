@@ -2,15 +2,29 @@
 
 namespace App\Providers;
 
+use App\Auth\CachedEloquentUserProvider;
+use App\Http\Middleware\LocalAdminRequestDiagnostics;
+use App\Models\Certificate;
+use App\Models\CitizenCharterService;
+use App\Models\CitizenCharterVersion;
+use App\Models\OrgChartPosition;
+use App\Models\User;
+use App\Observers\ReferenceDataObserver;
+use App\Observers\UserAuthCacheObserver;
+use App\Support\AdminQueryLogger;
 use App\Support\LoginAttemptRecorder;
 use App\Support\LoginIdentifier;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -32,6 +46,63 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureRateLimiters();
+        Model::preventLazyLoading(! $this->app->isProduction());
+
+        Auth::provider('cached-eloquent', fn ($app, array $config) => new CachedEloquentUserProvider(
+            $app['hash'],
+            $config['model'],
+        ));
+        User::observe(UserAuthCacheObserver::class);
+        foreach ([Certificate::class, OrgChartPosition::class, CitizenCharterService::class, CitizenCharterVersion::class] as $referenceModel) {
+            $referenceModel::observe(ReferenceDataObserver::class);
+        }
+
+        $queryLogger = new AdminQueryLogger;
+        DB::listen($queryLogger(...));
+
+        if (app()->environment('local')) {
+            Event::listen(QueryExecuted::class, static function (QueryExecuted $event): void {
+                $request = app('request');
+
+                if (! $request instanceof Request) {
+                    return;
+                }
+
+                $metrics = $request->attributes->get(LocalAdminRequestDiagnostics::METRICS_ATTRIBUTE);
+
+                if (! is_array($metrics)) {
+                    return;
+                }
+
+                $duration = max(0.0, (float) $event->time);
+                $fingerprint = LocalAdminRequestDiagnostics::fingerprintQuery($event->sql);
+                $metrics['query_count']++;
+                $metrics['query_duration_ms'] += $duration;
+                $metrics['slow_queries'][] = [
+                    'fingerprint' => $fingerprint,
+                    'classification' => LocalAdminRequestDiagnostics::classifyQuery($event->sql),
+                    'duration_ms' => round($duration, 3),
+                ];
+
+                if ($fingerprint === LocalAdminRequestDiagnostics::TARGET_SOURCE_FINGERPRINT
+                    && $duration >= LocalAdminRequestDiagnostics::TARGET_SOURCE_MIN_DURATION_MS
+                    && count($metrics['target_query_sources'] ?? []) < LocalAdminRequestDiagnostics::TARGET_SOURCE_LIMIT) {
+                    $metrics['target_query_sources'][] = [
+                        'fingerprint' => $fingerprint,
+                        'duration_ms' => round($duration, 3),
+                        'source_frames' => LocalAdminRequestDiagnostics::targetQuerySourceFrames(),
+                    ];
+                }
+
+                usort(
+                    $metrics['slow_queries'],
+                    static fn (array $left, array $right): int => $right['duration_ms'] <=> $left['duration_ms'],
+                );
+                $metrics['slow_queries'] = array_slice($metrics['slow_queries'], 0, LocalAdminRequestDiagnostics::SLOW_QUERY_LIMIT);
+
+                $request->attributes->set(LocalAdminRequestDiagnostics::METRICS_ATTRIBUTE, $metrics);
+            });
+        }
     }
 
     /**
@@ -44,22 +115,13 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiters(): void
     {
-        RateLimiter::for('login-department', fn (Request $request) => $this->loginLimits(
-            $request,
-            'department',
-            LoginAttemptRecorder::ACTOR_STAFF,
-            LoginAttemptRecorder::CHANNEL_DEPARTMENT,
-            fn (Request $r) => $r->input('username'),
-            fn (Request $r) => LoginIdentifier::barangayIdFromSession($r),
-        ));
-
         RateLimiter::for('login-staff', fn (Request $request) => $this->loginLimits(
             $request,
             'staff',
             LoginAttemptRecorder::ACTOR_STAFF,
             LoginAttemptRecorder::CHANNEL_STAFF,
-            fn (Request $r) => $r->input('staff_id'),
-            fn (Request $r) => LoginIdentifier::barangayIdFromSession($r),
+            fn (Request $r) => $r->input('full_name'),
+            fn (Request $r) => $r->integer('barangay_id') ?: null,
         ));
 
         RateLimiter::for('login-resident', fn (Request $request) => $this->loginLimits(
@@ -70,6 +132,11 @@ class AppServiceProvider extends ServiceProvider
             fn (Request $r) => $r->input('identifier'),
             fn (Request $r) => null,
         ));
+
+        RateLimiter::for('registration-otp-send', fn (Request $request) => Limit::perMinute(5)
+            ->by('registration-otp-send:'.$request->ip()));
+        RateLimiter::for('registration-otp-verify', fn (Request $request) => Limit::perMinute(15)
+            ->by('registration-otp-verify:'.$request->ip()));
     }
 
     /**

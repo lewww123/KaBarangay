@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Announcement;
 use App\Models\AnnouncementAttendance;
 use App\Models\Barangay;
+use App\Models\Certificate;
 use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
 use App\Models\LuponCase;
@@ -13,8 +14,9 @@ use App\Models\Purok;
 use App\Models\Resident;
 use App\Models\Sector;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
 
@@ -92,10 +94,10 @@ class AdminReportsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Reports')
-                ->where('population.metrics.Total active Residents', 3)
+                ->where('population.metrics.Total active Residents', 4)
                 ->where('population.metrics.Senior Citizens', 2)
                 ->where('population.metrics.PWD', 1)
-                ->where('population.metrics.General Residents', 1)
+                ->where('population.metrics.General Residents', 2)
                 ->where('population.distribution_note', fn ($note) => str_contains($note, 'exclusive distribution chart is omitted'))
                 ->where('financial.available', false)
                 ->where('window.timezone', 'Asia/Manila'));
@@ -108,7 +110,7 @@ class AdminReportsTest extends TestCase
             'mobile' => '09170001011',
             'resident_number' => 'REPORT-011',
         ]);
-        $certificate = \App\Models\Certificate::create([
+        $certificate = Certificate::create([
             'barangay_id' => $this->barangay->id,
             'code' => 'RESIDENCY',
             'name' => 'Certificate of Residency',
@@ -255,10 +257,73 @@ class AdminReportsTest extends TestCase
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');
 
         $csv = $response->streamedContent();
-        $this->assertStringContainsString("'=HYPERLINK", $csv);
+        $this->assertStringContainsString('Issuance type: =HYPERLINK', $csv);
+        $this->assertStringNotContainsString(",'=HYPERLINK", $csv);
         $this->assertStringNotContainsString('Private Resident Name', $csv);
         $this->assertStringNotContainsString('PRIVATE-001', $csv);
         $this->assertStringNotContainsString('100.00', $csv);
+    }
+
+    public function test_financial_export_keeps_exact_unavailable_csv_and_skips_report_data_queries(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $reportQueries = [];
+        $reportTables = [
+            'residents', 'sectors', 'resident_sector', 'certificate_issuances',
+            'lupon_cases', 'announcements', 'announcement_attendances',
+        ];
+
+        DB::listen(function (QueryExecuted $event) use (&$reportQueries, $reportTables): void {
+            $sql = strtolower($event->sql);
+            foreach ($reportTables as $table) {
+                if (preg_match('/\\b'.preg_quote($table, '/').'\\b/', $sql)) {
+                    $reportQueries[] = $event->sql;
+                    break;
+                }
+            }
+        });
+
+        $response = $this->actingAs($admin)
+            ->get('/admin/reports/export?period=daily&date=2026-10-06&category=financial')
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+        $this->assertSame(
+            "Report,Metric,Period,Value\nFinancial,Availability,\"Oct 6, 2026\",\"Unavailable: no authoritative financial ledger\"\n",
+            $response->streamedContent(),
+        );
+        $this->assertSame([], $reportQueries, 'Unavailable financial export does not query report data tables.');
+    }
+
+    public function test_program_and_all_csv_exports_skip_unused_program_trend_query(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $this->createProgram($this->barangay, 'approved', true, '2026-10-06 09:00:00');
+        $trendQueries = [];
+
+        DB::listen(function (QueryExecuted $event) use (&$trendQueries): void {
+            if (preg_match('/\\bgroup\\s+by\\b.*\\bevent_start_at\\b/is', strtolower($event->sql))) {
+                $trendQueries[] = $event->sql;
+            }
+        });
+
+        foreach (['programs', 'all'] as $category) {
+            $trendQueries = [];
+            $response = $this->actingAs($admin)
+                ->get('/admin/reports/export?period=daily&date=2026-10-06&category='.$category)
+                ->assertOk();
+
+            $rows = array_map('str_getcsv', explode("\n", trim($response->streamedContent())));
+            $this->assertContains(
+                ['Programs & Attendance', 'Approved and published programs', 'Oct 6, 2026', '1'],
+                $rows,
+            );
+            $this->assertContains(
+                ['Programs & Attendance', 'Program category: Event', 'Oct 6, 2026', '1'],
+                $rows,
+            );
+            $this->assertSame([], $trendQueries, $category.' export does not execute its unused event-date trend query.');
+        }
     }
 
     public function test_empty_datasets_render_zeroes_and_financial_category_is_explicitly_unavailable(): void
@@ -269,9 +334,13 @@ class AdminReportsTest extends TestCase
             ->get('/admin/reports?period=monthly&date=2026-10-01&category=financial')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('population.metrics.Total active Residents', 0)
+                ->where('population.metrics.Total active Residents', 1)
                 ->where('certificates.count', 0)
+                ->where('certificates.trend', [])
                 ->where('lupon.count', 0)
+                ->where('lupon.by_type', [])
+                ->where('programs.count', 0)
+                ->where('programs.attendance', [])
                 ->where('financial.available', false)
                 ->where('financial.message', fn ($message) => str_contains($message, 'unavailable')));
     }

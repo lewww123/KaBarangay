@@ -24,7 +24,7 @@ class LuponHearingController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -68,28 +68,26 @@ class LuponHearingController extends Controller
             $outcome = '';
         }
 
-        $hearings = $query
-            ->orderByDesc('hearing_date')
-            ->orderByDesc('hearing_number')
-            ->paginate(15)
-            ->withQueryString()
-            ->through(fn (LuponHearing $hearing) => [
-                'id' => $hearing->id,
-                'caseId' => $hearing->case_id,
-                'caseNumber' => $hearing->case?->case_number,
-                'caseTitle' => $hearing->case?->title,
-                'caseStatus' => $hearing->case?->status,
-                'hearingNumber' => $hearing->hearing_number,
-                'phase' => $hearing->phase,
-                'date' => $hearing->hearing_date->format('F j, Y'),
-                'time' => $hearing->hearing_time,
-                'venue' => $hearing->venue,
-                'status' => $hearing->status,
-                'outcome' => $hearing->outcome,
-            ]);
-
         return Inertia::render('Lupon/Hearings/Index', [
-            'hearings' => $hearings,
+            'hearings' => $this->deferProp(fn () => $query
+                ->orderByDesc('hearing_date')
+                ->orderByDesc('hearing_number')
+                ->paginate(15)
+                ->withQueryString()
+                ->through(fn (LuponHearing $hearing) => [
+                    'id' => $hearing->id,
+                    'caseId' => $hearing->case_id,
+                    'caseNumber' => $hearing->case?->case_number,
+                    'caseTitle' => $hearing->case?->title,
+                    'caseStatus' => $hearing->case?->status,
+                    'hearingNumber' => $hearing->hearing_number,
+                    'phase' => $hearing->phase,
+                    'date' => $hearing->hearing_date->format('F j, Y'),
+                    'time' => $hearing->hearing_time,
+                    'venue' => $hearing->venue,
+                    'status' => $hearing->status,
+                    'outcome' => $hearing->outcome,
+                ])),
             'filters' => [
                 'search' => is_string($search) ? $search : '',
                 'phase' => $phase,
@@ -109,7 +107,7 @@ class LuponHearingController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -169,7 +167,7 @@ class LuponHearingController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'lupon') {
+        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -184,6 +182,7 @@ class LuponHearingController extends Controller
         ]);
 
         $hearing->update($validated);
+        $hearing->loadMissing('case');
 
         // If outcome is Settled or Unresolved, sync case status if appropriate
         if ($validated['outcome'] === 'Settled') {

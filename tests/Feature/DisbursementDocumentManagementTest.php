@@ -113,7 +113,7 @@ class DisbursementDocumentManagementTest extends TestCase
 
     public function test_guests_and_inactive_staff_cannot_access_management(): void
     {
-        $this->get('/clerk/disbursements')->assertRedirect('/login');
+        $this->get('/clerk/disbursements')->assertRedirect(route('login'));
 
         $inactive = $this->createStaff($this->barangay, 'clerk', [
             'status' => 'inactive',

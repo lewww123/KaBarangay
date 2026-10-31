@@ -74,7 +74,7 @@ class CertificateRequestController extends Controller
             $query->where('status', $statusFilter);
         }
 
-        $requests = $query
+        $requests = fn () => $query
             ->with([
                 'resident:id,first_name,middle_name,last_name,suffix,resident_number',
                 'certificate:id,name,code',
@@ -119,24 +119,25 @@ class CertificateRequestController extends Controller
         // One grouped query replaces the previous seven per-status counts.
         // Statuses with no rows simply fall back to zero below, and the sum of
         // the groups is exactly the barangay's total request count.
-        $statusCounts = CertificateRequest::query()
-            ->where('barangay_id', $barangayId)
-            ->selectRaw('status, count(*) as aggregate')
-            ->groupBy('status')
-            ->pluck('aggregate', 'status');
+        $loadStats = function () use ($barangayId): array {
+            $statusCounts = CertificateRequest::query()
+                ->where('barangay_id', $barangayId)
+                ->selectRaw('status, count(*) as aggregate')
+                ->groupBy('status')
+                ->pluck('aggregate', 'status');
 
-        $byStatus = collect(CertificateRequestWorkflow::statuses())
-            ->mapWithKeys(fn (string $status) => [
-                $status => (int) $statusCounts->get($status, 0),
-            ])
-            ->all();
+            $byStatus = collect(CertificateRequestWorkflow::statuses())
+                ->mapWithKeys(fn (string $status) => [
+                    $status => (int) $statusCounts->get($status, 0),
+                ])
+                ->all();
+
+            return ['total' => (int) $statusCounts->sum(), 'byStatus' => $byStatus];
+        };
 
         return Inertia::render('Admin/Certificates', [
-            'requests' => $requests,
-            'stats' => [
-                'total' => (int) $statusCounts->sum(),
-                'byStatus' => $byStatus,
-            ],
+            'requests' => $this->deferProp($requests),
+            'stats' => $this->deferProp($loadStats),
             'statuses' => CertificateRequestWorkflow::statuses(),
             'filters' => [
                 'search' => $search,

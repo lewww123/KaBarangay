@@ -6,7 +6,6 @@ use App\Http\Middleware\EnsureResidentRegistrationAccess;
 use App\Models\Barangay;
 use App\Models\Purok;
 use App\Models\ResidentAccount;
-use App\Models\ResidentRegistration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -38,9 +37,7 @@ class ResidentRegistrationAccessTest extends TestCase
         ]);
 
         $this->get('/resident/application/'.$registration->public_id)
-            ->assertRedirect(route('resident.registration.access', [
-                'reference' => $registration->public_id,
-            ]))
+            ->assertRedirect(route('resident.registration.access'))
             ->assertDontSee('Private Applicant');
 
         $this->get('/resident/register/submitted/'.$registration->public_id)
@@ -76,7 +73,7 @@ class ResidentRegistrationAccessTest extends TestCase
 
         $this->get('/resident/application/'.$registration->public_id)
             ->assertOk()
-            ->assertHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/RegistrationApplication')
                 ->where('application.reference', $registration->public_id)
@@ -110,7 +107,7 @@ class ResidentRegistrationAccessTest extends TestCase
         ])->assertRedirect()
             ->assertSessionHasErrors(['credentials' => $message]);
 
-        $this->assertSessionMissing(EnsureResidentRegistrationAccess::SESSION_KEY);
+        $this->assertFalse(session()->has(EnsureResidentRegistrationAccess::SESSION_KEY));
         $this->assertSame(0, ResidentAccount::query()->count());
     }
 
@@ -141,7 +138,7 @@ class ResidentRegistrationAccessTest extends TestCase
             ->assertRedirect(route('resident.registration.access'))
             ->assertSessionHas('access_feedback');
 
-        $this->assertSessionMissing(EnsureResidentRegistrationAccess::SESSION_KEY);
+        $this->assertFalse(session()->has(EnsureResidentRegistrationAccess::SESSION_KEY));
     }
 
     public function test_sign_out_clears_only_application_access_and_terminal_records_remain_read_only(): void
@@ -171,12 +168,10 @@ class ResidentRegistrationAccessTest extends TestCase
             ->assertRedirect(route('resident.registration.access', [
                 'reference' => $registration->public_id,
             ]));
-        $this->assertSessionMissing(EnsureResidentRegistrationAccess::SESSION_KEY);
+        $this->assertFalse(session()->has(EnsureResidentRegistrationAccess::SESSION_KEY));
         $this->assertSame(731, session('resident_id'));
         $this->get('/resident/application/'.$registration->public_id)
-            ->assertRedirect(route('resident.registration.access', [
-                'reference' => $registration->public_id,
-            ]));
+            ->assertRedirect(route('resident.registration.access'));
     }
 
     public function test_access_login_is_rate_limited(): void

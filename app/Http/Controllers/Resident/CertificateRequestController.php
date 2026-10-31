@@ -10,6 +10,7 @@ use App\Support\AuditLogger;
 use App\Support\CertificateRequestDetails;
 use App\Support\CertificateTemplates;
 use App\Support\DelayedPsaCertificate;
+use App\Support\ResidentContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -27,124 +28,121 @@ class CertificateRequestController extends Controller
      */
     public function index(): Response
     {
-        $resident = Resident::query()
-            ->with([
-                'barangay',
-                'sectors',
-                'purok',
-            ])
-            ->where('id', session('resident_id'))
-            ->where('status', 'active')
-            ->firstOrFail();
-
-        // Only show active certificates belonging to this barangay.
-        $certificates = Certificate::query()
-            ->where('barangay_id', $resident->barangay_id)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get()
-            ->map(function (Certificate $certificate) {
-                $type = CertificateRequestDetails::typeForCertificate($certificate);
-
-                return [
-                    'id' => (string) $certificate->id,
-                    'name' => $certificate->name,
-                    'fee' => (float) $certificate->fee,
-                    'description' => $certificate->description ?? '',
-                    'requirements' => $certificate->requirements ?? [],
-                    'requiresBusinessDetails' => CertificateRequestDetails::requiresBusinessDetails(
-                        $type,
-                        (bool) $certificate->requires_business_details,
-                    ),
-                    'certificateType' => $type,
-                    'fixedPurpose' => CertificateRequestDetails::fixedPurpose($type),
-                    'detailsFields' => CertificateRequestDetails::fieldsForType($type),
-                    // Requestability follows the active catalog. A missing
-                    // generation template does not prevent an active service
-                    // from accepting a Resident request.
-                    'available' => $type !== null,
-                    'templateAvailable' => $type !== null
-                        && CertificateTemplates::isAvailable($type),
-                ];
-            })
-            ->values();
-
-        // Only show requests belonging to this resident.
-        $requests = CertificateRequest::query()
-            ->with('certificate')
-            ->where('resident_id', $resident->id)
-            ->where('barangay_id', $resident->barangay_id)
-            ->latest('created_at')
-            ->get()
-            ->map(function (CertificateRequest $request) {
-                $payload = CertificateRequestDetails::decode(
-                    $request->additional_details,
-                );
-                $type = $payload['type']
-                    ?? CertificateRequestDetails::typeForCertificate(
-                        $request->certificate,
-                    );
-
-                return [
-                    'id' => $request->id,
-                    'reference' => $request->reference,
-                    'certificate' => $request->certificate?->name
-                        ?? 'Certificate',
-                    'purpose' => $request->purpose,
-                    'fee' => (float) $request->fee,
-                    'status' => $request->status,
-                    'date' => (
-                        $request->submitted_at
-                        ?? $request->created_at
-                    )?->format('F j, Y') ?? '',
-                    'businessName' => $request->business_name,
-                    'businessAddress' => $request->business_address,
-                    'additionalDetails' => $payload['notes'],
-                    'details' => CertificateRequestDetails::displayRows(
-                        $type,
-                        $payload['fields'],
-                    ),
-                    'adminNote' => $request->admin_note,
-                ];
-            })
-            ->values();
+        $resident = ResidentContext::get();
 
         return Inertia::render(
             'Resident/Certificates',
             [
-                'resident' => [
-                    'id' => $resident->id,
-                    'first_name' => $resident->first_name,
-                    'middle_name' => $resident->middle_name,
-                    'last_name' => $resident->last_name,
-                    'suffix' => $resident->suffix,
-                    'full_name' => $resident->full_name,
-                    'resident_number' => $resident->resident_number,
-                    'birthdate' => $resident->birthdate?->format('Y-m-d'),
-                    'sex' => $resident->sex,
-                    'purok' => $resident->purok?->name,
+                'resident' => $this->deferProp(function () use ($resident): array {
+                    $resident->loadMissing(['barangay', 'sectors', 'purok']);
 
-                    'barangay' => [
-                        'id' => $resident->barangay?->id,
-                        'name' => $resident->barangay?->name,
-                        'code' => $resident->barangay?->code,
-                        'city_municipality' => $resident->barangay?->city_municipality,
-                        'province' => $resident->barangay?->province,
-                    ],
+                    return [
+                        'id' => $resident->id,
+                        'first_name' => $resident->first_name,
+                        'middle_name' => $resident->middle_name,
+                        'last_name' => $resident->last_name,
+                        'suffix' => $resident->suffix,
+                        'full_name' => $resident->full_name,
+                        'resident_number' => $resident->resident_number,
+                        'birthdate' => $resident->birthdate?->format('Y-m-d'),
+                        'sex' => $resident->sex,
+                        'purok' => $resident->purok?->name,
 
-                    'sectors' => $resident->sectors
-                        ->map(function ($sector) {
+                        'barangay' => [
+                            'id' => $resident->barangay?->id,
+                            'name' => $resident->barangay?->name,
+                            'code' => $resident->barangay?->code,
+                            'city_municipality' => $resident->barangay?->city_municipality,
+                            'province' => $resident->barangay?->province,
+                        ],
+
+                        'sectors' => $resident->sectors
+                            ->map(function ($sector) {
+                                return [
+                                    'id' => $sector->id,
+                                    'name' => $sector->name,
+                                    'slug' => $sector->slug,
+                                ];
+                            })
+                            ->values(),
+                    ];
+                }),
+
+                // Only show active certificates belonging to this barangay.
+                'certificates' => $this->deferProp(fn () => $this->rememberReference(
+                    "resident:certificate-options:{$resident->barangay_id}",
+                    300,
+                    fn () => Certificate::query()
+                        ->where('barangay_id', $resident->barangay_id)
+                        ->where('is_active', true)
+                        ->orderBy('name')
+                        ->get()
+                        ->map(function (Certificate $certificate) {
+                            $type = CertificateRequestDetails::typeForCertificate($certificate);
+
                             return [
-                                'id' => $sector->id,
-                                'name' => $sector->name,
-                                'slug' => $sector->slug,
+                                'id' => (string) $certificate->id,
+                                'name' => $certificate->name,
+                                'fee' => (float) $certificate->fee,
+                                'description' => $certificate->description ?? '',
+                                'requirements' => $certificate->requirements ?? [],
+                                'requiresBusinessDetails' => CertificateRequestDetails::requiresBusinessDetails(
+                                    $type,
+                                    (bool) $certificate->requires_business_details,
+                                ),
+                                'certificateType' => $type,
+                                'fixedPurpose' => CertificateRequestDetails::fixedPurpose($type),
+                                'detailsFields' => CertificateRequestDetails::fieldsForType($type),
+                                // Requestability follows the active catalog. A missing
+                                // generation template does not prevent an active service
+                                // from accepting a Resident request.
+                                'available' => $type !== null,
+                                'templateAvailable' => $type !== null
+                                    && CertificateTemplates::isAvailable($type),
                             ];
                         })
-                        ->values(),
-                ],
+                        ->values()
+                        ->all(),
+                )),
+                // Only show requests belonging to this resident.
+                'requests' => $this->deferProp(fn () => CertificateRequest::query()
+                    ->with('certificate')
+                    ->where('resident_id', $resident->id)
+                    ->where('barangay_id', $resident->barangay_id)
+                    ->latest('created_at')
+                    ->get()
+                    ->map(function (CertificateRequest $request) {
+                        $payload = CertificateRequestDetails::decode(
+                            $request->additional_details,
+                        );
+                        $type = $payload['type']
+                            ?? CertificateRequestDetails::typeForCertificate(
+                                $request->certificate,
+                            );
 
-                'certificates' => $certificates,
-                'requests' => $requests,
+                        return [
+                            'id' => $request->id,
+                            'reference' => $request->reference,
+                            'certificate' => $request->certificate?->name
+                                ?? 'Certificate',
+                            'purpose' => $request->purpose,
+                            'fee' => (float) $request->fee,
+                            'status' => $request->status,
+                            'date' => (
+                                $request->submitted_at
+                                ?? $request->created_at
+                            )?->format('F j, Y') ?? '',
+                            'businessName' => $request->business_name,
+                            'businessAddress' => $request->business_address,
+                            'additionalDetails' => $payload['notes'],
+                            'details' => CertificateRequestDetails::displayRows(
+                                $type,
+                                $payload['fields'],
+                            ),
+                            'adminNote' => $request->admin_note,
+                        ];
+                    })
+                    ->values()),
             ]
         );
     }

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Resident;
 
 use App\Models\Purok;
 use App\Models\ResidentRegistration;
+use App\Support\RegistrationEmailOtp;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -34,7 +35,7 @@ class StoreResidentRegistrationRequest extends FormRequest
 
         // Convert +639XXXXXXXXX / 639XXXXXXXXX to 09XXXXXXXXX.
         if (strlen($mobile) === 12 && str_starts_with($mobile, '63')) {
-            $mobile = '0' . substr($mobile, 2);
+            $mobile = '0'.substr($mobile, 2);
         }
 
         $this->merge([
@@ -183,7 +184,7 @@ class StoreResidentRegistrationRequest extends FormRequest
             ],
 
             'email' => [
-                'nullable',
+                'required',
                 'email:rfc',
                 'max:255',
             ],
@@ -246,6 +247,10 @@ class StoreResidentRegistrationRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
+            if (! $validator->errors()->has('email') && ! app(RegistrationEmailOtp::class)->isVerified($this, (string) $this->email)) {
+                $validator->errors()->add('email_verification', 'Verify your email with an OTP before submitting registration.');
+            }
+
             /*
             |--------------------------------------------------------------------------
             | Security: Purok must belong to selected Barangay
@@ -314,23 +319,17 @@ class StoreResidentRegistrationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'mobile.regex' =>
-                'Enter a valid Philippine mobile number, for example 09171234567.',
+            'mobile.regex' => 'Enter a valid Philippine mobile number, for example 09171234567.',
 
-            'password.confirmed' =>
-                'The password confirmation does not match.',
+            'password.confirmed' => 'The password confirmation does not match.',
 
-            'senior_proof.required' =>
-                'Senior Citizen proof is required because you selected Senior Citizen.',
+            'senior_proof.required' => 'Senior Citizen proof is required because you selected Senior Citizen.',
 
-            'pwd_proof.required' =>
-                'PWD proof is required because you selected PWD.',
+            'pwd_proof.required' => 'PWD proof is required because you selected PWD.',
 
-            'live_identity_photo.required' =>
-                'A live identity photo is required.',
+            'live_identity_photo.required' => 'A live identity photo is required.',
 
-            'valid_id.required' =>
-                'Please provide a valid identification document.',
+            'valid_id.required' => 'Please provide a valid identification document.',
         ];
     }
 }

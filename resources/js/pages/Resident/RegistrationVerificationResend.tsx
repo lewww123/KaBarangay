@@ -71,7 +71,7 @@ export default function RegistrationVerificationResend({ feedback }: Props) {
                 </form>
 
                 <p className="mt-4 text-xs leading-5 text-gray-500">
-                    Email verification helps us send decision notices to the verified application address. It is not required for Admin review or approval.
+                    Email OTP verification is required for Resident registration. Request a fresh code if your application email needs to be verified again.
                 </p>
             </main>
         </div>

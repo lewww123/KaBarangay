@@ -10,6 +10,15 @@ class SectorSeeder extends Seeder
     public function run(): void
     {
         Sector::updateOrCreate(
+            ['slug' => 'regular'],
+            [
+                'name' => 'Regular Resident',
+                'requires_proof' => false,
+                'is_active' => true,
+            ]
+        );
+
+        Sector::updateOrCreate(
             ['slug' => 'senior'],
             [
                 'name' => 'Senior Citizen',

@@ -122,7 +122,7 @@ class ResidentRegistrationVerificationTest extends TestCase
             'reference' => $registration->public_id,
             'password' => 'wrong-password',
         ])->assertRedirect(route('resident.registration.verification.resend'));
-        $this->assertSessionHas('verification_feedback', $feedback);
+        $this->assertSame($feedback, session('verification_feedback'));
 
         $this->assertDatabaseCount('resident_registration_email_verification_tokens', 1);
         Mail::assertSent(ResidentRegistrationEmailVerificationMail::class, 1);
@@ -237,7 +237,7 @@ class ResidentRegistrationVerificationTest extends TestCase
             'mobile' => '09170000304',
         ]);
         ResidentAccount::query()->where('resident_id', $candidate->id)->delete();
-        $candidate->update(['email' => 'applicant@example.test']);
+        $candidate->update(['source' => 'admin', 'email' => 'applicant@example.test']);
 
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000304',
@@ -264,6 +264,7 @@ class ResidentRegistrationVerificationTest extends TestCase
                 $payload['qr_token'] = $token;
             }
 
+            $this->verifyRegistrationEmailForSubmission($payload['email']);
             $this->post(route('resident.register.store'), $payload)->assertRedirect();
         }
 
@@ -321,7 +322,7 @@ class ResidentRegistrationVerificationTest extends TestCase
 
         $this->assertSame('pending', $registration->fresh()->status);
         $this->assertNull($registration->fresh()->matched_resident_id);
-        $this->assertSame(1, Resident::query()->count());
+        $this->assertSame(2, Resident::query()->count());
     }
 
     public function test_registration_stores_only_a_valid_qr_reference_and_never_links_automatically(): void
@@ -338,8 +339,10 @@ class ResidentRegistrationVerificationTest extends TestCase
             'revoked_at' => null,
         ]);
 
+        $payload = $this->registrationPayload(325);
+        $this->verifyRegistrationEmailForSubmission($payload['email']);
         $this->post(route('resident.register.store'), [
-            ...$this->registrationPayload(325),
+            ...$payload,
             'qr_token' => $token,
         ])->assertRedirect();
 
@@ -410,7 +413,7 @@ class ResidentRegistrationVerificationTest extends TestCase
             'civil_status' => 'Single',
             'address_line' => 'Test Street',
             'mobile' => '09980000'.$suffix,
-            'email' => null,
+            'email' => 'registration'.$suffix.'@example.test',
             'sectors' => [],
             'password' => 'ResidentPassword123',
             'password_confirmation' => 'ResidentPassword123',

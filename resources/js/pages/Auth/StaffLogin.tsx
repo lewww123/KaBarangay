@@ -1,267 +1,86 @@
-import { Head, router } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
+import { Head, useForm } from '@inertiajs/react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 
-interface Barangay {
-    id: number;
-    name: string;
-    code: string;
-}
+type Barangay = { id: number; name: string };
+type Props = { barangays: Barangay[]; errors?: Record<string, string> };
 
-interface Props {
-    barangay: Barangay;
-    department: string;
-    errors?: {
-        staff_id?: string;
-        full_name?: string;
-        password?: string;
-        login?: string;
-    };
-}
-
-const departmentLabels: Record<string, string> = {
-    admin: 'Admin',
-    lupon: 'Lupon',
-    senior: 'Senior',
-    pwd: 'PWD',
-    clerk: 'Clerk',
+const positions: Record<string, string[]> = {
+    lupon: ['Lupon Secretary', 'Lupon Staff / Member', 'Punong Barangay'],
+    clerk: ['Barangay Clerk', 'Document Officer'],
+    admin: ['Punong Barangay', 'Barangay Secretary', 'Barangay Treasurer'],
+    pwd: ['PWD Affairs Officer'],
+    senior: ['OSCA Head'],
 };
 
-export default function StaffLogin({
-    barangay,
-    department,
-    errors = {},
-}: Props) {
-    const [staffId, setStaffId] = useState('');
-    const [fullName, setFullName] = useState('');
-    const [password, setPassword] = useState('');
-    const [processing, setProcessing] = useState(false);
+export default function StaffLogin({ barangays, errors = {} }: Props) {
+    const [showPassword, setShowPassword] = useState(false);
+    const { data, setData, post, processing } = useForm({ barangay_id: '', department: '', position: '', full_name: '', password: '' });
 
-    const submit = (event: FormEvent<HTMLFormElement>) => {
+    const submit = (event: FormEvent) => {
         event.preventDefault();
-
-        if (!staffId || !fullName || !password) {
-            return;
-        }
-
-        setProcessing(true);
-
-        router.post(
-            '/staff-login',
-            {
-                staff_id: staffId,
-                full_name: fullName,
-                password,
-            },
-            {
-                onFinish: () => setProcessing(false),
-            },
-        );
+        post('/login');
     };
 
-    const goBack = () => {
-        router.get('/department-login');
-    };
-
-    return (
-        <>
-            <Head title="Staff Login" />
-
-            <main className="min-h-screen bg-slate-50">
-                <div className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-                    <div className="w-full max-w-md">
-
-                        {/* Brand */}
-                        <div className="mb-8 text-center">
-                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg">
-                                <span className="text-2xl font-bold text-white">
-                                    K
-                                </span>
-                            </div>
-
-                            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-                                KaBarangay
-                            </h1>
-
-                            <p className="mt-2 text-sm text-slate-500">
-                                Barangay Management System
-                            </p>
-                        </div>
-
-                        {/* Card */}
-                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-
-                            <div className="mb-6">
-                                <h2 className="text-xl font-semibold text-slate-900">
-                                    Staff Login
-                                </h2>
-
-                                <p className="mt-2 text-sm leading-6 text-slate-500">
-                                    Enter your staff credentials to access
-                                    KaBarangay.
-                                </p>
-                            </div>
-
-                            {/* Access Information */}
-                            <div className="mb-6 space-y-3 rounded-xl bg-slate-50 p-4">
-
-                                <div>
-                                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                        Barangay
-                                    </p>
-
-                                    <p className="mt-1 text-sm font-semibold text-slate-800">
-                                        {barangay.name}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                        Department
-                                    </p>
-
-                                    <p className="mt-1 text-sm font-semibold text-slate-800">
-                                        {departmentLabels[department] ??
-                                            department}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <form onSubmit={submit} className="space-y-5">
-
-                                {/* Staff ID */}
-                                <div>
-                                    <label
-                                        htmlFor="staff_id"
-                                        className="mb-2 block text-sm font-medium text-slate-700"
-                                    >
-                                        Staff ID
-                                    </label>
-
-                                    <input
-                                        id="staff_id"
-                                        type="text"
-                                        value={staffId}
-                                        onChange={(event) =>
-                                            setStaffId(event.target.value)
-                                        }
-                                        placeholder="Enter your staff ID"
-                                        autoComplete="username"
-                                        disabled={processing}
-                                        className="w-full rounded-xl border border-slate-300 px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-                                        required
-                                    />
-
-                                    {errors.staff_id && (
-                                        <p className="mt-2 text-sm text-red-600">
-                                            {errors.staff_id}
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* Full Name */}
-                                <div>
-                                    <label
-                                        htmlFor="full_name"
-                                        className="mb-2 block text-sm font-medium text-slate-700"
-                                    >
-                                        Full Name
-                                    </label>
-
-                                    <input
-                                        id="full_name"
-                                        type="text"
-                                        value={fullName}
-                                        onChange={(event) =>
-                                            setFullName(event.target.value)
-                                        }
-                                        placeholder="Enter your full name"
-                                        autoComplete="name"
-                                        disabled={processing}
-                                        className="w-full rounded-xl border border-slate-300 px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-                                        required
-                                    />
-
-                                    {errors.full_name && (
-                                        <p className="mt-2 text-sm text-red-600">
-                                            {errors.full_name}
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* Password */}
-                                <div>
-                                    <label
-                                        htmlFor="password"
-                                        className="mb-2 block text-sm font-medium text-slate-700"
-                                    >
-                                        Password
-                                    </label>
-
-                                    <input
-                                        id="password"
-                                        type="password"
-                                        value={password}
-                                        onChange={(event) =>
-                                            setPassword(event.target.value)
-                                        }
-                                        placeholder="Enter your password"
-                                        autoComplete="current-password"
-                                        disabled={processing}
-                                        className="w-full rounded-xl border border-slate-300 px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-                                        required
-                                    />
-
-                                    {errors.password && (
-                                        <p className="mt-2 text-sm text-red-600">
-                                            {errors.password}
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* General Login Error */}
-                                {errors.login && (
-                                    <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-                                        {errors.login}
-                                    </div>
-                                )}
-
-                                {/* Buttons */}
-                                <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
-
-                                    <button
-                                        type="button"
-                                        onClick={goBack}
-                                        disabled={processing}
-                                        className="w-full rounded-xl border border-slate-300 px-4 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        Back
-                                    </button>
-
-                                    <button
-                                        type="submit"
-                                        disabled={
-                                            !staffId ||
-                                            !fullName ||
-                                            !password ||
-                                            processing
-                                        }
-                                        className="w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-300"
-                                    >
-                                        {processing
-                                            ? 'Logging in...'
-                                            : 'Log In'}
-                                    </button>
-
-                                </div>
-                            </form>
-                        </div>
-
-                        <p className="mt-6 text-center text-xs text-slate-400">
-                            Authorized personnel only
-                        </p>
-                    </div>
+    return <main className="flex min-h-screen items-center justify-center bg-stone-100 p-4">
+        <Head title="Unified Staff Login" />
+        <form onSubmit={submit} className="w-full max-w-md space-y-5 rounded-2xl bg-white p-7 shadow-xl">
+            <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#3f6f3d]">KaBarangay</p>
+                <h1 className="mt-2 text-2xl font-bold text-gray-900">Unified Staff Login</h1>
+                <p className="mt-1 text-sm text-gray-500">Use your registered resident account and staff assignment.</p>
+            </div>
+            <Field label="Barangay">
+                <select required value={data.barangay_id} onChange={(event) => setData('barangay_id', event.target.value)}>
+                    <option value="">Select barangay</option>
+                    {barangays.map((barangay) => <option key={barangay.id} value={barangay.id}>{barangay.name}</option>)}
+                </select>
+            </Field>
+            <Field label="Department">
+                <select required value={data.department} onChange={(event) => { setData('department', event.target.value); setData('position', ''); }}>
+                    <option value="">Select department</option>
+                    <option value="lupon">Lupon</option>
+                    <option value="clerk">Clerk</option>
+                    <option value="admin">Admin</option>
+                    <option value="pwd">PWD</option>
+                    <option value="senior">Senior</option>
+                </select>
+            </Field>
+            <Field label="Position">
+                <select required disabled={!data.department} value={data.position} onChange={(event) => setData('position', event.target.value)}>
+                    <option value="">Select position</option>
+                    {(positions[data.department] ?? []).map((position) => <option key={position}>{position}</option>)}
+                </select>
+            </Field>
+            <Field label="Registered full name">
+                <input required type="text" autoComplete="name" value={data.full_name} onChange={(event) => setData('full_name', event.target.value)} />
+                {errors.full_name && <Error text={errors.full_name} />}
+            </Field>
+            <Field label="Resident account password">
+                <div className="relative">
+                    <input required type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={data.password} onChange={(event) => setData('password', event.target.value)} />
+                    <button type="button" onClick={() => setShowPassword((current) => !current)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-gray-400 hover:text-gray-700" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                        {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
                 </div>
-            </main>
-        </>
-    );
+                {errors.password && <Error text={errors.password} />}
+            </Field>
+            <button disabled={processing} className="w-full rounded-lg bg-[#3f6f3d] px-4 py-2.5 font-semibold text-white transition hover:bg-[#315a30] disabled:opacity-60">{processing ? 'Signing in...' : 'Sign in'}</button>
+        </form>
+    </main>;
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+    return <label className="block text-sm font-semibold text-gray-700"><span className="mb-1.5 block">{label}</span><div className="[&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-gray-300 [&_input]:px-3 [&_input]:py-2.5 [&_select]:w-full [&_select]:rounded-lg [&_select]:border [&_select]:border-gray-300 [&_select]:px-3 [&_select]:py-2.5">{children}</div></label>;
+}
+
+function Error({ text }: { text: string }) {
+    return <p className="mt-1 text-xs text-red-600">{text}</p>;
+}
+
+function EyeIcon() {
+    return <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>;
+}
+
+function EyeOffIcon() {
+    return <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 3 18 18" /><path d="M10.6 10.7a2 2 0 0 0 2.7 2.7" /><path d="M9.9 4.3A11 11 0 0 1 12 4c6.5 0 10 8 10 8a15 15 0 0 1-2.1 3.3" /><path d="M6.5 6.6C3.6 8.4 2 12 2 12s3.5 8 10 8a9.8 9.8 0 0 0 4.2-.9" /></svg>;
 }

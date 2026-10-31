@@ -1,5 +1,6 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Deferred, Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
+import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import AdminLayout from '@/layouts/AdminLayout';
 
 type MemberRecord = {
@@ -55,6 +56,29 @@ type LuponSummary = {
     total: number;
 };
 
+const emptyPaginator = <T,>(): Paginator<T> => ({
+    data: [],
+    current_page: 1,
+    last_page: 1,
+    per_page: 15,
+    total: 0,
+    from: null,
+    to: null,
+    prev_page_url: null,
+    next_page_url: null,
+});
+
+const emptyStats = {
+    total: 0,
+    active: 0,
+    sectorApplications: 0,
+    generalMembers: 0,
+    pwdMembers: 0,
+    seniorMembers: 0,
+    certificates: 0,
+    openCases: 0,
+};
+
 type Props = {
     stats: {
         total?: number;
@@ -90,14 +114,14 @@ type ActiveTab =
     | 'lupon';
 
 export default function Sectors({
-    stats,
-    generalMembers,
-    pwdMembers,
-    seniorMembers,
-    puroks,
+    stats = emptyStats,
+    generalMembers = emptyPaginator<MemberRecord>(),
+    pwdMembers = emptyPaginator<MemberRecord>(),
+    seniorMembers = emptyPaginator<MemberRecord>(),
+    puroks = [],
     filters,
-    certificates,
-    certificateRequests,
+    certificates = { processed: 0, completed: 0 },
+    certificateRequests = emptyPaginator<CertificateRequestRecord>(),
     certificateFilters,
     luponSummary = { open: 0, closed: 0, total: 0 },
     initialTab = 'general',
@@ -135,6 +159,11 @@ export default function Sectors({
      * Server-side reload shared by all member rosters.
      */
     const reloadMembers = (params: Record<string, string | number>) => {
+        const pageProps: Record<string, string> = { general_page: 'generalMembers', pwd_page: 'pwdMembers', senior_page: 'seniorMembers' };
+        const keys = Object.keys(params);
+        const only = keys.length === 1 && pageProps[keys[0]]
+            ? [pageProps[keys[0]], 'filters']
+            : ['generalMembers', 'pwdMembers', 'seniorMembers', 'stats', 'filters'];
         router.get(
             '/admin/sectors',
             {
@@ -144,13 +173,7 @@ export default function Sectors({
                 ...params,
             },
             {
-                only: [
-                    'generalMembers',
-                    'pwdMembers',
-                    'seniorMembers',
-                    'stats',
-                    'filters',
-                ],
+                only,
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
@@ -263,6 +286,27 @@ export default function Sectors({
                     </div>
                 </div>
 
+                <Deferred
+                    data={[
+                        'sectors',
+                        'stats',
+                        'generalMembers',
+                        'pwdMembers',
+                        'seniorMembers',
+                        'puroks',
+                        'certificates',
+                        'certificateRequests',
+                        'luponSummary',
+                    ]}
+                    fallback={
+                        <AdminPageSkeleton
+                            metrics={6}
+                            rows={6}
+                            columns={4}
+                            showTabs
+                        />
+                    }
+                >
                 {/* 6-CATEGORY DASHBOARD METRICS */}
                 <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                     {/* 1. Sector Applications */}
@@ -1003,6 +1047,7 @@ export default function Sectors({
                         </div>
                     </div>
                 )}
+                </Deferred>
             </AdminLayout>
         </>
     );

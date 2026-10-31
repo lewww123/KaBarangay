@@ -23,7 +23,7 @@ export default function AnnouncementReviewSummary({
         ? formatAttendanceReviewLabel(requiresAttendance)
         : 'Not applicable - informational updates do not use attendance sheets';
     const approvalLabel = directPublish
-        ? 'This update is published immediately to the resident portal.'
+        ? 'Publish directly to the resident portal, or save a program as draft.'
         : willResubmit
           ? 'Saving changes returns this announcement to pending review.'
           : 'Admin approval is required before this announcement is published.';
@@ -58,7 +58,7 @@ export default function AnnouncementReviewSummary({
                 </div>
                 <div className="flex gap-2">
                     <dt className="w-24 shrink-0 font-semibold text-gray-500">
-                        Approval
+                        Publication
                     </dt>
                     <dd className="text-gray-800">{approvalLabel}</dd>
                 </div>

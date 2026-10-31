@@ -15,9 +15,15 @@ class ResidentNotification extends Model
 
     public const STATUS_FAILED = 'failed';
 
+    public const STATUS_DEFERRED = 'deferred';
+
     public const TYPE_APPROVAL_CONFIRMATION = 'approval_confirmation';
 
-    public const TYPE_CLAIM_INVITATION = 'claim_invitation';
+    public const TYPE_REGISTRATION_INVITATION = 'registration_invitation';
+
+    public const TYPE_REGISTRATION_DECISION = 'registration_decision';
+
+    public const TYPE_LUPON_SUMMONS_ISSUED = 'lupon_summons_issued';
 
     protected $fillable = [
         'event_key',
@@ -31,6 +37,15 @@ class ResidentNotification extends Model
         'sent_at',
         'failed_at',
         'last_error',
+        'resident_registration_id',
+        'correction_cycle_id',
+        'decision_type',
+        'deferred_at',
+        'lease_token',
+        'lease_expires_at',
+        'failure_class',
+        'email_safe_reason',
+        'context',
     ];
 
     protected function casts(): array
@@ -38,6 +53,10 @@ class ResidentNotification extends Model
         return [
             'sent_at' => 'datetime',
             'failed_at' => 'datetime',
+            'deferred_at' => 'datetime',
+            'lease_expires_at' => 'datetime',
+            'attempts' => 'integer',
+            'context' => 'array',
         ];
     }
 
@@ -46,8 +65,13 @@ class ResidentNotification extends Model
         return $this->belongsTo(Resident::class);
     }
 
-    public function claim(): BelongsTo
+    public function registration(): BelongsTo
     {
-        return $this->belongsTo(ResidentClaim::class, 'resident_claim_id');
+        return $this->belongsTo(ResidentRegistration::class, 'resident_registration_id');
+    }
+
+    public function correctionCycle(): BelongsTo
+    {
+        return $this->belongsTo(ResidentRegistrationCorrectionCycle::class, 'correction_cycle_id');
     }
 }

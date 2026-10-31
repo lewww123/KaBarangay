@@ -99,7 +99,7 @@ class AdminDashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Dashboard')
-                ->where('stats.residents', 2));
+                ->where('stats.residents', 3));
     }
 
     public function test_resident_count_is_scoped_to_own_barangay(): void
@@ -115,7 +115,7 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('stats.residents', 1));
+            ->assertInertia(fn ($page) => $page->where('stats.residents', 2));
     }
 
     public function test_dashboard_exposes_only_approved_summary_metrics(): void
@@ -130,7 +130,7 @@ class AdminDashboardTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.residents', 2)
+                ->where('stats.residents', 3)
                 ->missing('stats.totalResidents')
                 ->missing('stats.pendingApplications'));
     }
@@ -180,11 +180,11 @@ class AdminDashboardTest extends TestCase
             ->where('announcements.0.location', 'Barangay Hall'));
     }
 
-    public function test_admin_announcement_approval_routes_are_not_registered(): void
+    public function test_admin_announcement_review_routes_are_registered(): void
     {
-        $this->assertFalse(Route::has('admin.announcements.approvals'));
-        $this->assertFalse(Route::has('admin.announcements.approve'));
-        $this->assertFalse(Route::has('admin.announcements.reject'));
+        $this->assertTrue(Route::has('admin.announcements.approvals'));
+        $this->assertTrue(Route::has('admin.announcements.approve'));
+        $this->assertTrue(Route::has('admin.announcements.reject'));
     }
 
     /*
@@ -248,7 +248,12 @@ class AdminDashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('stats.puroks', 3)
-                ->missing('puroks'));
+                ->has('puroks', 3)
+                ->where('puroks', fn ($puroks) => collect($puroks)
+                    ->pluck('name')
+                    ->sort()
+                    ->values()
+                    ->all() === ['Purok 1', 'Purok Alpha', 'Purok Beta']));
     }
 
     public function test_purok_count_handles_empty_list(): void
@@ -262,8 +267,8 @@ class AdminDashboardTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.puroks', 0)
-                ->missing('puroks'));
+                ->where('stats.puroks', 1)
+                ->has('puroks', 1));
     }
 
     /*
@@ -435,6 +440,61 @@ class AdminDashboardTest extends TestCase
             });
     }
 
+    public function test_certificate_notifications_load_names_with_constant_queries(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $certificate = Certificate::create([
+            'barangay_id' => $this->barangay->id,
+            'code' => 'CERT-NOTIFICATION',
+            'name' => 'Certificate for Notification',
+            'fee' => 10,
+            'is_active' => true,
+        ]);
+
+        $capture = false;
+        $certificateSelects = [];
+        DB::listen(function ($query) use (&$capture, &$certificateSelects): void {
+            $sql = strtolower($query->sql);
+            if ($capture && str_starts_with(ltrim($sql), 'select') && str_contains($sql, 'from "certificates"')) {
+                $certificateSelects[] = $query->sql;
+            }
+        });
+
+        foreach ([0, 1, 3] as $requestCount) {
+            for ($index = 0; $index < $requestCount; $index++) {
+                $this->createCertificateRequest(
+                    $this->barangay,
+                    $this->purok,
+                    $certificate,
+                    'NOTIFY-'.$requestCount.'-'.$index,
+                    'Processing',
+                );
+            }
+
+            $certificateSelects = [];
+            $capture = true;
+            $response = $this->actingAs($admin)->get('/admin')->assertOk();
+            $capture = false;
+
+            $notifications = [];
+            $response->assertInertia(function ($page) use (&$notifications): void {
+                $page->component('Dashboard');
+                $notifications = $page->toArray()['props']['notifications'];
+            });
+            $certificateNotifications = array_values(array_filter(
+                $notifications,
+                fn (array $notification) => str_starts_with($notification['id'], 'cert-'),
+            ));
+
+            $this->assertCount($requestCount, $certificateNotifications);
+            foreach ($certificateNotifications as $notification) {
+                $this->assertSame('Certificate for Notification', $notification['description']);
+            }
+
+            $this->assertCount(1, $certificateSelects, 'Certificate lookup count stays fixed as notification rows grow.');
+        }
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Empty datasets render without errors
@@ -451,13 +511,13 @@ class AdminDashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Dashboard')
-                ->where('stats.residents', 0)
+                ->where('stats.residents', 1)
                 ->where('stats.totalPrograms', 0)
                 ->where('stats.totalAnnouncements', 0)
-                ->where('stats.puroks', 0)
+                ->where('stats.puroks', 1)
                 ->missing('stats.releasedCertificates')
                 ->where('activity.activeStaff', 1)
-                ->has('puroks', 0)
+                ->has('puroks', 1)
                 ->has('notifications', 0));
     }
 

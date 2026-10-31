@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Deferred, Head, Link, router } from '@inertiajs/react';
 import {
     disbursementFileType,
     formatDisbursementDate,
@@ -7,6 +7,7 @@ import {
     type Paginator,
 } from '@/components/disbursements/disbursement';
 import ResidentLayout from '@/layouts/ResidentLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 
 type Props = {
     documents: Paginator<DisbursementDocumentData>;
@@ -15,7 +16,18 @@ type Props = {
     };
 };
 
-export default function ResidentDisbursement({
+export default function ResidentDisbursement(props: Props) {
+    return (
+        <Deferred
+            data="documents"
+            fallback={<ResidentLayout active="disbursement"><PortalPageSkeleton list /></ResidentLayout>}
+        >
+            <DisbursementContent {...props} />
+        </Deferred>
+    );
+}
+
+function DisbursementContent({
     documents,
     resident,
 }: Props) {
@@ -169,6 +181,7 @@ export default function ResidentDisbursement({
                                             {
                                                 preserveScroll: true,
                                                 preserveState: true,
+                                                only: ['documents'],
                                             },
                                         );
                                     }}

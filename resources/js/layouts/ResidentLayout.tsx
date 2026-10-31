@@ -15,6 +15,7 @@ type ResidentPage =
     | 'sectors'
     | 'announcements'
     | 'updates'
+    | 'programs'
     | 'disbursement'
     | 'charter'
     | 'org-chart'
@@ -412,10 +413,10 @@ function ResidentNavigation({
                 />
 
                 <ResidentLink
-                    href="/resident/updates"
-                    icon={<AnnouncementIcon />}
-                    label="Updates"
-                    active={active === 'updates'}
+                    href="/resident/programs"
+                    icon={<ProgramsIcon />}
+                    label="Programs"
+                    active={active === 'programs'}
                     onClick={onNavigate}
                 />
 
@@ -577,6 +578,8 @@ function ResidentLink({
 }) {
     return (
         <Link
+            prefetch="hover"
+            cacheFor="10s"
             href={href}
             onClick={onClick}
             className={`flex min-h-12 items-center gap-3 rounded-lg px-4 py-3 text-base font-medium transition active:scale-[0.99] ${
@@ -613,6 +616,8 @@ function BottomNavItem({
 }) {
     return (
         <Link
+            prefetch="hover"
+            cacheFor="10s"
             href={href}
             className={`flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 transition active:bg-gray-50 ${
                 active ? 'text-[#3f6f3d]' : 'text-gray-500'
@@ -752,6 +757,15 @@ function AnnouncementIcon() {
             <path d="M4 13V9a2 2 0 0 1 2-2h3l8-3v14l-8-3H6a2 2 0 0 1-2-2Z" />
             <path d="M8 15l1 5h3l-1-5" />
             <path d="M20 8v6" />
+        </svg>
+    );
+}
+
+function ProgramsIcon() {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="5" width="18" height="16" rx="2" />
+            <path d="M8 3v4M16 3v4M7 11h10M8 15h3M8 18h5" />
         </svg>
     );
 }

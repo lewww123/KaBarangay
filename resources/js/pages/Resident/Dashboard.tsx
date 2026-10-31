@@ -1,6 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
+import { Deferred, Head, Link } from '@inertiajs/react';
 import { ReactNode, useState } from 'react';
 import ResidentLayout from '@/layouts/ResidentLayout';
+import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 
 type ModalType = 'tanod' | 'emergency' | null;
 
@@ -52,7 +53,18 @@ type DashboardProps = {
     barangayHotlines?: ResidentContact[];
 };
 
-export default function Dashboard({
+export default function Dashboard(props: DashboardProps) {
+    return (
+        <Deferred
+            data={['resident', 'latestAnnouncement', 'sharedEmergencyContacts', 'barangayHotlines']}
+            fallback={<ResidentLayout active="home"><PortalPageSkeleton list metrics={4} /></ResidentLayout>}
+        >
+            <DashboardContent {...props} />
+        </Deferred>
+    );
+}
+
+function DashboardContent({
     resident,
     latestAnnouncement,
     sharedEmergencyContacts = [],

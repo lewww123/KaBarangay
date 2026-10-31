@@ -1,5 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
+import { Deferred, Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
+import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import AdminLayout from '@/layouts/AdminLayout';
 
 type DashboardProps = {
@@ -64,6 +65,16 @@ export default function Dashboard({
                     </p>
                 </div>
 
+                <Deferred
+                    data={['stats', 'puroks', 'announcements', 'notifications', 'activity']}
+                    fallback={
+                        <AdminPageSkeleton
+                            metrics={3}
+                            rows={4}
+                            columns={3}
+                        />
+                    }
+                >
                 {/* STATISTICS */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     <SummaryCard title="Residents" value={stats.residents} subtitle="Registered Residents" href="/admin/residents" />
@@ -190,6 +201,7 @@ export default function Dashboard({
                     </div>
 
                 </section>
+                </Deferred>
 
             </AdminLayout>
         </>

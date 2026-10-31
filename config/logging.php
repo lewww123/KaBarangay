@@ -20,6 +20,11 @@ return [
 
     'default' => env('LOG_CHANNEL', 'stack'),
 
+    'admin_queries' => [
+        'enabled' => env('DB_QUERY_LOG_ENABLED', env('APP_ENV', 'production') === 'local'),
+        'min_duration_ms' => env('DB_QUERY_LOG_MIN_MS', 0),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Deprecations Log Channel
@@ -51,6 +56,13 @@ return [
     */
 
     'channels' => [
+
+        'admin_queries' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/laravel.log'),
+            'level' => 'info',
+            'replace_placeholders' => true,
+        ],
 
         'stack' => [
             'driver' => 'stack',

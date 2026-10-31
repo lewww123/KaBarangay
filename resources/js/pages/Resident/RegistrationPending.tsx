@@ -115,7 +115,7 @@ export default function RegistrationPending({
                                     Verify your email for decision notices
                                 </p>
                                 <p className="mt-1 text-xs leading-5 text-blue-800">
-                                    If you provided an email address, check for a six-digit verification code. Sign in below with your application reference and registration password to enter it. Email verification is not required for Admin review or approval.
+                                    Your email was verified by OTP before submission. Sign in below with your application reference and registration password to view your application. If you change your email, verify the new address with a fresh code.
                                 </p>
                                 <Link
                                     href="/resident/register/verification/resend"
