@@ -1,14 +1,14 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "public/index.php",
-      "use": "@vercel/php"
-    }
-  ],
+  "version": 3,
+  "framework": "other",
   "routes": [
     {
-      "handle": "filesystem"
+      "src": "/build/(.*)",
+      "dest": "/public/build/$1"
+    },
+    {
+      "src": "/storage/(.*)",
+      "dest": "/storage/app/public/$1"
     },
     {
       "src": "/(.*)",
