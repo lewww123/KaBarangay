@@ -3,19 +3,15 @@
 namespace App\Http\Controllers\Resident;
 
 use App\Http\Controllers\Controller;
-use App\Mail\ResidentPasswordResetMail;
+use App\Jobs\SendResidentPasswordReset;
 use App\Models\Resident;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
-use Throwable;
 
 class PasswordResetController extends Controller
 {
@@ -48,49 +44,8 @@ class PasswordResetController extends Controller
             ->get();
 
         foreach ($residents as $resident) {
-            if (! $resident->account) {
-                continue;
-            }
-
-            $token = Str::random(64);
-            $hashedToken = Hash::make($token);
-
-            DB::table('resident_password_reset_tokens')
-                ->where('resident_id', $resident->id)
-                ->delete();
-
-            DB::table('resident_password_reset_tokens')->insert([
-                'resident_id' => $resident->id,
-                'email' => $email,
-                'token' => $hashedToken,
-                'created_at' => now(),
-            ]);
-
-            try {
-                Mail::to($email)->send(new ResidentPasswordResetMail(
-                    residentName: $resident->full_name,
-                    resetUrl: route('resident.password.reset', [
-                        'token' => $token,
-                        'email' => $email,
-                    ]),
-                ));
-            } catch (Throwable $exception) {
-                // The link never left the application, so remove the token
-                // rather than leaving a usable-looking reset behind. Only this
-                // exact token is removed so a concurrent request is untouched.
-                DB::table('resident_password_reset_tokens')
-                    ->where('resident_id', $resident->id)
-                    ->where('token', $hashedToken)
-                    ->delete();
-
-                // Log only the exception class, never its message: transport
-                // failures can echo the message body, which would write the
-                // plaintext reset URL/token into the application log.
-                Log::warning('Failed to send resident password reset email.', [
-                    'resident_id' => $resident->id,
-                    'exception' => $exception::class,
-                ]);
-            }
+            SendResidentPasswordReset::dispatch($resident->id, $email)
+                ->onConnection(config('mail.password_reset_queue', 'background'));
         }
 
         // Always return the same response so the endpoint cannot be used to
@@ -99,7 +54,7 @@ class PasswordResetController extends Controller
             ->route('resident.forgot-password')
             ->with(
                 'success',
-                'If an active account uses that email address, a password reset link has been sent.'
+                'If an active account uses that email address, a password reset link will arrive shortly. Please check your inbox and spam folder.'
             );
     }
 

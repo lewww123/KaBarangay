@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\SendResidentPasswordReset;
 use App\Mail\ResidentPasswordResetMail;
 use App\Models\Barangay;
 use App\Models\Purok;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -26,6 +28,7 @@ class ResidentPasswordResetTest extends TestCase
         parent::setUp();
 
         $this->withoutVite();
+        config(['mail.password_reset_queue' => 'sync']);
 
         $this->barangay = $this->createBarangay('Barangay Test', 'BRGY-TEST');
         $this->purok = $this->createPurok($this->barangay);
@@ -65,6 +68,27 @@ class ResidentPasswordResetTest extends TestCase
             'resident_id' => $resident->id,
             'email' => 'reset-me@example.com',
         ]);
+    }
+
+    public function test_reset_email_is_dispatched_without_sending_during_the_request(): void
+    {
+        config(['mail.password_reset_queue' => 'background']);
+        Bus::fake();
+        Mail::fake();
+
+        $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170000039']);
+        $resident->update(['email' => 'background-reset@example.com']);
+
+        $this->post('/resident/forgot-password', ['email' => 'background-reset@example.com'])
+            ->assertRedirect('/resident/forgot-password')
+            ->assertSessionHas('success');
+
+        Bus::assertDispatched(SendResidentPasswordReset::class, fn ($job) => $job->residentId === $resident->id
+            && $job->email === 'background-reset@example.com'
+            && $job->connection === 'background'
+        );
+        Mail::assertNothingSent();
+        $this->assertDatabaseCount('resident_password_reset_tokens', 0);
     }
 
     public function test_unknown_email_sends_no_mail_and_leaks_nothing(): void

@@ -16,6 +16,9 @@ return [
 
     'default' => env('MAIL_MAILER', 'log'),
 
+    // A separate process sends reset emails without holding up the form.
+    'password_reset_queue' => env('PASSWORD_RESET_QUEUE_CONNECTION', 'background'),
+
     /*
     |--------------------------------------------------------------------------
     | Mailer Configurations
