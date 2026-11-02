@@ -1,18 +1,21 @@
-FROM php:8.2-apache
+FROM php:8.3-apache
 
-# Mag-install ng system dependencies at PHP extensions
+# Mag-install ng system dependencies at PHP extensions na kailangan ng Laravel
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
     libpq-dev \
+    libzip-dev \
+    libicu-dev \
+    libxml2-dev \
     zip \
     unzip \
     git \
     curl
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install pdo pdo_pgsql gd
+RUN docker-php-ext-install pdo pdo_pgsql gd zip intl xml bcmath mbstring
 
 # I-install ang Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -20,11 +23,17 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Mag-set ng working directory
 WORKDIR /var/www/html
 
-# Kopyahin ang project files
+# Kopyahin muna ang composer files para sa mas maayos na caching
+COPY composer.json composer.lock ./
+
+# I-install ang dependencies
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
+# Kopyahin ang buong project files
 COPY . .
 
-# I-install ang PHP dependencies nang walang dev packages para sa production
-RUN composer install --no-dev --optimize-autoloader
+# I-run ang laravel package discovery at iba pa
+RUN composer dump-autoload --optimize
 
 # I-set ang Apache document root patungo sa Laravel public folder
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
