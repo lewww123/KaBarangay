@@ -77,8 +77,8 @@ class ResidentController extends Controller
                 'mobile' => $validated['mobile'],
                 'email' => $validated['email'],
                 'email_verified_at' => null,
-                'status' => 'active',
-                'approved_at' => now(),
+                'status' => 'inactive',
+                'approved_at' => null,
             ]);
 
             if ($household && ($validated['household_mode'] ?? null) === 'new') {

@@ -100,11 +100,16 @@ class DisbursementDocumentManagementTest extends TestCase
                 ->where('documents.data.0.title', 'Draft Medical Payout'));
     }
 
-    public function test_admin_can_access_document_management(): void
+    public function test_admin_cannot_access_clerk_document_management(): void
     {
         $admin = $this->createStaff($this->barangay, 'admin');
+        $clerk = $this->createStaff($this->barangay, 'clerk');
 
         $this->actingAs($admin)
+            ->get('/clerk/disbursements')
+            ->assertForbidden();
+
+        $this->actingAs($clerk)
             ->get('/clerk/disbursements')
             ->assertOk()
             ->assertInertia(fn ($page) => $page

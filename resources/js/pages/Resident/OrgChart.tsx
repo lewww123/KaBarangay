@@ -1,3 +1,4 @@
+import BarangayOrgChart from '@/components/org-chart/BarangayOrgChart';
 import { Deferred, Head } from '@inertiajs/react';
 import { useState } from 'react';
 import {
@@ -62,8 +63,8 @@ function OrgChartContent({ tree, resident }: Props) {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-                        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                    <div className="grid gap-5">
+                        <div className="min-w-0">
                             <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
                                 <h2 className="text-sm font-bold text-gray-900">
                                     Published Positions
@@ -74,20 +75,10 @@ function OrgChartContent({ tree, resident }: Props) {
                                 </span>
                             </div>
 
-                            <div className="space-y-3">
-                                {tree.map((node) => (
-                                    <ResidentNode
-                                        key={node.id}
-                                        node={node}
-                                        depth={0}
-                                        selectedId={selectedId}
-                                        onSelect={setSelectedId}
-                                    />
-                                ))}
-                            </div>
+                            <BarangayOrgChart tree={tree} selectedId={selectedId} onSelect={(position) => setSelectedId(position.id)} />
                         </div>
 
-                        <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-5 shadow-sm lg:sticky lg:top-5">
+                        <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                             {selected ? (
                                 <div>
                                     <div className="flex justify-center">
@@ -214,88 +205,6 @@ function PersonIcon({ className }: { className?: string }) {
             <circle cx="12" cy="8" r="4" />
             <path d="M4 21c.8-4.2 3.5-6 8-6s7.2 1.8 8 6" />
         </svg>
-    );
-}
-
-function ResidentNode({
-    node,
-    depth,
-    selectedId,
-    onSelect,
-}: {
-    node: OrgChartNode;
-    depth: number;
-    selectedId: number | null;
-    onSelect: (id: number) => void;
-}) {
-    const selected = selectedId === node.id;
-
-    return (
-        <div
-            className={
-                depth > 0
-                    ? 'ml-3 border-l border-gray-200 pl-3 sm:ml-5 sm:pl-5'
-                    : ''
-            }
-        >
-            <button
-                type="button"
-                onClick={() => onSelect(node.id)}
-                aria-pressed={selected}
-                className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
-                    selected
-                        ? 'border-[#3f6f3d] bg-[#f2f7ef] ring-1 ring-[#3f6f3d]/20'
-                        : 'border-gray-200 bg-white hover:border-[#9dbb95] hover:bg-[#fafcf8]'
-                }`}
-            >
-                <ResidentPhoto node={node} size="sm" />
-
-                <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-sm font-bold text-gray-900">
-                        {node.title}
-                    </h3>
-                    <p className="truncate text-xs font-medium text-gray-700">
-                        {node.assigned_person ? (
-                            <span>{node.assigned_person}</span>
-                        ) : (
-                            <span className="italic text-gray-400">Vacant</span>
-                        )}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-gray-500">
-                        {node.children.length > 0
-                            ? `${node.children.length} direct report${
-                                  node.children.length === 1 ? '' : 's'
-                              }`
-                            : node.has_photo
-                              ? 'Official photo on file'
-                              : 'No photo on file'}
-                    </p>
-                </div>
-
-                <span
-                    className={`shrink-0 text-lg ${
-                        selected ? 'text-[#3f6f3d]' : 'text-gray-300'
-                    }`}
-                    aria-hidden="true"
-                >
-                    ›
-                </span>
-            </button>
-
-            {node.children.length > 0 && (
-                <div className="mt-3 space-y-3">
-                    {node.children.map((child) => (
-                        <ResidentNode
-                            key={child.id}
-                            node={child}
-                            depth={depth + 1}
-                            selectedId={selectedId}
-                            onSelect={onSelect}
-                        />
-                    ))}
-                </div>
-            )}
-        </div>
     );
 }
 

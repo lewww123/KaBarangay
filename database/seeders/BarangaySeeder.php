@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\DB;
 
 class BarangaySeeder extends Seeder
 {
+    public const SICSICAN_PUROKS = [
+        'Anonang', 'Avocado', 'Acacia', 'Banaba', 'Bakawan',
+        'Fire Tree', 'Ilang-Ilang', 'Langka', 'Lanzones', 'Mabuhay',
+        'Makopa', 'Mahogany', 'Mangga', 'Mulawin', 'Narra',
+        'Palawan', 'Cherry', 'Sampaloc', 'Star Apple', 'Talisay',
+    ];
     public function run(): void
     {
         DB::transaction(function (): void {
@@ -43,15 +49,17 @@ class BarangaySeeder extends Seeder
                 'Purok Masayahin',
                 'Purok Masagana',
             ]);
-            $this->syncPuroks($barangays['BSC'], array_map(
-                fn (int $number) => 'Purok '.$number,
-                range(1, 7),
-            ));
+            $this->syncSicsican($barangays['BSC']);
         });
     }
 
+    public function syncSicsican(Barangay $barangay): void
+    {
+        $this->syncPuroks($barangay, self::SICSICAN_PUROKS, true);
+    }
+
     /** @param list<string> $names */
-    private function syncPuroks(Barangay $barangay, array $names): void
+    private function syncPuroks(Barangay $barangay, array $names, bool $preserveObsolete = false): void
     {
         $existing = Purok::query()->where('barangay_id', $barangay->id)->lockForUpdate()->get();
         $retainedIds = [];
@@ -75,7 +83,11 @@ class BarangaySeeder extends Seeder
         foreach ($existing->whereNotIn('id', $retainedIds) as $obsolete) {
             // Existing FK constraints reject deletion of referenced records;
             // the surrounding transaction then rolls back the entire refresh.
-            $obsolete->delete();
+            if ($preserveObsolete) {
+                $obsolete->update(['is_active' => false]);
+            } else {
+                $obsolete->delete();
+            }
         }
     }
 }

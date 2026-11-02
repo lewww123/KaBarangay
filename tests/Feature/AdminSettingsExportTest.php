@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Barangay;
+use App\Models\AuditLog;
 use App\Models\Purok;
 use App\Models\Resident;
 use App\Models\User;
@@ -42,6 +43,7 @@ class AdminSettingsExportTest extends TestCase
         $this->get('/admin/settings')->assertRedirect(route('login'));
         $this->get('/admin/settings/export/residents')->assertRedirect(route('login'));
         $this->get('/admin/settings/export/staff')->assertRedirect(route('login'));
+        $this->get('/admin/settings/export/audit-log')->assertRedirect(route('login'));
     }
 
     public function test_non_admin_roles_cannot_access_settings_or_exports(): void
@@ -52,6 +54,7 @@ class AdminSettingsExportTest extends TestCase
             $this->actingAs($user)->get('/admin/settings')->assertStatus(403);
             $this->actingAs($user)->get('/admin/settings/export/residents')->assertStatus(403);
             $this->actingAs($user)->get('/admin/settings/export/staff')->assertStatus(403);
+            $this->actingAs($user)->get('/admin/settings/export/audit-log')->assertStatus(403);
         }
     }
 
@@ -62,6 +65,7 @@ class AdminSettingsExportTest extends TestCase
         $this->actingAs($superAdmin)->get('/admin/settings')->assertStatus(403);
         $this->actingAs($superAdmin)->get('/admin/settings/export/residents')->assertStatus(403);
         $this->actingAs($superAdmin)->get('/admin/settings/export/staff')->assertStatus(403);
+        $this->actingAs($superAdmin)->get('/admin/settings/export/audit-log')->assertStatus(403);
     }
 
     public function test_inactive_admin_cannot_access_settings_or_exports(): void
@@ -71,6 +75,7 @@ class AdminSettingsExportTest extends TestCase
         $this->actingAs($admin)->get('/admin/settings')->assertStatus(403);
         $this->actingAs($admin)->get('/admin/settings/export/residents')->assertStatus(403);
         $this->actingAs($admin)->get('/admin/settings/export/staff')->assertStatus(403);
+        $this->actingAs($admin)->get('/admin/settings/export/audit-log')->assertStatus(403);
     }
 
     /*
@@ -232,6 +237,49 @@ class AdminSettingsExportTest extends TestCase
 
         $this->assertStringNotContainsString('password', $body);
         $this->assertStringNotContainsString('remember_token', $body);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Streaming audit CSV export
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_audit_log_export_streams_only_own_barangay_records(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        AuditLog::create([
+            'barangay_id' => $this->barangay->id,
+            'actor_id' => $admin->id,
+            'event' => 'settings.exported',
+            'entity_type' => 'settings',
+            'entity_id' => 1,
+            'context' => ['format' => 'csv'],
+            'ip_address' => '127.0.0.1',
+        ]);
+        AuditLog::create([
+            'barangay_id' => $this->other->id,
+            'event' => 'foreign.event',
+            'entity_type' => 'settings',
+            'entity_id' => 2,
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/settings/export/audit-log');
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $response->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->assertStringContainsString(
+            'attachment; filename=audit-log-',
+            $response->headers->get('Content-Disposition')
+        );
+
+        $body = $response->streamedContent();
+
+        $this->assertStringContainsString('"Recorded At",Event,"Entity Type"', $body);
+        $this->assertStringContainsString('settings.exported', $body);
+        $this->assertStringNotContainsString('foreign.event', $body);
     }
 
     /*

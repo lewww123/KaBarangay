@@ -278,7 +278,7 @@ export default function ResidentLayout({
                 KABARANGAY ASSISTANT
             ============================================================ */}
 
-            <KaBarangayAssistant />
+            {active !== 'chatbot' && <KaBarangayAssistant />}
 
             {/* ============================================================
                 MOBILE BOTTOM NAVIGATION
@@ -456,7 +456,7 @@ function ResidentNavigation({
                     <ResidentLink
                         href="/resident/chatbot"
                         icon={<ChatSmallIcon />}
-                        label="Assistant Guide"
+                        label="Kabarangay AI"
                         active={active === 'chatbot'}
                         onClick={onNavigate}
                     />

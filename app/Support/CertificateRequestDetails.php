@@ -133,6 +133,9 @@ class CertificateRequestDetails
                 self::textField('mother_occupation', "Mother's Occupation"),
                 self::incomeField('mother_monthly_income', "Mother's Monthly Income"),
             ],
+            'Sari-sari Store' => [
+                self::textField('business_type', 'Type of Business', true),
+            ],
             'Tricycle' => [
                 self::textField('franchise_no', 'Franchise No.', true),
             ],
@@ -141,12 +144,51 @@ class CertificateRequestDetails
     }
 
     /**
+     * Resolve a barangay certificate's configured form fields. A null schema
+     * keeps the legacy type definition so existing catalog entries continue to
+     * work while barangays can override their own physical form requirements.
+     */
+    public static function fieldsForCertificate(Certificate $certificate): array
+    {
+        $configuredFields = $certificate->form_schema['fields'] ?? null;
+
+        if (is_array($configuredFields)) {
+            return collect($configuredFields)
+                ->filter(fn ($field) => is_array($field)
+                    && isset($field['key'], $field['label'])
+                    && preg_match('/^[a-z][a-z0-9_]*$/', (string) $field['key']) === 1)
+                ->map(function (array $field): array {
+                    $type = ($field['type'] ?? null) === 'number' ? 'number' : 'text';
+                    $kind = in_array($field['kind'] ?? null, ['integer', 'numeric'], true)
+                        ? $field['kind']
+                        : ($type === 'number' ? 'integer' : 'text');
+
+                    return array_filter([
+                        'key' => (string) $field['key'],
+                        'label' => trim((string) $field['label']),
+                        'type' => $type,
+                        'kind' => $kind,
+                        'required' => (bool) ($field['required'] ?? false),
+                        'min' => isset($field['min']) ? (int) $field['min'] : null,
+                        'max' => isset($field['max']) ? (int) $field['max'] : null,
+                        'default' => isset($field['default']) ? (string) $field['default'] : null,
+                        'placeholder' => isset($field['placeholder']) ? (string) $field['placeholder'] : null,
+                    ], static fn (mixed $value): bool => $value !== null);
+                })
+                ->values()
+                ->all();
+        }
+
+        return self::fieldsForType(self::typeForCertificate($certificate));
+    }
+
+    /**
      * Validation rules for a resident request, derived from the certificate
      * type and whether business details are required.
      *
      * @return array<string, mixed>
      */
-    public static function validationRules(?string $type, bool $requiresBusinessDetails): array
+    public static function validationRules(?string $type, bool $requiresBusinessDetails, ?array $fields = null): array
     {
         $fixedPurpose = self::fixedPurpose($type);
 
@@ -168,7 +210,7 @@ class CertificateRequestDetails
             'details' => ['nullable', 'array'],
         ];
 
-        foreach (self::fieldsForType($type) as $field) {
+        foreach ($fields ?? self::fieldsForType($type) as $field) {
             $key = 'details.'.$field['key'];
 
             if ($field['kind'] === 'numeric') {
@@ -216,10 +258,10 @@ class CertificateRequestDetails
      *
      * @return array<string, mixed>
      */
-    public static function detailValidationRules(?string $type): array
+    public static function detailValidationRules(?string $type, ?array $fields = null): array
     {
         return array_filter(
-            self::validationRules($type, false),
+            self::validationRules($type, false, $fields),
             static fn (string $key): bool => str_starts_with($key, 'details.'),
             ARRAY_FILTER_USE_KEY,
         );
@@ -231,11 +273,11 @@ class CertificateRequestDetails
      * @param  array<string, mixed>  $submitted
      * @return array<string, string>
      */
-    public static function normalizeDetails(?string $type, array $submitted): array
+    public static function normalizeDetails(?string $type, array $submitted, ?array $fields = null): array
     {
         $normalized = [];
 
-        foreach (self::fieldsForType($type) as $field) {
+        foreach ($fields ?? self::fieldsForType($type) as $field) {
             $value = $submitted[$field['key']] ?? null;
 
             if (! is_scalar($value)) {
@@ -261,9 +303,9 @@ class CertificateRequestDetails
      *
      * @param  array<string, string>  $details
      */
-    public static function encode(?string $type, array $details, ?string $notes): ?string
+    public static function encode(?string $type, array $details, ?string $notes, ?array $fields = null): ?string
     {
-        $details = self::normalizeDetails($type, $details);
+        $details = self::normalizeDetails($type, $details, $fields);
         $notes = is_string($notes) ? trim($notes) : null;
 
         if ($type === null && $details === [] && ($notes === null || $notes === '')) {
@@ -285,6 +327,7 @@ class CertificateRequestDetails
         ?string $type,
         array $details,
         ?string $notes = null,
+        ?array $fields = null,
     ): ?string {
         $current = self::decode($raw);
         $resolvedType = $current['type'] ?? $type;
@@ -294,7 +337,7 @@ class CertificateRequestDetails
 
         return self::payload(
             $resolvedType,
-            self::normalizeDetails($resolvedType, $details),
+            self::normalizeDetails($resolvedType, $details, $fields),
             $notes ?? $current['notes'],
             $originalFields,
             $current['original_notes'] ?? $current['notes'],
@@ -370,12 +413,12 @@ class CertificateRequestDetails
      * @param  array<string, string>  $fields
      * @return array<int, array{label: string, value: string}>
      */
-    public static function displayRows(?string $type, array $fields): array
+    public static function displayRows(?string $type, array $values, ?array $fields = null): array
     {
         $rows = [];
 
-        foreach (self::fieldsForType($type) as $field) {
-            $value = $fields[$field['key']] ?? null;
+        foreach ($fields ?? self::fieldsForType($type) as $field) {
+            $value = $values[$field['key']] ?? null;
 
             if ($value === null || $value === '') {
                 continue;

@@ -12,7 +12,7 @@ use RuntimeException;
  * Contract, validation rules, and value formatting for the Delayed PSA
  * Registration certificate.
  *
- * The certificate is rendered from `storage/app/templates/delayedpsa.docx`,
+ * The certificate is rendered from `storage/app/templates/delayedpsa_dynamic.docx`,
  * whose merge fields are fixed. The template states its own purpose
  * ("DELAYED REGISTRATION OF BIRTH"). Its signatory is selected from the
  * published barangay Organizational Chart, and the generated document uses
@@ -48,6 +48,8 @@ class DelayedPsaCertificate
         "father\u{2019}s_name",
         'gender',
         'mothers_maiden_name',
+        'parents_marriage_details',
+        'residency_period',
         'purok',
         "resident\u{2019}s_name",
         'signatory_name',
@@ -150,6 +152,8 @@ class DelayedPsaCertificate
         }
 
         $variables = CertificatePlaceholders::templateVariables($templatePath);
+        // These optional official fields are always supplied by the server.
+        $variables = array_values(array_diff($variables, CertificateOfficials::TEMPLATE_KEYS));
         sort($variables);
 
         $expected = self::TEMPLATE_KEYS;

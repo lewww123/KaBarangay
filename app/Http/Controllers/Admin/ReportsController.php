@@ -38,11 +38,8 @@ class ReportsController extends Controller
                 return $report;
             }
 
-            return $report = $this->rememberAggregate(
-                'admin:reports:'.$barangayId.':'.md5(json_encode($filters)),
-                30,
-                fn () => $this->buildReport($barangayId, $filters),
-            );
+            // Current population uses the same live cohort as the Residents directory.
+            return $report = $this->buildReport($barangayId, $filters);
         };
 
         return Inertia::render('Admin/Reports', [
@@ -197,7 +194,7 @@ class ReportsController extends Controller
         if ($includePopulationMetrics) {
             $residents = Resident::query()
                 ->where('barangay_id', $barangayId)
-                ->where('status', 'active');
+                ->approvedAccount();
 
             $row = DB::query()
                 ->selectSub((clone $residents)->selectRaw('COUNT(*)')->toBase(), 'total')
@@ -223,7 +220,7 @@ class ReportsController extends Controller
         $population = [
             'metrics' => $populationMetrics,
             'sectors' => $includes('population') ? $this->sectorBreakdown($barangayId) : [],
-            'distribution_note' => 'General follows the existing definition: active Residents with no sector membership. Senior and PWD memberships may overlap, so an exclusive distribution chart is omitted.',
+            'distribution_note' => 'General Residents are approved residents with active accounts and no sector membership. Totals use the same qualification as the Residents directory. Senior and PWD memberships may overlap, so an exclusive distribution chart is omitted.',
         ];
 
         $certificateQuery = CertificateIssuance::query()
@@ -298,11 +295,7 @@ class ReportsController extends Controller
     {
         return DB::table('sectors')
             ->leftJoin('resident_sector as rs', 'rs.sector_id', '=', 'sectors.id')
-            ->leftJoin('residents as r', function ($join) use ($barangayId): void {
-                $join->on('r.id', '=', 'rs.resident_id')
-                    ->where('r.barangay_id', '=', $barangayId)
-                    ->where('r.status', '=', 'active');
-            })
+            ->leftJoinSub(Resident::query()->where('barangay_id', $barangayId)->approvedAccount()->select('residents.id'), 'r', fn ($join) => $join->on('r.id', '=', 'rs.resident_id'))
             ->select('sectors.name')
             ->selectRaw('COUNT(DISTINCT r.id) as aggregate')
             ->groupBy('sectors.id', 'sectors.name')

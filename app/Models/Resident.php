@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +11,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Resident extends Model
 {
+    /**
+     * Residents whose account has been approved through a registration review.
+     */
+    public function scopeApprovedAccount(Builder $query): void
+    {
+        $query
+            ->where('status', 'active')
+            ->whereHas('account', fn (Builder $account) => $account->where('is_active', true))
+            ->where(function (Builder $query) {
+            $query->whereHas('registration', fn (Builder $registration) => $registration
+                ->where('status', 'approved')
+                ->whereColumn('resident_registrations.barangay_id', 'residents.barangay_id'))
+                ->orWhereHas('matchedRegistrations', fn (Builder $registration) => $registration
+                    ->where('status', 'approved')
+                    ->whereColumn('resident_registrations.barangay_id', 'residents.barangay_id'));
+        });
+    }
+
     protected $fillable = [
         'public_id',
         'resident_registration_id',

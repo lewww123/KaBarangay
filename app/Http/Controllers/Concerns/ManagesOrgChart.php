@@ -350,7 +350,7 @@ trait ManagesOrgChart
             'status' => $position->status,
             'has_photo' => $position->photo_path !== null,
             'photo_url' => $position->photo_path !== null
-                ? route($photoRoute, ['position' => $position->id])
+                ? route($photoRoute, ['position' => $position->id, 'v' => substr(hash('sha256', $position->photo_path), 0, 12)])
                 : null,
             'updated_at' => $position->updated_at?->toISOString(),
         ];

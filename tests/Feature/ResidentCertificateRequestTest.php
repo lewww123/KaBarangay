@@ -112,8 +112,8 @@ class ResidentCertificateRequestTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Resident/Certificates')
-                ->has('requests', 1)
-                ->where('requests.0.id', $ownRequest->id));
+                ->has('requests.data', 1)
+                ->where('requests.data.0.id', $ownRequest->id));
     }
 
     public function test_index_does_not_return_requests_from_another_resident(): void
@@ -132,7 +132,7 @@ class ResidentCertificateRequestTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Resident/Certificates')
-                ->has('requests', 0));
+                ->has('requests.data', 0));
 
         $this->assertStringNotContainsString(
             (string) $foreign->reference,
@@ -225,11 +225,11 @@ class ResidentCertificateRequestTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Resident/Certificates')
-                ->has('requests', 1)
-                ->where('requests.0.id', $pending->id)
-                ->where('requests.0.reference', 'CERT-2026-SARI')
-                ->where('requests.0.status', 'Processing')
-                ->where('requests.0.certificate', 'Sari-Sari Store'));
+                ->has('requests.data', 1)
+                ->where('requests.data.0.id', $pending->id)
+                ->where('requests.data.0.reference', 'CERT-2026-SARI')
+                ->where('requests.data.0.status', 'Processing')
+                ->where('requests.data.0.certificate', 'Sari-Sari Store'));
     }
 
     /*
@@ -255,6 +255,7 @@ class ResidentCertificateRequestTest extends TestCase
                 ->post('/resident/certificates', [
                     'certificate_id' => $requestable->id,
                     'purpose' => 'Employment abroad',
+                    'details' => $requestable->id === $sariSari->id ? ['business_type' => 'Sari-sari Store'] : [],
                 ])
                 ->assertRedirect(route('resident.certificates'));
         }
@@ -486,11 +487,11 @@ class ResidentCertificateRequestTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Resident/Certificates')
-                ->where('requests.0.id', $request->id)
-                ->where('requests.0.additionalDetails', 'Please expedite.')
-                ->where('requests.0.details.0.label', 'Years of Residency')
-                ->where('requests.0.details.0.value', '7')
-                ->where('requests.0.adminNote', 'Bring a valid ID.'));
+                ->where('requests.data.0.id', $request->id)
+                ->where('requests.data.0.additionalDetails', 'Please expedite.')
+                ->where('requests.data.0.details.0.label', 'Years of Residency')
+                ->where('requests.data.0.details.0.value', '7')
+                ->where('requests.data.0.adminNote', 'Bring a valid ID.'));
     }
 
     public function test_legacy_plain_text_additional_details_remain_readable(): void
@@ -505,8 +506,8 @@ class ResidentCertificateRequestTest extends TestCase
             ->get('/resident/certificates')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('requests.0.id', $request->id)
-                ->where('requests.0.additionalDetails', 'Legacy free-text note.')
-                ->has('requests.0.details', 0));
+                ->where('requests.data.0.id', $request->id)
+                ->where('requests.data.0.additionalDetails', 'Legacy free-text note.')
+                ->has('requests.data.0.details', 0));
     }
 }

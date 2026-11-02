@@ -212,8 +212,10 @@ class IndigencyCertificateIntegrationTest extends TestCase
         $this->assertNotSame('', $branch, 'The Indigency preview branch could not be located.');
 
         // Key wording copied from the authoritative DOCX.
-        $this->assertStringContainsString('C E R T I F I C A T I O N', $branch);
-        $this->assertStringContainsString('(Indigent Certificate)', $branch);
+        $shell = (string) file_get_contents(base_path('resources/js/components/certificates/BrandedCertificatePreview.tsx'));
+        $this->assertStringContainsString('CERTIFICATION', $shell);
+        $this->assertStringContainsString('(Indigent Certificate)', $shell);
+        $branch = (string) preg_replace('/\s+/', ' ', strip_tags($branch));
         $this->assertStringContainsString(
             'That she/he belongs to the indigent family.',
             $branch
@@ -230,7 +232,8 @@ class IndigencyCertificateIntegrationTest extends TestCase
             'Issued on this',
             $branch
         );
-        $this->assertStringContainsString('HON. JENNIFER CALINGAO TRINIDAD', $branch);
+        $this->assertStringContainsString('CaptainSignature', $this->indigencyPreviewBranch($source));
+        $this->assertStringContainsString('official?.name.toUpperCase()', $shell);
         $this->assertStringContainsString('By the Authority of the Punong Barangay,', $branch);
         $this->assertStringContainsString('Officer on duty', $branch);
         $this->assertStringContainsString(

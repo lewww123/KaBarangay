@@ -39,6 +39,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => fn () => config('app.name'),
+            'chatbotStorageKey' => fn () => $request->session()->has('resident_id') ? 'kabarangay_assistant_state:'.hash_hmac('sha256', 'resident:'.$request->session()->get('resident_id'), (string) config('app.key')) : null,
             'auth' => function () use ($request): array {
                 $user = $request->user();
 

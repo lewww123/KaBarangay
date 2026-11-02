@@ -1,9 +1,11 @@
+import { resolveCertificateOfficials } from '@/lib/certificateOfficials';
+import ResidentAutocomplete from '@/components/certificates/ResidentAutocomplete';
 import { Head, router, useForm } from '@inertiajs/react';
 import ClerkLayout from '@/layouts/ClerkLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import withDeferredPage from '@/components/withDeferredPage';
-import CertificateDocumentPreview from '@/components/certificates/CertificateDocumentPreview';
-import { printCertificateDocument } from '@/lib/certificateDocument';
+import BrandedCertificatePreview, { CaptainSignature, type CertificateBranding, type CertificateOfficial } from '@/components/certificates/BrandedCertificatePreview';
+import { captureCertificateOutput, printCertificateImage, printCertificateDocument, printCertificatePdf } from '@/lib/certificateDocument';
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 
@@ -141,6 +143,36 @@ interface IssuanceRow {
     purok: string | null;
     issued_at: string;
     issued_by: string;
+}
+
+interface IssuanceDetails {
+    id: number;
+    reference: string;
+    control_no: string | null;
+    certificate_type: string;
+    status: string;
+    fee: string;
+    purok: string | null;
+    issued_at: string;
+    issued_by: string;
+    resident: {
+        name: string;
+        resident_number: string | null;
+    };
+    linked_request: {
+        id: number;
+        reference: string;
+        purpose: string;
+        business_name: string | null;
+        business_address: string | null;
+        submitted_at: string;
+    } | null;
+    purpose: string;
+    business_name: string | null;
+    business_address: string | null;
+    notes: string | null;
+    details: RequestDetailRow[];
+    template_available: boolean;
 }
 
 type AllRecordType = 'request' | 'issuance';
@@ -297,14 +329,14 @@ const RESIDENCY_PURPOSE = 'PROOF OF RESIDENCY.';
 const RESIDENCY_YEARS_MIN = 0;
 const RESIDENCY_YEARS_MAX = 120;
 
-function createControlNumber(): string {
-    return `CTRL-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-}
+
 
 const DELAYED_PSA_DEFAULTS = {
     nationality: 'FILIPINO',
     birth_place: 'PUERTO PRINCESA CITY',
 };
+
+const ignoreLivePreviewReady = () => undefined;
 
 const SEX_OPTIONS = ['MALE', 'FEMALE'];
 
@@ -515,7 +547,7 @@ function QrScanInput({
     );
 }
 
-export default withDeferredPage(Dashboard, ['requests', 'issuances', 'allRecords', 'certificateOptions', 'signatories', 'issuedFilters', 'allFilters'], (props) => (
+export default withDeferredPage(Dashboard, ['requests', 'issuances', 'allRecords', 'certificateOptions', 'signatories', 'issuedFilters', 'allFilters', 'barangayBranding'], (props) => (
     <ClerkLayout active="certificates" user={props.auth.user}><PortalPageSkeleton showTabs /></ClerkLayout>
 ));
 
@@ -523,6 +555,9 @@ function Dashboard({
     auth,
     certificateTypes = [],
     signatories = [],
+    default_punong_barangay = null,
+    kagawads = [],
+    active_kagawads = [],
     requests = EMPTY_REQUESTS,
     issuances = EMPTY_ISSUANCES,
     statuses = [],
@@ -531,10 +566,15 @@ function Dashboard({
     issuedFilters = EMPTY_ISSUED_FILTERS,
     allRecords = EMPTY_ALL_RECORDS,
     allFilters = EMPTY_ALL_FILTERS,
+    barangayBranding = { cityLogoPath: null, barangayLogoPath: null, watermarkPath: null, footerGraphicPath: null },
 }: {
     auth: { user: User };
     certificateTypes?: CertificateTypeOption[];
     signatories?: SignatoryOption[];
+    punong_barangay?: CertificateOfficial | null;
+    default_punong_barangay?: CertificateOfficial | null;
+    kagawads?: CertificateOfficial[];
+    active_kagawads?: CertificateOfficial[];
     requests?: Paginated<RequestRow>;
     issuances?: Paginated<IssuanceRow>;
     allRecords?: Paginated<AllRecordRow>;
@@ -543,6 +583,7 @@ function Dashboard({
     filters?: RequestFilters;
     issuedFilters?: IssuanceFilters;
     allFilters?: AllRecordFilters;
+    barangayBranding?: CertificateBranding;
 }) {
     const [activeTab, setActiveTab] = useState<CertificateTab>(() =>
         typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'issued' ? 'issued' : 'requests',
@@ -870,6 +911,15 @@ function Dashboard({
     const [requestDetailsError, setRequestDetailsError] = useState<
         string | null
     >(null);
+    const [issuanceDetailsOpen, setIssuanceDetailsOpen] = useState(false);
+    const [issuanceDetails, setIssuanceDetails] =
+        useState<IssuanceDetails | null>(null);
+    const [issuanceDetailsLoading, setIssuanceDetailsLoading] =
+        useState(false);
+    const [issuanceDetailsError, setIssuanceDetailsError] = useState<
+        string | null
+    >(null);
+    const [reprintLoading, setReprintLoading] = useState(false);
     const [detailDraft, setDetailDraft] = useState<Record<string, string>>({});
     const [statusDraft, setStatusDraft] = useState('');
     const [adminNoteDraft, setAdminNoteDraft] = useState('');
@@ -901,6 +951,107 @@ function Dashboard({
     // Advances only on QR workflow events, so the scan field can be focused
     // again after a scan without refocusing on ordinary renders.
     const [qrFocusSignal, setQrFocusSignal] = useState(0);
+
+    const openIssuanceDetails = async (id: number) => {
+        setIssuanceDetailsOpen(true);
+        setIssuanceDetails(null);
+        setIssuanceDetailsError(null);
+        setIssuanceDetailsLoading(true);
+
+        try {
+            const response = await axios.get<IssuanceDetails>(
+                `/clerk/certificates/issuances/${id}`,
+            );
+            setIssuanceDetails(response.data);
+        } catch {
+            setIssuanceDetailsError(
+                'Unable to load the issued certificate details right now.',
+            );
+        } finally {
+            setIssuanceDetailsLoading(false);
+        }
+    };
+
+    const closeIssuanceDetails = () => {
+        setIssuanceDetailsOpen(false);
+        setIssuanceDetails(null);
+        setIssuanceDetailsError(null);
+        setIssuanceDetailsLoading(false);
+        setReprintLoading(false);
+    };
+
+    const reprintIssuance = async () => {
+        if (!issuanceDetails || reprintLoading) {
+            return;
+        }
+
+        setReprintLoading(true);
+        setIssuanceDetailsError(null);
+
+        try {
+            const response = await fetch(
+                `/clerk/certificates/issuances/${issuanceDetails.id}/reprint`,
+                {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/json' },
+                },
+            );
+
+            if (!response.ok) {
+                const result = await response.json().catch(() => null);
+                throw new Error(
+                    typeof result?.message === 'string'
+                        ? result.message
+                        : 'The certificate could not be reprinted.',
+                );
+            }
+
+            const contentType = response.headers
+                .get('Content-Type')
+                ?.split(';')[0]
+                .trim()
+                .toLowerCase();
+            const disposition =
+                response.headers.get('Content-Disposition') || '';
+
+            if (contentType === 'application/pdf' && /attachment/i.test(disposition)) {
+                await printCertificatePdf(await response.blob(), `Reprint ${issuanceDetails.reference}`);
+                return;
+            }
+
+            if (
+                !/attachment/i.test(disposition) ||
+                contentType !==
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ) {
+                throw new Error(
+                    'The reprint response did not contain a certificate document.',
+                );
+            }
+
+            const documentBlob = await response.blob();
+            const signature = new Uint8Array(
+                await documentBlob.slice(0, 4).arrayBuffer(),
+            );
+
+            if (signature[0] !== 0x50 || signature[1] !== 0x4b) {
+                throw new Error('The reprint document is not a valid DOCX file.');
+            }
+
+            await printCertificateDocument(
+                documentBlob,
+                `Reprint ${issuanceDetails.reference}`,
+            );
+        } catch (reason) {
+            setIssuanceDetailsError(
+                reason instanceof Error
+                    ? reason.message
+                    : 'The certificate could not be reprinted.',
+            );
+        } finally {
+            setReprintLoading(false);
+        }
+    };
 
     const openRequestDetails = async (id: number) => {
         setRequestDetailsOpen(true);
@@ -1040,18 +1191,26 @@ function Dashboard({
 
     const { data, setData, processing, reset } = useForm({
         certificate_request_id: '',
-        control_no: createControlNumber(),
+        control_no: '',
         resident_id: '',
         resident_name: '',
+        civil_status: '',
+        address_details: '',
+        age: '',
         purok: '',
         certificate_type: defaultCertificateType,
         fee: defaultFee,
         purpose: '',
+        acting_captain_id: '',
         signatory_name: '',
         signatory_title: '',
         franchise_no: '',
         business_name: '',
         business_address: '',
+        business_type: '',
+        or_number: '',
+        receipt_date: '',
+        amount_paid: '',
         school_institution: '',
         father_name: '',
         father_occupation: '',
@@ -1080,9 +1239,43 @@ function Dashboard({
     const [profileError, setProfileError] = useState<string | null>(null);
     const [documentPreviewReady, setDocumentPreviewReady] = useState(false);
 
+    const [controlNumberLoading, setControlNumberLoading] = useState(false);
+    const [controlNumberError, setControlNumberError] = useState<string | null>(null);
+    useEffect(() => {
+        if (!isModalOpen || !data.certificate_type) return;
+        let active = true;
+        setControlNumberLoading(true);
+        setControlNumberError(null);
+        setData('control_no', '');
+        void axios.get('/clerk/certificates/control-number', { params: { certificate_type: data.certificate_type } })
+            .then((response) => { if (active) setData('control_no', response.data.control_no); })
+            .catch(() => { if (active) setControlNumberError('Unable to load the control number. Close and reopen this form to retry.'); })
+            .finally(() => { if (active) setControlNumberLoading(false); });
+        return () => { active = false; };
+    }, [isModalOpen, data.certificate_type]);
+
+    const { captain: currentCaptain, kagawads: currentKagawads } = resolveCertificateOfficials(
+        default_punong_barangay,
+        active_kagawads.length ? active_kagawads : kagawads,
+        data.acting_captain_id,
+    );
+    const renderActingCaptainField = () => (
+        <div className="mb-4">
+            <label htmlFor="acting-captain" className="mb-1 block text-xs font-semibold text-blue-800">OIC kapag naka-leave ang Punong Barangay (Optional)</label>
+            <select id="acting-captain" value={data.acting_captain_id} onChange={(event) => setData('acting_captain_id', event.target.value)} className="w-full rounded-md border bg-white px-3 py-2 text-sm">
+                <option value="">Use default Punong Barangay</option>
+                {active_kagawads.map((member) => <option key={member.id} value={member.id}>{member.name} — {member.title}</option>)}
+            </select>
+        </div>
+    );
+
     const isDelayedPsa = data.certificate_type === DELAYED_PSA_TYPE;
     const isMarriage = data.certificate_type === MARRIAGE_TYPE;
     const isResidency = data.certificate_type === RESIDENCY_TYPE;
+    const certificatePreviewBody = new URLSearchParams({
+        ...data,
+        details_confirmed: detailsConfirmed ? '1' : '',
+    }).toString();
 
     // Editing any reviewed detail invalidates the Clerk's confirmation.
     useEffect(() => {
@@ -1196,6 +1389,10 @@ function Dashboard({
             purpose: req.purpose || current.purpose,
             business_name: req.business_name || current.business_name,
             business_address: req.business_address || current.business_address,
+            business_type: req.detail_values?.business_type || '',
+            or_number: '',
+            receipt_date: '',
+            amount_paid: '',
             franchise_no: req.detail_values?.franchise_no || current.franchise_no,
             school_institution: req.detail_values?.school_institution || current.school_institution,
             father_name: req.detail_values?.father_name || current.father_name,
@@ -1316,6 +1513,10 @@ function Dashboard({
             franchise_no: '',
             business_name: '',
             business_address: '',
+        business_type: '',
+        or_number: '',
+        receipt_date: '',
+        amount_paid: '',
             school_institution: '',
             father_name: '',
             father_occupation: '',
@@ -1365,6 +1566,9 @@ function Dashboard({
             ...data,
             resident_id: '',
             resident_name: '',
+            civil_status: '',
+            address_details: '',
+            age: '',
             // The linked resident's own values are dropped with the link, so
             // a later certificate can never reuse them.
             date_of_birth: '',
@@ -1515,7 +1719,21 @@ function Dashboard({
             data.certificate_type === DELAYED_PSA_TYPE && detailsConfirmed ? '1' : '',
         );
 
+        let issuanceAttempted = false;
         try {
+            const sheet = document.getElementById('certificate-print-sheet');
+            if (!data.control_no || controlNumberLoading) { setGenerationError('Wait for the control number to load.'); return; }
+            if (!sheet) throw new Error('The certificate preview is not available.');
+            const output = await captureCertificateOutput(sheet, `Certificate ${data.control_no}`);
+            payload.set('output_format', 'pdf');
+            const pdfData = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result).split(',')[1]);
+                reader.onerror = () => reject(new Error('The certificate PDF could not be read.'));
+                reader.readAsDataURL(output.pdf);
+            });
+            payload.set('rendered_pdf', pdfData);
+            issuanceAttempted = true;
             const response = await fetch('/clerk/generate-certificate', {
                 method: 'POST',
                 credentials: 'same-origin',
@@ -1529,6 +1747,8 @@ function Dashboard({
 
             if (response.status === 422) {
                 const result = await response.json().catch(() => null);
+                const nextNumber = result?.errors?.next_control_no?.[0];
+                if (typeof nextNumber === 'string') setData('control_no', nextNumber);
                 const firstError = result?.errors
                     ? Object.values(result.errors).flat().find((message) => typeof message === 'string')
                     : null;
@@ -1556,28 +1776,24 @@ function Dashboard({
             if (!response.ok || response.headers.get('X-Certificate-Issuance-Status') !== 'issued' || !/attachment/i.test(disposition) || ![
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 'application/octet-stream',
+                'application/pdf',
             ].includes(contentType || '')) {
-                throw new Error('The issuance response did not contain a DOCX attachment.');
+                throw new Error('The issuance response did not contain the certificate PDF.');
             }
 
             const documentBlob = await response.blob();
             const signature = new Uint8Array(await documentBlob.slice(0, 4).arrayBuffer());
-            if (signature[0] !== 0x50 || signature[1] !== 0x4b) {
-                throw new Error('The downloaded document is not a valid DOCX file.');
+            if (signature[0] !== 0x25 || signature[1] !== 0x50 || signature[2] !== 0x44 || signature[3] !== 0x46) {
+                throw new Error('The downloaded document is not a valid PDF file.');
             }
 
-            const encodedFilename = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-            const plainFilename = disposition.match(/filename="?([^";]+)"?/i)?.[1];
-            const filename = encodedFilename
-                ? decodeURIComponent(encodedFilename)
-                : plainFilename || `Certificate_${data.control_no}.docx`;
             if (action === 'print') {
-                await printCertificateDocument(documentBlob, `Certificate ${data.control_no}`);
+                await printCertificateImage(output.image, `Certificate ${data.control_no}`);
             } else {
-                const objectUrl = URL.createObjectURL(documentBlob);
+                const objectUrl = URL.createObjectURL(output.pdf);
                 const downloadLink = document.createElement('a');
                 downloadLink.href = objectUrl;
-                downloadLink.download = filename;
+                downloadLink.download = `Certificate_${data.control_no}.pdf`;
                 document.body.appendChild(downloadLink);
                 downloadLink.click();
                 downloadLink.remove();
@@ -1592,8 +1808,12 @@ function Dashboard({
             setDetailsConfirmed(false);
             setProfileError(null);
             reset();
-            setData('control_no', createControlNumber());
+            setData('control_no', '');
         } catch {
+            if (!issuanceAttempted) {
+                setGenerationError('The preview could not be prepared for printing. Check that all images loaded and try again.');
+                return;
+            }
             // A connection can fail after the server commits issuance. Block
             // another submit in this page session to avoid issuing a duplicate.
             generationOutcomeUnknownRef.current = true;
@@ -1657,6 +1877,23 @@ function Dashboard({
           : isResidency
             ? residencyDetailsComplete
             : true;
+
+    const renderStoreFields = () => (
+        <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border bg-blue-50 p-4 sm:grid-cols-2">
+            <label className="text-xs font-semibold sm:col-span-2">Type of Business
+                <input type="text" value={data.business_type} onChange={(e) => setData('business_type', e.target.value)} required maxLength={255} placeholder="e.g. Sari-sari Store or Retailer – Fruits & Vegetables" className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-semibold">OR Number (optional)
+                <input type="text" value={data.or_number} onChange={(e) => setData('or_number', e.target.value)} maxLength={100} className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-semibold">Receipt Date (optional)
+                <input type="date" value={data.receipt_date} onChange={(e) => setData('receipt_date', e.target.value)} className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-semibold">Amount Paid (₱, optional)
+                <input type="number" min="0" step="0.01" value={data.amount_paid} onChange={(e) => setData('amount_paid', e.target.value)} placeholder={data.fee} className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm" />
+            </label>
+        </div>
+    );
 
     const renderDelayedPsaFields = () => (
         <div className="space-y-3 rounded-lg border border-sky-100 bg-sky-50 p-4">
@@ -1803,9 +2040,16 @@ function Dashboard({
                             setData('parents_marriage_details', e.target.value)
                         }
                         required
-                        placeholder="e.g. 12 June 1985, Puerto Princesa City"
+                        placeholder="e.g. 12 June 1985, Puerto Princesa City; or Not married"
+                        maxLength={255}
                         className="w-full rounded-md border px-3 py-2 text-sm"
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                        Enter the marriage date and place, or alternative text such as Not married or Unknown.
+                    </p>
+                    <button type="button" onClick={() => setData('parents_marriage_details', 'Not married')} className="mt-1 text-xs font-semibold text-blue-700 underline">
+                        Use Not married
+                    </button>
                 </div>
             </div>
 
@@ -1978,126 +2222,51 @@ function Dashboard({
 
     const renderDocumentPreview = () => {
         if (data.certificate_type === DELAYED_PSA_TYPE) {
-            const residentName =
-                data.resident_name.toUpperCase() || '___________________';
-            const purok = data.purok.toUpperCase() || '__________';
-            const dateOfBirth =
-                formatLongDate(data.date_of_birth) || '__________';
-            const sex = data.sex || '__________';
-            const nationality = data.nationality.toUpperCase() || '__________';
-            const birthPlace = data.birth_place.toUpperCase() || '__________';
-            const fatherName =
-                data.father_name.toUpperCase() || '___________________';
-            const motherName =
-                data.mother_maiden_name.toUpperCase() || '___________________';
-            const marriageDetails =
-                data.parents_marriage_details.toUpperCase() ||
-                '___________________';
-            const residencyYear = data.residency_start_year.trim();
-            const residencyPeriod =
-                residencyYear !== ''
-                    ? `${residencyYear} up to present`
-                    : '__________';
+            const residentName = data.resident_name.trim().toUpperCase() || '___________________';
+            const purok = data.purok.trim().replace(/^purok\s+/i, '') || '__________';
+            const birthDate = data.date_of_birth
+                ? new Date(`${data.date_of_birth}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
+                : '__________';
+            const residencyPeriod = data.residency_start_year.trim()
+                ? `${data.residency_start_year.trim()} up to present`
+                : '__________ up to present';
 
             return (
-                <div className="space-y-4 text-left">
-                    <p className="text-center text-xs tracking-wide uppercase">
-                        Republic of the Philippines City of Puerto Princesa
-                        BARANGAY SAN JOSE
+                <div className="certificate-copy certificate-delayed-psa-copy text-left">
+                    <p className="psa-salutation">TO WHOM IT MAY CONCERN;</p>
+                    <p className="psa-introduction">
+                        This is to certify that the person whose <strong>name, photo, signature/thumbmark</strong> appears herein is bona fide resident of <strong>Purok {purok}</strong>, Barangay San Jose, Puerto Princesa City, Palawan.
                     </p>
-                    <p className="text-center text-xs tracking-wide uppercase">
-                        Office of the Punong Barangay
-                    </p>
-                    <p className="text-center text-sm font-bold tracking-[0.2em]">
-                        C E R T I F I C A T I O N
-                    </p>
-
-                    <p>TO WHOM IT MAY CONCERN;</p>
-
-                    <p className="mt-4 text-justify leading-relaxed">
-                        This is to certify that the person whose name, photo,
-                        signature/thumbmark appears herein is bona fide resident
-                        of {purok} , Barangay San Jose, Puerto Princesa City,
-                        Palawan.
-                    </p>
-
-                    <div className="mt-4 space-y-1">
-                        <p>
-                            NAME:{' '}
-                            <strong className="underline">
-                                {residentName}
-                            </strong>
-                        </p>
-                        <p>SEX: {sex}</p>
-                        <p>NATIONALITY: {nationality}</p>
-                        <p>BIRTHDAY: {dateOfBirth}</p>
-                        <p>BIRTH PLACE: {birthPlace}</p>
-                        <p>BARANGAY ADDRESS: PUROK {purok}, BGY.SAN JOSE PPC</p>
+                    <div className="psa-photo-box" aria-label="Resident photo box" />
+                    <div className="psa-person-details">
+                        <p>NAME: {residentName}</p>
+                        <p>SEX: {data.sex || '__________'}</p>
+                        <p>NATIONALITY: {data.nationality.toUpperCase() || '__________'}</p>
+                        <p>BIRTHDAY: {birthDate}</p>
+                        <p>BIRTH PLACE: {data.birth_place.toUpperCase() || '__________'}</p>
+                        <p>BARANGAY ADDRESS: PUROK {purok.toUpperCase()}, BGY.SAN JOSE PPC</p>
+                        <p>FULL NAME OF THE FATHER; {data.father_name.toUpperCase() || '___________________'}</p>
+                        <p>MAIDEN NAME OF THE MOTHER: {data.mother_maiden_name.toUpperCase() || '___________________'}</p>
+                        <p>DATE AND PLACE OF MARRIAGE OF PARENTS: {data.parents_marriage_details.toUpperCase() || '___________________'}</p>
                     </div>
-
-                    <p className="mt-4">
-                        FULL NAME OF THE FATHER; <strong>{fatherName}</strong>
+                    <p className="psa-residency">
+                        This is to certify further that the person named above has been a resident of this Barangay <span className="psa-period">from <strong>{residencyPeriod}.</strong></span>
                     </p>
-                    <p className="mt-2">
-                        MAIDEN NAME OF THE MOTHER: <strong>{motherName}</strong>
+                    <p className="psa-purpose">
+                        This certification is issued upon the request of <strong><u>the above-named person</u></strong> for the purpose of <strong>{DELAYED_PSA_PURPOSE}.</strong>
                     </p>
-                    <p className="mt-2">
-                        DATE AND PLACE OF MARRIAGE OF PARENTS: {marriageDetails}
-                    </p>
-
-                    <p className="mt-4 text-justify leading-relaxed">
-                        This is to certify further that the person named above
-                        has been a resident of this Barangay from{' '}
-                        {residencyPeriod}.
-                    </p>
-
-                    <p className="mt-4 text-justify leading-relaxed">
-                        This certification is issued upon the request of the
-                        above-named person for the purpose of
-                    </p>
-                    <p className="text-center font-bold">
-                        {DELAYED_PSA_PURPOSE}.
-                    </p>
-
-                    <div className="mt-8">
-                        <p className="text-sm font-bold">{residentName}</p>
-                        <p className="text-xs italic">
-                            Name and signature/thumbmark of the resident
-                        </p>
+                    <div className="psa-resident-signature">
+                        <p><strong><u>{residentName}</u></strong></p>
+                        <p>Name and signature/thumbmark of the resident</p>
                     </div>
-
-                    <p className="mt-4 text-justify leading-relaxed">
-                        Issued on this {formatIssueDate()} at Barangay Hall,
-                        Barangay San Jose, City of Puerto Princesa.
-                    </p>
-
-                    <div className="mt-8 text-right">
-                        <p className="text-sm font-bold">
-                            HON. JENNIFER CALINGAO TRINIDAD
-                        </p>
-                        <p className="text-xs italic">Punong Barangay</p>
+                    <p className="psa-issue-date">Issued on this <strong>{formatIssueDate()}</strong> at Barangay Hall, Barangay San Jose, City of Puerto Princesa.</p>
+                    <CaptainSignature />
+                    <div className="certificate-authority">
+                        <p>By the Authority of the Punong Barangay,</p>
+                        <div><p className="font-bold">{data.signatory_name.toUpperCase() || '___________________'}</p><p>Officer on duty</p></div>
                     </div>
-
-                    <div className="mt-6">
-                        <p className="text-sm">
-                            By the Authority of the Punong Barangay,
-                        </p>
-                        <div className="mt-6 text-right">
-                            <p className="text-sm font-bold">
-                            {data.signatory_name || '___________________'}
-                            </p>
-                            <p className="text-xs italic">Officer on duty</p>
-                        </div>
-                    </div>
-
-                    <p className="mt-6 text-xs italic">
-                        Note: This Certification is valid only for Three (3)
-                        Months from the day this was issued.
-                    </p>
-                    <p className="text-xs italic">
-                        Do not accept if a photocopy of this Certification is
-                        not a Certified true Copy, with erasures or Alterations.
-                    </p>
+                    <p className="certificate-note">Note: This Certification is valid only for Three (3) Months from the day this was issued.</p>
+                    <p className="certificate-note">Do not accept if a photocopy of this Certification is not a Certified true Copy, with erasures or Alterations.</p>
                 </div>
             );
         }
@@ -2119,18 +2288,7 @@ function Dashboard({
             );
 
             return (
-                <div className="space-y-4 text-left">
-                    <p className="text-center text-xs tracking-wide uppercase">
-                        Republic of the Philippines City of Puerto Princesa
-                        BARANGAY SAN JOSE
-                    </p>
-                    <p className="text-center text-xs tracking-wide uppercase">
-                        Office of the Punong Barangay
-                    </p>
-                    <p className="text-center text-sm font-bold tracking-[0.2em]">
-                        C E R T I F I C A T I O N
-                    </p>
-
+                <div className="certificate-copy text-left">
                     <p>To Whom It May Concern:</p>
 
                     <p className="mt-4 text-justify leading-relaxed">
@@ -2163,14 +2321,9 @@ function Dashboard({
                         Barangay San Jose, City of Puerto Princesa.
                     </p>
 
-                    <div className="mt-10 text-right">
-                        <p className="text-sm font-bold">
-                            HON. JENNIFER CALINGAO TRINIDAD
-                        </p>
-                        <p className="text-xs italic">Punong Barangay</p>
-                    </div>
+                    <CaptainSignature />
 
-                    <div className="mt-6">
+                    <div className="certificate-authority">
                         <p className="text-sm">
                             By the Authority of the Punong Barangay,
                         </p>
@@ -2178,15 +2331,15 @@ function Dashboard({
                             <p className="text-sm font-bold">
                             {data.signatory_name || '___________________'}
                             </p>
-                            <p className="text-xs italic">{data.signatory_title || 'Officer on duty'}</p>
+                            <p className="text-xs italic">Officer on duty</p>
                         </div>
                     </div>
 
-                    <p className="mt-6 text-xs italic">
+                    <p className="certificate-note">
                         Note: This Certification is valid only for Three (3)
                         Months from the day this was issued.
                     </p>
-                    <p className="text-xs italic">
+                    <p className="certificate-note">
                         Do not accept if a photocopy of this Certification is
                         not a Certified true Copy, with erasures or Alterations.
                     </p>
@@ -2200,27 +2353,16 @@ function Dashboard({
                 '___________________';
             const purokName = data.purok.trim().toUpperCase();
             const purok =
-                purokName !== '' ? `PUROK ${purokName}` : '__________';
+                purokName !== '' ? (/^purok\b/i.test(purokName) ? purokName : `Purok ${data.purok.trim()}`) : '__________';
             const yearsOfResidency = parseWholeNumber(data.years_of_residency);
 
             return (
-                <div className="space-y-4 text-left">
-                    <p className="text-center text-xs tracking-wide uppercase">
-                        Republic of the Philippines City of Puerto Princesa
-                        BARANGAY SAN JOSE
-                    </p>
-                    <p className="text-center text-xs tracking-wide uppercase">
-                        Office of the Punong Barangay
-                    </p>
-                    <p className="text-center text-sm font-bold tracking-[0.2em]">
-                        C E R T I F I C A T I O N
-                    </p>
-
-                    <p>This is to certify that</p>
-                    <p className="font-bold underline">{residentName}</p>
-                    <p>A bona fide resident of</p>
-                    <p>{purok}</p>
-                    <p>Brgy. San Jose, Puerto Princesa City.</p>
+                <div className="certificate-copy certificate-residency-copy text-left">
+                    <p className="residency-intro">This is to certify that</p>
+                    <p className="residency-name font-bold underline">{residentName}</p>
+                    <p className="residency-bona-fide">A bona fide resident of</p>
+                    <p className="residency-purok font-bold underline">{purok}</p>
+                    <p className="residency-address font-bold">Brgy. San Jose, Puerto Princesa City.</p>
 
                     <p className="mt-4 text-justify leading-relaxed">
                         That the above-mentioned individual is a law abiding
@@ -2229,9 +2371,9 @@ function Dashboard({
                     </p>
 
                     <p className="mt-4 text-justify leading-relaxed">
-                        This further certifies that {residentName}, is a
-                        resident of this barangay for{' '}
-                        {yearsOfResidency !== null ? yearsOfResidency : '____'}
+                        This further certifies that <u>{data.resident_name.trim() || '___________________'}</u>, is a
+                        resident of this barangay<br />for{' '}
+                        <span className="residency-duration">{yearsOfResidency !== null ? yearsOfResidency : '____'} years</span>
                     </p>
 
                     <p className="mt-4 text-justify leading-relaxed">
@@ -2239,21 +2381,16 @@ function Dashboard({
                         Barangay San Jose, Puerto Princesa City.
                     </p>
 
-                    <div className="mt-6 border-l-4 border-blue-500 bg-blue-100 p-2 text-left font-sans text-xs">
+                    <div className="certificate-purpose">
                         <span className="font-bold text-blue-800 uppercase">
                             Purpose:{' '}
                         </span>
-                        {RESIDENCY_PURPOSE}
+                        <strong><u>{RESIDENCY_PURPOSE}</u></strong>
                     </div>
 
-                    <div className="mt-8 text-right">
-                        <p className="text-sm font-bold">
-                            HON. JENNIFER CALINGAO TRINIDAD
-                        </p>
-                        <p className="text-xs italic">Punong Barangay</p>
-                    </div>
+                    <CaptainSignature />
 
-                    <div className="mt-6">
+                    <div className="certificate-authority">
                         <p className="text-sm">
                             By the Authority of the Punong Barangay,
                         </p>
@@ -2261,15 +2398,15 @@ function Dashboard({
                             <p className="text-sm font-bold">
                             {data.signatory_name || '___________________'}
                             </p>
-                            <p className="text-xs italic">{data.signatory_title || 'Officer on duty'}</p>
+                            <p className="text-xs italic">Officer on duty</p>
                         </div>
                     </div>
 
-                    <p className="mt-6 text-xs italic">
+                    <p className="certificate-note">
                         Note: This Certification is valid only for Three (3)
                         Months from the day this was issued.
                     </p>
-                    <p className="text-xs italic">
+                    <p className="certificate-note">
                         Do not accept if a photocopy of this Certification is
                         not a Certified true Copy, with erasures or Alterations.
                     </p>
@@ -2278,105 +2415,129 @@ function Dashboard({
         }
 
         if (data.certificate_type === 'Tricycle') {
+            const owner = data.resident_name.trim().toUpperCase() || '___________________';
+            const purok = data.purok.trim().replace(/^purok\s+/i, '').toUpperCase() || '__________';
+            const permitYear = new Date().getFullYear();
+            const paymentDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
             return (
-                <div className="space-y-4">
-                    <p>This is to certify that</p>
-                    <p className="text-lg font-bold underline">
-                        {data.resident_name.toUpperCase() ||
-                            '___________________'}
-                    </p>
-                    <p>Operator/Driver of</p>
-                    <p className="font-bold">
-                        ONE(1) UNIT TRICYCLE (FRANCHISE #{' '}
-                        {data.franchise_no.toUpperCase() || '_______'})
-                    </p>
-                    <p>With a Business/Trade name</p>
-                    <p className="font-bold">
-                        {data.business_name.toUpperCase() ||
-                            '___________________'}
-                    </p>
-                    <p>is lawfully operating at</p>
-                    <p className="font-bold">
-                        {data.business_address.toUpperCase() ||
-                            '___________________'}
-                    </p>
-
-                    <div className="mt-6 border-l-4 border-blue-500 bg-blue-100 p-2 text-left font-sans text-xs">
-                        <span className="font-bold text-blue-800 uppercase">
-                            Purpose:{' '}
-                        </span>
-                        {data.purpose.toUpperCase() || '___________________'}
+                <div className="certificate-copy certificate-tricycle-copy">
+                    <div className="tricycle-identity">
+                        <p>This is to certify that</p>
+                        <p className="tricycle-owner"><strong><u>{owner}</u></strong></p>
+                        <p className="tricycle-driver"><strong><em>Operator /Driver of</em></strong></p>
+                        <p><strong><u>ONE(1)UNIT TRICYCLE(FRANCHISE #{data.franchise_no.toUpperCase() || '_______'})</u></strong></p>
+                        <p>With a Business/Trade name</p>
+                        <p><strong><u>{data.business_name.toUpperCase() || '___________________'}</u></strong></p>
+                        <p>is lawfully operating at</p>
+                        <p><strong><u>{data.business_address.toUpperCase() || '___________________'}</u></strong></p>
+                        <p>Operator’s Address</p>
+                        <p><strong><u>PUROK {purok}</u></strong></p>
+                        <p>BARANGAY SAN JOSE PUERTO PRINCESA CITY</p>
                     </div>
-
-                    <div className="mt-8 text-right">
-                        <p className="text-sm font-bold">
-                            {data.signatory_name || '___________________'}
-                        </p>
-                        <p className="text-xs italic">
-                            {data.signatory_title || 'Signatory Title'}
-                        </p>
+                    <div className="tricycle-conditions-box">
+                        <p><strong>AS OWNER/PROPRIETOR/OPERATOR</strong> of the above-mentioned business, I agree to abide with the following conditions:</p>
+                        <ol>
+                            <li>That my business shall not cause any public disturbance.</li>
+                            <li>That my business shall not exhibit or display any picture or advertisement that shows indecent or immoral acts.</li>
+                            <li>That my business shall not constitute health hazard/s to the residents and</li>
+                            <li>That <strong>“Oplan Linis”</strong> and <strong>“Republic Act 9003”</strong> will be observed continuously around the premises of the establishment.</li>
+                        </ol>
+                        <div className="tricycle-owner-signature"><p><strong><u>{owner}</u></strong></p><p><strong><em>Owner/Operator</em></strong></p></div>
                     </div>
+                    <div className="tricycle-purpose">PURPOSE: <strong>{data.purpose || `Application/Renewal of Mayor’s Permit for ${permitYear}`}</strong></div>
+                    <p className="tricycle-issued">Issued on this <strong>{formatIssueDate()}</strong> at Barangay Hall, Barangay San Jose, City of Puerto Princesa.</p>
+                    <CaptainSignature />
+                    <div className="tricycle-payment"><p>CONTROL NO.: <u>{data.control_no || '____________'}</u></p><p>DATE: <u>{paymentDate}</u></p><p>AMOUNT PD.: <u>₱ {Number(data.fee || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</u></p></div>
+                    <div className="certificate-authority"><p>By the Authority of the Punong Barangay,</p><div><p className="font-bold">{data.signatory_name.toUpperCase() || '___________________'}</p><p>Officer on duty</p></div></div>
+                    <p className="certificate-note">Note: This Certification is valid only until December 31, {permitYear}.</p>
+                    <p className="certificate-note">Do not accept if a photocopy of this Certification is not a Certified true Copy, with erasures or Alterations.</p>
+                </div>
+            );
+        }
+
+        if (data.certificate_type === 'Sari-sari Store') {
+            const owner = data.resident_name.trim().toUpperCase() || '___________________';
+            const purok = data.purok.trim().replace(/^purok\s+/i, '').toUpperCase() || '__________';
+            const permitYear = new Date().getFullYear();
+            const paymentDate = data.receipt_date ? data.receipt_date.split('-').reverse().join('-') : '____________';
+            return (
+                <div className="certificate-copy certificate-tricycle-copy certificate-store-copy">
+                    <div className="tricycle-identity">
+                        <p>This is to certify that</p>
+                        <p className="tricycle-owner"><strong><u>{owner}</u></strong></p>
+                        <p className="tricycle-driver"><strong><em>Operator/Owner</em></strong></p>
+                        <p><strong><u>{data.business_type.toUpperCase() || '___________________'}</u></strong></p>
+                        <p className="tricycle-driver"><strong><em>(Type of Business)</em></strong></p>
+                        <p>With a Business/Trade name</p>
+                        <p><strong><u>{data.business_name.toUpperCase() || '___________________'}</u></strong></p>
+                        <p className="tricycle-driver"><strong><em>(Name of Business)</em></strong></p>
+                        <p><em>is lawfully operating at</em></p>
+                        <p><strong><u>{data.business_address.toUpperCase() || `PUROK ${purok}`}</u></strong></p>
+                        <p>BARANGAY SAN JOSE PUERTO PRINCESA CITY</p>
+                    </div>
+                    <div className="tricycle-conditions-box">
+                        <p><strong>AS OWNER/PROPRIETOR/OPERATOR</strong> of the above-mentioned business, I agree to abide with the following conditions:</p>
+                        <ol>
+                            <li>That my business shall not cause any public disturbance.</li>
+                            <li>That my business shall not exhibit or display any picture or advertisement that shows indecent or immoral acts.</li>
+                            <li>That my business shall not constitute health hazard/s to the residents and</li>
+                            <li>That <strong>“Oplan Linis”</strong> and <strong>“Republic Act 9003”</strong> will be observed continuously around the premises of the establishment.</li>
+                        </ol>
+                        <div className="tricycle-owner-signature"><p><strong><u>{owner}</u></strong></p><p><strong><em>Owner/Operator</em></strong></p></div>
+                    </div>
+                    <div className="tricycle-purpose">PURPOSE: <strong>{data.purpose || `Application/Renewal of Mayor’s Permit for ${permitYear}`}</strong></div>
+                    <p className="tricycle-issued">Issued on this <strong>{formatIssueDate()}</strong> at Barangay Hall, Barangay San Jose, City of Puerto Princesa.</p>
+                    <CaptainSignature />
+                    <div className="tricycle-payment"><p>CONTROL NO.: <u>{data.control_no || '____________'}</u></p><p>OR NUMBER: <u>{data.or_number || '____________'}</u></p><p>DATE: <u>{paymentDate}</u></p><p>AMOUNT PD.: <u>₱ {Number(data.amount_paid || data.fee || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</u></p></div>
+                    <div className="certificate-authority"><p>By the Authority of the Punong Barangay,</p><div><p className="font-bold">{data.signatory_name.toUpperCase() || '___________________'}</p><p>Officer on duty</p></div></div>
+                    <p className="certificate-note">Note: This Certification is valid only until December 31, {permitYear}.</p>
+                    <p className="certificate-note">Do not accept if a photocopy of this Certification is not a Certified true Copy, with erasures or Alterations.</p>
                 </div>
             );
         }
 
         if (data.certificate_type === 'Scholarship Certificate') {
             return (
-                <div className="space-y-4 text-left">
-                    <p className="text-center text-xs tracking-wide uppercase">
-                        {'Republic of the Philippines'} · City of Puerto
-                        Princesa · Barangay San Jose
-                    </p>
-                    <p className="text-center text-xs tracking-wide uppercase">
-                        Office of the Punong Barangay
-                    </p>
-                    <p className="text-center text-sm font-bold tracking-[0.2em]">
-                        INDIGENT CERTIFICATE
-                    </p>
-
+                <div className="certificate-copy certificate-scholarship-copy text-left">
                     <p className="mt-4 text-justify leading-relaxed">
                         This is to certify that{' '}
                         <strong className="underline">
                             {data.resident_name.toUpperCase() ||
                                 '___________________'}
                         </strong>
-                        , is a resident of {data.purok || '__________'} Barangay
+                        , is a resident of <strong className="underline">{data.purok.toUpperCase() || '__________'}</strong> Barangay
                         San Jose, City of Puerto Princesa. A{' '}
-                        {data.school_institution.toUpperCase() ||
-                            '___________________'}
+                        <strong>{data.school_institution.toUpperCase() || '___________________'}</strong>
                         .
                     </p>
 
                     <p className="mt-4 text-justify leading-relaxed">
                         This further certifies that he/she is a child of{' '}
-                        <strong>
+                        <strong className="underline">
                             {data.father_name.toUpperCase() ||
                                 '___________________'}
                         </strong>{' '}
                         (
-                        <em>
+                        <em className="font-bold">
                             {data.father_occupation.toUpperCase() ||
                                 '____________'}
                         </em>
-                        ) With Monthly Income (
-                        {data.father_monthly_income || '__________'}) and{' '}
-                        <strong>
+                        ) <strong><em>With Monthly Income ({data.father_monthly_income || '__________'}) and</em></strong>{' '}
+                        <strong className="underline">
                             {data.mother_name.toUpperCase() ||
                                 '___________________'}
                         </strong>{' '}
                         (
-                        <em>
+                        <em className="font-bold">
                             {data.mother_occupation.toUpperCase() ||
                                 '____________'}
                         </em>
-                        ) With Monthly Income (
-                        {data.mother_monthly_income || '__________'})
-                        who&lsquo;s monthly family income does not exceed to the
-                        government&rsquo;s stipulated poverty threshold level.
-                        Thus, is exempted from filing income tax.
+                        ) who&lsquo;s monthly family income does not exceed to the
+                        government&rsquo;s stipulated poverty threshold level.{' '}
+                        <strong>Thus, is exempted from filing income tax.</strong>
                     </p>
 
-                    <p className="mt-4 text-center font-bold">
+                    <p className="certificate-indigent-statement font-bold">
                         THIS FURTHER CERTIFIES THAT THEY BELONG TO THE INDIGENT
                         FAMILY.
                     </p>
@@ -2385,46 +2546,37 @@ function Dashboard({
                         This certification is issued for the authentication of
                         the above-named person for declaration of his/her
                         residency and family income status./ for{' '}
-                        {data.purpose.toUpperCase() || '___________________'}
+                        <strong><em className="font-bold"><u>{data.purpose.toUpperCase() || '___________________'}</u></em></strong>
                     </p>
 
                     <p className="mt-4 text-justify leading-relaxed">
                         Issued on this{' '}
-                        {new Date().toLocaleDateString('en-US', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                        })}{' '}
+                        <strong>{formatIssueDate()}</strong>{' '}
                         at Barangay Hall, Barangay San Jose, City of Puerto
                         Princesa.
                     </p>
 
-                    <div className="mt-10 text-right">
-                        <p className="text-sm font-bold">
-                            JENNIFER CALINGAO TRINIDAD
-                        </p>
-                        <p className="text-xs italic">Punong Barangay</p>
-                    </div>
+                    <CaptainSignature />
 
-                    <div className="mt-8">
+                    <div className="certificate-authority">
                         <p className="text-sm">
                             By the Authority of the Punong Barangay,
                         </p>
-                        <div className="mt-8 text-right">
+                        <div className="certificate-signature">
                             <p className="text-sm font-bold">
                                 {data.signatory_name || '___________________'}
                             </p>
                             <p className="text-xs italic">
-                                {data.signatory_title || 'Officer on duty'}
+                                Officer on duty
                             </p>
                         </div>
                     </div>
 
-                    <p className="mt-6 text-xs italic">
+                    <p className="certificate-note">
                         Note: This Certification is valid only for Three (3)
                         Months from the day this was issued.
                     </p>
-                    <p className="text-xs italic">
+                    <p className="certificate-note">
                         Do not accept if a photocopy of this Certification is
                         not a Certified true Copy, with erasures or Alterations.
                     </p>
@@ -2434,21 +2586,7 @@ function Dashboard({
 
         if (data.certificate_type === 'Indigency') {
             return (
-                <div className="space-y-4 text-left">
-                    <p className="text-center text-xs tracking-wide uppercase">
-                        Republic of the Philippines City of Puerto Princesa
-                        BARANGAY SAN JOSE
-                    </p>
-                    <p className="text-center text-xs tracking-wide uppercase">
-                        Office of the Punong Barangay
-                    </p>
-                    <p className="text-center text-sm font-bold tracking-[0.2em]">
-                        C E R T I F I C A T I O N
-                    </p>
-                    <p className="text-center text-sm italic">
-                        (Indigent Certificate)
-                    </p>
-
+                <div className="certificate-copy text-left">
                     <p className="mt-4 text-justify leading-relaxed">
                         This is to certify that{' '}
                         <strong className="underline">
@@ -2457,40 +2595,31 @@ function Dashboard({
                         </strong>
                         , is a bonafide resident of {data.purok || '__________'}{' '}
                         Barangay San Jose, City of Puerto Princesa. That she/he
-                        belongs to the indigent family. That their
+                        belongs to the <strong><em>indigent family</em></strong>. That their
                         Family&rsquo;s Monthly Income is not sufficient for
                         their other Needs.
                     </p>
 
                     <p className="mt-4 text-justify leading-relaxed">
                         This certification is being issued upon the request of
-                        the above-named person for the purpose of{' '}
-                        {data.purpose.toUpperCase() || '___________________'}.
+                        <strong><em className="underline">the above-named person</em></strong> for the purpose of{' '}
+                        <strong><em className="underline">{data.purpose.toUpperCase() || '___________________'}</em></strong>.
                     </p>
 
                     <p className="mt-4 text-justify leading-relaxed">
                         Issued on this{' '}
-                        {new Date().toLocaleDateString('en-US', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                        })}{' '}
+                        <strong>{formatIssueDate()}</strong>{' '}
                         at Barangay Hall, Barangay San Jose, City of Puerto
                         Princesa.
                     </p>
 
-                    <div className="mt-10 text-right">
-                        <p className="text-sm font-bold">
-                            HON. JENNIFER CALINGAO TRINIDAD
-                        </p>
-                        <p className="text-xs italic">Punong Barangay</p>
-                    </div>
+                    <CaptainSignature />
 
-                    <div className="mt-8">
+                    <div className="certificate-authority">
                         <p className="text-sm">
                             By the Authority of the Punong Barangay,
                         </p>
-                        <div className="mt-8 text-right">
+                        <div className="certificate-signature">
                             <p className="text-sm font-bold">
                                 {data.signatory_name || '___________________'}
                             </p>
@@ -2498,11 +2627,11 @@ function Dashboard({
                         </div>
                     </div>
 
-                    <p className="mt-6 text-xs italic">
+                    <p className="certificate-note">
                         Note: This Certification is valid only for Three (3)
                         Months from the day this was issued.
                     </p>
-                    <p className="text-xs italic">
+                    <p className="certificate-note">
                         Do not accept if a photocopy of this Certification is
                         not a Certified true Copy, with erasures or Alterations.
                     </p>
@@ -2511,7 +2640,7 @@ function Dashboard({
         }
 
         return (
-            <div className="space-y-4">
+            <div className="certificate-copy text-left">
                 <p>TO WHOM IT MAY CONCERN:</p>
                 <p className="mt-4 text-justify leading-relaxed">
                     This is to certify that{' '}
@@ -2528,21 +2657,21 @@ function Dashboard({
                     above-named person for whatever legal purpose it may serve.
                 </p>
 
-                <div className="mt-6 border-l-4 border-blue-500 bg-blue-100 p-2 text-left font-sans text-xs">
+                <div className="certificate-purpose">
                     <span className="font-bold text-blue-800 uppercase">
                         Purpose:{' '}
                     </span>
                     {data.purpose.toUpperCase() || '___________________'}
                 </div>
 
-                <div className="mt-10 text-right">
-                    <p className="text-sm font-bold">
-                        {data.signatory_name || '___________________'}
-                    </p>
-                    <p className="text-xs italic">
-                        {data.signatory_title || 'Signatory Title'}
-                    </p>
+                <p className="text-justify">Issued on this <strong>{formatIssueDate()}</strong> at Barangay Hall, Barangay San Jose, City of Puerto Princesa.</p>
+                <CaptainSignature />
+                <div className="certificate-authority">
+                    <p>By the Authority of the Punong Barangay,</p>
+                    <div><p className="font-bold">{data.signatory_name || '___________________'}</p><p>Officer on duty</p></div>
                 </div>
+                <p className="certificate-note">Note: This Certification is valid only for Three (3) Months from the day this was issued.</p>
+                <p className="certificate-note">Do not accept if a photocopy of this Certification is not a Certified true Copy, with erasures or Alterations.</p>
             </div>
         );
     };
@@ -2570,7 +2699,7 @@ function Dashboard({
                             setResidentSource('none');
                             setLastScannedToken(null);
                             reset();
-                            setData('control_no', createControlNumber());
+                            setData('control_no', '');
                         }}
                         className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#315b30]"
                     >
@@ -3091,13 +3220,16 @@ function Dashboard({
                                         <th className="px-4 py-3 font-semibold">
                                             Issued By
                                         </th>
+                                        <th className="px-4 py-3 text-right font-semibold">
+                                            Action
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#f0ebe1]">
                                     {listLoading ? (
                                         <tr>
                                             <td
-                                                colSpan={6}
+                                                colSpan={7}
                                                 className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
                                             >
                                                 Loading…
@@ -3106,7 +3238,7 @@ function Dashboard({
                                     ) : issuances.data.length === 0 ? (
                                         <tr>
                                             <td
-                                                colSpan={6}
+                                                colSpan={7}
                                                 className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
                                             >
                                                 {hasFilters
@@ -3118,7 +3250,12 @@ function Dashboard({
                                         issuances.data.map((row) => (
                                             <tr
                                                 key={row.id}
-                                                className="hover:bg-[#faf8f2]"
+                                                onClick={() =>
+                                                    void openIssuanceDetails(
+                                                        row.id,
+                                                    )
+                                                }
+                                                className="cursor-pointer hover:bg-[#faf8f2]"
                                             >
                                                 <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">
                                                     {row.reference}
@@ -3144,6 +3281,20 @@ function Dashboard({
                                                 </td>
                                                 <td className="px-4 py-3 text-gray-600">
                                                     {row.issued_by}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            void openIssuanceDetails(
+                                                                row.id,
+                                                            );
+                                                        }}
+                                                        className="rounded-md border border-[#e6ddcd] bg-white px-3 py-1.5 text-xs font-semibold text-[#3f6f3d] hover:bg-[#faf8f2]"
+                                                    >
+                                                        View
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))
@@ -3432,7 +3583,7 @@ function Dashboard({
                 {isModalOpen && (
                     <>
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                        <div className={`flex max-h-[90vh] w-full ${formStep === 2 ? 'max-w-6xl' : 'max-w-2xl'} flex-col overflow-hidden rounded-lg bg-white shadow-xl`}>
+                        <div className={`flex max-h-[92vh] ${formStep === 2 ? 'w-[calc(100vw-2rem)] max-w-6xl' : 'w-[calc(100vw-2rem)] max-w-7xl'} flex-col overflow-hidden rounded-lg bg-white shadow-xl`}>
                             <div className="flex shrink-0 items-center justify-between bg-[#3f6f3d] px-6 py-4 text-white">
                                 <h3 className="text-lg font-bold">
                                     {formStep === 1
@@ -3450,7 +3601,7 @@ function Dashboard({
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto">
+                            <div className="min-h-0 flex-1 overflow-y-auto">
                                 {formStep === 1 ? (
                                     /* STEP 1: FORM ENTRY */
                                     <>
@@ -3473,8 +3624,9 @@ function Dashboard({
 
                                         <form
                                             onSubmit={handleProceedToReview}
-                                            className="space-y-4 p-6"
+                                            className="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
                                         >
+                                            <div className="min-w-0 space-y-4 lg:max-h-[calc(92vh-11rem)] lg:overflow-y-auto lg:pr-4">
                                             {modalMode === 'qr' ? (
                                                 <div className="space-y-4">
                                                     <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6">
@@ -3680,6 +3832,7 @@ function Dashboard({
                                                         RESIDENCY_TYPE &&
                                                         renderResidencyFields()}
 
+                                                    {data.certificate_type === 'Sari-sari Store' && renderStoreFields()}
                                                     {(data.certificate_type ===
                                                         'Tricycle' ||
                                                         data.certificate_type ===
@@ -4046,7 +4199,8 @@ function Dashboard({
                                                     {data.certificate_type !== '' && (
                                                         <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
                                                             <>
-                                                                        <label className="mb-1 block text-xs font-semibold text-blue-800 uppercase">
+                                                                        {renderActingCaptainField()}
+<label className="mb-1 block text-xs font-semibold text-blue-800 uppercase">
                                                                             Signatory
                                                                         </label>
                                                                         <select
@@ -4154,28 +4308,44 @@ function Dashboard({
                                                             </div>
                                                         )}
                                                         <div>
-                                                            <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
-                                                                Resident Name
-                                                            </label>
-                                                            <input
-                                                                type="text"
-                                                                value={
-                                                                    data.resident_name
-                                                                }
-                                                                onChange={(
-                                                                    e,
-                                                                ) => {
-                                                                    setData(
-                                                                        'resident_name',
-                                                                        e.target
-                                                                            .value,
-                                                                    );
-                                                                    setResidentSource(
-                                                                        'manual',
-                                                                    );
+                                                            <ResidentAutocomplete
+                                                                value={data.resident_name}
+                                                                onChange={(name) => {
+                                                                    setData((current) => ({
+                                                                        ...current,
+                                                                        certificate_request_id: '',
+                                                                        resident_id: '',
+                                                                        resident_name: name,
+                                                                        purok: current.resident_id ? '' : current.purok,
+                                                                        date_of_birth: current.resident_id ? '' : current.date_of_birth,
+                                                                        sex: current.resident_id ? '' : current.sex,
+                                                                        civil_status: current.resident_id ? '' : current.civil_status,
+                                                                        address_details: current.resident_id ? '' : current.address_details,
+                                                                        age: current.resident_id ? '' : current.age,
+                                                                    }));
+                                                                    setResidentSource('manual');
+                                                                    setLastScannedToken(null);
+                                                                    setDetailsConfirmed(false);
+                                                                    setProfileError(null);
                                                                 }}
-                                                                required
-                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                onSelect={(resident) => {
+                                                                    setData((current) => ({
+                                                                        ...current,
+                                                                        certificate_request_id: '',
+                                                                        resident_id: String(resident.id),
+                                                                        resident_name: resident.full_name,
+                                                                        purok: resident.purok,
+                                                                        date_of_birth: resident.birthdate || '',
+                                                                        sex: normalizeSexValue(resident.sex || ''),
+                                                                        civil_status: resident.civil_status || '',
+                                                                        address_details: resident.address_details,
+                                                                        age: resident.age === null ? '' : String(resident.age),
+                                                                    }));
+                                                                    setResidentSource('manual');
+                                                                    setLastScannedToken(null);
+                                                                    setDetailsConfirmed(false);
+                                                                    setProfileError(null);
+                                                                }}
                                                             />
                                                         </div>
                                                     </div>
@@ -4239,6 +4409,7 @@ function Dashboard({
                                                         RESIDENCY_TYPE &&
                                                         renderResidencyFields()}
 
+                                                    {data.certificate_type === 'Sari-sari Store' && renderStoreFields()}
                                                     {(data.certificate_type ===
                                                         'Tricycle' ||
                                                         data.certificate_type ===
@@ -4605,7 +4776,8 @@ function Dashboard({
                                                     {data.certificate_type !== '' && (
                                                         <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
                                                             <>
-                                                                        <label className="mb-1 block text-xs font-semibold text-blue-800 uppercase">
+                                                                        {renderActingCaptainField()}
+<label className="mb-1 block text-xs font-semibold text-blue-800 uppercase">
                                                                             Signatory
                                                                         </label>
                                                                         <select
@@ -4701,10 +4873,36 @@ function Dashboard({
                                                     &rarr;
                                                 </button>
                                             </div>
+                                            </div>
+
+                                            <aside className="min-w-0 border-t border-gray-200 pt-5 lg:sticky lg:top-0 lg:self-start lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+                                                <div className="mb-3 flex items-center justify-between">
+                                                    <h4 className="text-sm font-semibold text-gray-800">
+                                                        Live Certificate Preview
+                                                    </h4>
+                                                    <span className="text-xs text-gray-500">
+                                                        Updates as you edit
+                                                    </span>
+                                                </div>
+                                                <div className="max-h-[calc(92vh-13rem)] min-h-0 overflow-auto rounded-lg bg-gray-100 p-2 sm:p-3">
+                                                    <div className="flex min-h-full items-center justify-center">
+                                                        <BrandedCertificatePreview
+                                                            body={certificatePreviewBody}
+                                                            branding={barangayBranding}
+                                                        controlNumber={data.control_no}
+                                                            punong_barangay={currentCaptain}
+                                                            kagawads={currentKagawads}
+                                                            onReady={ignoreLivePreviewReady}
+                                                            liveContent={renderDocumentPreview()}
+                                                            certificateType={data.certificate_type}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </aside>
                                         </form>
                                     </>
                                 ) : (
-                                    /* STEP 2: THE GENERATED TEMPLATE, INCLUDING ITS ORIGINAL ARTWORK */
+                                    /* STEP 2: REVIEW THE SAME PAGE USED FOR PRINT AND PDF EXPORT */
                                     <div className="bg-gray-100 p-6">
                                         <div className="mx-auto mb-4 max-w-[500px]">
                                             {residentSource === 'qr' ? (
@@ -4731,10 +4929,18 @@ function Dashboard({
                                                 </div>
                                             )}
                                         </div>
-                                        <CertificateDocumentPreview
-                                            body={new URLSearchParams({ ...data, details_confirmed: detailsConfirmed ? '1' : '' }).toString()}
-                                            onReady={setDocumentPreviewReady}
-                                        />
+                                        <div className="flex justify-center">
+                                            <BrandedCertificatePreview
+                                                body={certificatePreviewBody}
+                                                branding={barangayBranding}
+                                                        controlNumber={data.control_no}
+                                                punong_barangay={currentCaptain}
+                                                kagawads={currentKagawads}
+                                                onReady={setDocumentPreviewReady}
+                                                liveContent={renderDocumentPreview()}
+                                                certificateType={data.certificate_type}
+                                            />
+                                        </div>
 
                                         <div className="mt-6 flex items-center justify-between">
                                             <button
@@ -4747,18 +4953,19 @@ function Dashboard({
                                             </button>
                                             <div className="flex gap-2">
                                                 <button type="button" onClick={() => void handleFinalSubmit('print')}
-                                                    disabled={!documentPreviewReady || generationLoading || generationOutcomeUnknown || !canIssueCertificate}
+                                                    disabled={!documentPreviewReady || generationLoading || generationOutcomeUnknown || !canIssueCertificate || controlNumberLoading || !data.control_no}
                                                     className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50">Print Certificate</button>
                                                 <button
                                                     type="button"
                                                     onClick={() => void handleFinalSubmit('download')}
-                                                    disabled={processing || generationLoading || generationOutcomeUnknown || !canIssueCertificate}
-                                                    className={`rounded-md bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:bg-blue-700 ${processing || generationLoading || generationOutcomeUnknown || !canIssueCertificate ? 'cursor-not-allowed opacity-50' : ''}`}
+                                                    disabled={processing || generationLoading || generationOutcomeUnknown || !canIssueCertificate || controlNumberLoading || !data.control_no}
+                                                    className={`rounded-md bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:bg-blue-700 ${processing || generationLoading || generationOutcomeUnknown || !canIssueCertificate || controlNumberLoading || !data.control_no ? 'cursor-not-allowed opacity-50' : ''}`}
                                                 >
-                                                    {generationLoading ? 'Generating & downloading...' : 'Confirm & Download Original.docx'}
+                                                    {generationLoading ? 'Generating & downloading...' : 'Confirm & Download PDF'}
                                                 </button>
                                             </div>
                                         </div>
+                                        {controlNumberError && <p role="alert" className="mt-3 text-sm text-red-600">{controlNumberError}</p>}
                                         {generationError && (
                                             <p role="alert" className={`mt-3 rounded-md border px-3 py-2 text-sm ${generationOutcomeUnknown ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800'}`}>
                                                 {generationError}
@@ -4817,7 +5024,7 @@ function Dashboard({
                                                 </p>
                                                 {!requestDetails.template_available && (
                                                     <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                                                        This active catalog service has no provisioned DOCX template yet. The request remains available for review, but issuance cannot be generated until a template is available.
+                                                        This service does not yet have a supported certificate layout. The request remains available for review.
                                                     </p>
                                                 )}
                                             </div>
@@ -5218,7 +5425,287 @@ function Dashboard({
                         </div>
                     </div>
                 )}
+
+                {issuanceDetailsOpen && (
+                    <div
+                        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="issuance-details-title"
+                    >
+                        <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
+                            <div className="flex shrink-0 items-center justify-between bg-[#3f6f3d] px-6 py-4 text-white">
+                                <div>
+                                    <h3
+                                        id="issuance-details-title"
+                                        className="text-lg font-bold"
+                                    >
+                                        Issued Certificate
+                                    </h3>
+                                    <p className="text-xs text-white/80">
+                                        Read-only archival record. Editing is
+                                        disabled.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={closeIssuanceDetails}
+                                    aria-label="Close issued certificate details"
+                                    className="text-xl font-bold text-white/80 hover:text-white"
+                                >
+                                    &times;
+                                </button>
+                            </div>
+
+                            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+                                {issuanceDetailsLoading ? (
+                                    <p className="py-10 text-center text-sm text-[#8a7f6a]">
+                                        Loading issued certificate…
+                                    </p>
+                                ) : issuanceDetailsError ? (
+                                    <div className="space-y-3">
+                                        <p
+                                            role="alert"
+                                            className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                                        >
+                                            {issuanceDetailsError}
+                                        </p>
+                                        {!issuanceDetails && (
+                                            <button
+                                                type="button"
+                                                onClick={closeIssuanceDetails}
+                                                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                            >
+                                                Close
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : issuanceDetails ? (
+                                    <div className="space-y-5">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-800">
+                                                Issued
+                                            </span>
+                                            <span className="font-mono text-sm font-semibold text-gray-800">
+                                                {issuanceDetails.reference}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid gap-3 rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-4 text-sm sm:grid-cols-2">
+                                            <ReadOnlyField
+                                                label="Certificate Type"
+                                                value={
+                                                    issuanceDetails.certificate_type
+                                                }
+                                            />
+                                            <ReadOnlyField
+                                                label="Control No."
+                                                value={
+                                                    issuanceDetails.control_no ??
+                                                    '—'
+                                                }
+                                            />
+                                            <ReadOnlyField
+                                                label="Issued At"
+                                                value={issuanceDetails.issued_at}
+                                            />
+                                            <ReadOnlyField
+                                                label="Issued By"
+                                                value={issuanceDetails.issued_by}
+                                            />
+                                            <ReadOnlyField
+                                                label="Fee"
+                                                value={`₱${issuanceDetails.fee}`}
+                                            />
+                                            <ReadOnlyField
+                                                label="Purok"
+                                                value={
+                                                    issuanceDetails.purok ?? '—'
+                                                }
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                Resident
+                                            </p>
+                                            <div className="rounded-md border border-[#e6ddcd] p-3 text-sm">
+                                                <p className="font-medium text-gray-800">
+                                                    {
+                                                        issuanceDetails.resident
+                                                            .name
+                                                    }
+                                                </p>
+                                                <p className="text-xs text-[#8a7f6a]">
+                                                    {issuanceDetails.resident
+                                                        .resident_number ?? '—'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {(issuanceDetails.purpose ||
+                                            issuanceDetails.business_name ||
+                                            issuanceDetails
+                                                .business_address) && (
+                                            <div>
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Request Details
+                                                </p>
+                                                <div className="grid gap-3 rounded-md border border-[#e6ddcd] p-3 text-sm sm:grid-cols-2">
+                                                    {issuanceDetails.purpose && (
+                                                        <ReadOnlyField
+                                                            label="Purpose"
+                                                            value={
+                                                                issuanceDetails.purpose
+                                                            }
+                                                        />
+                                                    )}
+                                                    {issuanceDetails.business_name && (
+                                                        <ReadOnlyField
+                                                            label="Business Name"
+                                                            value={
+                                                                issuanceDetails.business_name
+                                                            }
+                                                        />
+                                                    )}
+                                                    {issuanceDetails
+                                                        .business_address && (
+                                                        <ReadOnlyField
+                                                            label="Business Address"
+                                                            value={
+                                                                issuanceDetails.business_address
+                                                            }
+                                                        />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {issuanceDetails.linked_request && (
+                                            <div>
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Linked Request
+                                                </p>
+                                                <div className="rounded-md border border-[#e6ddcd] p-3 text-sm">
+                                                    <p className="font-mono text-xs font-medium text-gray-800">
+                                                        {
+                                                            issuanceDetails
+                                                                .linked_request
+                                                                .reference
+                                                        }
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-[#8a7f6a]">
+                                                        Submitted{' '}
+                                                        {
+                                                            issuanceDetails
+                                                                .linked_request
+                                                                .submitted_at
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {issuanceDetails.details.length > 0 && (
+                                            <div>
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Certificate Details
+                                                </p>
+                                                <div className="divide-y divide-[#f0ebe1] rounded-md border border-[#e6ddcd]">
+                                                    {issuanceDetails.details.map(
+                                                        (detail) => (
+                                                            <div
+                                                                key={
+                                                                    detail.label
+                                                                }
+                                                                className="grid gap-1 px-3 py-2 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]"
+                                                            >
+                                                                <span className="text-[#8a7f6a]">
+                                                                    {
+                                                                        detail.label
+                                                                    }
+                                                                </span>
+                                                                <span className="font-medium text-gray-800">
+                                                                    {
+                                                                        detail.value
+                                                                    }
+                                                                </span>
+                                                            </div>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {issuanceDetails.notes && (
+                                            <div>
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    Resident Notes
+                                                </p>
+                                                <p className="rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-3 text-sm whitespace-pre-wrap text-gray-700">
+                                                    {issuanceDetails.notes}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {!issuanceDetails.template_available && (
+                                            <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                                                The original template for this
+                                                certificate is not available in
+                                                this environment, so a reprint
+                                                cannot be produced.
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : null}
+                            </div>
+
+                            <div className="flex shrink-0 flex-col gap-2 border-t border-[#e6ddcd] bg-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-xs text-[#8a7f6a]">
+                                    Re-printing never creates a new issuance or
+                                    changes the stored record.
+                                </p>
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={closeIssuanceDetails}
+                                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Close
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => void reprintIssuance()}
+                                        disabled={
+                                            reprintLoading ||
+                                            !issuanceDetails ||
+                                            !issuanceDetails.template_available
+                                        }
+                                        className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {reprintLoading
+                                            ? 'Preparing reprint...'
+                                            : 'Re-Print'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </ClerkLayout>
+    );
+}
+
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+    return (
+        <div>
+            <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                {label}
+            </p>
+            <p className="mt-0.5 font-medium break-words text-gray-800">
+                {value}
+            </p>
+        </div>
     );
 }

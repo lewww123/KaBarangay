@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Resident;
 use App\Http\Controllers\Controller;
 use App\Models\LuponCase;
 use App\Models\Resident;
+use App\Support\LuponCasePresenter;
 use App\Support\ResidentContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -57,15 +58,16 @@ class LuponCaseController extends Controller
                     'caseType' => $case->case_type,
                     'phase' => $case->phase,
                     'status' => $case->status,
+                    ...LuponCasePresenter::details($case, ResidentContext::get()),
                     'filedDate' => $case->filed_date->format('F j, Y'),
                     'complaintReference' => $case->complaint?->reference,
-                    'narrative' => $isComplainant ? $case->complaint?->narrative : 'Nature of Dispute: '.$case->case_type,
-                    'requestedAction' => $isComplainant ? $case->complaint?->requested_action : null,
+                    'narrative' => $isComplainant ? ($case->complaint?->narrative ?? $case->intake_narrative) : 'Nature of Dispute: '.$case->case_type,
+                    'requestedAction' => $isComplainant ? ($case->complaint?->requested_action ?? $case->intake_requested_action) : null,
                     'respondentName' => $case->respondents->first()?->name ?? 'Respondent',
                     'complainantName' => $case->complainants->first()?->name ?? 'Complainant',
                     'hearings' => $case->hearings->map(fn ($h) => [
                         'id' => $h->id,
-                        'number' => $h->hearing_number,
+                        'number' => $h->phase_number,
                         'phase' => $h->phase,
                         'date' => $h->hearing_date->format('F j, Y'),
                         'time' => $h->hearing_time,

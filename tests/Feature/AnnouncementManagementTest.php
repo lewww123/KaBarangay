@@ -57,7 +57,7 @@ class AnnouncementManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Announcements')
-                ->has('announcements', 2));
+                ->has('announcements.data', 2));
     }
 
     public function test_pwd_resident_feed_targets_all_and_pwd_announcements_only(): void
@@ -74,7 +74,7 @@ class AnnouncementManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Announcements')
-                ->has('announcements', 2));
+                ->has('announcements.data', 2));
     }
 
     public function test_regular_resident_feed_targets_all_announcements_only(): void
@@ -90,7 +90,7 @@ class AnnouncementManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Announcements')
-                ->has('announcements', 1));
+                ->has('announcements.data', 1));
     }
 
     public function test_resident_feed_hides_unapproved_or_unpublished_announcements(): void
@@ -119,7 +119,7 @@ class AnnouncementManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Announcements')
-                ->has('announcements', 1));
+                ->has('announcements.data', 1));
     }
 
     /*
@@ -339,7 +339,7 @@ class AnnouncementManagementTest extends TestCase
 
         $this->withSession(['resident_id' => $resident->id])
             ->get('/resident/announcements')
-            ->assertInertia(fn ($page) => $page->has('announcements', 0));
+            ->assertInertia(fn ($page) => $page->has('announcements.data', 0));
 
         $this->actingAs($admin)
             ->post('/admin/announcements/'.$announcement->id.'/approve', [
@@ -355,7 +355,7 @@ class AnnouncementManagementTest extends TestCase
 
         $this->withSession(['resident_id' => $resident->id])
             ->get('/resident/announcements')
-            ->assertInertia(fn ($page) => $page->has('announcements', 1));
+            ->assertInertia(fn ($page) => $page->has('announcements.data', 1));
     }
 
     public function test_editing_approved_announcement_unpublishes_and_requires_reapproval(): void
@@ -386,7 +386,7 @@ class AnnouncementManagementTest extends TestCase
 
         $this->withSession(['resident_id' => $resident->id])
             ->get('/resident/announcements')
-            ->assertInertia(fn ($page) => $page->has('announcements', 0));
+            ->assertInertia(fn ($page) => $page->has('announcements.data', 0));
 
         $this->actingAs($admin)
             ->post('/admin/announcements/'.$announcement->id.'/approve', [
@@ -396,7 +396,7 @@ class AnnouncementManagementTest extends TestCase
 
         $this->withSession(['resident_id' => $resident->id])
             ->get('/resident/announcements')
-            ->assertInertia(fn ($page) => $page->has('announcements', 1));
+            ->assertInertia(fn ($page) => $page->has('announcements.data', 1));
     }
 
     public function test_admin_rejection_records_reason_for_pending_announcement(): void

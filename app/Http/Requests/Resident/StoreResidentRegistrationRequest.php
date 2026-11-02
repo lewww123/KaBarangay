@@ -247,7 +247,7 @@ class StoreResidentRegistrationRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if (! $validator->errors()->has('email') && ! app(RegistrationEmailOtp::class)->isVerified($this, (string) $this->email)) {
+            if (config('registration.email_verification_required', false) && ! $validator->errors()->has('email') && ! app(RegistrationEmailOtp::class)->isVerified($this, (string) $this->email)) {
                 $validator->errors()->add('email_verification', 'Verify your email with an OTP before submitting registration.');
             }
 

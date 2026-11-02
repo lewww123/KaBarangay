@@ -131,6 +131,40 @@ class CertificateRequestDetailsTest extends TestCase
         $this->assertSame(['years_of_residency' => '7'], $residency);
     }
 
+    public function test_barangay_certificate_form_schema_overrides_the_legacy_field_definition(): void
+    {
+        $certificate = new Certificate([
+            'code' => 'custom-route-clearance',
+            'name' => 'Route Clearance',
+            'form_schema' => [
+                'fields' => [
+                    [
+                        'key' => 'route_number',
+                        'label' => 'Authorized Route Number',
+                        'type' => 'text',
+                        'required' => true,
+                    ],
+                ],
+            ],
+        ]);
+
+        $fields = CertificateRequestDetails::fieldsForCertificate($certificate);
+
+        $this->assertSame('route_number', $fields[0]['key']);
+        $this->assertSame('Authorized Route Number', $fields[0]['label']);
+        $this->assertSame(['required', 'string', 'max:255'], CertificateRequestDetails::validationRules(null, false, $fields)['details.route_number']);
+
+        $payload = CertificateRequestDetails::decode(
+            CertificateRequestDetails::encode(null, ['route_number' => 'R-12'], null, $fields),
+        );
+
+        $this->assertSame(['route_number' => 'R-12'], $payload['fields']);
+        $this->assertSame(
+            [['label' => 'Authorized Route Number', 'value' => 'R-12']],
+            CertificateRequestDetails::displayRows(null, $payload['fields'], $fields),
+        );
+    }
+
     public function test_legacy_plain_text_is_returned_as_notes(): void
     {
         $decoded = CertificateRequestDetails::decode('Legacy note');

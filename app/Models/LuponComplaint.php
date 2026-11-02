@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class LuponComplaint extends Model
 {
@@ -66,7 +68,12 @@ class LuponComplaint extends Model
     |--------------------------------------------------------------------------
     */
 
-    public function case(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function evidence(): HasMany
+    {
+        return $this->hasMany(LuponEvidence::class, 'complaint_id');
+    }
+
+    public function case(): HasOne
     {
         return $this->hasOne(LuponCase::class, 'complaint_id');
     }

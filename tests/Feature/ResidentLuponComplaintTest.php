@@ -63,9 +63,9 @@ class ResidentLuponComplaintTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Lupon')
-                ->has('complaints', 1)
-                ->where('complaints.0.id', $own->id)
-                ->where('complaints.0.reference', 'LUP-2026-00001')
+                ->has('complaints.data', 1)
+                ->where('complaints.data.0.id', $own->id)
+                ->where('complaints.data.0.reference', 'LUP-2026-00001')
                 ->where('resident.id', $this->resident->id));
     }
 
@@ -84,7 +84,7 @@ class ResidentLuponComplaintTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Lupon')
-                ->has('complaints', 0));
+                ->has('complaints.data', 0));
     }
 
     public function test_resident_can_submit_a_complaint(): void
@@ -236,9 +236,9 @@ class ResidentLuponComplaintTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Lupon')
-                ->missing('complaints.0.hearing')
-                ->missing('complaints.0.caseNumber')
-                ->missing('complaints.0.pangkat')
+                ->missing('complaints.data.0.hearing')
+                ->missing('complaints.data.0.caseNumber')
+                ->missing('complaints.data.0.pangkat')
                 ->where('complaintTypes', [
                     'Property / Boundary Dispute',
                     'Noise / Disturbance',
@@ -250,7 +250,7 @@ class ResidentLuponComplaintTest extends TestCase
                 ]));
     }
 
-    public function test_page_shows_hearing_unavailable_notice_and_drops_mock_data(): void
+    public function test_page_links_live_case_tracking_and_drops_mock_data(): void
     {
         // React/Inertia renders client-side, so the HTML response only carries
         // the data-page payload. Assert on the page source instead.
@@ -260,7 +260,7 @@ class ResidentLuponComplaintTest extends TestCase
 
         $this->assertIsString($source);
         $this->assertStringContainsString(
-            'Hearing scheduling is not yet available',
+            'usePoll(15000',
             $source,
         );
 

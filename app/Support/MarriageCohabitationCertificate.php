@@ -149,6 +149,8 @@ class MarriageCohabitationCertificate
         // (the proofing markers) while it reads the document, so the variable
         // list is the list the merge will actually write to.
         $variables = CertificatePlaceholders::templateVariables($templatePath);
+        // These optional official fields are always supplied by the server.
+        $variables = array_values(array_diff($variables, CertificateOfficials::TEMPLATE_KEYS));
         sort($variables);
 
         $expected = self::TEMPLATE_KEYS;

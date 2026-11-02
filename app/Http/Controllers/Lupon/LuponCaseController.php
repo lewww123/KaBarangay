@@ -8,12 +8,22 @@ use App\Models\LuponCaseParty;
 use App\Models\LuponComplaint;
 use App\Models\Resident;
 use App\Support\AuditLogger;
+use App\Support\CertificateOfficials;
+use App\Support\LuponAccess;
+use App\Support\LuponCasePresenter;
+use App\Support\LuponCaseWorkflow;
+use App\Support\LuponCatalog;
+use App\Support\LuponDocket;
+use App\Support\LuponDocuments;
+use App\Support\LuponEvidenceStore;
+use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,24 +31,9 @@ class LuponCaseController extends Controller
 {
     private const PHASES = ['Kapitan', 'Lupon', 'Closed'];
 
-    private const STATUSES = [
-        'Active',
-        'Under Mediation',
-        'Under Conciliation',
-        'Settled',
-        'Unresolved',
-        'Dismissed',
-    ];
+    private const STATUSES = ['filed', 'mediation_active', 'pangkat_formed', 'conciliation_active', 'settled', 'repudiated', 'dismissed', 'certified_to_file_action'];
 
-    private const CASE_TYPES = [
-        'Property / Boundary Dispute',
-        'Noise / Disturbance',
-        'Debt / Money Dispute',
-        'Damage to Property',
-        'Threat / Harassment',
-        'Family / Neighbor Dispute',
-        'Other',
-    ];
+    private const CASE_TYPES = LuponCatalog::CASE_TYPES;
 
     /**
      * List all cases for the authenticated lupon staff's barangay.
@@ -52,7 +47,7 @@ class LuponCaseController extends Controller
         }
 
         $search = $request->query('search');
-        $statusFilter = $request->query('status');
+        $statusFilter = is_string($request->query('status')) ? LuponCaseWorkflow::normalize($request->query('status')) : null;
         $phaseFilter = $request->query('phase');
 
         $query = LuponCase::query()
@@ -97,14 +92,13 @@ class LuponCaseController extends Controller
                     'title' => $case->title,
                     'caseType' => $case->case_type,
                     'phase' => $case->phase,
-                    'status' => $case->status,
-                    'filedDate' => $case->filed_date->format('F j, Y'),
+                    'status' => $case->status,                    'filedDate' => $case->filed_date->format('F j, Y'),
                     'complainantName' => $primaryComplainant?->name ?? 'Unknown',
                     'respondentName' => $primaryRespondent?->name ?? 'Unknown',
                     'complainantsCount' => $case->complainants->count(),
                     'respondentsCount' => $case->respondents->count(),
                     'latestHearing' => $latestHearing ? [
-                        'number' => $latestHearing->hearing_number,
+                        'number' => $latestHearing->phase_number,
                         'date' => $latestHearing->hearing_date->format('F j, Y'),
                         'time' => $latestHearing->hearing_time,
                         'status' => $latestHearing->status,
@@ -122,7 +116,7 @@ class LuponCaseController extends Controller
                 function () use ($barangayId): array {
                     $counts = LuponCase::query()
                         ->where('barangay_id', $barangayId)
-                        ->selectRaw("COUNT(*) as total, COUNT(CASE WHEN status IN ('Active', 'Under Mediation', 'Under Conciliation') THEN 1 END) as active, COUNT(CASE WHEN status = 'Settled' THEN 1 END) as settled, COUNT(CASE WHEN status = 'Unresolved' THEN 1 END) as unresolved")
+                        ->selectRaw("COUNT(*) as total, COUNT(CASE WHEN status IN ('filed', 'mediation_active', 'pangkat_formed', 'conciliation_active') THEN 1 END) as active, COUNT(CASE WHEN status = 'settled' THEN 1 END) as settled, COUNT(CASE WHEN status IN ('repudiated', 'certified_to_file_action') THEN 1 END) as unresolved")
                         ->first();
 
                     return [
@@ -143,31 +137,20 @@ class LuponCaseController extends Controller
      */
     public function create(Request $request): Response
     {
-        $user = $request->user();
+        LuponAccess::staff($request);
 
-        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
-            abort(403, 'Unauthorized access.');
-        }
-
-        return Inertia::render('Lupon/Cases/Create', [
-            'caseTypes' => self::CASE_TYPES,
-            'residents' => $this->deferProp(fn () => Resident::query()
-                ->where('barangay_id', $user->barangay_id)
-                ->where('status', 'active')
-                ->select('id', 'first_name', 'middle_name', 'last_name', 'resident_number', 'mobile')
-                ->get()
-                ->map(fn ($r) => [
-                    'id' => $r->id,
-                    'name' => $r->full_name,
-                    'residentNumber' => $r->resident_number,
-                    'mobile' => $r->mobile,
-                ])),
-        ]);
+        return Inertia::render('Lupon/Cases/Create', ['caseTypes' => self::CASE_TYPES, 'officials' => CertificateOfficials::resolve($request->user()->barangay_id)]);
     }
 
-    /**
-     * Look up an active resident within the authenticated Lupon staff's barangay by QR token or resident number.
-     */
+    public function residentLookup(Request $request, Resident $resident): JsonResponse
+    {
+        LuponAccess::staff($request);
+        abort_unless((int) $resident->barangay_id === (int) $request->user()->barangay_id && $resident->status === 'active', 404);
+        $resident->loadMissing('purok');
+
+        return response()->json(['resident' => ['id' => $resident->id, 'name' => $resident->full_name, 'resident_number' => $resident->resident_number, 'address' => trim(implode(', ', array_filter([$resident->address_line, $resident->purok?->name]))), 'contact' => $resident->mobile]], 200, ['Cache-Control' => 'private, no-store']);
+    }
+
     public function qrLookup(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -178,7 +161,7 @@ class LuponCaseController extends Controller
 
         $token = $request->query('token');
 
-        if (! $token || ! is_string($token) || trim($token) === '') {
+        if (! $token || ! is_string($token) || trim($token) === '' || mb_strlen($token) > 2048) {
             return response()->json([
                 'message' => 'QR token or resident reference is missing.',
             ], 400);
@@ -201,7 +184,7 @@ class LuponCaseController extends Controller
         }
 
         $resident = Resident::query()
-            ->with(['barangay', 'purok'])
+            ->with('purok')
             ->where('barangay_id', $user->barangay_id)
             ->where(function ($query) use ($token) {
                 $query->where('resident_number', strtoupper($token))
@@ -219,21 +202,7 @@ class LuponCaseController extends Controller
             ], 404);
         }
 
-        $address = trim(implode(', ', array_filter([
-            $resident->address_line,
-            $resident->purok?->name,
-            $resident->barangay?->name,
-        ])));
-
-        return response()->json([
-            'resident' => [
-                'id' => $resident->id,
-                'name' => $resident->full_name,
-                'resident_number' => $resident->resident_number,
-                'address' => $address,
-                'contact' => $resident->mobile,
-            ],
-        ]);
+        return $this->residentLookup($request, $resident);
     }
 
     /**
@@ -249,8 +218,14 @@ class LuponCaseController extends Controller
 
         $validated = $request->validate([
             'case_type' => ['required', 'string', Rule::in(self::CASE_TYPES)],
+            'acting_captain_id' => ['nullable', 'integer', 'min:1'],
+            'hearing_date' => ['nullable', 'date', 'after_or_equal:'.LuponCaseWorkflow::today()],
+            'hearing_time' => ['nullable', 'required_with:hearing_date', 'date_format:H:i'],
+            'venue' => ['nullable', 'string', 'max:255'],
+            'evidence' => LuponCatalog::EVIDENCE_RULES,
+            'evidence.*' => LuponCatalog::FILE_RULES,
             'custom_case_type' => ['nullable', 'required_if:case_type,Other', 'string', 'max:80'],
-            'incident_date' => ['required', 'date', 'before_or_equal:today'],
+            'incident_date' => ['required', 'date', 'before_or_equal:'.LuponCaseWorkflow::today()],
             'incident_location' => ['required', 'string', 'max:500'],
             'narrative' => ['required', 'string', 'max:5000'],
             'requested_action' => ['required', 'string', 'max:2000'],
@@ -284,6 +259,9 @@ class LuponCaseController extends Controller
             ]);
         }
 
+        $validated = LuponDocket::party(LuponDocket::party($validated, 'complainant', $user->barangay_id), 'respondent', $user->barangay_id);
+        CertificateOfficials::resolve($user->barangay_id, filled($validated['acting_captain_id'] ?? null) ? (int) $validated['acting_captain_id'] : null);
+
         $resolvedCaseType = $validated['case_type'] === 'Other'
             ? 'Other: '.trim($validated['custom_case_type'])
             : $validated['case_type'];
@@ -308,14 +286,19 @@ class LuponCaseController extends Controller
                         'barangay_id' => $user->barangay_id,
                         'complaint_id' => null,
                         'origin' => 'manual',
+                        'acting_captain_id' => $validated['acting_captain_id'] ?? null,
+                        'intake_narrative' => $validated['narrative'],
+                        'intake_requested_action' => $validated['requested_action'],
+                        'incident_date' => $validated['incident_date'],
+                        'incident_location' => $validated['incident_location'],
                         'case_number' => $caseNumber,
                         'title' => "{$resolvedCaseType}: {$validated['complainant_name']} vs. {$validated['respondent_name']}",
                         'case_type' => $resolvedCaseType,
                         'phase' => 'Kapitan',
-                        'status' => 'Under Mediation',
+                        'status' => 'filed',
                         'created_by' => $user->id,
                         'assigned_to' => $user->id,
-                        'filed_date' => now()->toDateString(),
+                        'filed_date' => LuponCaseWorkflow::today(),
                     ]);
 
                     // Primary Complainant
@@ -368,10 +351,13 @@ class LuponCaseController extends Controller
                         context: [
                             'action' => 'created_manual',
                             'entity_reference' => $case->case_number,
-                            'new_status' => 'Under Mediation',
+                            'new_status' => 'filed',
                         ],
                         ipAddress: $request->ip()
                     );
+
+                    LuponDocket::finish($case, $validated, $user->id);
+                    LuponEvidenceStore::store($request->file('evidence', []), null, $case, null, $user->id);
 
                     return $case;
                 });
@@ -416,17 +402,6 @@ class LuponCaseController extends Controller
             $case->setRelation('respondents', $case->parties->where('party_type', 'respondent')->values());
         };
 
-        $barangayResidents = fn () => Resident::query()
-            ->where('barangay_id', $user->barangay_id)
-            ->where('status', 'active')
-            ->select('id', 'first_name', 'middle_name', 'last_name', 'resident_number')
-            ->get()
-            ->map(fn ($r) => [
-                'id' => $r->id,
-                'name' => $r->full_name,
-                'residentNumber' => $r->resident_number,
-            ]);
-
         return Inertia::render('Lupon/Cases/Show', [
             'caseData' => $this->deferProp(function () use ($case, $loadCase): array {
                 $loadCase();
@@ -439,6 +414,7 @@ class LuponCaseController extends Controller
                     'caseType' => $case->case_type,
                     'phase' => $case->phase,
                     'status' => $case->status,
+                    ...LuponCasePresenter::details($case),
                     'filedDate' => $case->filed_date->format('F j, Y'),
                     'promotedAt' => $case->promoted_at?->format('F j, Y g:i A'),
                     'createdByName' => $case->creator?->name,
@@ -476,7 +452,7 @@ class LuponCaseController extends Controller
                     ]),
                     'hearings' => $case->hearings->map(fn ($h) => [
                         'id' => $h->id,
-                        'hearingNumber' => $h->hearing_number,
+                        'hearingNumber' => $h->phase_number,
                         'phase' => $h->phase,
                         'date' => $h->hearing_date->format('F j, Y'),
                         'time' => $h->hearing_time,
@@ -495,10 +471,9 @@ class LuponCaseController extends Controller
                         'recordedByName' => $case->settlement->recorder?->name,
                     ] : null,
                 ];
-            }),
-            'barangayResidents' => $this->deferProp($barangayResidents),
-            'availablePhases' => self::PHASES,
+            }),            'availablePhases' => self::PHASES,
             'availableStatuses' => self::STATUSES,
+            'officials' => CertificateOfficials::resolve($user->barangay_id),
         ]);
     }
 
@@ -530,6 +505,8 @@ class LuponCaseController extends Controller
             ]);
         }
 
+        $request->validate(['acting_captain_id' => ['nullable', 'integer', 'min:1'], 'hearing_date' => ['nullable', 'date', 'after_or_equal:'.LuponCaseWorkflow::today()], 'hearing_time' => ['nullable', 'required_with:hearing_date', 'date_format:H:i'], 'venue' => ['nullable', 'string', 'max:255']]);
+        CertificateOfficials::resolve($user->barangay_id, $request->filled('acting_captain_id') ? $request->integer('acting_captain_id') : null);
         $case = $this->createCaseWithRetry($complaint, $user, $request);
 
         return redirect()->route('lupon.cases.show', $case->id)
@@ -547,6 +524,10 @@ class LuponCaseController extends Controller
         while ($attempts < $maxAttempts) {
             try {
                 return DB::transaction(function () use ($complaint, $user, $request) {
+                    $complaint = LuponComplaint::whereKey($complaint->id)->where('barangay_id', $user->barangay_id)->lockForUpdate()->firstOrFail();
+                    if ($existing = $complaint->case()->first()) {
+                        return $existing;
+                    }
                     $complaint->loadMissing(['resident.purok:id,name', 'barangay:id,name']);
 
                     $caseNumber = $this->generateCaseNumber($complaint->barangay_id);
@@ -555,14 +536,15 @@ class LuponCaseController extends Controller
                         'barangay_id' => $complaint->barangay_id,
                         'complaint_id' => $complaint->id,
                         'origin' => 'promoted',
+                        'acting_captain_id' => $request->filled('acting_captain_id') ? $request->integer('acting_captain_id') : null,
                         'case_number' => $caseNumber,
                         'title' => "{$complaint->complaint_type}: {$complaint->resident->full_name} vs. {$complaint->respondent_name}",
                         'case_type' => $complaint->complaint_type,
                         'phase' => 'Kapitan',
-                        'status' => 'Under Mediation',
+                        'status' => 'filed',
                         'created_by' => $user->id,
                         'assigned_to' => $user->id,
-                        'filed_date' => now()->toDateString(),
+                        'filed_date' => ($complaint->submitted_at ?? $complaint->created_at)->copy()->timezone(config('lupon.timezone'))->toDateString(),
                         'promoted_at' => now(),
                     ]);
 
@@ -600,10 +582,12 @@ class LuponCaseController extends Controller
                         context: [
                             'action' => 'promoted',
                             'entity_reference' => $newCase->case_number,
-                            'new_status' => 'Under Mediation',
+                            'new_status' => 'filed',
                         ],
                         ipAddress: $request->ip()
                     );
+
+                    LuponDocket::finish($newCase, $request->only(['hearing_date', 'hearing_time', 'venue']), $user->id);
 
                     return $newCase;
                 });
@@ -658,6 +642,18 @@ class LuponCaseController extends Controller
             'resident_id.exists' => 'The selected resident does not belong to this barangay.',
         ]);
 
+        if (! in_array($case->status, ['filed', 'mediation_active', 'pangkat_formed', 'conciliation_active'], true)) {
+            throw ValidationException::withMessages(['name' => 'Parties cannot be added to a closed case.']);
+        }
+        if (! empty($validated['resident_id'])) {
+            $profile = Resident::with('purok')->where('barangay_id', $case->barangay_id)->where('status', 'active')->findOrFail($validated['resident_id']);
+            if ($case->parties()->where('resident_id', $profile->id)->exists()) {
+                throw ValidationException::withMessages(['resident_id' => 'This resident is already a party to this case.']);
+            }
+            $validated['name'] = $profile->full_name;
+            $validated['address'] = trim(implode(', ', array_filter([$profile->address_line, $profile->purok?->name])));
+            $validated['contact_number'] = $profile->mobile;
+        }
         LuponCaseParty::create([
             'case_id' => $case->id,
             'party_type' => 'complainant',
@@ -669,6 +665,7 @@ class LuponCaseController extends Controller
             'is_primary' => false,
         ]);
 
+        LuponDocuments::invalidateNotices($case);
         AuditLogger::record(
             event: 'lupon_case.party_added',
             barangayId: $user->barangay_id,
@@ -709,7 +706,7 @@ class LuponCaseController extends Controller
             'resident_id' => [
                 'required_if:action,link_verify',
                 'nullable',
-                Rule::exists('residents', 'id')->where(fn ($q) => $q->where('barangay_id', $case->barangay_id)),
+                Rule::exists('residents', 'id')->where(fn ($q) => $q->where('barangay_id', $case->barangay_id)->where('status', 'active')),
             ],
             'action' => ['required', 'string', 'in:link_verify,unlink'],
             'verification_notes' => ['nullable', 'string', 'max:1000'],
@@ -741,6 +738,10 @@ class LuponCaseController extends Controller
             );
 
             return redirect()->back()->with('success', 'Respondent account association unlinked.');
+        }
+
+        if ($case->parties()->where('id', '<>', $party->id)->where('resident_id', $validated['resident_id'])->exists()) {
+            throw ValidationException::withMessages(['resident_id' => 'This resident is already another party to this case.']);
         }
 
         $party->update([
@@ -786,38 +787,39 @@ class LuponCaseController extends Controller
         }
 
         $validated = $request->validate([
-            'phase' => ['required', 'string', 'in:'.implode(',', self::PHASES)],
-            'status' => ['required', 'string', 'in:'.implode(',', self::STATUSES)],
+            'status' => ['required', 'string'], 'expected_status' => ['nullable', 'string'],
+            'event_date' => ['nullable', 'date', 'before_or_equal:'.LuponCaseWorkflow::today()], 'notes' => ['nullable', 'string', 'max:5000'],
+            'pangkat_members' => ['nullable', 'array', 'size:3'], 'pangkat_members.*' => ['string', 'max:255', 'distinct'],
+            'pangkat_chair_name' => ['nullable', 'string', 'max:255'], 'pangkat_secretary_name' => ['nullable', 'string', 'max:255'],
+            'repudiation_ground' => ['nullable', 'in:fraud,violence,intimidation'], 'sworn_statement_received' => ['nullable', 'boolean'],
+            'first_hearing_date' => ['nullable', 'date', 'after_or_equal:'.LuponCaseWorkflow::today()], 'first_hearing_time' => ['required_with:first_hearing_date', 'nullable', 'date_format:H:i'], 'first_hearing_venue' => ['required_with:first_hearing_date', 'nullable', 'string', 'max:255'],
+            'prerequisites_verified' => ['nullable', 'boolean'],
         ]);
-
-        $previousStatus = $case->status;
-
-        $case->update([
-            'phase' => $validated['phase'],
-            'status' => $validated['status'],
-        ]);
-
-        AuditLogger::record(
-            event: 'lupon_case.status_updated',
-            barangayId: $user->barangay_id,
-            actorId: $user->id,
-            entityType: 'lupon_case',
-            entityId: $case->id,
-            context: [
-                'action' => 'status_updated',
-                'entity_reference' => $case->case_number,
-                'previous_status' => $previousStatus,
-                'new_status' => $validated['status'],
-            ],
-            ipAddress: $request->ip()
-        );
+        DB::transaction(function () use ($case, $validated, $user) {
+            $changed = LuponCaseWorkflow::transition($case, $validated['status'], $user->id, $validated);
+            if (! empty($validated['first_hearing_date'])) {
+                if ($changed->status !== 'pangkat_formed' || $changed->hearings()->where('phase', 'Lupon')->exists()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['first_hearing_date' => 'The first Lupon schedule belongs to a newly constituted Pangkat.']);
+                }
+                $date = Carbon::parse($validated['first_hearing_date']);
+                if ($date->lt($changed->pangkat_formed_at->copy()->startOfDay()) || $date->gt($changed->pangkat_formed_at->copy()->addDays(3)->endOfDay())) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['first_hearing_date' => 'Set the first Pangkat hearing within three days of its constitution.']);
+                }
+                $hearing = $changed->hearings()->create(['barangay_id' => $changed->barangay_id, 'hearing_number' => ($changed->hearings()->max('hearing_number') ?? 0) + 1, 'phase' => 'Lupon', 'hearing_date' => $validated['first_hearing_date'], 'hearing_time' => $validated['first_hearing_time'], 'venue' => $validated['first_hearing_venue'], 'status' => 'Scheduled', 'officer_id' => $user->id]);
+                LuponDocuments::queueNotices($changed, $hearing, $user->id);
+                \App\Support\AuditLogger::record('lupon_hearing.scheduled', barangayId: $changed->barangay_id, actorId: $user->id, entityType: 'lupon_hearing', entityId: $hearing->id, context: ['phase' => 'Lupon', 'hearing_number' => 1]);
+            }
+            if ($changed->status === 'certified_to_file_action') {
+                LuponDocuments::generate($changed, 'cfa', $user->id);
+            }
+        });
 
         return redirect()->back()->with('success', 'Case status updated successfully.');
     }
 
     private function generateCaseNumber(int $barangayId): string
     {
-        $year = now()->year;
+        $year = Carbon::parse(LuponCaseWorkflow::today())->year;
         $prefix = "KP-{$year}-";
 
         $lastNumber = LuponCase::where('barangay_id', $barangayId)

@@ -1,3 +1,4 @@
+import BarangayOrgChart from '@/components/org-chart/BarangayOrgChart';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -125,11 +126,10 @@ function OrgChartManagement({
             onSuccess: () => closeModal(),
         };
 
-        if (editing) {
-            form.put(`${base}/${editing.id}`, options);
-        } else {
-            form.post(base, options);
-        }
+        // PHP does not reliably parse multipart PUT bodies. POST the form and
+        // let Laravel route edits through its PUT method override instead.
+        form.transform((data) => editing ? { ...data, _method: 'put' } : data);
+        form.post(editing ? `${base}/${editing.id}` : base, options);
     };
 
     const publish = (position: OrgChartPosition) => {
@@ -232,6 +232,8 @@ function OrgChartManagement({
                         tone="gray"
                     />
                 </div>
+
+                {tree.length > 0 && <BarangayOrgChart tree={tree} onSelect={openEdit} showStatus />}
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="mb-4 flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">

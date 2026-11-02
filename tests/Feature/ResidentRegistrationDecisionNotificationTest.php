@@ -30,6 +30,7 @@ class ResidentRegistrationDecisionNotificationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['registration.email_verification_required' => true]);
         $this->withoutVite();
         Mail::fake();
         $this->barangay = $this->createBarangay('Decision Mail Barangay', 'DECISION-MAIL');
@@ -316,5 +317,37 @@ class ResidentRegistrationDecisionNotificationTest extends TestCase
             'send_count' => 1,
         ]);
         $registration->forceFill(['email_verified_at' => $verifiedAt])->save();
+    }
+
+    public function test_unverified_applicant_receives_correction_email_when_otp_is_disabled(): void
+    {
+        config(['registration.email_verification_required' => false]);
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, ['email' => 'no-otp@example.test']);
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $this->actingAs($admin)->post('/admin/residents/'.$registration->id.'/correction', ['instructions' => 'Please correct your first name.', 'field_targets' => ['first_name']])->assertRedirect();
+        Mail::assertSent(ResidentRegistrationDecisionMail::class, fn ($mail) => $mail->decisionType === 'correction' && $mail->hasTo('no-otp@example.test'));
+        $this->assertNull($registration->fresh()->email_verified_at);
+    }
+
+    public function test_unverified_applicant_receives_safe_rejection_email_when_otp_is_disabled(): void
+    {
+        config(['registration.email_verification_required' => false]);
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, ['email' => 'no-otp@example.test']);
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $this->actingAs($admin)->post('/admin/residents/'.$registration->id.'/reject', ['reason' => 'Private admin review notes.'])->assertRedirect();
+        Mail::assertSent(ResidentRegistrationDecisionMail::class, fn ($mail) => $mail->decisionType === 'rejected' && $mail->hasTo('no-otp@example.test') && !str_contains($mail->render(), 'Private admin review notes.'));
+    }
+
+    public function test_unverified_applicant_receives_approval_email_when_otp_is_disabled(): void
+    {
+        config(['registration.email_verification_required' => false]);
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, ['email' => 'no-otp@example.test']);
+        $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170000999', 'email' => 'no-otp@example.test']);
+        $resident->update(['source' => 'admin']);
+        $resident->account()->delete();
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $this->actingAs($admin)->post('/admin/residents/'.$registration->id.'/approve', ['resident_id' => $resident->id])->assertRedirect();
+        $this->assertSame('approved', $registration->fresh()->status);
+        Mail::assertSent(ResidentRegistrationApprovedMail::class, fn ($mail) => $mail->hasTo('no-otp@example.test'));
     }
 }

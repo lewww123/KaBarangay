@@ -309,7 +309,11 @@ class AdminResidentRegistrationTest extends TestCase
             'mobile' => '09170000022',
         ]);
         $candidate->account()->delete();
-        $candidate->update(['source' => 'admin', 'email' => 'applicant@example.test']);
+        $candidate->update([
+            'source' => 'admin',
+            'email' => 'applicant@example.test',
+            'status' => 'inactive',
+        ]);
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000022',
             'email' => 'applicant@example.test',
@@ -331,6 +335,8 @@ class AdminResidentRegistrationTest extends TestCase
 
         $this->assertSame(0, Resident::where('resident_registration_id', $registration->id)->count());
         $this->assertSame($candidate->id, $registration->fresh()->matched_resident_id);
+        $this->assertSame('approved', $registration->fresh()->status);
+        $this->assertSame('active', $candidate->fresh()->status);
         $this->assertSame(1, $candidate->account()->count());
     }
 

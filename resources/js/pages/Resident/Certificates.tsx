@@ -1,7 +1,9 @@
 import { Deferred, Head, router } from '@inertiajs/react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import Pagination from '@/components/Pagination';
 import ResidentLayout from '@/layouts/ResidentLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import type { PaginatedData } from '@/types';
 
 /*
 |--------------------------------------------------------------------------
@@ -84,7 +86,7 @@ interface PageProps {
         };
     };
     certificates: Certificate[];
-    requests: CertificateRequest[];
+    requests: PaginatedData<CertificateRequest>;
     errors: Record<string, string>;
 }
 
@@ -189,6 +191,10 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
 
     const detailsFields = selectedCertificate?.detailsFields ?? [];
 
+    const availableCertificates = certificates.filter(
+        (certificate) => certificate.available,
+    );
+
     const detailsComplete = detailsFields.every(
         (field) => !field.required || (details[field.key] ?? '').trim() !== '',
     );
@@ -264,9 +270,10 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
         }, {
             preserveScroll: true,
             onSuccess: (page: any) => {
-                // The newest request will be the first item in the newly loaded props
-                if (page.props.requests && page.props.requests.length > 0) {
-                    setSubmittedRequest(page.props.requests[0]);
+                // The newest request will be the first item in the newly loaded page.
+                const requests = page.props.requests as PaginatedData<CertificateRequest> | undefined;
+                if (requests?.data.length) {
+                    setSubmittedRequest(requests.data[0]);
                 }
 
                 try {
@@ -417,14 +424,12 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                                 required
                                             >
                                                 <option value="">Select certificate</option>
-                                                {certificates.map((certificate) => (
+                                                {availableCertificates.map((certificate) => (
                                                     <option
                                                         key={certificate.id}
                                                         value={certificate.id}
-                                                        disabled={!certificate.available}
                                                     >
                                                         {certificate.name}
-                                                        {!certificate.available ? ' (Unavailable)' : ''}
                                                     </option>
                                                 ))}
                                             </select>
@@ -790,9 +795,9 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                 View and track your submitted certificate requests.
                             </p>
                         </div>
-                        {requests.length > 0 ? (
+                        {requests.data.length > 0 ? (
                             <div className="space-y-4">
-                                {requests.map((request) => (
+                                {requests.data.map((request) => (
                                     <div key={request.id} className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
                                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                             <div className="min-w-0">
@@ -817,6 +822,7 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                         </div>
                                     </div>
                                 ))}
+                                <Pagination paginator={requests} label="Certificate request" />
                             </div>
                         ) : (
                             <div className="rounded-xl border border-gray-200 bg-white p-7 text-center">

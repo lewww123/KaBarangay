@@ -176,6 +176,7 @@ class ResidentRegistrationAccessController extends Controller
                 'submitted_at' => $registration->submitted_at?->toIso8601String(),
                 'barangay' => $registration->barangay?->name,
                 'purok' => $registration->purok?->name,
+                'email_verification_required' => (bool) config('registration.email_verification_required', false),
                 'email_verification_available' => $emailVerificationAvailable,
                 'email_verified' => $emailVerificationAvailable && $registration->email_verified_at !== null,
                 'email_verification_feedback' => $request->session()->get('email_verification_feedback'),

@@ -256,7 +256,7 @@ class ResidentRegistrationCorrectionController extends Controller
             $request->ip(),
         );
 
-        if ($emailChanged) {
+        if ($emailChanged && config('registration.email_verification_required', false)) {
             $updatedRegistration = $registration->fresh();
             if ($updatedRegistration?->email !== null && trim($updatedRegistration->email) !== '') {
                 try {

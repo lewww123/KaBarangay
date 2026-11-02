@@ -76,7 +76,7 @@ class RegistrationController extends Controller
                                 'name' => $purok->name,
                                 'code' => $purok->code,
                             ];
-                        }),
+                        })->all(),
                     ];
                 })
                 ->values();
@@ -95,8 +95,9 @@ class RegistrationController extends Controller
             ]);
 
         return Inertia::render('Resident/Register', [
+            'emailVerificationRequired' => (bool) config('registration.email_verification_required', false),
             'emailVerification' => fn () => $otp->state($request),
-            'barangays' => $this->deferProp(fn () => $this->rememberReference('registration:barangay-purok-options', 300, fn () => $loadBarangays()->toArray())),
+            'barangays' => $this->deferProp(fn () => $this->rememberReference('registration:barangay-purok-options:v2', 300, fn () => $loadBarangays()->toArray())),
             'sectors' => $this->deferProp(fn () => $this->rememberReference('registration:sector-options', 300, fn () => $sectors()->toArray())),
         ]);
     }
@@ -131,7 +132,7 @@ class RegistrationController extends Controller
         $storedFiles = [];
 
         try {
-            $registration = $emailOtp->withVerifiedEmail($request, $validated['email'], function (array $proof) use ($request, $validated, $qrCredentialId, $emailOtp, &$storedFiles) {
+            $createRegistration = function (array $proof) use ($request, $validated, $qrCredentialId, $emailOtp, &$storedFiles) {
                 return DB::transaction(function () use (
                     $request,
                     $validated,
@@ -176,7 +177,9 @@ class RegistrationController extends Controller
                         'status' => 'pending',
                         'submitted_at' => now(),
                     ]);
-                    $emailOtp->recordVerification($registration, $proof);
+                    if ($proof !== []) {
+                        $emailOtp->recordVerification($registration, $proof);
+                    }
 
                     // The submitted QR value is only resolved to a credential
                     // reference. The raw token is never persisted.
@@ -285,7 +288,10 @@ class RegistrationController extends Controller
 
                     return $registration;
                 });
-            });
+            };
+            $registration = config('registration.email_verification_required', false)
+                ? $emailOtp->withVerifiedEmail($request, $validated['email'], $createRegistration)
+                : $createRegistration([]);
         } catch (Throwable $exception) {
             /*
             |--------------------------------------------------------------------------
@@ -341,8 +347,7 @@ class RegistrationController extends Controller
             $request->ip(),
         );
 
-        // The single-use OTP proof and verified email snapshot were recorded
-        // atomically with this application before submission succeeded.
+        // Admin review is still required; an unverified address is not marked verified.
 
         return redirect()
             ->route(

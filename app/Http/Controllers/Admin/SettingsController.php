@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\Resident;
 use App\Models\StaffAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Response as ResponseFacade;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SettingsController extends Controller
 {
@@ -50,6 +53,15 @@ class SettingsController extends Controller
         'department' => 'Department',
         'position' => 'Position',
         'status' => 'Status',
+    ];
+
+    private const AUDIT_LOG_COLUMNS = [
+        'created_at' => 'Recorded At',
+        'event' => 'Event',
+        'entity_type' => 'Entity Type',
+        'entity_id' => 'Entity ID',
+        'context' => 'Context',
+        'ip_address' => 'IP Address',
     ];
 
     /**
@@ -156,6 +168,43 @@ class SettingsController extends Controller
                 'status' => $assignment->is_active ? 'active' : 'inactive',
             ]),
         );
+    }
+
+    /**
+     * Stream the authenticated administrator's audit history as CSV.
+     *
+     * lazyById fetches a bounded batch at a time while each CSV line is sent
+     * directly to the response output stream, so large audit histories are
+     * never assembled in PHP memory.
+     */
+    public function exportAuditLog(Request $request): StreamedResponse
+    {
+        $barangayId = $request->user()->barangay_id;
+
+        return ResponseFacade::streamDownload(function () use ($barangayId): void {
+            $handle = fopen('php://output', 'w');
+
+            fputcsv($handle, array_values(self::AUDIT_LOG_COLUMNS));
+
+            AuditLog::query()
+                ->where('barangay_id', $barangayId)
+                ->lazyById(500)
+                ->each(function (AuditLog $auditLog) use ($handle): void {
+                    fputcsv($handle, [
+                        $this->csvValue($auditLog->created_at?->format('Y-m-d H:i:s')),
+                        $this->csvValue($auditLog->event),
+                        $this->csvValue($auditLog->entity_type),
+                        $this->csvValue($auditLog->entity_id),
+                        $this->csvValue(json_encode($auditLog->context, JSON_UNESCAPED_SLASHES) ?: ''),
+                        $this->csvValue($auditLog->ip_address),
+                    ]);
+                });
+
+            fclose($handle);
+        }, 'audit-log-'.now()->format('Y-m-d').'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     /*

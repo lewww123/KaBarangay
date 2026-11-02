@@ -18,6 +18,10 @@ class Barangay extends Model
         'code',
         'city_municipality',
         'province',
+        'city_logo_path',
+        'barangay_logo_path',
+        'watermark_path',
+        'header_text',
         'is_active',
     ];
 
@@ -25,6 +29,7 @@ class Barangay extends Model
     {
         return [
             'is_active' => 'boolean',
+            'header_text' => 'array',
         ];
     }
 

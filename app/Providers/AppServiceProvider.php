@@ -15,14 +15,17 @@ use App\Support\LoginIdentifier;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
@@ -42,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureRateLimiters();
+        $this->configureAdminQueryLogging();
         Model::preventLazyLoading(! $this->app->isProduction());
 
         Auth::provider('cached-eloquent', fn ($app, array $config) => new CachedEloquentUserProvider(
@@ -144,6 +148,33 @@ class AppServiceProvider extends ServiceProvider
             ->response($record);
 
         return $limits;
+    }
+
+    /** Log opt-in admin query timings without recording bound resident data. */
+    private function configureAdminQueryLogging(): void
+    {
+        DB::listen(function (QueryExecuted $query): void {
+            if (! config('logging.admin_queries.enabled') || $query->time < (float) config('logging.admin_queries.min_duration_ms', 0)) {
+                return;
+            }
+            $request = request();
+            if (! $request->isMethod('GET') || ! $request->is('admin', 'admin/*')) {
+                return;
+            }
+            $requestId = $request->attributes->get('admin_query_request_id');
+            if (! $requestId) {
+                $requestId = (string) Str::uuid();
+                $request->attributes->set('admin_query_request_id', $requestId);
+            }
+            Log::channel('admin_queries')->info('admin_sql_query', [
+                'sql' => $query->sql,
+                'duration_ms' => $query->time,
+                'path' => $request->path(),
+                'inertia' => $request->header('X-Inertia') === 'true',
+                'partial_data' => $request->header('X-Inertia-Partial-Data'),
+                'request_id' => $requestId,
+            ]);
+        });
     }
 
     /**

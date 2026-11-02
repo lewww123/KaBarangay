@@ -1,7 +1,9 @@
 import { Deferred, Head, Link, router } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
+import Pagination from '@/components/Pagination';
 import ResidentLayout from '@/layouts/ResidentLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import type { PaginatedData } from '@/types';
 
 interface AnnouncementItem {
     id: number;
@@ -23,20 +25,10 @@ interface Filters {
     importance: string;
 }
 
-interface Pagination {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
 interface Props {
-    announcements: AnnouncementItem[];
+    announcements: PaginatedData<AnnouncementItem>;
     categories: string[];
     filters?: Filters;
-    pagination?: Pagination;
     kind?: 'announcements' | 'updates';
     period?: 'current' | 'past';
 }
@@ -45,15 +37,6 @@ const emptyFilters: Filters = {
     q: '',
     category: '',
     importance: '',
-};
-
-const emptyPagination: Pagination = {
-    current_page: 1,
-    last_page: 1,
-    per_page: 8,
-    total: 0,
-    from: null,
-    to: null,
 };
 
 const importanceOptions = [
@@ -66,7 +49,7 @@ const importanceOptions = [
 export default function Announcements(props: Props) {
     return (
         <Deferred
-            data={['announcements', 'categories', 'pagination']}
+            data={['announcements', 'categories']}
             fallback={<ResidentLayout active={props.kind === 'updates' ? 'updates' : 'announcements'}><PortalPageSkeleton list /></ResidentLayout>}
         >
             <AnnouncementsContent {...props} />
@@ -78,7 +61,6 @@ function AnnouncementsContent({
     announcements,
     categories,
     filters = emptyFilters,
-    pagination = emptyPagination,
     kind = 'announcements',
     period = 'current',
 }: Props) {
@@ -123,7 +105,7 @@ function AnnouncementsContent({
         }
 
         router.get(basePath, params, {
-            only: ['announcements', 'pagination', 'filters', 'kind', 'period', ...(nextPeriod !== period ? ['categories'] : [])],
+            only: ['announcements', 'filters', 'kind', 'period', ...(nextPeriod !== period ? ['categories'] : [])],
             preserveScroll: true,
             preserveState: true,
             replace: true,
@@ -178,7 +160,7 @@ function AnnouncementsContent({
             isUpdates ? { period } : {},
             {
                 preserveScroll: true,
-                only: ['announcements', 'pagination', 'filters', 'kind', 'period'],
+                only: ['announcements', 'filters', 'kind', 'period'],
                 preserveState: true,
                 replace: true,
                 onStart: () => setFiltering(true),
@@ -186,15 +168,6 @@ function AnnouncementsContent({
             },
         );
     };
-
-    const goToPage = (page: number) => {
-        visit(filters, page);
-    };
-
-    const pages = getVisiblePages(
-        pagination.current_page,
-        pagination.last_page,
-    );
 
     return (
         <ResidentLayout active={isUpdates ? 'updates' : 'announcements'}>
@@ -356,8 +329,8 @@ function AnnouncementsContent({
                 {/* RESULTS SUMMARY */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs font-medium text-gray-500 sm:text-sm">
-                        {pagination.total > 0
-                            ? `Showing ${pagination.from}–${pagination.to} of ${pagination.total} ${isUpdates ? 'update' : 'announcement'}${pagination.total === 1 ? '' : 's'}`
+                        {announcements.total > 0
+                            ? `Showing ${announcements.from}–${announcements.to} of ${announcements.total} ${isUpdates ? 'update' : 'announcement'}${announcements.total === 1 ? '' : 's'}`
                             : `No ${isUpdates ? period === 'past' ? 'past updates' : 'current updates' : 'announcements'} found`}
                     </p>
 
@@ -374,7 +347,7 @@ function AnnouncementsContent({
 
                 {/* ANNOUNCEMENTS LIST */}
                 <div className="space-y-4">
-                    {announcements.length === 0 ? (
+                    {announcements.data.length === 0 ? (
                         <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm">
                             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#edf4ea] text-[#3f6f3d]">
                                 {hasActiveFilters ? (
@@ -407,7 +380,7 @@ function AnnouncementsContent({
                             )}
                         </div>
                     ) : (
-                        announcements.map((item) => (
+                        announcements.data.map((item) => (
                             <article
                                 key={item.id}
                                 className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#cfddca] hover:shadow-md sm:p-6"
@@ -507,109 +480,13 @@ function AnnouncementsContent({
                     )}
                 </div>
 
-                {/* PAGINATION */}
-                {pagination.last_page > 1 && (
-                    <nav
-                        aria-label="Announcement pages"
-                        className="flex flex-wrap items-center justify-center gap-1.5 pt-2"
-                    >
-                        <button
-                            type="button"
-                            onClick={() =>
-                                goToPage(pagination.current_page - 1)
-                            }
-                            disabled={filtering || pagination.current_page <= 1}
-                            className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm"
-                        >
-                            Previous
-                        </button>
-
-                        {pages.map((page, index) =>
-                            page === 'ellipsis' ? (
-                                <span
-                                    key={`ellipsis-${index}`}
-                                    className="px-1.5 text-sm text-gray-400"
-                                >
-                                    …
-                                </span>
-                            ) : (
-                                <button
-                                    key={page}
-                                    type="button"
-                                    onClick={() => goToPage(page)}
-                                    disabled={filtering}
-                                    aria-current={
-                                        page === pagination.current_page
-                                            ? 'page'
-                                            : undefined
-                                    }
-                                    className={`flex h-10 min-w-10 items-center justify-center rounded-lg border px-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm ${
-                                        page === pagination.current_page
-                                            ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
-                                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                                    }`}
-                                >
-                                    {page}
-                                </button>
-                            ),
-                        )}
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                goToPage(pagination.current_page + 1)
-                            }
-                            disabled={
-                                filtering ||
-                                pagination.current_page >= pagination.last_page
-                            }
-                            className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm"
-                        >
-                            Next
-                        </button>
-                    </nav>
-                )}
+                <Pagination paginator={announcements} label={isUpdates ? 'Update' : 'Announcement'} />
             </div>
         </ResidentLayout>
     );
 }
 
 /* HELPER FUNCTIONS */
-
-function getVisiblePages(
-    currentPage: number,
-    lastPage: number,
-): Array<number | 'ellipsis'> {
-    if (lastPage <= 7) {
-        return Array.from({ length: lastPage }, (_, index) => index + 1);
-    }
-
-    const start = Math.max(1, Math.min(currentPage - 2, lastPage - 4));
-    const end = Math.min(lastPage, Math.max(currentPage + 2, 5));
-    const pages: Array<number | 'ellipsis'> = [];
-
-    if (start > 1) {
-        pages.push(1);
-
-        if (start > 2) {
-            pages.push('ellipsis');
-        }
-    }
-
-    for (let page = start; page <= end; page += 1) {
-        pages.push(page);
-    }
-
-    if (end < lastPage) {
-        if (end < lastPage - 1) {
-            pages.push('ellipsis');
-        }
-
-        pages.push(lastPage);
-    }
-
-    return pages;
-}
 
 function getCategoryBadgeStyle(category: string) {
     const cat = category?.toLowerCase() || '';

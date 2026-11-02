@@ -33,6 +33,7 @@ class ResidentRegistrationCorrectionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['registration.email_verification_required' => true]);
 
         $this->withoutVite();
         Storage::fake('local');

@@ -11,17 +11,19 @@ abstract class TestCase extends BaseTestCase
     private const STAFF_HOST = 'https://staff.kabarangay.com';
 
     private const ISOLATED_TEST_ENVIRONMENT = [
-        'APP_CONFIG_CACHE'     => 'bootstrap/cache/phpunit-config-cache-disabled.php',
-        'APP_ENV'              => 'testing',
-        'DB_CONNECTION'        => 'sqlite',
-        'DB_DATABASE'          => ':memory:',
-        'DB_URL'               => '',
-        'CACHE_STORE'          => 'array',
-        'QUEUE_CONNECTION'     => 'sync',
-        'SESSION_DRIVER'       => 'array',
-        'MAIL_MAILER'          => 'array',
+        'APP_CONFIG_CACHE' => 'bootstrap/cache/phpunit-config-cache-disabled.php',
+        'APP_ENV' => 'testing',
+        'APP_URL' => self::STAFF_HOST,
+        'STAFF_DOMAIN' => 'staff.kabarangay.com',
+        'DB_CONNECTION' => 'sqlite',
+        'DB_DATABASE' => ':memory:',
+        'DB_URL' => '',
+        'CACHE_STORE' => 'array',
+        'QUEUE_CONNECTION' => 'sync',
+        'SESSION_DRIVER' => 'array',
+        'MAIL_MAILER' => 'array',
         'BROADCAST_CONNECTION' => 'null',
-        'BCRYPT_ROUNDS'        => '4',
+        'BCRYPT_ROUNDS' => '4',
     ];
 
     public function createApplication()
@@ -36,12 +38,15 @@ abstract class TestCase extends BaseTestCase
 
         self::assertIsolatedTestDatabase($app);
 
+        // HTTP feature tests exercise PHP responses without a separate Node SSR service.
+        $app['config']->set('inertia.ssr.enabled', false);
+
         return $app;
     }
 
     protected function prepareUrlForRequest($uri): string
     {
-        if (is_string($uri) && preg_match('#^/(?:admin|clerk|lupon|pwd|senior|api/qr)(?:/|$)#', $uri) === 1) {
+        if (is_string($uri) && ($uri === '/' || $uri === '/login' || $uri === '/logout' || preg_match('#^/(?:admin|clerk|lupon|pwd|senior|api/qr)(?:/|$)#', $uri) === 1)) {
             $uri = self::STAFF_HOST.$uri;
         }
 
@@ -50,14 +55,14 @@ abstract class TestCase extends BaseTestCase
 
     private static function assertIsolatedTestDatabase(Application $app): void
     {
-        $fromCache   = $app->make('config_loaded_from_cache') === true;
-        $name        = (string) $app['config']->get('database.default');
-        $connection  = (array) $app['config']->get('database.connections.'.$name, []);
-        $driver      = isset($connection['driver']) ? (string) $connection['driver'] : 'missing';
-        $isInMemory  = ($connection['database'] ?? null) === ':memory:';
-        $hasEmptyUrl = ! isset($connection['url']) || '' === $connection['url'];
+        $fromCache = $app->make('config_loaded_from_cache') === true;
+        $name = (string) $app['config']->get('database.default');
+        $connection = (array) $app['config']->get('database.connections.'.$name, []);
+        $driver = isset($connection['driver']) ? (string) $connection['driver'] : 'missing';
+        $isInMemory = ($connection['database'] ?? null) === ':memory:';
+        $hasEmptyUrl = ! isset($connection['url']) || $connection['url'] === '';
 
-        if ($fromCache || 'sqlite' !== $driver || ! $isInMemory || ! $hasEmptyUrl) {
+        if ($fromCache || $driver !== 'sqlite' || ! $isInMemory || ! $hasEmptyUrl) {
             throw new RuntimeException(
                 'Test database isolation guard failed: the test database must be an in-memory SQLite '
                 .'database loaded from config files, not from the application config cache. '

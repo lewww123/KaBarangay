@@ -31,6 +31,7 @@ type Application = {
     barangay: string | null;
     purok: string | null;
     email_verification_available: boolean;
+    email_verification_required?: boolean;
     email_verified: boolean;
     email_verification_feedback: string | null;
     correction: Correction | null;
@@ -144,8 +145,8 @@ export default function RegistrationApplication({ application }: Props) {
                     </dl>
 
                     <section className="mt-6 rounded-xl border border-[#d7e5d2] bg-[#f8fbf6] p-4 sm:p-5">
-                        <h2 className="text-sm font-semibold text-gray-800">Email verification</h2>
-                        {application.email_verified ? (
+                        <h2 className="text-sm font-semibold text-gray-800">Email notifications</h2>
+                        {!application.email_verification_required ? (<p className="mt-2 text-sm text-gray-600">Ipapadala sa email na inilagay mo ang desisyon ng admin. Hindi kailangan ng email verification bago mag-submit.</p>) : application.email_verified ? (
                             <p className="mt-2 text-sm text-green-800">Your application email is verified. This confirms control of the address; it does not approve the application.</p>
                         ) : application.email_verification_available ? (
                             <>

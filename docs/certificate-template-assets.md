@@ -19,7 +19,7 @@ Each certificate type maps to a template stem in
 | --- | --- | --- |
 | Indigency | `indigency` | `storage/app/templates/indigency.docx` |
 | Residency | `residency` | `storage/app/templates/residency.docx` |
-| Delayed PSA Registration | `delayedpsa` | `storage/app/templates/delayedpsa.docx` |
+| Delayed PSA Registration | `delayedpsa_dynamic` | `storage/app/templates/delayedpsa_dynamic.docx` |
 | Marriage Cohabitation | `marriage` | `storage/app/templates/marriage.docx` |
 | Scholarship Certificate | `scholarship` | `storage/app/templates/scholarship.docx` |
 | Tricycle | `tricycle` | `storage/app/templates/tricycle.docx` |
@@ -81,38 +81,30 @@ Additional requirements:
    Word runs; PHPWord resolves them as long as the concatenated run text equals
    the key exactly. The Scholarship family/school values are transient form data
    and are **not** persisted to the issuance history.
-- The **Delayed PSA Registration** template must contain exactly the following
-  twelve merge fields, and no others:
+- The **Delayed PSA Registration** template must expose the eleven fields in
+  `DelayedPsaCertificate::TEMPLATE_KEYS` (plus optional official fields):
 
   | Merge field | Notes |
   | --- | --- |
-  | `${control_number}` | The certificate control number. The **request field** is still `control_no`; only the merge field is renamed. |
+  | `${control_number}` | Intake field: `control_no`. |
   | `${resident’s_name}` | Curly apostrophe (U+2019). |
-  | `${purok}` | The resident's purok; printed as `PUROK <name>`. |
-  | `${date_of_birth}` | Long form, e.g. `5th day of January 1990`. |
-  | `${sex}` | `MALE` or `FEMALE`. |
-  | `${nationality}` | Defaults to `FILIPINO`, editable. |
-  | `${birth_place}` | Defaults to `PUERTO PRINCESA CITY`, editable. |
+  | `${purok}` | Linked resident profile or manual intake fallback. |
+  | `${date_of_birth}` | Long date, from profile or intake fallback. |
+  | `${gender}` | Normalized MALE or FEMALE. |
   | `${father’s_name}` | Curly apostrophe (U+2019). |
-  | `${mothers_maiden_name}` | No apostrophe in the key, even though the printed label reads "MAIDEN NAME OF THE MOTHER". |
-  | `${parents_marriage_details}` | The parents' marriage date and place. |
-  | `${residency_period}` | Rendered as `<year> up to present`. |
-  | `${current_date}` | Issue date, long form, e.g. `1st day of January 2026`. |
+  | `${mothers_maiden_name}` | Mother's maiden name. |
+  | `${parents_marriage_details}` | Intake date and place, or explicit alternative text such as Not married or Unknown; printed uppercase. |
+  | `${residency_period}` | Intake `residency_start_year`, rendered as `<year> up to present`; validated against birth year and current year. |
+  | `${current_date}` | Long issue date. |
+  | `${signatory_name}` | Optional published signatory selection. |
 
-  The template deliberately has **no** `${purpose}`, `${barangay_address}`,
-  `${signatory_name}`, or `${signatory_title}` merge field: the document states
-  its own purpose ("DELAYED REGISTRATION OF BIRTH") and carries its own
-  Punong Barangay / Officer on Duty signature blocks, so the Clerk form does
-  not collect a purpose or a signatory for this certificate type.
+  The issuance modal and resident request intake collect marriage details and
+  residency start year. These values are merged into both preview and issued
+  documents. They are not inferred from birth date or marital status.
+  The template retains its fixed purpose, nationality, and birthplace wording.
+  The updated template is versioned with the application; the old local
+  `delayedpsa.docx` is no longer the default template.
 
-  The father, mother, parents' marriage details, and residency year are
-  **transient** form data. They are written into the document but are **not**
-  persisted to the issuance history.
-
-  The date of birth, sex, and purok come from the linked resident profile
-  whenever the profile carries them. The Clerk-entered value is only a manual
-  fallback for a resident whose record has no such value; the server still
-  requires one of the two to be present.
 - The **Marriage Cohabitation** template must contain exactly the following
   seven merge fields, and no others:
 
@@ -186,7 +178,7 @@ Verify the provisioned file by hand with:
 
 ```bash
 php -r "require 'vendor/autoload.php'; \
-  \$p = new PhpOffice\PhpWord\TemplateProcessor('storage/app/templates/delayedpsa.docx'); \
+  \$p = new PhpOffice\PhpWord\TemplateProcessor('storage/app/templates/delayedpsa_dynamic.docx'); \
   \$v = \$p->getVariables(); sort(\$v); print_r(\$v);"
 ```
 
@@ -311,7 +303,7 @@ sha256sum storage/app/templates/residency.docx
 ## Delayed PSA Registration asset provenance
 | Asset | SHA-256 | Size |
 | --- | --- | --- |
-| `storage/app/templates/delayedpsa.docx` (active) | `4600B8980CDC702744556B213C40E373DC232B0D0EEC1C5CDE6AE1DE8DC7B8DC` | 2727326 bytes |
+| `storage/app/templates/delayedpsa_dynamic.docx` (active) | `245F7AA3ED3053A8A9577C18F14500B0F8865789572D4A46722489EBE182DFA1` | 1887171 bytes |
 | `storage/app/template-originals/delayedpsa.original.sha256-b5168b91.docx` (rollback) | `B5168B91C3332953F547086D25E3EBF3AC1D120C06E37C2764E47B51FC0BE6D4` | 2730933 bytes |
 
 The rollback copy is the unmodified original template and is kept outside the

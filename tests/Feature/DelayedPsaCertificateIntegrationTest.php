@@ -119,12 +119,11 @@ class DelayedPsaCertificateIntegrationTest extends TestCase
 
         $clerk = $this->createStaff($this->barangay, 'clerk');
 
-        $original = (string) file_get_contents($this->templatePath());
         $broken = $this->writeTemplateWithKeys(['control_number', 'purok']);
 
         try {
-            // Swap in a template that does not honour the merge-field contract.
-            copy($broken, $this->templatePath());
+            // Use a private fixture; never overwrite an approved template open in Word/WPS.
+            config(['certificates.template_paths.'.DelayedPsaCertificate::TYPE => $broken]);
 
             $response = $this->actingAs($clerk)
                 ->from('/clerk/certificates')
@@ -133,7 +132,7 @@ class DelayedPsaCertificateIntegrationTest extends TestCase
             $response->assertSessionHasErrors('certificate_type');
             $this->assertSame(0, CertificateIssuance::query()->count());
         } finally {
-            file_put_contents($this->templatePath(), $original);
+            config(['certificates.template_paths' => []]);
             @unlink($broken);
         }
     }
@@ -177,9 +176,8 @@ class DelayedPsaCertificateIntegrationTest extends TestCase
             $this->assertStringContainsString('FILIPINO', $text);
             $this->assertStringContainsString('PEDRO DELA CRUZ', $text);
             $this->assertStringContainsString('MARIA DELA CRUZ', $text);
-            // Only the declared merge fields are editable in the provisioned
-            // DOCX. Its literal birthplace, marriage, and residency wording is
-            // not a placeholder and must not be mistaken for a failed merge.
+            // Every declared field, including marriage and residency details,
+            // must reach the generated document.
             foreach (DelayedPsaCertificate::TEMPLATE_KEYS as $key) {
                 $expected = DelayedPsaCertificate::templateValues($values)[$key];
                 if ($expected !== '') {
@@ -636,6 +634,32 @@ class DelayedPsaCertificateIntegrationTest extends TestCase
         $this->assertSame('MALE', DelayedPsaCertificate::normalizeSex('Male'));
         $this->assertSame('FEMALE', DelayedPsaCertificate::normalizeSex('female'));
         $this->assertNull(DelayedPsaCertificate::normalizeSex('unknown'));
+    }
+
+    public function test_intake_residency_and_marriage_details_reach_preview_and_issuance(): void
+    {
+        $this->requireTemplate();
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        foreach (['12 June 1985, City Hall & Chapel', 'Not married', 'Unknown'] as $index => $marriage) {
+            foreach (['/clerk/certificates/preview', '/clerk/generate-certificate'] as $url) {
+                $response = $this->actingAs($clerk)->post($url, $this->validPayload([
+                    'control_no' => 'CTRL-2026-200'.$index,
+                    'parents_marriage_details' => $marriage,
+                    'residency_start_year' => 2001 + $index,
+                ]))->assertOk();
+                $xml = $this->archiveDocumentXml($response->getFile()->getPathname());
+                $doc = new \DOMDocument;
+                $this->assertTrue($doc->loadXML($xml, LIBXML_NONET));
+                $text = html_entity_decode(strip_tags($xml), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $this->assertStringContainsString(mb_strtoupper($marriage), $text);
+                $this->assertStringContainsString((2001 + $index).' up to present', $text);
+                $this->assertStringNotContainsString('2020 up to present', $text);
+                $this->assertStringNotContainsString('--NOT MARRIED--', $text);
+                $this->assertStringNotContainsString('${parents_marriage_details}', $text);
+                $this->assertStringNotContainsString('${residency_period}', $text);
+            }
+        }
+        $this->assertSame(3, CertificateIssuance::count());
     }
 
     public function test_delayed_psa_residency_period_is_rendered_up_to_present(): void

@@ -52,6 +52,26 @@ class ResidencyCertificateIntegrationTest extends TestCase
         );
     }
 
+    public function test_residency_preview_downloads_the_rendered_document_without_issuing(): void
+    {
+        $this->requireTemplate();
+
+        $resident = $this->createResident($this->barangay, $this->purok);
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $this->actingAs($clerk)
+            ->post('/clerk/certificates/preview', $this->validPayload([
+                'resident_id' => $resident->id,
+            ]))
+            ->assertOk()
+            ->assertHeader(
+                'Content-Type',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            );
+
+        $this->assertSame(0, CertificateIssuance::query()->count());
+    }
+
     public function test_residency_template_exposes_exactly_the_approved_merge_fields(): void
     {
         $this->requireTemplate();
@@ -130,6 +150,13 @@ class ResidencyCertificateIntegrationTest extends TestCase
             // Swap in a template that does not honour the merge-field contract.
             copy($broken, $this->templatePath());
 
+            $this->actingAs($clerk)
+                ->postJson('/clerk/certificates/preview', $this->validPayload([
+                    'resident_id' => $resident->id,
+                ]))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('certificate_type');
+
             $response = $this->actingAs($clerk)
                 ->from('/clerk/certificates')
                 ->post('/clerk/generate-certificate', $this->validPayload([
@@ -177,7 +204,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
             $this->assertStringContainsString('JUAN DELA CRUZ', $text);
             $this->assertStringContainsString('PUROK MASUNURIN', $text);
             $this->assertMatchesRegularExpression(
-                '/is a resident of this barangay for\s+5/',
+                '/is a resident of this barangay for\s+5\s+years/',
                 $text
             );
             $this->assertStringContainsString(

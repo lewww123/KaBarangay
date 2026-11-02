@@ -11,6 +11,7 @@ use App\Models\Purok;
 use App\Models\Resident;
 use App\Models\ResidentQrCredential;
 use App\Models\User;
+use App\Support\LuponCaseWorkflow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -44,17 +45,14 @@ class LuponCaseManagementTest extends TestCase
         ], 'lupon', 'Lupon Secretary');
     }
 
-    public function test_lupon_qr_lookup_starts_keyboard_wedge_in_complainant_field_and_keeps_enter_lookup(): void
+    public function test_lupon_lookup_requires_same_barangay_and_does_not_preload_masterlist(): void
     {
-        $source = file_get_contents(base_path('resources/js/pages/Lupon/Cases/Create.tsx'));
-
-        $this->assertStringContainsString('complainantInputRef.current?.focus({ preventScroll: true })', $source);
-        $this->assertStringContainsString("e.key === 'Enter'", $source);
-        $this->assertStringContainsString('e.preventDefault()', $source);
-        $this->assertStringContainsString('handleComplainantLookup()', $source);
-        $this->assertStringContainsString('handleRespondentLookup()', $source);
-        $this->assertStringContainsString('value={complainantLookup.query}', $source);
-        $this->assertStringContainsString('value={respondentLookup.query}', $source);
+        $this->actingAs($this->luponStaff)->get('/lupon/cases/create')->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Lupon/Cases/Create')->missing('residents')->has('officials'));
+        $this->get("/lupon/residents/{$this->resident->id}/lookup")->assertOk()->assertJsonPath('resident.id', $this->resident->id);
+        $foreign = $this->createBarangay('Foreign', 'FOREIGN');
+        $other = $this->createResident($foreign, $this->createPurok($foreign, 'Other'), ['mobile' => '09179999998']);
+        $this->get("/lupon/residents/{$other->id}/lookup")->assertNotFound();
     }
 
     private function createComplaint(
@@ -97,7 +95,7 @@ class LuponCaseManagementTest extends TestCase
         $this->assertDatabaseHas('lupon_cases', [
             'barangay_id' => $this->barangay->id,
             'complaint_id' => $complaint->id,
-            'status' => 'Under Mediation',
+            'status' => 'filed',
             'phase' => 'Kapitan',
         ]);
 
@@ -183,7 +181,7 @@ class LuponCaseManagementTest extends TestCase
         $response = $this->actingAs($this->luponStaff)
             ->post("/lupon/cases/{$case->id}/hearings", [
                 'hearing_date' => now()->addDays(3)->toDateString(),
-                'hearing_time' => '10:00 AM',
+                'hearing_time' => '10:00',
                 'venue' => 'Barangay Session Hall',
                 'phase' => 'Kapitan',
             ]);
@@ -292,7 +290,7 @@ class LuponCaseManagementTest extends TestCase
                 ->where('cases.data.0.id', $case->id)
                 ->where('cases.data.0.caseNumber', $case->case_number)
                 ->where('filters.phase', 'Kapitan')
-                ->where('filters.status', 'Under Mediation')
+                ->where('filters.status', 'mediation_active')
                 ->has('cases.links'));
     }
 
@@ -403,6 +401,7 @@ class LuponCaseManagementTest extends TestCase
         $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
         $case = LuponCase::first();
 
+        LuponCaseWorkflow::transition($case, 'mediation_active', $this->luponStaff->id, ['event_date' => now()->toDateString()]);
         $response = $this->actingAs($this->luponStaff)
             ->post("/lupon/cases/{$case->id}/settlements", [
                 'settlement_type' => 'Amicable Settlement',
@@ -418,7 +417,7 @@ class LuponCaseManagementTest extends TestCase
             'status' => 'Active',
         ]);
 
-        $this->assertEquals('Settled', $case->fresh()->status);
+        $this->assertEquals('settled', $case->fresh()->status);
         $this->assertEquals('Closed', $case->fresh()->phase);
     }
 
@@ -500,7 +499,7 @@ class LuponCaseManagementTest extends TestCase
         $this->assertDatabaseHas('lupon_case_parties', [
             'case_id' => $case->id,
             'resident_id' => $secondResident->id,
-            'name' => 'Co-Complainant Resident',
+            'name' => $secondResident->full_name,
             'is_resident' => true,
         ]);
     }
@@ -513,7 +512,7 @@ class LuponCaseManagementTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Lupon/Cases/Create')
                 ->has('caseTypes')
-                ->has('residents'));
+                ->missing('residents')->has('officials'));
     }
 
     public function test_lupon_staff_can_create_manual_walkin_case(): void
@@ -546,14 +545,14 @@ class LuponCaseManagementTest extends TestCase
         $this->assertNotNull($case);
         $this->assertNull($case->complaint_id);
         $this->assertEquals('Property / Boundary Dispute', $case->case_type);
-        $this->assertEquals('Under Mediation', $case->status);
+        $this->assertEquals('filed', $case->status);
 
         // Check complainant party
         $this->assertDatabaseHas('lupon_case_parties', [
             'case_id' => $case->id,
             'party_type' => 'complainant',
             'resident_id' => $this->resident->id,
-            'name' => 'Walkin Complainant',
+            'name' => $this->resident->full_name,
             'is_primary' => true,
         ]);
 
@@ -562,7 +561,7 @@ class LuponCaseManagementTest extends TestCase
             'case_id' => $case->id,
             'party_type' => 'respondent',
             'resident_id' => $respondentResident->id,
-            'name' => 'Walkin Respondent',
+            'name' => $respondentResident->full_name,
             'association_status' => 'verified',
             'is_primary' => true,
         ]);
@@ -678,7 +677,7 @@ class LuponCaseManagementTest extends TestCase
         $respBefore->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Lupon')
-                ->where('complaintsAgainstMe', []));
+                ->where('complaintsAgainstMe.data', []));
 
         // Unverified respondent cannot view case detail
         $unverifiedShow = $this->withSession(['resident_id' => $respondentResident->id])
@@ -698,8 +697,8 @@ class LuponCaseManagementTest extends TestCase
         $respAfter->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Lupon')
-                ->has('complaintsAgainstMe', 1)
-                ->where('complaintsAgainstMe.0.caseNumber', $case->case_number));
+                ->has('complaintsAgainstMe.data', 1)
+                ->where('complaintsAgainstMe.data.0.caseNumber', $case->case_number));
 
         // Verified respondent can view case detail with narrative masked & requested action hidden
         $verifiedShow = $this->withSession(['resident_id' => $respondentResident->id])
@@ -710,14 +709,14 @@ class LuponCaseManagementTest extends TestCase
                 ->where('viewerRole', 'respondent')
                 ->where('caseData.caseNumber', $case->case_number)
                 ->where('caseData.requestedAction', null)
-                ->where('caseData.narrative', 'Nature of Dispute: ' . $case->case_type));
+                ->where('caseData.narrative', 'Nature of Dispute: '.$case->case_type));
     }
 
     private function makeCredential(Resident $resident, array $attributes = []): ResidentQrCredential
     {
         return ResidentQrCredential::create([
             'resident_id' => $resident->id,
-            'token' => 'KBQR-' . Str::random(40),
+            'token' => 'KBQR-'.Str::random(40),
             'is_active' => true,
             ...$attributes,
         ]);
@@ -739,7 +738,7 @@ class LuponCaseManagementTest extends TestCase
         // 2. By full verification URL
         $url = "https://kabarangay.local/verify/resident/{$credential->token}";
         $respUrl = $this->actingAs($this->luponStaff)
-            ->getJson('/lupon/cases/qr-lookup?token=' . urlencode($url));
+            ->getJson('/lupon/cases/qr-lookup?token='.urlencode($url));
 
         $respUrl->assertOk()
             ->assertJsonPath('resident.id', $this->resident->id);
@@ -902,7 +901,7 @@ class LuponCaseManagementTest extends TestCase
         $case = LuponCase::where('origin', 'manual')->latest('id')->first();
         $this->assertNotNull($case);
         $this->assertEquals('Other: Water Pipe Encroachment', $case->case_type);
-        $this->assertEquals('Other: Water Pipe Encroachment: Juan Dela Cruz vs. Pedro Santos', $case->title);
+        $this->assertEquals('Other: Water Pipe Encroachment: '.$this->resident->full_name.' vs. '.$respondentResident->full_name, $case->title);
 
         // Check staff case detail show
         $staffShow = $this->actingAs($this->luponStaff)->get("/lupon/cases/{$case->id}");

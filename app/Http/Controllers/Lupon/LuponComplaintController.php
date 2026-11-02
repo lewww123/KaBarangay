@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Lupon;
 use App\Http\Controllers\Controller;
 use App\Models\LuponComplaint;
 use App\Support\AuditLogger;
+use App\Support\CertificateOfficials;
+use App\Support\LuponAccess;
+use App\Support\LuponEvidenceStore;
 use App\Support\ReferenceData;
-use App\Support\ResidentNotificationService;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -82,10 +83,12 @@ class LuponComplaintController extends Controller
 
         return Inertia::render('Lupon/Complaints', [
             'userName' => $user->name,
+            'officials' => CertificateOfficials::resolve((int) $user->barangay_id),
             'barangayName' => fn () => ReferenceData::barangay((int) $barangayId)['name'],
             'complaints' => $this->deferProp(fn () => $query
                 ->with([
                     'resident:id,first_name,middle_name,last_name,suffix,resident_number',
+                    'evidence',
                     'case:id,complaint_id,case_number,phase,status,payment_status,fee_amount,or_number,paid_at,form_7_issued_at',
                 ])
                 ->select([
@@ -100,6 +103,7 @@ class LuponComplaintController extends Controller
                 ->through(function (LuponComplaint $complaint) {
                     return [
                         'id' => $complaint->id,
+                        'evidence' => $complaint->evidence->map(fn ($file) => LuponEvidenceStore::summary($file))->all(),
                         'reference' => $complaint->reference,
                         'resident' => [
                             'name' => $complaint->resident?->full_name ?? 'Unknown resident',
@@ -237,80 +241,15 @@ class LuponComplaintController extends Controller
     }
 
     /** Record the manual fee and activate a promoted, verified KP case. */
-    public function verifyFee(
-        Request $request,
-        LuponComplaint $complaint,
-        ResidentNotificationService $notifications,
-    ): RedirectResponse {
-        $user = $request->user();
-
-        if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists() || $complaint->barangay_id !== $user->barangay_id) {
-            abort(403, 'Unauthorized access to complaint.');
+    public function verifyFee(Request $request, LuponComplaint $complaint): RedirectResponse
+    {
+        LuponAccess::staff($request);
+        abort_unless((int) $complaint->barangay_id === (int) $request->user()->barangay_id, 403);
+        $case = $complaint->case()->first();
+        if (! $case) {
+            throw ValidationException::withMessages(['fee_amount' => 'Promote the accepted complaint to a case first.']);
         }
 
-        $validated = $request->validate([
-            'fee_amount' => ['required', 'numeric', 'min:0', 'max:999999.99'],
-            'or_number' => ['required', 'string', 'max:100'],
-            'payment_status' => ['required', Rule::in(['paid', 'waived'])],
-        ]);
-
-        [$case, $respondent] = DB::transaction(function () use ($complaint, $user, $validated) {
-            $locked = LuponComplaint::query()
-                ->whereKey($complaint->id)
-                ->where('barangay_id', $user->barangay_id)
-                ->lockForUpdate()
-                ->firstOrFail();
-            $case = $locked->case()
-                ->with(['respondents' => fn ($query) => $query
-                    ->where('is_primary', true)
-                    ->with('resident:id,first_name,middle_name,last_name,suffix,email')])
-                ->lockForUpdate()
-                ->first();
-
-            if ($case === null) {
-                throw ValidationException::withMessages([
-                    'fee_amount' => 'Promote and verify the respondent before activating this complaint.',
-                ]);
-            }
-
-            $respondent = $case->respondents->first();
-            if ($respondent?->association_status !== 'verified' || $respondent->resident === null) {
-                throw ValidationException::withMessages([
-                    'fee_amount' => 'Verify and link the respondent resident from the case record before activating it.',
-                ]);
-            }
-
-            if ($case->payment_status !== 'unpaid') {
-                throw ValidationException::withMessages([
-                    'fee_amount' => 'This case has already had its fee verified.',
-                ]);
-            }
-
-            $case->update([
-                'payment_status' => $validated['payment_status'],
-                'fee_amount' => $validated['fee_amount'],
-                'or_number' => $validated['or_number'],
-                'paid_at' => now(),
-                'form_7_issued_at' => now(),
-                'status' => 'Under Mediation',
-            ]);
-
-            return [$case->fresh(), $respondent->resident];
-        });
-
-        $notification = $notifications->enqueueLuponSummons($respondent, $case);
-        $notifications->deliver($notification);
-
-        AuditLogger::record(
-            event: 'lupon_case.fee_verified',
-            barangayId: $user->barangay_id,
-            actorId: $user->id,
-            entityType: 'lupon_case',
-            entityId: $case->id,
-            context: ['action' => 'fee_verified', 'entity_reference' => $case->case_number],
-            ipAddress: $request->ip(),
-        );
-
-        return redirect()->back()->with('success', "Fee verified. KP Form 7 summons issued for {$case->case_number}.");
+        return app(LuponDocumentController::class)->verifyFee($request, $case);
     }
 }

@@ -89,6 +89,14 @@ class AuthController extends Controller
             ->with('account')
             ->where('barangay_id', $barangay->id)
             ->where('status', 'active')
+            ->where(function ($query) {
+                $query->whereHas('registration', fn ($registration) => $registration
+                    ->where('status', 'approved')
+                    ->whereColumn('resident_registrations.barangay_id', 'residents.barangay_id'))
+                    ->orWhereHas('matchedRegistrations', fn ($registration) => $registration
+                        ->where('status', 'approved')
+                        ->whereColumn('resident_registrations.barangay_id', 'residents.barangay_id'));
+            })
             ->where(function ($query) use ($identifier) {
                 $query
                     ->where('resident_number', strtoupper($identifier))

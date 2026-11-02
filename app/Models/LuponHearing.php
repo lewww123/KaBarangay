@@ -29,6 +29,12 @@ class LuponHearing extends Model
         ];
     }
 
+    public function getPhaseNumberAttribute(): int
+    {
+        return $this->newQuery()->where('case_id', $this->case_id)->where('phase', $this->phase)
+            ->where('hearing_number', '<=', $this->hearing_number)->count();
+    }
+
     public function case(): BelongsTo
     {
         return $this->belongsTo(LuponCase::class, 'case_id');

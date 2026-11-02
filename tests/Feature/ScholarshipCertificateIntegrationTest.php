@@ -233,7 +233,8 @@ class ScholarshipCertificateIntegrationTest extends TestCase
         );
 
         // The Scholarship preview branch reflects the DOCX wording.
-        $this->assertStringContainsString('INDIGENT CERTIFICATE', $source);
+        $shell = (string) file_get_contents(base_path('resources/js/components/certificates/BrandedCertificatePreview.tsx'));
+        $this->assertStringContainsString('(Indigent Certificate)', $shell);
         $this->assertStringContainsString(
             'THIS FURTHER CERTIFIES THAT THEY BELONG TO THE INDIGENT FAMILY.',
             $source

@@ -69,15 +69,12 @@ class CertificateRequestController extends Controller
                 }),
 
                 // Only show active certificates belonging to this barangay.
-                'certificates' => $this->deferProp(fn () => $this->rememberReference(
-                    "resident:certificate-options:{$resident->barangay_id}",
-                    300,
-                    fn () => Certificate::query()
-                        ->where('barangay_id', $resident->barangay_id)
-                        ->where('is_active', true)
-                        ->orderBy('name')
-                        ->get()
-                        ->map(function (Certificate $certificate) {
+                'certificates' => $this->deferProp(fn () => Certificate::query()
+                    ->where('barangay_id', $resident->barangay_id)
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get()
+                    ->map(function (Certificate $certificate) {
                             $type = CertificateRequestDetails::typeForCertificate($certificate);
 
                             return [
@@ -92,26 +89,25 @@ class CertificateRequestController extends Controller
                                 ),
                                 'certificateType' => $type,
                                 'fixedPurpose' => CertificateRequestDetails::fixedPurpose($type),
-                                'detailsFields' => CertificateRequestDetails::fieldsForType($type),
-                                // Requestability follows the active catalog. A missing
-                                // generation template does not prevent an active service
-                                // from accepting a Resident request.
-                                'available' => $type !== null,
+                                'detailsFields' => CertificateRequestDetails::fieldsForCertificate($certificate),
+                                // Active barangay catalog entries are requestable even
+                                // when the Clerk has no generation template for them.
+                                'available' => true,
                                 'templateAvailable' => $type !== null
                                     && CertificateTemplates::isAvailable($type),
                             ];
-                        })
-                        ->values()
-                        ->all(),
-                )),
+                    })
+                    ->values()
+                    ->all()),
                 // Only show requests belonging to this resident.
                 'requests' => $this->deferProp(fn () => CertificateRequest::query()
                     ->with('certificate')
                     ->where('resident_id', $resident->id)
                     ->where('barangay_id', $resident->barangay_id)
                     ->latest('created_at')
-                    ->get()
-                    ->map(function (CertificateRequest $request) {
+                    ->paginate(10, ['*'], 'requests_page')
+                    ->withQueryString()
+                    ->through(function (CertificateRequest $request) {
                         $payload = CertificateRequestDetails::decode(
                             $request->additional_details,
                         );
@@ -141,8 +137,7 @@ class CertificateRequestController extends Controller
                             ),
                             'adminNote' => $request->admin_note,
                         ];
-                    })
-                    ->values()),
+                    })),
             ]
         );
     }
@@ -183,29 +178,26 @@ class CertificateRequestController extends Controller
             $certificate,
         );
 
-        if ($certificateType === null) {
-            throw ValidationException::withMessages([
-                'certificate_id' => 'This certificate is not supported for requests yet. Please contact the barangay office.',
-            ]);
-        }
-
         $fixedPurpose = CertificateRequestDetails::fixedPurpose($certificateType);
         $requiresBusinessDetails =
             CertificateRequestDetails::requiresBusinessDetails(
                 $certificateType,
                 (bool) $certificate->requires_business_details,
             );
+        $detailsFields = CertificateRequestDetails::fieldsForCertificate($certificate);
 
         $validated = $request->validate(
             CertificateRequestDetails::validationRules(
                 $certificateType,
                 $requiresBusinessDetails,
+                $detailsFields,
             ),
         );
 
         $details = CertificateRequestDetails::normalizeDetails(
             $certificateType,
             $validated['details'] ?? [],
+            $detailsFields,
         );
 
         if ($certificateType === DelayedPsaCertificate::TYPE
@@ -228,6 +220,7 @@ class CertificateRequestController extends Controller
             $certificateType,
             $details,
             $validated['additional_details'] ?? null,
+            $detailsFields,
         );
 
         // Generate a unique reference number.

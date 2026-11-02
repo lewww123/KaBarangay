@@ -15,6 +15,7 @@ class Certificate extends Model
         'description',
         'fee',
         'requirements',
+        'form_schema',
         'requires_business_details',
         'is_active',
     ];
@@ -24,6 +25,7 @@ class Certificate extends Model
         return [
             'fee' => 'decimal:2',
             'requirements' => 'array',
+            'form_schema' => 'array',
             'requires_business_details' => 'boolean',
             'is_active' => 'boolean',
         ];

@@ -112,17 +112,12 @@ export default function RegistrationPending({
                         <div className="mt-5 space-y-3">
                             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
                                 <p className="text-sm font-semibold text-blue-900">
-                                    Verify your email for decision notices
+                                    Admin review and email notifications
                                 </p>
                                 <p className="mt-1 text-xs leading-5 text-blue-800">
-                                    Your email was verified by OTP before submission. Sign in below with your application reference and registration password to view your application. If you change your email, verify the new address with a fresh code.
+                                    Ipapadala sa email address na inilagay mo ang approval, correction request, o desisyon ng admin. Sign in below with your application reference and registration password to view your application.
                                 </p>
-                                <Link
-                                    href="/resident/register/verification/resend"
-                                    className="mt-3 inline-flex text-xs font-semibold text-[#315b30] underline underline-offset-2"
-                                >
-                                    Request another verification code
-                                </Link>
+
                             </div>
 
                             <ProcessItem

@@ -130,7 +130,7 @@ class AdminDashboardTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('stats.residents', 3)
+                ->where('stats.residents', 2)
                 ->missing('stats.totalResidents')
                 ->missing('stats.pendingApplications'));
     }

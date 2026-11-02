@@ -85,8 +85,8 @@ class SectorController extends Controller
             $hasSectorApplications = in_array('sector_applications', $tableListing, true);
             $hasLuponCases = in_array('lupon_cases', $tableListing, true);
 
-            $stats = $this->rememberAggregate(
-                'admin:sectors:stats:'.$barangayId.':'.md5(json_encode([
+            $stats = (object) $this->rememberAggregate(
+                'admin:sectors:stats:v2:'.$barangayId.':'.md5(json_encode([
                     'search' => $filters['search'],
                     'purok' => $filters['purok'],
                     'certificate_search' => $certificateFilters['search'],
@@ -233,7 +233,7 @@ class SectorController extends Controller
         array $certificateFilters,
         bool $hasSectorApplications,
         bool $hasLuponCases,
-    ): object {
+    ): array {
         $stats = DB::query()
             ->selectSub(
                 $this->generalMemberScope($barangayId)->selectRaw('COUNT(*)')->toBase(),
@@ -317,7 +317,7 @@ class SectorController extends Controller
             );
         }
 
-        return $stats->first() ?? (object) [];
+        return (array) ($stats->first() ?? []);
     }
 
     /*

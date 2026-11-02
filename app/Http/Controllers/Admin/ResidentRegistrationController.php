@@ -73,28 +73,6 @@ class ResidentRegistrationController extends Controller
 
         $purokModels = Purok::hydrate($purokOptions);
 
-        $householdCounts = Household::query()
-            ->where('barangay_id', $user->barangay_id)
-            ->selectRaw('purok_id, COUNT(*) as aggregate')
-            ->groupBy('purok_id')
-            ->pluck('aggregate', 'purok_id');
-        $residentCounts = Resident::query()
-            ->where('barangay_id', $user->barangay_id)
-            ->selectRaw('purok_id, COUNT(*) as aggregate')
-            ->groupBy('purok_id')
-            ->pluck('aggregate', 'purok_id');
-
-        $puroks = $purokModels
-            ->map(function (Purok $purok) use ($householdCounts, $residentCounts) {
-                return [
-                    'id' => $purok->id,
-                    'name' => $purok->name,
-                    'household_count' => (int) ($householdCounts[$purok->id] ?? 0),
-                    'resident_count' => (int) ($residentCounts[$purok->id] ?? 0),
-                ];
-            })
-            ->values();
-
         $purokMap = $purokModels->keyBy('id');
 
         $selectedPurokId = $this->resolvePurokFilter(
@@ -134,7 +112,7 @@ class ResidentRegistrationController extends Controller
             $residentSearch,
             $registrationSearch,
             $purokMap,
-            $puroks,
+            $purokModels,
         ): array {
             if ($payload !== null) {
                 return $payload;
@@ -144,17 +122,17 @@ class ResidentRegistrationController extends Controller
                 ->selectSub(
                     Resident::query()
                         ->where('barangay_id', $user->barangay_id)
+                        ->approvedAccount()
                         ->selectRaw('COUNT(*)')
                         ->toBase(),
                     'total_residents',
                 )
                 ->selectSub(
-                    Resident::query()
+                    Household::query()
                         ->where('barangay_id', $user->barangay_id)
-                        ->where('status', 'active')
                         ->selectRaw('COUNT(*)')
                         ->toBase(),
-                    'active_residents',
+                    'total_households',
                 )
                 ->selectSub(
                     ResidentRegistration::query()
@@ -206,7 +184,7 @@ class ResidentRegistrationController extends Controller
                     'all_residents',
                 );
 
-            $statsKey = 'admin:residents:stats:v2:'.$user->barangay_id.':'.hash('sha256', json_encode([
+            $statsKey = 'admin:residents:stats:v4:'.$user->barangay_id.':'.hash('sha256', json_encode([
                 'purok_id' => $selectedPurokId,
                 'resident_search' => $residentSearch,
                 'registration_search' => $registrationSearch,
@@ -218,7 +196,11 @@ class ResidentRegistrationController extends Controller
             );
 
             $totalResidents = (int) ($stats->total_residents ?? 0);
-            $activeResidents = (int) ($stats->active_residents ?? 0);
+            $activeResidents = $totalResidents;
+
+            $puroks = $this->resolvesProp('Admin/Residents', 'puroks')
+                ? $this->purokSummaries($purokModels, (int) $user->barangay_id)
+                : null;
 
             /*
             |--------------------------------------------------------------------------
@@ -302,9 +284,7 @@ class ResidentRegistrationController extends Controller
                     'totalResidents' => $totalResidents,
                     'activeResidents' => $activeResidents,
                     'pendingRegistrations' => (int) ($stats->pending_registrations ?? 0),
-                    'totalHouseholds' => Household::query()
-                        ->where('barangay_id', $user->barangay_id)
-                        ->count(),
+                    'totalHouseholds' => (int) ($stats->total_households ?? 0),
                 ],
             ];
         };
@@ -324,6 +304,35 @@ class ResidentRegistrationController extends Controller
             ],
             'stats' => $this->deferProp(fn () => $resolvePayload()['stats']),
         ]);
+    }
+
+    /**
+     * Build per-purok summaries only when the deferred purok prop is requested.
+     *
+     * @param  Collection<int, Purok>  $puroks
+     */
+    private function purokSummaries(Collection $puroks, int $barangayId): Collection
+    {
+        $householdCounts = Household::query()
+            ->where('barangay_id', $barangayId)
+            ->selectRaw('purok_id, COUNT(*) as aggregate')
+            ->groupBy('purok_id')
+            ->pluck('aggregate', 'purok_id');
+        $residentCounts = Resident::query()
+            ->where('barangay_id', $barangayId)
+            ->approvedAccount()
+            ->selectRaw('purok_id, COUNT(*) as aggregate')
+            ->groupBy('purok_id')
+            ->pluck('aggregate', 'purok_id');
+
+        return $puroks
+            ->map(fn (Purok $purok) => [
+                'id' => $purok->id,
+                'name' => $purok->name,
+                'household_count' => (int) ($householdCounts[$purok->id] ?? 0),
+                'resident_count' => (int) ($residentCounts[$purok->id] ?? 0),
+            ])
+            ->values();
     }
 
     /*
@@ -534,7 +543,7 @@ class ResidentRegistrationController extends Controller
     }
 
     /**
-     * Search active official Residents in the application's barangay.
+     * Search official Residents in the application's barangay.
      * Results are suggestions only; an administrator must select one explicitly.
      */
     public function matchingCandidates(
@@ -569,7 +578,7 @@ class ResidentRegistrationController extends Controller
             ->with(['purok:id,name', 'account:id,resident_id,is_active'])
             ->where('barangay_id', $registration->barangay_id)
             ->where('source', 'admin')
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'inactive'])
             ->where(function ($query) use ($terms) {
                 foreach ($terms as $term) {
                     $like = '%'.Str::lower($term).'%';
@@ -861,9 +870,9 @@ class ResidentRegistrationController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            if (! $resident || $resident->status !== 'active') {
+            if (! $resident || ! in_array($resident->status, ['active', 'inactive'], true)) {
                 throw ValidationException::withMessages([
-                    'resident_id' => 'Select an active, Admin-added Resident from this barangay.',
+                    'resident_id' => 'Select an Admin-added Resident from this barangay.',
                 ]);
             }
 
@@ -943,6 +952,11 @@ class ResidentRegistrationController extends Controller
                 'review_notes' => null,
                 'reviewed_by' => $user->id,
                 'reviewed_at' => now(),
+            ])->save();
+
+            $resident->forceFill([
+                'status' => 'active',
+                'approved_at' => now(),
             ])->save();
 
             $notification = $notifications->enqueue($lockedRegistration, 'approved');
@@ -1782,16 +1796,7 @@ class ResidentRegistrationController extends Controller
                     ->whereNull('revoked_at'),
             ])
             ->where('barangay_id', $barangayId)
-            ->where('status', 'active')
-            ->whereHas('account', fn ($query) => $query->where('is_active', true))
-            ->where(function ($query) {
-                $query->whereHas('registration', fn ($registration) => $registration
-                    ->where('status', 'approved')
-                    ->whereColumn('resident_registrations.barangay_id', 'residents.barangay_id'))
-                    ->orWhereHas('matchedRegistrations', fn ($registration) => $registration
-                        ->where('status', 'approved')
-                        ->whereColumn('resident_registrations.barangay_id', 'residents.barangay_id'));
-            })
+            ->approvedAccount()
             ->when($purokId !== null, fn ($query) => $query->where('purok_id', $purokId))
             ->when($search !== '', function ($query) use ($search) {
                 $like = '%'.$search.'%';

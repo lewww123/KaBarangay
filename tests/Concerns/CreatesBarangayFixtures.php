@@ -22,6 +22,9 @@ trait CreatesBarangayFixtures
 {
     private function verifyRegistrationEmailForSubmission(string $email): void
     {
+        if (! config('registration.email_verification_required', false)) {
+            return;
+        }
         if (! (Mail::getFacadeRoot() instanceof MailFake)) {
             Mail::fake();
         }

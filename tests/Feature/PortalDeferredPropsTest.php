@@ -33,13 +33,12 @@ class PortalDeferredPropsTest extends TestCase
     {
         return [
             ['clerk', '/clerk/dashboard', 'Clerk/Dashboard', ['stats', 'recentAnnouncements']],
-            ['clerk', '/clerk/certificates', 'Clerk/Certificates', ['requests', 'issuances', 'allRecords', 'certificateOptions', 'signatories', 'issuedFilters', 'allFilters']],
+            ['clerk', '/clerk/certificates', 'Clerk/Certificates', ['requests', 'issuances', 'allRecords', 'certificateOptions', 'signatories', 'issuedFilters', 'allFilters', 'barangayBranding']],
             ['clerk', '/clerk/announcements', 'Clerk/Announcements/Index', ['announcements', 'tabCounts']],
             ['clerk', '/clerk/citizen-charter', 'Clerk/CitizenCharter/Index', ['services', 'stats']],
             ['clerk', '/clerk/disbursements', 'Clerk/Disbursements/Index', ['documents', 'stats']],
             ['clerk', '/clerk/org-chart', 'OrgChart/Management', ['tree', 'positions', 'stats']],
             ['lupon', '/lupon/cases', 'Lupon/Cases/Index', ['cases', 'counts']],
-            ['lupon', '/lupon/cases/create', 'Lupon/Cases/Create', ['residents']],
             ['lupon', '/lupon/complaints', 'Lupon/Complaints', ['complaints', 'stats']],
             ['lupon', '/lupon/hearings', 'Lupon/Hearings/Index', ['hearings']],
             ['senior', '/senior/dashboard', 'Senior/Dashboard', ['stats', 'recentAnnouncements']],
@@ -68,7 +67,7 @@ class PortalDeferredPropsTest extends TestCase
     {
         return [
             ['/resident', 'Resident/Dashboard', ['resident', 'qrUrl', 'latestAnnouncement', 'sharedEmergencyContacts', 'barangayHotlines']],
-            ['/resident/announcements', 'Resident/Announcements', ['announcements', 'categories', 'pagination']],
+            ['/resident/announcements', 'Resident/Announcements', ['announcements', 'categories']],
             ['/resident/programs', 'Resident/Programs', ['programs']],
             ['/resident/certificates', 'Resident/Certificates', ['resident', 'certificates', 'requests']],
             ['/resident/lupon', 'Resident/Lupon', ['resident', 'complaints', 'complaintsAgainstMe']],

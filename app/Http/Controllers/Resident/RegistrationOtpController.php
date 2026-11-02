@@ -12,6 +12,9 @@ class RegistrationOtpController extends Controller
 {
     public function send(Request $request, RegistrationEmailOtp $otp): JsonResponse
     {
+        if (! config('registration.email_verification_required', false)) {
+            return response()->json(['message' => 'Hindi na kailangan ang OTP para sa registration. Lumang form ang bukas mo. I-refresh ang registration page para magpatuloy nang walang OTP.', 'email_verification_required' => false, 'reload_required' => true], 409);
+        }
         $this->normalizeEmail($request);
         $input = $request->validate(['email' => ['required', 'string', 'email:rfc', 'max:255']]);
 
@@ -23,6 +26,9 @@ class RegistrationOtpController extends Controller
 
     public function verify(Request $request, RegistrationEmailOtp $otp): JsonResponse
     {
+        if (! config('registration.email_verification_required', false)) {
+            return response()->json(['message' => 'Hindi na kailangan ang OTP para sa registration. Lumang form ang bukas mo. I-refresh ang registration page para magpatuloy nang walang OTP.', 'email_verification_required' => false, 'reload_required' => true], 409);
+        }
         $this->normalizeEmail($request);
         $input = $request->validate([
             'email' => ['required', 'string', 'email:rfc', 'max:255'],

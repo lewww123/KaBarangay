@@ -147,15 +147,15 @@ export default function Reports({
                     <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
                         <div>
                             <h2 id="summary-heading" className="text-base font-semibold text-gray-800">Management summary</h2>
-                            <p className="text-xs text-gray-500">Residents are current active records; service totals use the selected period.</p>
+                            <p className="text-xs text-gray-500">Resident totals match the approved Residents directory; service totals use the selected period.</p>
                         </div>
                         <span className="text-xs text-gray-500">{categoryLabels[filters.category]}</span>
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                        <Metric title="Total active Residents" value={population.metrics['Total active Residents']} note="Current barangay snapshot" />
-                        <Metric title="General Residents" value={population.metrics['General Residents']} note="No sector membership" />
-                        <Metric title="PWD" value={population.metrics.PWD} note="Distinct active members" />
-                        <Metric title="Senior Citizens" value={population.metrics['Senior Citizens']} note="Distinct active members" />
+                        <Metric title="Total active Residents" value={population.metrics['Total active Residents']} note="Approved residents with active accounts" />
+                        <Metric title="General Residents" value={population.metrics['General Residents']} note="Approved residents with no sector membership" />
+                        <Metric title="PWD" value={population.metrics.PWD} note="Distinct approved resident members" />
+                        <Metric title="Senior Citizens" value={population.metrics['Senior Citizens']} note="Distinct approved resident members" />
                         <Metric title="Certificate issuances" value={certificates.count} note="Generated/recorded in period" />
                         <Metric title="Lupon cases filed" value={lupon.count} note="By filed date in period" />
                     </div>
@@ -164,7 +164,7 @@ export default function Reports({
 
                 {visible('population') && (
                     <section className="mt-7" aria-labelledby="population-heading">
-                        <SectionHeading id="population-heading" title="Population reports" subtitle="Current active population snapshot; not affected by activity date filters." />
+                        <SectionHeading id="population-heading" title="Population reports" subtitle="Current approved residents with active accounts; not affected by activity date filters." />
                         <Chart title="Sector membership breakdown" points={population.sectors} empty="No sectors are configured." />
                     </section>
                 )}

@@ -7,7 +7,11 @@ use App\Models\LuponCase;
 use App\Models\LuponComplaint;
 use App\Models\Resident;
 use App\Support\AuditLogger;
+use App\Support\LuponCaseWorkflow;
+use App\Support\LuponCatalog;
+use App\Support\LuponEvidenceStore;
 use App\Support\ResidentContext;
+use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,15 +22,7 @@ use Inertia\Response;
 
 class LuponComplaintController extends Controller
 {
-    private const COMPLAINT_TYPES = [
-        'Property / Boundary Dispute',
-        'Noise / Disturbance',
-        'Debt / Money Dispute',
-        'Damage to Property',
-        'Threat / Harassment',
-        'Family / Neighbor Dispute',
-        'Other',
-    ];
+    private const COMPLAINT_TYPES = LuponCatalog::CASE_TYPES;
 
     private const RESPONDENT_STATUSES = ['Yes', 'No', 'Unknown'];
 
@@ -61,10 +57,11 @@ class LuponComplaintController extends Controller
             'complaints' => $this->deferProp(fn () => LuponComplaint::query()
                 ->where('resident_id', $resident->id)
                 ->where('barangay_id', $resident->barangay_id)
-                ->with(['case'])
+                ->with(['case', 'evidence'])
                 ->latest('created_at')
-                ->get()
-                ->map(function (LuponComplaint $complaint) {
+                ->paginate(10, ['*'], 'complaints_page')
+                ->withQueryString()
+                ->through(function (LuponComplaint $complaint) {
                     return [
                         'id' => $complaint->id,
                         'reference' => $complaint->reference,
@@ -84,6 +81,8 @@ class LuponComplaintController extends Controller
                             $complaint->submitted_at
                             ?? $complaint->created_at
                         )?->format('F j, Y') ?? '',
+                        'trackingStatus' => $complaint->case ? LuponCaseWorkflow::tracking($complaint->case) : ($complaint->status === 'Submitted' ? 'Pending' : ($complaint->status === 'Rejected' ? 'Rejected' : 'Under Review')),
+                        'evidence' => $complaint->evidence->map(fn ($file) => LuponEvidenceStore::summary($file, 'resident'))->all(),
                         'case' => $complaint->case ? [
                             'id' => $complaint->case->id,
                             'caseNumber' => $complaint->case->case_number,
@@ -91,8 +90,7 @@ class LuponComplaintController extends Controller
                             'status' => $complaint->case->status,
                         ] : null,
                     ];
-                })
-                ->values()),
+                })),
             // 2. Verified cases where this resident is a respondent (Complaints Against Me)
             'complaintsAgainstMe' => $this->deferProp(fn () => LuponCase::query()
                 ->where('barangay_id', $resident->barangay_id)
@@ -102,11 +100,12 @@ class LuponComplaintController extends Controller
                 })
                 ->with([
                     'complainants' => fn ($q) => $q->where('is_primary', true)->limit(1),
-                    'hearings' => fn ($q) => $q->where('status', 'Scheduled')->orderBy('hearing_date')->limit(1),
+                    'hearings' => fn ($q) => $q->whereIn('status', ['Scheduled', 'Rescheduled'])->orderBy('hearing_date')->limit(1),
                 ])
                 ->latest('filed_date')
-                ->get()
-                ->map(function (LuponCase $case) {
+                ->paginate(10, ['*'], 'against_page')
+                ->withQueryString()
+                ->through(function (LuponCase $case) {
                     $complainant = $case->complainants->first();
                     $nextHearing = $case->hearings->first();
 
@@ -116,6 +115,7 @@ class LuponComplaintController extends Controller
                         'caseType' => $case->case_type,
                         'phase' => $case->phase,
                         'status' => $case->status,
+                        'trackingStatus' => LuponCaseWorkflow::tracking($case),
                         'filedDate' => $case->filed_date->format('F j, Y'),
                         'complainantName' => $complainant?->name ?? 'Complainant',
                         'nextHearing' => $nextHearing ? [
@@ -124,8 +124,7 @@ class LuponComplaintController extends Controller
                             'venue' => $nextHearing->venue,
                         ] : null,
                     ];
-                })
-                ->values()),
+                })),
         ]);
     }
 
@@ -140,6 +139,8 @@ class LuponComplaintController extends Controller
             ->firstOrFail();
 
         $validated = $request->validate([
+            'evidence' => LuponCatalog::EVIDENCE_RULES,
+            'evidence.*' => LuponCatalog::FILE_RULES,
             'respondentName' => ['required', 'string', 'max:255'],
             'respondentResidentStatus' => [
                 'required',
@@ -156,7 +157,7 @@ class LuponComplaintController extends Controller
             'incidentDate' => [
                 'required',
                 'date',
-                'before_or_equal:today',
+                'before_or_equal:'.LuponCaseWorkflow::today(),
             ],
             'incidentTime' => ['nullable', 'date_format:H:i'],
             'incidentLocation' => ['required', 'string', 'max:500'],
@@ -181,7 +182,12 @@ class LuponComplaintController extends Controller
             'submitted_at' => now(),
         ];
 
-        $complaint = $this->createWithReference($attributes);
+        $complaint = DB::transaction(function () use ($attributes, $request, $resident) {
+            $complaint = $this->createWithReference($attributes);
+            LuponEvidenceStore::store($request->file('evidence', []), $complaint, null, $resident->id);
+
+            return $complaint;
+        });
 
         AuditLogger::record(
             event: 'lupon_complaint.submitted',
@@ -207,7 +213,7 @@ class LuponComplaintController extends Controller
 
     private function createWithReference(array $attributes): LuponComplaint
     {
-        $prefix = 'LUP-'.now()->year.'-';
+        $prefix = 'LUP-'.Carbon::parse(LuponCaseWorkflow::today())->year.'-';
         $attempts = 0;
 
         while ($attempts < 5) {

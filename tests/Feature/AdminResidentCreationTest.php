@@ -50,6 +50,8 @@ class AdminResidentCreationTest extends TestCase
 
         $this->assertNull($resident->email);
         $this->assertNull($resident->email_verified_at);
+        $this->assertSame('inactive', $resident->status);
+        $this->assertNull($resident->approved_at);
         $this->assertDatabaseCount('resident_accounts', 1);
         $this->assertDatabaseCount('resident_notification_outbox', 0);
         $this->assertDatabaseHas('audit_logs', [
@@ -186,6 +188,28 @@ class AdminResidentCreationTest extends TestCase
             ->assertSessionHasErrors('purok_id');
 
         $this->assertDatabaseCount('residents', 2);
+    }
+
+    public function test_application_submitted_before_admin_creation_can_find_and_link_the_new_inactive_record(): void
+    {
+        Mail::fake();
+        config(['registration.email_verification_required' => false]);
+        $application = $this->createPendingRegistration($this->barangay, $this->purok, ['first_name' => 'Maria', 'last_name' => 'Santos', 'sex' => 'Female', 'birthdate' => '1990-01-01', 'mobile' => '09175550101', 'email' => 'maria@example.test']);
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $this->actingAs($admin)->post('/admin/residents', [...$this->residentData(), 'email' => 'maria@example.test'])->assertRedirect()->assertSessionHasNoErrors();
+        $resident = Resident::query()->where('source', 'admin')->where('mobile', '09175550101')->sole();
+        $this->assertSame('inactive', $resident->status);
+        $this->assertFalse($resident->account()->exists());
+        $residentCount = Resident::count();
+        $this->getJson('/admin/resident-registrations/'.$application->id.'/candidates?q=Maria%20Santos')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $resident->id)->assertJsonPath('data.0.status', 'inactive')->assertJsonPath('data.0.account_exists', false);
+        $this->post('/admin/residents/'.$application->id.'/approve', ['resident_id' => $resident->id])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('approved', $application->fresh()->status);
+        $this->assertSame($resident->id, $application->fresh()->matched_resident_id);
+        $this->assertSame('active', $resident->fresh()->status);
+        $this->assertTrue($resident->account()->firstOrFail()->is_active);
+        $this->assertSame($application->password, $resident->account()->firstOrFail()->password);
+        $this->assertSame($residentCount, Resident::count());
     }
 
     /** @return array<string, int|string> */

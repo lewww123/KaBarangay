@@ -31,7 +31,7 @@ class DashboardController extends Controller
             }
 
             return $payload = $this->rememberAggregate(
-                "admin:dashboard:{$barangayId}",
+                "admin:dashboard:v2:{$barangayId}",
                 30,
                 function () use ($barangayId): array {
                     $puroks = collect($this->rememberReference('admin:purok-options:v2:'.$barangayId, 300, fn () => Purok::query()
@@ -166,7 +166,7 @@ class DashboardController extends Controller
             ->selectSub(
                 Resident::query()
                     ->where('barangay_id', $barangayId)
-                    ->where('status', 'active')
+                    ->approvedAccount()
                     ->selectRaw('COUNT(*)')
                     ->toBase(),
                 'residents',

@@ -23,7 +23,8 @@ class ResidentProgramsTest extends TestCase
         $purok = $this->createPurok($barangay);
         $resident = $this->createResident($barangay, $purok);
         $this->assignSector($resident, 'senior');
-        $this->createProgram($barangay, ['title' => 'Community Cleanup', 'target_audience' => 'all', 'event_start_at' => now()->addDay()]);
+        $cleanupStartsAt = now()->addDay();
+        $this->createProgram($barangay, ['title' => 'Community Cleanup', 'target_audience' => 'all', 'event_start_at' => $cleanupStartsAt]);
         $this->createProgram($barangay, ['title' => 'Senior Wellness Day', 'target_audience' => 'senior_citizens', 'event_start_at' => now()->addDays(2)]);
         $this->createProgram($barangay, ['title' => 'PWD Skills Workshop', 'target_audience' => 'pwd']);
         $this->createProgram($barangay, ['title' => 'Draft Project', 'program_status' => 'draft', 'is_published' => false]);
@@ -39,7 +40,7 @@ class ResidentProgramsTest extends TestCase
                 ->where('programs.1.title', 'Senior Wellness Day')
                 ->where('programs.1.eligibility', 'Senior Citizens')
                 ->where('programs.0.location', 'Barangay Hall')
-                ->where('programs.0.schedule', now()->addDay()->toIso8601String()));
+                ->where('programs.0.schedule', $cleanupStartsAt->toIso8601String()));
     }
 
     private function createProgram($barangay, array $attributes = []): Announcement

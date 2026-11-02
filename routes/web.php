@@ -18,6 +18,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Auth\StaffLoginController;
 use App\Http\Controllers\CertificateController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\Clerk\AnnouncementController as ClerkAnnouncementController;
 use App\Http\Controllers\Clerk\CertificateController as ClerkCertificateController;
 use App\Http\Controllers\Clerk\CertificateRequestController as ClerkCertificateRequestController;
@@ -75,6 +76,8 @@ use Inertia\Inertia;
 */
 
 Route::redirect('/', '/resident/login')->name('home');
+Route::post('/chatbot/send', [ChatbotController::class, 'sendMessage'])
+    ->middleware(['resident.auth', 'throttle:20,1'])->name('chatbot.send');
 Route::post('/register/send-otp', [RegistrationOtpController::class, 'send'])
     ->middleware('throttle:registration-otp-send')->name('register.send-otp');
 Route::post('/register/verify-otp', [RegistrationOtpController::class, 'verify'])
@@ -313,6 +316,8 @@ Route::prefix('resident')->name('resident.')->group(function () {
 
         Route::get('/lupon', [ResidentLuponComplaintController::class, 'index'])->name('lupon');
         Route::post('/lupon/complaints', [ResidentLuponComplaintController::class, 'store'])->name('lupon.complaints.store');
+        Route::get('/lupon/evidence/{evidence}', [\App\Http\Controllers\Lupon\LuponEvidenceController::class, 'download'])->name('lupon.evidence.download');
+        Route::get('/lupon/documents/{document}', [\App\Http\Controllers\Lupon\LuponDocumentController::class, 'download'])->name('lupon.documents.download');
         Route::get('/lupon/cases/{case}', [ResidentLuponCaseController::class, 'show'])->name('lupon.cases.show');
 
         Route::get('/announcements', [ResidentAnnouncementController::class, 'index'])->name('announcements');
@@ -481,8 +486,11 @@ Route::prefix('resident')->name('resident.')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::domain('staff.kabarangay.com')->group(function () {
-    Route::get('/', [StaffLoginController::class, 'showLoginForm'])->middleware('guest')->name('login');
+Route::domain(config('app.staff_domain') ?: 'staff.kabarangay.com')
+    ->get('/', [StaffLoginController::class, 'showLoginForm'])->middleware('guest');
+
+Route::group(['domain' => config('app.staff_domain')], function () {
+    Route::get('/staff/login', [StaffLoginController::class, 'showLoginForm'])->middleware('guest')->name('login');
     Route::post('/login', [StaffLoginController::class, 'login'])
         ->middleware(['guest', 'throttle:login-staff'])
         ->name('login.store');
@@ -490,6 +498,10 @@ Route::domain('staff.kabarangay.com')->group(function () {
 Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+
+    Route::get('/admin/residents/search', \App\Http\Controllers\ResidentSearchController::class)
+        ->middleware(['role:admin,clerk', 'throttle:120,1'])
+        ->name('admin.residents.search');
 
     /*
     |--------------------------------------------------------------------------
@@ -683,6 +695,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings');
         Route::get('/settings/export/residents', [AdminSettingsController::class, 'exportResidents'])->name('settings.export.residents');
         Route::get('/settings/export/staff', [AdminSettingsController::class, 'exportStaff'])->name('settings.export.staff');
+        Route::get('/settings/export/audit-log', [AdminSettingsController::class, 'exportAuditLog'])->name('settings.export.audit-log');
         Route::get('/settings/export/backup', [AdminSettingsController::class, 'exportData'])->name('settings.export.data');
     });
 
@@ -690,28 +703,33 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     | General Clerk Routes
     |--------------------------------------------------------------------------
+    |
+    | Clerk-only. Administrators have their own aggregate monitoring routes
+    | under /admin and must never reach a Clerk workspace, and Clerks are
+    | denied every /admin route by the same role middleware.
+    |
     */
-    Route::middleware('role:clerk,admin')->prefix('clerk')->name('clerk.')->group(function () {
+    Route::middleware('role:clerk')->prefix('clerk')->name('clerk.')->group(function () {
 
         Route::get('/dashboard', [ClerkController::class, 'dashboard'])->name('dashboard');
 
         // Certificate request processing is Clerk work. Administrators have
-        // aggregate monitoring only and must not be able to process individual
-        // requests through these routes.
-        Route::middleware('role:clerk')->group(function () {
-            Route::get('/certificates', [ClerkCertificateRequestController::class, 'index'])->name('certificates.page');
-            Route::get('/certificates/requests/{certificateRequest}', [ClerkCertificateRequestController::class, 'show'])->name('certificates.requests.show');
-            Route::patch('/certificates/requests/{certificateRequest}', [ClerkCertificateRequestController::class, 'updateDetails'])->name('certificates.requests.update');
-            Route::patch('/certificates/requests/{certificateRequest}/status', [ClerkCertificateRequestController::class, 'updateStatus'])->name('certificates.requests.status');
-            Route::post('/certificates/requests/{certificateRequest}/confirm-payment', [ClerkCertificateRequestController::class, 'confirmPayment'])->name('certificates.requests.confirm-payment');
-            Route::post('/certificates/requests/{certificateRequest}/release', [ClerkCertificateRequestController::class, 'confirmRelease'])->name('certificates.requests.release');
-            Route::post('/generate-certificate', [CertificateController::class, 'generate'])->name('certificates.generate');
-            Route::post('/certificates/preview', [CertificateController::class, 'preview'])->name('certificates.preview');
+        // aggregate monitoring only at /admin/certificates.
+        Route::get('/certificates', [ClerkCertificateRequestController::class, 'index'])->name('certificates.page');
+        Route::get('/certificates/requests/{certificateRequest}', [ClerkCertificateRequestController::class, 'show'])->name('certificates.requests.show');
+        Route::get('/certificates/issuances/{issuance}', [ClerkCertificateRequestController::class, 'showIssuance'])->name('certificates.issuances.show');
+        Route::get('/certificates/issuances/{issuance}/reprint', [CertificateController::class, 'reprint'])->name('certificates.issuances.reprint');
+        Route::patch('/certificates/requests/{certificateRequest}', [ClerkCertificateRequestController::class, 'updateDetails'])->name('certificates.requests.update');
+        Route::patch('/certificates/requests/{certificateRequest}/status', [ClerkCertificateRequestController::class, 'updateStatus'])->name('certificates.requests.status');
+        Route::post('/certificates/requests/{certificateRequest}/confirm-payment', [ClerkCertificateRequestController::class, 'confirmPayment'])->name('certificates.requests.confirm-payment');
+        Route::post('/certificates/requests/{certificateRequest}/release', [ClerkCertificateRequestController::class, 'confirmRelease'])->name('certificates.requests.release');
+        Route::get('/certificates/control-number', [CertificateController::class, 'nextControlNumber'])->name('certificates.control-number');
+        Route::post('/generate-certificate', [CertificateController::class, 'generate'])->name('certificates.generate');
+        Route::post('/certificates/preview', [CertificateController::class, 'preview'])->name('certificates.preview');
 
-            // Certificate form support data: the resident values the Clerk needs
-            // to fill the Delayed PSA Registration form for a linked resident.
-            Route::get('/certificates/resident-details/{resident}', [ClerkCertificateController::class, 'residentDetails'])->name('certificates.resident-details');
-        });
+        // Certificate form support data: the resident values the Clerk needs
+        // to fill the Delayed PSA Registration form for a linked resident.
+        Route::get('/certificates/resident-details/{resident}', [ClerkCertificateController::class, 'residentDetails'])->name('certificates.resident-details');
 
         // Disbursement Documents
         Route::get('/disbursements', [ClerkDisbursementDocumentController::class, 'index'])->name('disbursements.index');
@@ -873,10 +891,22 @@ Route::middleware('auth')->group(function () {
         Route::post('/complaints/{complaint}/verify-fee', [LuponComplaintController::class, 'verifyFee'])->name('complaints.verify-fee');
         Route::post('/complaints/{complaint}/promote', [LuponCaseController::class, 'promote'])->name('complaints.promote');
 
+        Route::get('/residents/search', \App\Http\Controllers\ResidentSearchController::class)->middleware('throttle:120,1')->name('residents.search');
+        Route::get('/residents/{resident}/lookup', [LuponCaseController::class, 'residentLookup'])->middleware('throttle:120,1')->name('residents.lookup');
+        Route::get('/evidence/{evidence}', [\App\Http\Controllers\Lupon\LuponEvidenceController::class, 'download'])->name('evidence.download');
+        Route::patch('/evidence/{evidence}/visibility', [\App\Http\Controllers\Lupon\LuponEvidenceController::class, 'share'])->name('evidence.visibility');
+        Route::post('/cases/{case}/evidence', [\App\Http\Controllers\Lupon\LuponEvidenceController::class, 'store'])->name('evidence.store');
+        Route::post('/cases/{case}/documents', [\App\Http\Controllers\Lupon\LuponDocumentController::class, 'generate'])->name('documents.generate');
+        Route::get('/documents/{document}', [\App\Http\Controllers\Lupon\LuponDocumentController::class, 'download'])->name('documents.download');
+        Route::get('/documents/{document}/preview', [\App\Http\Controllers\Lupon\LuponDocumentController::class, 'download'])->name('documents.preview');
+        Route::post('/documents/{document}/serve', [\App\Http\Controllers\Lupon\LuponDocumentController::class, 'serve'])->name('documents.serve');
+        Route::post('/cases/{case}/verify-fee', [\App\Http\Controllers\Lupon\LuponDocumentController::class, 'verifyFee'])->name('cases.verify-fee');
+        Route::post('/cases/{case}/history', [\App\Http\Controllers\Lupon\LuponDocumentController::class, 'history'])->name('cases.history');
+        Route::post('/cases/{case}/extend-conciliation', [\App\Http\Controllers\Lupon\LuponDocumentController::class, 'extend'])->name('cases.extend');
         // Lupon Case Management
         Route::get('/cases', [LuponCaseController::class, 'index'])->name('cases.index');
         Route::get('/cases/create', [LuponCaseController::class, 'create'])->name('cases.create');
-        Route::get('/cases/qr-lookup', [LuponCaseController::class, 'qrLookup'])->name('cases.qr-lookup');
+        Route::get('/cases/qr-lookup', [LuponCaseController::class, 'qrLookup'])->middleware('throttle:120,1')->name('cases.qr-lookup');
         Route::post('/cases', [LuponCaseController::class, 'store'])->name('cases.store');
         Route::get('/hearings', [LuponHearingController::class, 'index'])->name('hearings.index');
         Route::get('/cases/{case}', [LuponCaseController::class, 'show'])->name('cases.show');

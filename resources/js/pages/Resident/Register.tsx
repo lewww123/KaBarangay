@@ -41,6 +41,7 @@ type Props = {
     barangays?: Barangay[];
     sectors?: Sector[];
     emailVerification?: RegistrationEmailVerification;
+    emailVerificationRequired?: boolean;
 };
 
 type ClientErrors = Record<string, string>;
@@ -67,7 +68,7 @@ export default function Register(props: Props) {
     );
 }
 
-function RegistrationContent({ barangays, sectors, emailVerification }: Props) {
+function RegistrationContent({ barangays, sectors, emailVerification, emailVerificationRequired = false }: Props) {
     const safeBarangays = Array.isArray(barangays) ? barangays : [];
     const safeSectors = Array.isArray(sectors) ? sectors : [];
     const regularSector = safeSectors.find((sector) => sector.slug === 'regular');
@@ -116,7 +117,7 @@ function RegistrationContent({ barangays, sectors, emailVerification }: Props) {
         pwd_proof: null as File | null,
     });
 
-    const emailOtp = useRegistrationEmailOtp(data.email, emailVerification);
+    const emailOtp = useRegistrationEmailOtp(data.email, emailVerificationRequired ? emailVerification : undefined);
 
     const selectedBarangay = useMemo(
         () =>
@@ -324,7 +325,7 @@ function RegistrationContent({ barangays, sectors, emailVerification }: Props) {
             } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
                 nextErrors.email = 'Enter a valid email address.';
             }
-            if (!emailOtp.verified) {
+            if (emailVerificationRequired && !emailOtp.verified) {
                 nextErrors.email_verification = 'Verify your email with an OTP before continuing.';
             }
 
@@ -380,7 +381,7 @@ function RegistrationContent({ barangays, sectors, emailVerification }: Props) {
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (!emailOtp.verified) {
+        if (emailVerificationRequired && !emailOtp.verified) {
             setClientErrors({ email_verification: 'Verify your email with an OTP before submitting registration.' });
             setStep(5);
             scrollTop();
@@ -640,6 +641,7 @@ function RegistrationContent({ barangays, sectors, emailVerification }: Props) {
                                     <AccountSecurityStep
                                         data={data}
                                         emailOtp={emailOtp}
+                                        emailVerificationRequired={emailVerificationRequired}
                                         errors={fieldError}
                                         setData={setData}
                                         clearFieldError={clearFieldError}
@@ -668,7 +670,7 @@ function RegistrationContent({ barangays, sectors, emailVerification }: Props) {
                                         sex={data.sex}
                                         civilStatus={data.civil_status}
                                         mobile={data.mobile}
-                                        email={emailOtp.verified ? `${data.email} · OTP verified` : data.email}
+                                        email={emailVerificationRequired && emailOtp.verified ? `${data.email} · OTP verified` : data.email}
                                         sectorNames={selectedSectorNames}
                                         validId={data.valid_id}
                                         livePhoto={data.live_identity_photo}
@@ -739,7 +741,7 @@ function RegistrationContent({ barangays, sectors, emailVerification }: Props) {
                                     <button
                                         type="button"
                                         onClick={nextStep}
-                                        disabled={step === 5 && (!emailOtp.verified || emailOtp.busy !== null)}
+                                        disabled={step === 5 && emailVerificationRequired && (!emailOtp.verified || emailOtp.busy !== null)}
                                         className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         Continue
@@ -748,7 +750,7 @@ function RegistrationContent({ barangays, sectors, emailVerification }: Props) {
                                 ) : (
                                     <button
                                         type="submit"
-                                        disabled={processing || !emailOtp.verified}
+                                        disabled={processing || (emailVerificationRequired && !emailOtp.verified)}
                                         className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {processing ? (
@@ -1395,6 +1397,7 @@ function IdentityVerificationStep({
 function AccountSecurityStep({
     data,
     emailOtp,
+    emailVerificationRequired,
     errors,
     setData,
     clearFieldError,
@@ -1404,6 +1407,7 @@ function AccountSecurityStep({
     togglePasswordConfirmation,
 }: {
     emailOtp: RegistrationEmailOtpControls;
+    emailVerificationRequired: boolean;
     data: {
         mobile: string;
         email: string;
@@ -1440,6 +1444,7 @@ function AccountSecurityStep({
                         }}
                     />
 
+                    {emailVerificationRequired ? (
                     <EmailVerificationSection
                         email={data.email}
                         controls={emailOtp}
@@ -1450,6 +1455,8 @@ function AccountSecurityStep({
                             clearFieldError('email_verification');
                         }}
                     />
+                    ) : (<InputField label="Email address" required type="email" value={data.email} placeholder="you@gmail.com" error={errors('email')} onChange={(value) => { setData('email',value); clearFieldError('email'); }} />)}
+                    {!emailVerificationRequired && <p className="text-xs text-gray-500 sm:col-span-2">Dito ipapadala ang approval, correction request, o ibang desisyon ng admin. Siguraduhing tama at aktibo ang email address.</p>}
                 </div>
             </div>
 

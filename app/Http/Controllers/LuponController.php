@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\LuponCase;
+use App\Models\LuponDocument;
 use App\Models\LuponHearing;
+use App\Support\LuponCaseWorkflow;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,6 +22,9 @@ class LuponController extends Controller
             abort(403, 'Unauthorized access to Lupon Portal.');
         }
 
+        $pangkatDue = DB::connection()->getDriverName() === 'pgsql' ? '(pangkat_formed_at + 3)' : "date(pangkat_formed_at, '+3 days')";
+        $deadlineSql = "CASE WHEN status = 'filed' AND form_7_issued_at IS NULL THEN summons_due_at WHEN status = 'mediation_active' THEN mediation_deadline_at WHEN status = 'pangkat_formed' THEN {$pangkatDue} WHEN status = 'conciliation_active' THEN COALESCE(conciliation_extended_until, conciliation_deadline_at) END";
+
         return Inertia::render('Lupon/Dashboard', [
             'userName' => $user->name,
             'barangayName' => $user->barangay?->name,
@@ -27,7 +34,7 @@ class LuponController extends Controller
                 function () use ($user): array {
                     $counts = LuponCase::query()
                         ->where('barangay_id', $user->barangay_id)
-                        ->selectRaw("COUNT(*) as filed, COUNT(CASE WHEN phase = 'Kapitan' AND status IN ('Active', 'Under Mediation') THEN 1 END) as mediation, COUNT(CASE WHEN phase = 'Lupon' AND status IN ('Active', 'Under Conciliation') THEN 1 END) as conciliation, COUNT(CASE WHEN status = 'Settled' THEN 1 END) as settled")
+                        ->selectRaw("COUNT(*) as filed, COUNT(CASE WHEN status IN ('filed', 'mediation_active') THEN 1 END) as mediation, COUNT(CASE WHEN status IN ('pangkat_formed', 'conciliation_active') THEN 1 END) as conciliation, COUNT(CASE WHEN status = 'settled' THEN 1 END) as settled")
                         ->first();
 
                     return [
@@ -35,17 +42,16 @@ class LuponController extends Controller
                         'mediation' => (int) $counts->mediation,
                         'conciliation' => (int) $counts->conciliation,
                         'settled' => (int) $counts->settled,
-                        // KP document issuance is not yet a persisted workflow.
-                        'certificatesIssued' => 0,
+                        'certificatesIssued' => LuponDocument::whereHas('case', fn ($q) => $q->where('barangay_id', $user->barangay_id))->where('kind', 'cfa')->where('status', 'ready')->count(),
                     ];
                 },
             )),
             'deadlines' => $this->deferProp(fn () => LuponCase::query()
                 ->where('barangay_id', $user->barangay_id)
-                ->whereIn('status', ['Active', 'Under Mediation', 'Under Conciliation'])
-                ->where('filed_date', '<=', now()->addDays(15)->toDateString())
-                ->select(['id', 'case_number', 'title', 'phase', 'status', 'filed_date'])
-                ->orderBy('filed_date')
+                ->whereIn('status', ['filed', 'mediation_active', 'pangkat_formed', 'conciliation_active'])
+                ->selectRaw('lupon_cases.*, '.$deadlineSql.' AS current_deadline_at')
+                ->whereRaw('('.$deadlineSql.') <= ?', [Carbon::parse(LuponCaseWorkflow::today())->addDays(15)->toDateString()])
+                ->orderByRaw($deadlineSql)
                 ->limit(8)
                 ->get()
                 ->map(fn (LuponCase $case) => [
@@ -53,12 +59,12 @@ class LuponController extends Controller
                     'caseNumber' => $case->case_number,
                     'title' => $case->title,
                     'phase' => $case->phase,
-                    'dueDate' => $case->filed_date->copy()->addDays(15)->format('M j, Y'),
-                    'overdue' => $case->filed_date->copy()->addDays(15)->isPast(),
+                    'dueDate' => Carbon::parse($case->current_deadline_at)->format('M j, Y'),
+                    'overdue' => Carbon::parse($case->current_deadline_at)->toDateString() < LuponCaseWorkflow::today(),
                 ])),
             'schedule' => $this->deferProp(fn () => LuponHearing::query()
                 ->where('barangay_id', $user->barangay_id)
-                ->where('status', 'Scheduled')
+                ->whereIn('status', ['Scheduled', 'Rescheduled'])
                 ->whereBetween('hearing_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
                 ->with('case:id,case_number,title')
                 ->select(['id', 'case_id', 'hearing_number', 'phase', 'hearing_date', 'hearing_time', 'venue'])

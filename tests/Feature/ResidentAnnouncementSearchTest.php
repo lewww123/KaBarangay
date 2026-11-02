@@ -51,9 +51,9 @@ class ResidentAnnouncementSearchTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Announcements')
-                ->has('announcements', 2)
+                ->has('announcements.data', 2)
                 ->where('filters.q', 'relief')
-                ->where('pagination.total', 2));
+                ->where('announcements.total', 2));
     }
 
     public function test_search_and_filters_can_be_combined(): void
@@ -83,8 +83,8 @@ class ResidentAnnouncementSearchTest extends TestCase
             ->get('/resident/announcements?q=relief&category=Relief+Goods&importance=high')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('announcements', 1)
-                ->where('announcements.0.title', 'Relief Goods Schedule')
+                ->has('announcements.data', 1)
+                ->where('announcements.data.0.title', 'Relief Goods Schedule')
                 ->where('filters.category', 'Relief Goods')
                 ->where('filters.importance', 'high'));
     }
@@ -113,15 +113,15 @@ class ResidentAnnouncementSearchTest extends TestCase
             ->get('/resident/announcements?q=relief')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('announcements', 0)
-                ->where('pagination.total', 0));
+                ->has('announcements.data', 0)
+                ->where('announcements.total', 0));
     }
 
     public function test_announcement_feed_is_paginated(): void
     {
         $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09181000004']);
 
-        for ($index = 1; $index <= 10; $index++) {
+        for ($index = 1; $index <= 11; $index++) {
             $this->createAnnouncement($this->barangay, [
                 'title' => 'Announcement '.$index,
                 'content' => 'Content '.$index,
@@ -132,21 +132,21 @@ class ResidentAnnouncementSearchTest extends TestCase
             ->get('/resident/announcements')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('announcements', 8)
-                ->where('pagination.current_page', 1)
-                ->where('pagination.last_page', 2)
-                ->where('pagination.total', 10)
-                ->where('pagination.from', 1)
-                ->where('pagination.to', 8));
+                ->has('announcements.data', 10)
+                ->where('announcements.current_page', 1)
+                ->where('announcements.last_page', 2)
+                ->where('announcements.total', 11)
+                ->where('announcements.from', 1)
+                ->where('announcements.to', 10));
 
         $this->withSession(['resident_id' => $resident->id])
             ->get('/resident/announcements?page=2')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('announcements', 2)
-                ->where('pagination.current_page', 2)
-                ->where('pagination.from', 9)
-                ->where('pagination.to', 10));
+                ->has('announcements.data', 1)
+                ->where('announcements.current_page', 2)
+                ->where('announcements.from', 11)
+                ->where('announcements.to', 11));
     }
 
     public function test_categories_only_include_visible_announcements(): void

@@ -35,6 +35,9 @@ final class ResidentRegistrationDecisionNotificationService
         ?ResidentRegistrationCorrectionCycle $cycle = null,
         ?string $emailSafeReason = null,
     ): ResidentNotification {
+        if (! config('registration.email_verification_required', false) && $decision === 'rejected' && trim((string) $emailSafeReason) === '') {
+            $emailSafeReason = 'Hindi naaprubahan ang iyong application. Makipag-ugnayan sa barangay office para sa karagdagang detalye.';
+        }
         $verification = app(ResidentRegistrationEmailVerificationService::class);
         $recipient = $verification->verifiedDecisionEmail($registration);
         $normalizedAddress = Str::lower(trim((string) $registration->email));

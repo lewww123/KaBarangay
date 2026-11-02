@@ -374,6 +374,13 @@ export default function Settings({ barangay }: Props) {
                         />
 
                         <ExportRow
+                            title="Audit Log"
+                            description="Download your barangay's audit history as a CSV file."
+                            href="/admin/settings/export/audit-log"
+                            actionLabel="Export Data"
+                        />
+
+                        <ExportRow
                             title="Barangay Data Export (JSON)"
                             description="Barangay-scoped data export as a JSON file. Not a restore-verified backup; credentials and uploaded document files are excluded."
                             href="/admin/settings/export/backup"
@@ -442,6 +449,7 @@ function ExportRow({
 
             <a
                 href={href}
+                download
                 className="shrink-0 rounded-md border border-[#3f6f3d] px-4 py-2 text-sm font-medium text-[#3f6f3d] transition hover:bg-[#edf4ea]"
             >
                 {actionLabel}

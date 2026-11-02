@@ -27,7 +27,7 @@ final class ResidentRegistrationEmailVerificationService
      */
     public function send(ResidentRegistration $registration): bool
     {
-        if (! $this->schemaAvailable()) {
+        if (! config('registration.email_verification_required', false) || ! $this->schemaAvailable()) {
             return false;
         }
 
@@ -272,6 +272,10 @@ final class ResidentRegistrationEmailVerificationService
 
     public function verifiedDecisionEmail(ResidentRegistration $registration): ?string
     {
+        if (! config('registration.email_verification_required', false)) {
+            $email = $this->normalizedEmail($registration->email);
+            return filter_var($email, FILTER_VALIDATE_EMAIL) !== false ? $email : null;
+        }
         if (
             ! $this->schemaAvailable() ||
             $registration->email_verified_at === null

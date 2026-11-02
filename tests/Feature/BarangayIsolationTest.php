@@ -245,8 +245,8 @@ class BarangayIsolationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Announcements')
-                ->has('announcements', 1)
-                ->where('announcements.0.id', $ownAnnouncement->id));
+                ->has('announcements.data', 1)
+                ->where('announcements.data.0.id', $ownAnnouncement->id));
     }
 
     public function test_resident_dashboard_latest_announcement_is_scoped_to_own_barangay(): void

@@ -345,6 +345,32 @@ class AdminReportsTest extends TestCase
                 ->where('financial.message', fn ($message) => str_contains($message, 'unavailable')));
     }
 
+    public function test_population_matches_approved_directory_and_excludes_unqualified_active_rows(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $admin->resident->account()->delete();
+        $qualified = [];
+        for ($i = 0; $i < 6; $i++) {
+            $qualified[] = $this->createResident($this->barangay, $this->purok, ['mobile' => '0917444000'.$i]);
+        }
+        $qualified[2]->account()->delete();
+        $qualified[3]->account()->update(['is_active' => false]);
+        $qualified[4]->registration()->update(['status' => 'pending']);
+        $qualified[5]->registration()->update(['barangay_id' => $this->otherBarangay->id]);
+        $pwd = Sector::create(['name' => 'PWD', 'slug' => 'pwd', 'requires_proof' => true, 'is_active' => true]);
+        $pwd->residents()->attach($qualified[3]->id);
+        $this->actingAs($admin)->get('/admin/reports?period=monthly&date=2026-11-01')->assertOk()->assertInertia(fn ($page) => $page
+            ->where('population.metrics.Total active Residents', 2)
+            ->where('population.metrics.General Residents', 2)
+            ->where('population.metrics.PWD', 0)
+            ->where('population.sectors.0.count', 0));
+        $csv = $this->get('/admin/reports/export?period=monthly&date=2026-11-01&category=population')->assertOk()->streamedContent();
+        $this->assertStringContainsString('"Total active Residents","Current snapshot",2', $csv);
+        $this->assertStringContainsString('"General Residents","Current snapshot",2', $csv);
+        $qualified[1]->account()->update(['is_active' => false]);
+        $this->get('/admin/reports?period=monthly&date=2026-11-01')->assertOk()->assertInertia(fn ($page) => $page->where('population.metrics.Total active Residents', 1)->where('population.metrics.General Residents', 1));
+    }
+
     private function createIssuance(Barangay $barangay, string $utcTimestamp, array $overrides = []): CertificateIssuance
     {
         static $sequence = 0;

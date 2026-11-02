@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Clerk;
 
 use App\Http\Controllers\Controller;
+use App\Models\Barangay;
 use App\Models\Certificate;
 use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
 use App\Models\OrgChartPosition;
 use App\Models\Resident;
 use App\Support\AuditLogger;
+use App\Support\CertificateOfficials;
 use App\Support\CertificateRequestDetails;
 use App\Support\CertificateRequestWorkflow;
 use App\Support\CertificateTemplates;
@@ -140,7 +142,24 @@ class CertificateRequestController extends Controller
             return $listingCache['all'] ??= $this->allListing($request, $barangayId);
         };
 
+        abort_unless($barangayId !== null, 403);
+        $actingSelection = $request->validate(['acting_captain_id' => ['nullable', 'integer', 'min:1']]);
+        $officials = CertificateOfficials::resolve($barangayId, filled($actingSelection['acting_captain_id'] ?? null) ? (int) $actingSelection['acting_captain_id'] : null);
+
         return Inertia::render('Clerk/Certificates', [
+            ...$officials,
+            'barangayBranding' => $this->deferProp(function () use ($barangayId): array {
+                $barangay = Barangay::query()->find($barangayId);
+
+                return [
+                    'cityLogoPath' => $barangay?->city_logo_path,
+                    'barangayLogoPath' => $barangay?->barangay_logo_path,
+                    'watermarkPath' => $barangay?->watermark_path,
+                    'footerGraphicPath' => $barangay?->code === 'BSJ'
+                        ? '/certificate-branding/bagong-san-jose-footer.png'
+                        : null,
+                ];
+            }),
             'requests' => $this->deferProp(fn () => $query
                 ->with([
                     'resident:id,first_name,middle_name,last_name,suffix,resident_number',
@@ -231,7 +250,7 @@ class CertificateRequestController extends Controller
         $certificateRequest->loadMissing([
             'resident:id,barangay_id,purok_id,first_name,middle_name,last_name,suffix,resident_number',
             'resident.purok:id,name',
-            'certificate:id,name,code',
+            'certificate:id,name,code,form_schema',
         ]);
 
         $certificate = $certificateRequest->certificate;
@@ -239,6 +258,9 @@ class CertificateRequestController extends Controller
         $type = CertificateRequestDetails::typeForCertificate($certificate);
         $decoded = CertificateRequestDetails::decode($certificateRequest->additional_details);
         $detailsType = $decoded['type'] ?? $type;
+        $detailsFields = $certificate instanceof Certificate
+            ? CertificateRequestDetails::fieldsForCertificate($certificate)
+            : CertificateRequestDetails::fieldsForType($detailsType);
 
         $issuance = CertificateIssuance::query()
             ->where('barangay_id', $barangayId)
@@ -251,7 +273,7 @@ class CertificateRequestController extends Controller
             'certificate' => $certificate instanceof Certificate ? $certificate->name : 'Certificate',
             'certificate_type' => $type,
             'template_available' => $type !== null
-                && CertificateTemplates::isAvailable($type),
+                && CertificateTemplates::isPdfAvailable($type),
             'resident' => [
                 'id' => $resident?->id,
                 'name' => $resident instanceof Resident ? $resident->full_name : 'Unknown resident',
@@ -264,12 +286,13 @@ class CertificateRequestController extends Controller
             'business_address' => $certificateRequest->business_address,
             'notes' => $decoded['notes'],
             'original_notes' => $decoded['original_notes'],
-            'details' => CertificateRequestDetails::displayRows($detailsType, $decoded['fields']),
+            'details' => CertificateRequestDetails::displayRows($detailsType, $decoded['fields'], $detailsFields),
             'original_details' => CertificateRequestDetails::displayRows(
                 $detailsType,
                 $decoded['original_fields'],
+                $detailsFields,
             ),
-            'details_fields' => CertificateRequestDetails::fieldsForType($detailsType),
+            'details_fields' => $detailsFields,
             'detail_values' => $decoded['fields'],
             'status' => $certificateRequest->status,
             'admin_note' => $certificateRequest->admin_note,
@@ -283,6 +306,70 @@ class CertificateRequestController extends Controller
                 'reference' => $issuance->reference,
                 'issued_at' => $issuance->issued_at->format('F j, Y g:i A'),
             ] : null,
+        ]);
+    }
+
+    /**
+     * Read-only detail view for a single issued certificate.
+     *
+     * The issuance is resolved strictly within the Clerk's own barangay. The
+     * response contains only the historical snapshot and the linked request's
+     * display values; nothing here can be edited or re-saved.
+     */
+    public function showIssuance(Request $request, CertificateIssuance $issuance): JsonResponse
+    {
+        $barangayId = $request->user()->barangay_id;
+
+        abort_unless(
+            $barangayId !== null && $issuance->barangay_id === $barangayId,
+            404,
+        );
+
+        $issuance->loadMissing([
+            'issuer:id,name',
+            'resident:id,barangay_id,purok_id,first_name,middle_name,last_name,suffix,resident_number',
+            'resident.purok:id,name',
+            'certificateRequest.certificate:id,name,code,form_schema',
+            'certificateRequest.resident.purok:id,name',
+        ]);
+
+        $linkedRequest = $issuance->certificateRequest;
+        $certificate = $linkedRequest?->certificate;
+        $decoded = CertificateRequestDetails::decode($linkedRequest?->additional_details);
+        $type = CertificateRequestDetails::typeForCertificate($certificate)
+            ?? $issuance->certificate_type;
+        $fields = $certificate instanceof Certificate
+            ? CertificateRequestDetails::fieldsForCertificate($certificate)
+            : CertificateRequestDetails::fieldsForType($type);
+
+        return response()->json([
+            'id' => $issuance->id,
+            'reference' => $issuance->reference,
+            'control_no' => $issuance->control_no,
+            'certificate_type' => $issuance->certificate_type,
+            'status' => $issuance->status,
+            'fee' => (string) ($issuance->fee ?? '0'),
+            'purok' => $issuance->purok,
+            'issued_at' => $issuance->issued_at?->format('F j, Y g:i A') ?? '',
+            'issued_by' => $issuance->issuer?->name ?? 'Unknown',
+            'resident' => [
+                'name' => $issuance->resident_name,
+                'resident_number' => $issuance->resident_number,
+            ],
+            'linked_request' => $linkedRequest ? [
+                'id' => $linkedRequest->id,
+                'reference' => $linkedRequest->reference,
+                'purpose' => $linkedRequest->purpose,
+                'business_name' => $linkedRequest->business_name,
+                'business_address' => $linkedRequest->business_address,
+                'submitted_at' => $linkedRequest->submitted_at?->format('F j, Y') ?? '',
+            ] : null,
+            'purpose' => $linkedRequest?->purpose ?? '',
+            'business_name' => $linkedRequest?->business_name,
+            'business_address' => $linkedRequest?->business_address,
+            'notes' => $decoded['notes'],
+            'details' => CertificateRequestDetails::displayRows($type, $decoded['fields'], $fields),
+            'template_available' => isset($issuance->details['pdf_path']) || CertificateTemplates::isAvailable($issuance->certificate_type),
         ]);
     }
 
@@ -304,7 +391,7 @@ class CertificateRequestController extends Controller
             404,
         );
 
-        $certificateRequest->loadMissing('certificate:id,name,code');
+        $certificateRequest->loadMissing('certificate:id,name,code,form_schema');
 
         $decoded = CertificateRequestDetails::decode(
             $certificateRequest->additional_details,
@@ -314,7 +401,10 @@ class CertificateRequestController extends Controller
                 $certificateRequest->certificate,
             );
 
-        $rules = CertificateRequestDetails::detailValidationRules($type);
+        $detailsFields = $certificateRequest->certificate instanceof Certificate
+            ? CertificateRequestDetails::fieldsForCertificate($certificateRequest->certificate)
+            : CertificateRequestDetails::fieldsForType($type);
+        $rules = CertificateRequestDetails::detailValidationRules($type, $detailsFields);
 
         if ($rules === []) {
             abort(422, 'This request has no editable certificate details.');
@@ -331,6 +421,8 @@ class CertificateRequestController extends Controller
                 $certificateRequest->additional_details,
                 $type,
                 $fields,
+                null,
+                $detailsFields,
             ),
         ]);
 
@@ -364,10 +456,12 @@ class CertificateRequestController extends Controller
             'details' => CertificateRequestDetails::displayRows(
                 $updated['type'] ?? $type,
                 $updated['fields'],
+                $detailsFields,
             ),
             'original_details' => CertificateRequestDetails::displayRows(
                 $updated['type'] ?? $type,
                 $updated['original_fields'],
+                $detailsFields,
             ),
             'detail_values' => $updated['fields'],
             'notes' => $updated['notes'],

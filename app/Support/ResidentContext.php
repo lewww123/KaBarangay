@@ -23,8 +23,7 @@ final class ResidentContext
         if (! ($resident instanceof Resident) || (int) $resident->id !== (int) $residentId) {
             $resident = Resident::query()
                 ->whereKey($residentId)
-                ->where('status', 'active')
-                ->whereHas('account', fn ($query) => $query->where('is_active', true))
+                ->approvedAccount()
                 ->first();
             $request->attributes->set(self::ATTRIBUTE, $resident);
         }

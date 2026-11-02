@@ -319,11 +319,7 @@ export default function Residents({
         ? addedByAdminPaginator.data
         : [];
 
-    const [activeTab, setActiveTab] = useState<Tab>(() =>
-        new URLSearchParams(window.location.search).get('tab') === 'households'
-            ? 'households'
-            : 'all',
-    );
+    const [activeTab, setActiveTab] = useState<Tab>('all');
     const [registrationSearch, setRegistrationSearch] = useState(
         filters?.registration_search ?? '',
     );
@@ -373,6 +369,16 @@ export default function Residents({
     const lastQueriedRegistration = useRef(
         filters?.registration_search ?? '',
     );
+
+    useEffect(() => {
+        if (
+            typeof window !== 'undefined' &&
+            new URLSearchParams(window.location.search).get('tab') ===
+                'households'
+        ) {
+            setActiveTab('households');
+        }
+    }, []);
 
     /*
      * Partial reloads keep every tab's independent pagination state intact so
@@ -2299,13 +2305,14 @@ function ApplicationModal({
     const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
     const [loadingCandidates, setLoadingCandidates] = useState(false);
     const [candidateError, setCandidateError] = useState('');
+    const [candidateRefresh, setCandidateRefresh] = useState(0);
 
     useEffect(() => {
         const query = candidateSearch.trim();
         if (query.length < 2) {
             setCandidates([]);
             setLoadingCandidates(false);
-            setCandidateError('Enter at least two characters to search this barangay\'s active Resident records.');
+            setCandidateError('Enter at least two characters to search this barangay\'s Admin-added Resident records.');
             return;
         }
 
@@ -2342,7 +2349,7 @@ function ApplicationModal({
             window.clearTimeout(timer);
             controller.abort();
         };
-    }, [application.id, candidateSearch]);
+    }, [application.id, candidateSearch, candidateRefresh]);
 
     const selectedCandidate = candidates.find(
         (candidate) => candidate.id === selectedCandidateId,
@@ -2445,9 +2452,10 @@ function ApplicationModal({
 
                         {loadingCandidates && <p className="mt-3 text-xs text-gray-500">Searching this barangay…</p>}
                         {!loadingCandidates && candidateError && <p className="mt-3 text-xs text-red-600">{candidateError}</p>}
+                        <div className="mt-3 flex items-center justify-between gap-3"><p className="text-xs text-gray-500">Bagong Admin-added residents ay inactive muna hanggang ma-link at ma-approve ang account.</p><button type="button" disabled={loadingCandidates || processingApprove} onClick={() => setCandidateRefresh(value => value + 1)} className="shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-50">{loadingCandidates ? 'Refreshing…' : 'Refresh matches'}</button></div>
                         {!loadingCandidates && !candidateError && candidates.length === 0 && (
                             <p className="mt-3 rounded-md border border-gray-200 bg-white p-3 text-xs text-gray-500">
-                                No active Resident matches this search. The application remains pending until a correct official record is selected.
+                                No Admin-added Resident matches this search. Add the official resident record first, then refresh the matches. The application remains pending.
                             </p>
                         )}
 

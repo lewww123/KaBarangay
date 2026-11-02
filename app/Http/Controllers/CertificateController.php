@@ -2,18 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Certificate;
 use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
 use App\Models\OrgChartPosition;
 use App\Models\Resident;
 use App\Support\AuditLogger;
-use App\Support\CertificateRequestDetails;
+use App\Support\CertificateOfficialDocument;
+use App\Support\CertificateOfficials;
+use App\Support\CertificateControlNumbers;
 use App\Support\CertificatePlaceholders;
+use App\Support\CertificateRequestDetails;
 use App\Support\CertificateRequestWorkflow;
 use App\Support\CertificateTemplates;
 use App\Support\DelayedPsaCertificate;
+use App\Support\DynamicDocumentEngine;
 use App\Support\MarriageCohabitationCertificate;
 use App\Support\ResidencyCertificate;
+use App\Support\StagedDocument;
 use Closure;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -24,7 +30,6 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use PhpOffice\PhpWord\Settings;
-use PhpOffice\PhpWord\TemplateProcessor;
 use Throwable;
 
 class CertificateController extends Controller
@@ -35,6 +40,16 @@ class CertificateController extends Controller
      * authority; this loop only avoids a hard failure on the rare collision.
      */
     private const REFERENCE_ATTEMPTS = 5;
+
+    public function nextControlNumber(Request $request)
+    {
+        $type = $request->validate(['certificate_type' => ['required', 'string', 'max:100']])['certificate_type'];
+        $type = CertificateRequestDetails::typeForCertificate(new Certificate(['name' => trim($type), 'code' => trim($type)])) ?? $type;
+        abort_unless($request->user()->barangay_id !== null, 403);
+        abort_unless(CertificateTemplates::isPdfAvailable($type), 422);
+        return response()->json(['control_no' => CertificateControlNumbers::next($request->user()->barangay_id, $type)])
+            ->header('Cache-Control', 'private, no-store');
+    }
 
     public function generate(Request $request)
     {
@@ -53,13 +68,35 @@ class CertificateController extends Controller
         // itself is still validated below, and an unknown type simply falls
         // back to the generic rules and fails the `Rule::in()` check.
         $submittedType = $request->input('certificate_type');
-        $submittedType = is_string($submittedType) ? $submittedType : '';
+        $submittedType = is_string($submittedType) ? trim($submittedType) : '';
+        $canonicalType = CertificateRequestDetails::typeForCertificate(new Certificate(['name' => $submittedType, 'code' => $submittedType]));
+        if ($canonicalType !== null) {
+            $submittedType = $canonicalType;
+            $request->merge(['certificate_type' => $canonicalType]);
+        }
 
+        $pdfOutput = $request->input('output_format') === 'pdf';
         $rules = $this->rulesFor($submittedType);
+        if ($pdfOutput) {
+            $catalogTypes = Certificate::query()->where('barangay_id', $request->user()->barangay_id)
+                ->where('is_active', true)->get()->map(fn ($certificate) => CertificateRequestDetails::typeForCertificate($certificate))
+                ->filter()->values()->all();
+            $rules['certificate_type'] = ['required', 'string', Rule::in(array_unique([...CertificateTemplates::types(), ...$catalogTypes]))];
+            $rules['rendered_pdf'] = ['required', 'string', 'max:6000000'];
+            $rules['control_no'] = ['required', 'string', 'regex:/^\d{4}-\d{2}-\d{4,}$/', 'max:100'];
+        }
         if ($preview) {
             unset($rules['details_confirmed']);
         }
         $validated = $request->validate($rules);
+        $pdfBytes = null;
+        if ($pdfOutput) {
+            $pdfBytes = base64_decode($validated['rendered_pdf'], true);
+            if ($pdfBytes === false || ! str_starts_with($pdfBytes, '%PDF-') || ! str_contains(substr($pdfBytes, -1024), '%%EOF')) {
+                throw ValidationException::withMessages(['rendered_pdf' => 'The reviewed certificate PDF is invalid. Please refresh the preview.']);
+            }
+            unset($validated['rendered_pdf']);
+        }
 
         // Barangay and issuer are derived exclusively from the authenticated
         // server-side user; client-supplied values are never trusted.
@@ -67,6 +104,8 @@ class CertificateController extends Controller
         $barangayId = $user->barangay_id;
 
         abort_unless($barangayId !== null, 403);
+
+        $officials = CertificateOfficials::resolve($barangayId, filled($validated['acting_captain_id'] ?? null) ? (int) $validated['acting_captain_id'] : null);
 
         if (filled($validated['signatory_name'] ?? null)) {
             $signatory = OrgChartPosition::query()
@@ -91,10 +130,13 @@ class CertificateController extends Controller
         // Locate the approved Word template for the requested certificate type.
         $templatePath = CertificateTemplates::path($certType);
 
+        if (! $pdfOutput) {
         if (! is_file($templatePath)) {
-            return back()->withErrors([
-                'certificate_type' => 'This certificate template is not available yet. Please choose another certificate type.',
-            ]);
+            return $this->renderFailure(
+                $preview,
+                'certificate_type',
+                'This certificate template is not available yet. Please choose another certificate type.',
+            );
         }
 
         // The Delayed PSA template has a fixed merge-field contract. A
@@ -107,9 +149,11 @@ class CertificateController extends Controller
             } catch (Throwable $exception) {
                 report($exception);
 
-                return back()->withErrors([
-                    'certificate_type' => 'The Delayed PSA Registration template is not correctly provisioned. Please contact the administrator.',
-                ]);
+                return $this->renderFailure(
+                    $preview,
+                    'certificate_type',
+                    'The Delayed PSA Registration template is not correctly provisioned. Please contact the administrator.',
+                );
             }
         }
 
@@ -122,9 +166,11 @@ class CertificateController extends Controller
             } catch (Throwable $exception) {
                 report($exception);
 
-                return back()->withErrors([
-                    'certificate_type' => 'The Marriage Cohabitation template is not correctly provisioned. Please contact the administrator.',
-                ]);
+                return $this->renderFailure(
+                    $preview,
+                    'certificate_type',
+                    'The Marriage Cohabitation template is not correctly provisioned. Please contact the administrator.',
+                );
             }
         }
 
@@ -136,9 +182,11 @@ class CertificateController extends Controller
             } catch (Throwable $exception) {
                 report($exception);
 
-                return back()->withErrors([
-                    'certificate_type' => 'The Residency template is not correctly provisioned. Please contact the administrator.',
-                ]);
+                return $this->renderFailure(
+                    $preview,
+                    'certificate_type',
+                    'The Residency template is not correctly provisioned. Please contact the administrator.',
+                );
             }
         }
 
@@ -153,10 +201,14 @@ class CertificateController extends Controller
             } catch (Throwable $exception) {
                 report($exception);
 
-                return back()->withErrors([
-                    'certificate_type' => "The {$certType} template is not correctly provisioned. Please contact the administrator.",
-                ]);
+                return $this->renderFailure(
+                    $preview,
+                    'certificate_type',
+                    "The {$certType} template is not correctly provisioned. Please contact the administrator.",
+                );
             }
+        }
+
         }
 
         // Resolve an optional registered resident for the snapshot, scoped to
@@ -323,34 +375,37 @@ class CertificateController extends Controller
         // never overwrite one another.
         $outputDirectory = storage_path('app/certificates');
         File::ensureDirectoryExists($outputDirectory);
-        $outputPath = $outputDirectory.'/Certificate_'.Str::uuid().'.docx';
+        $outputPath = $outputDirectory.'/Certificate_'.Str::uuid().($pdfOutput ? '.pdf' : '.docx');
 
         $originalEscaping = Settings::isOutputEscapingEnabled();
         try {
-            $this->buildDocument(
-                $templatePath,
-                $outputPath,
-                $certType,
-                $validated,
-                $delayedPsaDetails,
-                $marriageDetails,
-                $residencyDetails,
-            );
-            CertificatePlaceholders::fillDocx($outputPath, mb_strtoupper($purokSnapshot ?? ''));
+            if ($pdfOutput) {
+                if (file_put_contents($outputPath, $pdfBytes, LOCK_EX) === false) {
+                    throw new \RuntimeException('The reviewed certificate could not be saved.');
+                }
+            } else {
+            StagedDocument::write($outputPath, function ($stagingPath) use ($templatePath, $certType, $validated, $delayedPsaDetails, $marriageDetails, $residencyDetails, $officials, $purokSnapshot) {
+                $this->buildDocument($templatePath, $stagingPath, $certType, $validated, $delayedPsaDetails, $marriageDetails, $residencyDetails, $officials);
+                CertificateOfficialDocument::apply($stagingPath, $officials);
+                CertificatePlaceholders::fillDocx($stagingPath, mb_strtoupper($purokSnapshot ?? ''));
+            });
+            }
         } catch (Throwable $exception) {
             report($exception);
             $this->cleanup($outputPath);
 
-            return back()->withErrors([
-                'certificate_type' => 'The certificate could not be generated. Please try again.',
-            ]);
+            return $this->renderFailure(
+                $preview,
+                'certificate_type',
+                'The certificate could not be generated. Please try again.',
+            );
         } finally {
             Settings::setOutputEscapingEnabled($originalEscaping);
         }
 
         if ($preview) {
-            return response()->download($outputPath, 'Certificate_Preview.docx', [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            return response()->download($outputPath, 'Certificate_Preview'.($pdfOutput ? '.pdf' : '.docx'), [
+                'Content-Type' => $pdfOutput ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 'Cache-Control' => 'private, no-store, max-age=0',
             ])->deleteFileAfterSend(true);
         }
@@ -381,6 +436,14 @@ class CertificateController extends Controller
                 $feeSnapshot,
                 $purokSnapshot,
                 $residentNameSnapshot,
+                $this->issuanceSnapshot(
+                    $validated,
+                    $delayedPsaDetails,
+                    $marriageDetails,
+                    $residencyDetails,
+                    $officials,
+                    $purokSnapshot,
+                ) + ($pdfOutput ? ['pdf_path' => basename($outputPath)] : []),
             );
         } catch (ValidationException $exception) {
             // Duplicate request issuance surfaces as a validation error.
@@ -410,13 +473,290 @@ class CertificateController extends Controller
 
         return response()->download(
             $outputPath,
-            'Certificate_'.$issuance->reference.'.docx',
+            'Certificate_'.$issuance->reference.($pdfOutput ? '.pdf' : '.docx'),
             [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Content-Type' => $pdfOutput ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 'Cache-Control' => 'private, no-store, max-age=0',
                 'X-Certificate-Issuance-Status' => $issuance->status,
             ],
+        )->deleteFileAfterSend(! $pdfOutput);
+    }
+
+    /** Return fetch-friendly preview errors without changing issuance redirects. */
+    private function renderFailure(bool $preview, string $field, string $message)
+    {
+        if ($preview) {
+            return response()->json([
+                'message' => $message,
+                'errors' => [$field => [$message]],
+            ], 422);
+        }
+
+        return back()->withErrors([$field => $message]);
+    }
+
+    /**
+     * Rebuild the archival document for an already-issued certificate.
+     *
+     * This endpoint is strictly read-only: it never creates a new issuance,
+     * changes a request status, or rewrites the stored snapshot. New issuances
+     * carry an immutable snapshot of the exact values used to render the
+     * document; historical rows without one are reconstructed from their
+     * linked request when the required values are available.
+     */
+    public function reprint(Request $request, CertificateIssuance $issuance)
+    {
+        $barangayId = $request->user()->barangay_id;
+
+        abort_unless(
+            $barangayId !== null && $issuance->barangay_id === $barangayId,
+            404,
+        );
+
+        $savedPdf = $issuance->details['pdf_path'] ?? null;
+        if (is_string($savedPdf) && basename($savedPdf) === $savedPdf && str_ends_with($savedPdf, '.pdf')) {
+            $path = storage_path('app/certificates/'.$savedPdf);
+            if (is_file($path)) {
+                return response()->download($path, 'Certificate_'.$issuance->reference.'.pdf', [
+                    'Content-Type' => 'application/pdf', 'Cache-Control' => 'private, no-store, max-age=0',
+                ]);
+            }
+        }
+
+        $certType = $issuance->certificate_type;
+        $templatePath = CertificateTemplates::path($certType);
+
+        $templateError = $this->templateAvailabilityError($certType, $templatePath);
+
+        if ($templateError !== null) {
+            return response()->json([
+                'message' => $templateError,
+                'errors' => ['certificate_type' => [$templateError]],
+            ], 422);
+        }
+
+        $issuance->loadMissing([
+            'certificateRequest.certificate:id,name,code,form_schema',
+            'certificateRequest.resident.purok:id,name',
+            'resident.purok:id,name',
+        ]);
+
+        $snapshot = is_array($issuance->details) ? $issuance->details : null;
+
+        if ($snapshot === null || ! is_array($snapshot['validated'] ?? null)) {
+            $snapshot = $this->reconstructIssuanceSnapshot($issuance);
+        }
+
+        if ($snapshot === null) {
+            $message = 'This historical issuance does not contain enough recorded data to reproduce the document.';
+
+            return response()->json([
+                'message' => $message,
+                'errors' => ['issuance' => [$message]],
+            ], 422);
+        }
+
+        $validated = $snapshot['validated'];
+        $officials = is_array($snapshot['officials'] ?? null)
+            ? $snapshot['officials']
+            : CertificateOfficials::resolve($barangayId);
+        $purokSnapshot = $snapshot['purok'] ?? $issuance->purok;
+        $delayedPsaDetails = is_array($snapshot['delayed_psa_details'] ?? null)
+            ? $snapshot['delayed_psa_details']
+            : null;
+        $marriageDetails = is_array($snapshot['marriage_details'] ?? null)
+            ? $snapshot['marriage_details']
+            : null;
+        $residencyDetails = is_array($snapshot['residency_details'] ?? null)
+            ? $snapshot['residency_details']
+            : null;
+
+        if (DelayedPsaCertificate::isType($certType) && $delayedPsaDetails === null) {
+            return $this->reprintFailure('The Delayed PSA Registration details for this issuance are incomplete.');
+        }
+
+        if (MarriageCohabitationCertificate::isType($certType) && $marriageDetails === null) {
+            return $this->reprintFailure('The Marriage Cohabitation details for this issuance are incomplete.');
+        }
+
+        if (ResidencyCertificate::isType($certType) && $residencyDetails === null) {
+            return $this->reprintFailure('The Residency details for this issuance are incomplete.');
+        }
+
+        $outputDirectory = storage_path('app/certificates');
+        File::ensureDirectoryExists($outputDirectory);
+        $outputPath = $outputDirectory.'/Reprint_'.Str::uuid().'.docx';
+
+        $originalEscaping = Settings::isOutputEscapingEnabled();
+        try {
+            StagedDocument::write($outputPath, function ($stagingPath) use ($templatePath, $certType, $validated, $delayedPsaDetails, $marriageDetails, $residencyDetails, $officials, $purokSnapshot) {
+                $this->buildDocument($templatePath, $stagingPath, $certType, $validated, $delayedPsaDetails, $marriageDetails, $residencyDetails, $officials);
+                CertificateOfficialDocument::apply($stagingPath, $officials);
+                CertificatePlaceholders::fillDocx($stagingPath, mb_strtoupper($purokSnapshot ?? ''));
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->cleanup($outputPath);
+
+            return $this->reprintFailure('The historical certificate could not be reproduced. Please contact the administrator.');
+        } finally {
+            Settings::setOutputEscapingEnabled($originalEscaping);
+        }
+
+        AuditLogger::record(
+            'certificate_issuance.reprinted',
+            $issuance->barangay_id,
+            $request->user()->id,
+            'certificate_issuance',
+            $issuance->id,
+            ['entity_reference' => $issuance->reference],
+            $request->ip(),
+        );
+
+        return response()->download(
+            $outputPath,
+            'Reprint_'.$issuance->reference.'.docx',
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Cache-Control' => 'private, no-store, max-age=0',
+                'X-Certificate-Reprint' => $issuance->reference,
+            ],
         )->deleteFileAfterSend(true);
+    }
+
+    /** Return a fetch-friendly reprint error without touching issuance state. */
+    private function reprintFailure(string $message)
+    {
+        return response()->json([
+            'message' => $message,
+            'errors' => ['issuance' => [$message]],
+        ], 422);
+    }
+
+    /**
+     * Validate that the template for a historical issuance is usable.
+     */
+    private function templateAvailabilityError(string $certType, string $templatePath): ?string
+    {
+        if (! is_file($templatePath)) {
+            return 'This certificate template is not available yet.';
+        }
+
+        try {
+            if (DelayedPsaCertificate::isType($certType)) {
+                DelayedPsaCertificate::assertTemplateContract($templatePath);
+            } elseif (MarriageCohabitationCertificate::isType($certType)) {
+                MarriageCohabitationCertificate::assertTemplateContract($templatePath);
+            } elseif (ResidencyCertificate::isType($certType)) {
+                ResidencyCertificate::assertTemplateContract($templatePath);
+            } else {
+                CertificateTemplates::assertTemplateContract($certType, $templatePath);
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return "The {$certType} template is not correctly provisioned. Please contact the administrator.";
+        }
+
+        return null;
+    }
+
+    /**
+     * Build the immutable rendering snapshot recorded with a new issuance.
+     *
+     * @param  array<string, mixed>  $validated
+     * @param  array<string, string|int|null>|null  $delayedPsaDetails
+     * @param  array<string, string|int|null>|null  $marriageDetails
+     * @param  array<string, string|int|null>|null  $residencyDetails
+     * @return array<string, mixed>
+     */
+    private function issuanceSnapshot(
+        array $validated,
+        ?array $delayedPsaDetails,
+        ?array $marriageDetails,
+        ?array $residencyDetails,
+        array $officials,
+        ?string $purokSnapshot,
+    ): array {
+        unset($validated['details_confirmed']);
+
+        return [
+            'version' => 1,
+            'validated' => $validated,
+            'delayed_psa_details' => $delayedPsaDetails,
+            'marriage_details' => $marriageDetails,
+            'residency_details' => $residencyDetails,
+            'officials' => $officials,
+            'purok' => $purokSnapshot,
+        ];
+    }
+
+    /**
+     * Reconstruct the renderable values for a historical issuance that
+     * predates stored snapshots. Returns null when a required value is absent.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function reconstructIssuanceSnapshot(CertificateIssuance $issuance): ?array
+    {
+        $linkedRequest = $issuance->certificateRequest;
+        $decoded = CertificateRequestDetails::decode($linkedRequest?->additional_details);
+        $resident = $issuance->resident ?? $linkedRequest?->resident;
+        $officials = CertificateOfficials::resolve($issuance->barangay_id);
+        $purok = $issuance->purok ?? $resident?->purok?->name ?? '';
+
+        $validated = array_merge(
+            [
+                'certificate_type' => $issuance->certificate_type,
+                'resident_name' => $issuance->resident_name,
+                'purok' => $purok,
+                'purpose' => $linkedRequest?->purpose ?? '',
+                'control_no' => $issuance->control_no ?? '',
+                'fee' => (string) ($issuance->fee ?? '0'),
+                'business_name' => $linkedRequest?->business_name ?? '',
+                'business_address' => $linkedRequest?->business_address ?? '',
+                'signatory_name' => $officials['punong_barangay']['name'] ?? '',
+                'signatory_title' => $officials['punong_barangay']['title'] ?? '',
+            ],
+            $decoded['fields'],
+        );
+
+        $certType = $issuance->certificate_type;
+        $delayedPsaDetails = null;
+        $marriageDetails = null;
+        $residencyDetails = null;
+
+        try {
+            if (DelayedPsaCertificate::isType($certType)) {
+                $delayedPsaDetails = DelayedPsaCertificate::resolveValues($validated, $resident);
+                DelayedPsaCertificate::assertResolvedValuesAreComplete($delayedPsaDetails);
+            } elseif (MarriageCohabitationCertificate::isType($certType)) {
+                $marriageDetails = MarriageCohabitationCertificate::resolveValues($validated, $resident);
+                MarriageCohabitationCertificate::assertResolvedValuesAreComplete($marriageDetails);
+            } elseif (ResidencyCertificate::isType($certType)) {
+                $residencyDetails = ResidencyCertificate::resolveValues($validated, $resident);
+                $residencyDetails['resident_name'] = $issuance->resident_name;
+                $residencyDetails['purok'] = $purok;
+                ResidencyCertificate::assertResolvedValuesAreComplete($residencyDetails);
+            } else {
+                if (trim((string) ($validated['resident_name'] ?? '')) === ''
+                    || trim((string) ($validated['purpose'] ?? '')) === '') {
+                    return null;
+                }
+            }
+        } catch (Throwable $exception) {
+            return null;
+        }
+
+        return [
+            'version' => 1,
+            'validated' => $validated,
+            'delayed_psa_details' => $delayedPsaDetails,
+            'marriage_details' => $marriageDetails,
+            'residency_details' => $residencyDetails,
+            'officials' => $officials,
+            'purok' => $purok,
+        ];
     }
 
     /**
@@ -451,6 +791,7 @@ class CertificateController extends Controller
             'fee' => ['required', 'numeric', 'min:0'],
             'resident_id' => ['nullable', 'integer'],
             'certificate_request_id' => ['nullable', 'integer'],
+            'acting_captain_id' => ['nullable', 'integer', 'min:1'],
             'signatory_name' => ['nullable', 'string', 'max:255'],
             'signatory_title' => ['nullable', 'string', 'max:255'],
             'franchise_no' => ['nullable', 'string', 'max:255'],
@@ -464,6 +805,15 @@ class CertificateController extends Controller
             'mother_occupation' => ['nullable', 'string', 'max:255'],
             'mother_monthly_income' => ['nullable', 'numeric', 'min:0'],
         ];
+
+        if ($certType === 'Sari-sari Store') {
+            $rules['business_type'] = ['required', 'string', 'max:255'];
+            $rules['business_name'] = ['required', 'string', 'max:255'];
+            $rules['business_address'] = ['required', 'string', 'max:255'];
+            $rules['or_number'] = ['nullable', 'string', 'max:100'];
+            $rules['receipt_date'] = ['nullable', 'date_format:Y-m-d'];
+            $rules['amount_paid'] = ['nullable', 'numeric', 'min:0'];
+        }
 
         if (DelayedPsaCertificate::isType($certType)) {
             $rules = array_merge($rules, DelayedPsaCertificate::validationRules());
@@ -510,9 +860,10 @@ class CertificateController extends Controller
         ?array $delayedPsaDetails = null,
         ?array $marriageDetails = null,
         ?array $residencyDetails = null,
+        array $officials = [],
     ): void {
         Settings::setOutputEscapingEnabled(true);
-        $templateProcessor = new TemplateProcessor($templatePath);
+        $templateProcessor = DynamicDocumentEngine::processor($templatePath, $officials);
         foreach (['PUROK', 'RESIDENT_PUROK'] as $alias) {
             $templateProcessor->setValue($alias, mb_strtoupper($validated['purok'] ?? ''));
         }
@@ -526,7 +877,7 @@ class CertificateController extends Controller
             }
 
             $templateProcessor->saveAs($outputPath);
-            $this->replaceDocxSignatoryTitle($outputPath, $validated['signatory_title'] ?? null);
+
 
             return;
         }
@@ -545,7 +896,7 @@ class CertificateController extends Controller
                 '{signatory_name}',
                 mb_strtoupper((string) ($validated['signatory_name'] ?? '')),
             );
-            $this->replaceDocxSignatoryTitle($outputPath, $validated['signatory_title'] ?? null);
+
 
             return;
         }
@@ -559,7 +910,7 @@ class CertificateController extends Controller
             }
 
             $templateProcessor->saveAs($outputPath);
-            $this->replaceDocxSignatoryTitle($outputPath, $validated['signatory_title'] ?? null);
+
 
             return;
         }
@@ -598,7 +949,7 @@ class CertificateController extends Controller
         }
 
         $templateProcessor->saveAs($outputPath);
-        $this->replaceDocxSignatoryTitle($outputPath, $validated['signatory_title'] ?? null);
+
     }
 
     /**
@@ -616,6 +967,7 @@ class CertificateController extends Controller
         int|float|string|null $feeSnapshot,
         ?string $purokSnapshot = null,
         ?string $residentNameSnapshot = null,
+        ?array $detailsSnapshot = null,
     ): CertificateIssuance {
         $attributes = [
             'barangay_id' => $barangayId,
@@ -631,6 +983,7 @@ class CertificateController extends Controller
             'resident_number' => $resident?->resident_number,
             'purok' => $purokSnapshot ?? ($validated['purok'] ?? null),
             'fee' => $feeSnapshot,
+            'details' => $detailsSnapshot,
             'issued_by' => $userId,
             'issued_at' => now(),
         ];
@@ -645,8 +998,18 @@ class CertificateController extends Controller
                         ->lockForUpdate()
                         ->first();
 
+                    if (isset($attributes['details']['pdf_path'])) {
+                        $next = CertificateControlNumbers::next($barangayId, $attributes['certificate_type']);
+                        if ($attributes['control_no'] !== $next) {
+                            throw ValidationException::withMessages([
+                                'control_no' => 'The control number has advanced. Review the updated preview and try again.',
+                                'next_control_no' => $next,
+                            ]);
+                        }
+                    }
                     if (CertificateIssuance::query()
                         ->where('barangay_id', $barangayId)
+                        ->where('certificate_type', $attributes['certificate_type'])
                         ->where('control_no', $attributes['control_no'])
                         ->exists()) {
                         throw ValidationException::withMessages([
@@ -726,7 +1089,7 @@ class CertificateController extends Controller
     private function isDuplicateControlNumber(QueryException $exception): bool
     {
         return $this->isUniqueViolation($exception)
-            && (str_contains($exception->getMessage(), 'cert_issuances_barangay_control_unique')
+            && (str_contains($exception->getMessage(), 'cert_issuances_type_control_unique')
                 || str_contains($exception->getMessage(), 'control_no'));
     }
 
@@ -740,7 +1103,7 @@ class CertificateController extends Controller
     /** Fill the single-braced signatory token in the current Marriage DOCX copy. */
     private function replaceLiteralDocxPlaceholder(string $path, string $placeholder, string $value): void
     {
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
 
         if ($zip->open($path) !== true) {
             throw new InvalidArgumentException('Unable to open the generated certificate document.');
@@ -787,7 +1150,7 @@ class CertificateController extends Controller
             return;
         }
 
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
 
         if ($zip->open($path) !== true) {
             throw new InvalidArgumentException('Unable to open the generated certificate document.');
@@ -810,7 +1173,7 @@ class CertificateController extends Controller
                 continue;
             }
 
-            $document = new \DOMDocument();
+            $document = new \DOMDocument;
             $document->preserveWhiteSpace = true;
 
             if (! $document->loadXML($xml, LIBXML_NONET)) {
@@ -833,7 +1196,11 @@ class CertificateController extends Controller
                     continue;
                 }
 
-                $textNodes->item(0)->nodeValue = trim($title);
+                $firstText = $textNodes->item(0);
+                while ($firstText->firstChild) {
+                    $firstText->removeChild($firstText->firstChild);
+                }
+                $firstText->appendChild($document->createTextNode(trim($title)));
 
                 for ($index = 1; $index < $textNodes->length; $index++) {
                     $textNodes->item($index)->nodeValue = '';

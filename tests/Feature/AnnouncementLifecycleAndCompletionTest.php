@@ -538,24 +538,24 @@ class AnnouncementLifecycleAndCompletionTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->where('kind', 'updates')
                 ->where('period', 'current')
-                ->has('announcements', 1)
-                ->where('announcements.0.id', $currentUpdate->id));
+                ->has('announcements.data', 1)
+                ->where('announcements.data.0.id', $currentUpdate->id));
 
         $this->withSession(['resident_id' => $resident->id])
             ->get('/resident/updates?period=past')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('period', 'past')
-                ->has('announcements', 1)
-                ->where('announcements.0.id', $pastUpdate->id));
+                ->has('announcements.data', 1)
+                ->where('announcements.data.0.id', $pastUpdate->id));
 
         $this->withSession(['resident_id' => $resident->id])
             ->get('/resident/announcements')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('announcements', 2)
-                ->where('announcements.0.id', $completedProgram->id)
-                ->where('announcements.1.id', $currentUpdate->id));
+                ->has('announcements.data', 2)
+                ->where('announcements.data.0.id', $completedProgram->id)
+                ->where('announcements.data.1.id', $currentUpdate->id));
 
         $this->withSession(['resident_id' => $resident->id])
             ->get('/resident/updates/'.$pastUpdate->id.'?period=past')
@@ -858,7 +858,7 @@ class AnnouncementLifecycleAndCompletionTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/Announcements')
-                ->has('announcements', 1));
+                ->has('announcements.data', 1));
 
         $this->actingAs($clerk)
             ->get('/clerk/announcements/'.$announcement->id.'/attendance')

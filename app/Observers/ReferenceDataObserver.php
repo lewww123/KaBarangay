@@ -34,6 +34,7 @@ final class ReferenceDataObserver implements ShouldHandleEventsAfterCommit
         }
 
         Cache::forget('registration:barangay-purok-options');
+        Cache::forget('registration:barangay-purok-options:v2');
 
         if ($model instanceof Barangay) {
             Cache::forget('auth:active-barangay-options');

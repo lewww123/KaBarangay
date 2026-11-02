@@ -97,9 +97,15 @@ function ProfileContent() {
     |
     */
 
-    const qrVerificationUrl = profile.qrToken
-        ? `${window.location.origin}/verify/resident/${encodeURIComponent(profile.qrToken)}`
-        : '';
+    const [qrVerificationUrl, setQrVerificationUrl] = useState('');
+
+    useEffect(() => {
+        setQrVerificationUrl(
+            profile.qrToken
+                ? `${window.location.origin}/verify/resident/${encodeURIComponent(profile.qrToken)}`
+                : '',
+        );
+    }, [profile.qrToken]);
 
 
     /*

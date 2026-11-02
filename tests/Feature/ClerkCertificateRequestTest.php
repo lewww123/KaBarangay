@@ -383,6 +383,28 @@ class ClerkCertificateRequestTest extends TestCase
         $this->assertSame(['Barangay Clearance'], array_column($options, 'name'));
     }
 
+    public function test_certificate_branding_exposes_the_clerks_barangay_placeholders(): void
+    {
+        $this->barangay->update([
+            'city_logo_path' => 'data:image/svg+xml,city',
+            'barangay_logo_path' => 'data:image/svg+xml,barangay',
+            'watermark_path' => 'data:image/svg+xml,watermark',
+        ]);
+
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $branding = $this->actingAs($clerk)
+            ->get('/clerk/certificates')
+            ->inertiaProps('barangayBranding');
+
+        $this->assertSame([
+            'cityLogoPath' => 'data:image/svg+xml,city',
+            'barangayLogoPath' => 'data:image/svg+xml,barangay',
+            'watermarkPath' => 'data:image/svg+xml,watermark',
+            'footerGraphicPath' => null,
+        ], $branding);
+    }
+
     public function test_clerk_owns_status_updates_and_admin_route_is_removed(): void
     {
         $request = $this->createRequest($this->barangay, $this->purok, $this->certificate, 'UPDATE-001');
@@ -614,7 +636,8 @@ class ClerkCertificateRequestTest extends TestCase
         $this->assertStringContainsString("fetch('/clerk/generate-certificate'", $submitHandler);
         $this->assertStringContainsString("method: 'POST'", $submitHandler);
         $this->assertStringContainsString('response.blob()', $submitHandler);
-        $this->assertStringContainsString('downloadLink.download = filename', $submitHandler);
+        $this->assertStringContainsString('downloadLink.download = `Certificate_${data.control_no}.pdf`', $submitHandler);
+        $this->assertStringContainsString("payload.set('output_format', 'pdf')", $submitHandler);
         $this->assertStringContainsString('response.headers.get(\'Content-Disposition\')', $submitHandler);
         $this->assertStringContainsString('if (response.status === 422)', $submitHandler);
         $this->assertStringContainsString('if (response.redirected)', $submitHandler);
@@ -636,11 +659,12 @@ class ClerkCertificateRequestTest extends TestCase
         $this->assertStringContainsString('generationOutcomeUnknownRef.current = true', $submitHandler);
     }
 
-    public function test_certificate_generation_returns_the_persisted_docx_as_an_attachment(): void
+    public function test_certificate_generation_returns_the_persisted_certificate_as_an_attachment(): void
     {
         $controller = file_get_contents(base_path('app/Http/Controllers/CertificateController.php'));
         $this->assertStringContainsString('AuditLogger::record(', $controller);
-        $this->assertStringContainsString("'Certificate_'.\$issuance->reference.'.docx'", $controller);
+        $this->assertStringContainsString("'Certificate_'.\$issuance->reference.(\$pdfOutput ? '.pdf' : '.docx')", $controller);
+        $this->assertStringContainsString('application/pdf', $controller);
         $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.wordprocessingml.document', $controller);
         $this->assertStringContainsString('return response()->download(', $controller);
     }

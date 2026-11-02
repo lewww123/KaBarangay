@@ -29,13 +29,27 @@ export default function Staff({ assignments, filters }: Props) {
             return;
         }
 
+        const query = residentSearch.trim();
         const controller = new AbortController();
         const timer = window.setTimeout(async () => {
-            const response = await fetch(`/admin/staff/residents?search=${encodeURIComponent(residentSearch)}`, {
-                headers: { Accept: 'application/json' },
-                signal: controller.signal,
-            });
-            if (response.ok) setResidents((await response.json()).residents);
+            try {
+                const response = await fetch(`/admin/staff/residents?search=${encodeURIComponent(query)}`, {
+                    headers: { Accept: 'application/json' },
+                    signal: controller.signal,
+                });
+                if (!response.ok) {
+                    throw new Error('Resident search failed.');
+                }
+
+                const payload = await response.json() as { residents?: Resident[] };
+                if (!controller.signal.aborted) {
+                    setResidents(Array.isArray(payload.residents) ? payload.residents : []);
+                }
+            } catch {
+                if (!controller.signal.aborted) {
+                    setResidents([]);
+                }
+            }
         }, 250);
 
         return () => {

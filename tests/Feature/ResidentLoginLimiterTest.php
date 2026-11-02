@@ -225,6 +225,36 @@ class ResidentLoginLimiterTest extends TestCase
         );
     }
 
+    public function test_pending_registration_cannot_log_in_with_an_active_resident_account(): void
+    {
+        $purok = $this->createPurok($this->barangay);
+        $resident = $this->createResident($this->barangay, $purok, [
+            'resident_number' => 'RES-PENDING',
+        ]);
+
+        $resident->registration->update(['status' => 'pending']);
+
+        $this->login('RES-PENDING', 'password')
+            ->assertRedirect()
+            ->assertSessionHasErrors(['login' => self::GENERIC_MESSAGE]);
+
+        $this->assertNull(session('resident_id'));
+    }
+
+    public function test_pending_registration_is_redirected_by_resident_middleware(): void
+    {
+        $purok = $this->createPurok($this->barangay);
+        $resident = $this->createResident($this->barangay, $purok, [
+            'resident_number' => 'RES-PENDING-SESSION',
+        ]);
+
+        $resident->registration->update(['status' => 'pending']);
+
+        $this->withSession(['resident_id' => $resident->id])
+            ->get(route('resident.dashboard'))
+            ->assertRedirect(route('resident.login'));
+    }
+
     public function test_resident_rejection_does_not_touch_other_resident_bucket(): void
     {
         $purok = $this->createPurok($this->barangay);

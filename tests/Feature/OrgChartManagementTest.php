@@ -120,7 +120,7 @@ class OrgChartManagementTest extends TestCase
 
         $this->actingAs($this->admin)
             ->get('/clerk/org-chart')
-            ->assertOk();
+            ->assertForbidden();
     }
 
     public function test_creating_a_position_forces_draft_stores_a_private_photo_and_audits(): void
@@ -413,5 +413,57 @@ class OrgChartManagementTest extends TestCase
                 ->component('OrgChart/Management')
                 ->where('positions.0.assigned_person', 'Captain Barbell')
                 ->where('tree.0.assigned_person', 'Captain Barbell'));
+    }
+
+    public function test_admin_and_clerk_can_save_browser_form_edits_with_and_without_a_photo(): void
+    {
+        foreach (['admin' => $this->admin, 'clerk' => $this->clerk] as $portal => $user) {
+            foreach ([false, true] as $replacePhoto) {
+                $parent = $this->createPosition($this->barangay, ['title' => 'Chair']);
+                $position = $this->createPosition($this->barangay, [
+                    'title' => 'Old Title', 'assigned_person' => 'Old Name',
+                    'parent_id' => $parent->id, 'status' => 'published',
+                ]);
+                $oldPath = 'org-chart/'.$this->barangay->id.'/old-'.$position->id.'.png';
+                Storage::disk('local')->put($oldPath, base64_decode(self::PNG_1X1, true));
+                $position->update(['photo_path' => $oldPath]);
+                $oldPhotoUrl = route($portal.'.org-chart.photo', ['position' => $position->id, 'v' => substr(hash('sha256', $oldPath), 0, 12)]);
+                $payload = [
+                    '_method' => 'put', 'title' => 'Kagawad on Health',
+                    'assigned_person' => 'Updated Name', 'parent_id' => '',
+                ];
+                if ($replacePhoto) {
+                    $payload['photo'] = $this->photoUpload('new-photo.png');
+                }
+                $base = '/'.$portal.'/org-chart';
+                $this->actingAs($user)->from($base)->post($base.'/'.$position->id, $payload)
+                    ->assertRedirect($base)->assertSessionHasNoErrors();
+                $position->refresh();
+                $this->assertSame('Kagawad on Health', $position->title);
+                $this->assertSame('Updated Name', $position->assigned_person);
+                $this->assertNull($position->parent_id);
+                $this->assertSame('draft', $position->status);
+                $this->assertSame($user->id, $position->updated_by);
+                Storage::disk('local')->assertExists($position->photo_path);
+                $view = $this->get($base)->assertOk();
+                $saved = collect($view->inertiaProps('positions'))->firstWhere('id', $position->id);
+                $this->assertSame('Updated Name', $saved['assigned_person']);
+                if ($replacePhoto) {
+                    Storage::disk('local')->assertMissing($oldPath);
+                    $this->assertNotSame($oldPhotoUrl, $saved['photo_url']);
+                } else {
+                    $this->assertSame($oldPhotoUrl, $saved['photo_url']);
+                }
+            }
+        }
+    }
+
+    public function test_empty_edits_do_not_silently_succeed_or_unpublish_a_position(): void
+    {
+        $position = $this->createPosition($this->barangay, ['title' => 'Current Title', 'assigned_person' => 'Current Name', 'status' => 'published']);
+        $this->actingAs($this->clerk)->putJson('/clerk/org-chart/'.$position->id, [])
+            ->assertUnprocessable()->assertJsonValidationErrors('title');
+        $this->assertSame('published', $position->fresh()->status);
+        $this->assertSame('Current Name', $position->fresh()->assigned_person);
     }
 }

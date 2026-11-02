@@ -77,7 +77,7 @@ class CertificateRequestController extends Controller
         $requests = fn () => $query
             ->with([
                 'resident:id,first_name,middle_name,last_name,suffix,resident_number',
-                'certificate:id,name,code',
+                'certificate:id,name,code,form_schema',
             ])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -109,6 +109,9 @@ class CertificateRequestController extends Controller
                     'details' => CertificateRequestDetails::displayRows(
                         $type,
                         $payload['fields'],
+                        $certificateRequest->certificate
+                            ? CertificateRequestDetails::fieldsForCertificate($certificateRequest->certificate)
+                            : null,
                     ),
                     'status' => $certificateRequest->status,
                     'admin_note' => $certificateRequest->admin_note,

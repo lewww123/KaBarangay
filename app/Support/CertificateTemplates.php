@@ -21,7 +21,7 @@ class CertificateTemplates
     private const FILES = [
         'Residency' => 'residency',
         'Indigency' => 'indigency',
-        'Delayed PSA Registration' => 'delayedpsa',
+        'Delayed PSA Registration' => 'delayedpsa_dynamic',
         'Marriage Cohabitation' => 'marriage',
         'Scholarship Certificate' => 'scholarship',
         'Tricycle' => 'tricycle',
@@ -87,7 +87,7 @@ class CertificateTemplates
      */
     public static function path(string $type): string
     {
-        return storage_path('app/templates/'.(self::FILES[$type] ?? $type).'.docx');
+        return config('certificates.template_paths.'.$type, storage_path('app/templates/'.(self::FILES[$type] ?? $type).'.docx'));
     }
 
     /**
@@ -96,6 +96,12 @@ class CertificateTemplates
     public static function isAvailable(string $type): bool
     {
         return isset(self::FILES[$type]) && is_file(self::path($type));
+    }
+
+    /** The Clerk's reviewed PDF layouts do not require a Word template. */
+    public static function isPdfAvailable(string $type): bool
+    {
+        return in_array($type, [...self::types(), 'Barangay Clearance', 'Retail', 'Hardware Store', 'Pool / Resort'], true);
     }
 
     /**
@@ -146,6 +152,8 @@ class CertificateTemplates
         }
 
         $variables = CertificatePlaceholders::templateVariables($templatePath);
+        // These optional official fields are always supplied by the server.
+        $variables = array_values(array_diff($variables, CertificateOfficials::TEMPLATE_KEYS));
         sort($variables);
 
         sort($expected);
@@ -167,7 +175,7 @@ class CertificateTemplates
         return array_values(array_map(
             static fn (string $type): array => [
                 'value' => $type,
-                'available' => self::isAvailable($type),
+                'available' => self::isPdfAvailable($type),
             ],
             self::types(),
         ));

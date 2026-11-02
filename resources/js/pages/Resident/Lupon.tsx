@@ -1,7 +1,11 @@
-import { FormEvent, useMemo, useState } from 'react';
-import { Deferred, useForm } from '@inertiajs/react';
+import { EvidenceInput, EvidenceList } from '@/components/lupon/Evidence';
+import type { LuponEvidenceFile } from '@/components/lupon/types';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Deferred, useForm, usePoll } from '@inertiajs/react';
+import Pagination from '@/components/Pagination';
 import ResidentLayout from '@/layouts/ResidentLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import type { PaginatedData } from '@/types';
 
 type ComplaintTab = 'file' | 'complaints' | 'against';
 type FormStep = 'form' | 'review' | 'success';
@@ -12,6 +16,7 @@ type ComplaintAgainstMe = {
     caseType: string;
     phase: string;
     status: string;
+    trackingStatus: string;
     filedDate: string;
     complainantName: string;
     nextHearing?: {
@@ -40,6 +45,8 @@ type Complaint = {
     incidentLocation: string;
     narrative: string;
     requestedAction: string;
+    trackingStatus: string;
+    evidence: LuponEvidenceFile[];
     status: ComplaintStatus;
     luponNote?: string | null;
     submittedDate: string;
@@ -52,6 +59,7 @@ type Complaint = {
 };
 
 type ComplaintForm = {
+    evidence: File[];
     respondentName: string;
     respondentResidentStatus: string;
     respondentAddress: string;
@@ -65,6 +73,7 @@ type ComplaintForm = {
 };
 
 const emptyForm: ComplaintForm = {
+    evidence: [],
     respondentName: '',
     respondentResidentStatus: '',
     respondentAddress: '',
@@ -87,8 +96,8 @@ type ResidentProps = {
 type PageProps = {
     resident: ResidentProps;
     complaintTypes: string[];
-    complaints: Complaint[];
-    complaintsAgainstMe?: ComplaintAgainstMe[];
+    complaints: PaginatedData<Complaint>;
+    complaintsAgainstMe?: PaginatedData<ComplaintAgainstMe>;
     flash?: { success?: string | null };
 };
 
@@ -96,7 +105,11 @@ export default function Lupon(props: PageProps) {
     return (
         <Deferred
             data={['resident', 'complaints', 'complaintsAgainstMe']}
-            fallback={<ResidentLayout active="lupon"><PortalPageSkeleton list showTabs /></ResidentLayout>}
+            fallback={
+                <ResidentLayout active="lupon">
+                    <PortalPageSkeleton list showTabs />
+                </ResidentLayout>
+            }
         >
             <LuponContent {...props} />
         </Deferred>
@@ -107,15 +120,26 @@ function LuponContent({
     resident,
     complaintTypes,
     complaints,
-    complaintsAgainstMe = [],
+    complaintsAgainstMe,
     flash,
 }: PageProps) {
+    usePoll(15000, { only: ['complaints', 'complaintsAgainstMe'] });
+    useEffect(() => {
+        setSelectedComplaint((current) =>
+            current
+                ? (complaints.data.find((item) => item.id === current.id) ??
+                  current)
+                : null,
+        );
+    }, [complaints]);
     const [activeTab, setActiveTab] = useState<ComplaintTab>('file');
     const [step, setStep] = useState<FormStep>('form');
-    const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+    const [selectedComplaint, setSelectedComplaint] =
+        useState<Complaint | null>(null);
     const [showTracking, setShowTracking] = useState(false);
 
-    const { data, setData, post, processing, errors, reset } = useForm<ComplaintForm>(emptyForm);
+    const { data, setData, post, processing, errors, reset } =
+        useForm<ComplaintForm>(emptyForm);
 
     const canContinue = useMemo(
         () =>
@@ -151,6 +175,8 @@ function LuponContent({
      */
     const handleSubmitComplaint = () => {
         post('/resident/lupon/complaints', {
+            forceFormData: true,
+            onError: () => setStep('form'),
             preserveScroll: false,
             onSuccess: () => {
                 setStep('success');
@@ -176,16 +202,18 @@ function LuponContent({
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const justSubmitted = complaints[0] ?? null;
+    const justSubmitted = complaints.data[0] ?? null;
 
     return (
         <ResidentLayout active="lupon">
             <div className="mx-auto w-full max-w-7xl">
                 <div className="mb-5 sm:mb-6">
-                    <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Lupon Assistance</h1>
+                    <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                        Lupon Assistance
+                    </h1>
                     <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
-                        File a complaint and keep track of your complaint with the Lupong
-                        Tagapamayapa.
+                        File a complaint and keep track of your complaint with
+                        the Lupong Tagapamayapa.
                     </p>
                 </div>
 
@@ -226,7 +254,7 @@ function LuponContent({
                                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                             }`}
                         >
-                            My Complaints ({complaints.length})
+                            My Complaints ({complaints.total})
                         </button>
 
                         <button
@@ -244,7 +272,8 @@ function LuponContent({
                                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                             }`}
                         >
-                            Complaints Against Me ({complaintsAgainstMe.length})
+                            Complaints Against Me (
+                            {complaintsAgainstMe?.total ?? 0})
                         </button>
                     </div>
                 </div>
@@ -252,7 +281,10 @@ function LuponContent({
                 {activeTab === 'file' && (
                     <>
                         {step === 'form' && (
-                            <form onSubmit={handleContinue} className="space-y-5">
+                            <form
+                                onSubmit={handleContinue}
+                                className="space-y-5"
+                            >
                                 <SectionCard>
                                     <SectionHeading
                                         number="1"
@@ -268,14 +300,20 @@ function LuponContent({
 
                                             <div className="min-w-0">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <p className="font-semibold text-gray-900">{resident.fullName}</p>
-                                                    <span className="rounded-full bg-[#dcebd8] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#3f6f3d]">
+                                                    <p className="font-semibold text-gray-900">
+                                                        {resident.fullName}
+                                                    </p>
+                                                    <span className="rounded-full bg-[#dcebd8] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[#3f6f3d] uppercase">
                                                         Verified
                                                     </span>
                                                 </div>
 
-                                                <p className="mt-1 text-sm text-gray-500">{resident.residentNumber}</p>
-                                                <p className="mt-1 text-sm leading-5 text-gray-600">{resident.address}</p>
+                                                <p className="mt-1 text-sm text-gray-500">
+                                                    {resident.residentNumber}
+                                                </p>
+                                                <p className="mt-1 text-sm leading-5 text-gray-600">
+                                                    {resident.address}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -289,11 +327,20 @@ function LuponContent({
                                     />
 
                                     <div className="mt-5 grid gap-4 md:grid-cols-2">
-                                        <Field label="Respondent Full Name" required error={errors.respondentName}>
+                                        <Field
+                                            label="Respondent Full Name"
+                                            required
+                                            error={errors.respondentName}
+                                        >
                                             <input
                                                 type="text"
                                                 value={data.respondentName}
-                                                onChange={(event) => updateForm('respondentName', event.target.value)}
+                                                onChange={(event) =>
+                                                    updateForm(
+                                                        'respondentName',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 placeholder="Enter full name"
                                                 className={inputClass}
                                             />
@@ -302,35 +349,63 @@ function LuponContent({
                                         <Field
                                             label="Is the respondent a resident of this barangay?"
                                             required
-                                            error={errors.respondentResidentStatus}
+                                            error={
+                                                errors.respondentResidentStatus
+                                            }
                                         >
                                             <select
-                                                value={data.respondentResidentStatus}
-                                                onChange={(event) => updateForm('respondentResidentStatus', event.target.value)}
+                                                value={
+                                                    data.respondentResidentStatus
+                                                }
+                                                onChange={(event) =>
+                                                    updateForm(
+                                                        'respondentResidentStatus',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 className={inputClass}
                                             >
                                                 <option value="">Select</option>
                                                 <option value="Yes">Yes</option>
                                                 <option value="No">No</option>
-                                                <option value="Unknown">I don't know</option>
+                                                <option value="Unknown">
+                                                    I don't know
+                                                </option>
                                             </select>
                                         </Field>
 
-                                        <Field label="Respondent Address" error={errors.respondentAddress}>
+                                        <Field
+                                            label="Respondent Address"
+                                            error={errors.respondentAddress}
+                                        >
                                             <input
                                                 type="text"
                                                 value={data.respondentAddress}
-                                                onChange={(event) => updateForm('respondentAddress', event.target.value)}
+                                                onChange={(event) =>
+                                                    updateForm(
+                                                        'respondentAddress',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 placeholder="Enter address if known"
                                                 className={inputClass}
                                             />
                                         </Field>
 
-                                        <Field label="Contact Number" optional error={errors.respondentContact}>
+                                        <Field
+                                            label="Contact Number"
+                                            optional
+                                            error={errors.respondentContact}
+                                        >
                                             <input
                                                 type="text"
                                                 value={data.respondentContact}
-                                                onChange={(event) => updateForm('respondentContact', event.target.value)}
+                                                onChange={(event) =>
+                                                    updateForm(
+                                                        'respondentContact',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 placeholder="09XX XXX XXXX"
                                                 className={inputClass}
                                             />
@@ -346,44 +421,85 @@ function LuponContent({
                                     />
 
                                     <div className="mt-5 grid gap-4 md:grid-cols-2">
-                                        <Field label="Nature of Complaint" required error={errors.complaintType}>
+                                        <Field
+                                            label="Nature of Complaint"
+                                            required
+                                            error={errors.complaintType}
+                                        >
                                             <select
                                                 value={data.complaintType}
-                                                onChange={(event) => updateForm('complaintType', event.target.value)}
+                                                onChange={(event) =>
+                                                    updateForm(
+                                                        'complaintType',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 className={inputClass}
                                             >
-                                                <option value="">Select complaint type</option>
+                                                <option value="">
+                                                    Select complaint type
+                                                </option>
                                                 {complaintTypes.map((type) => (
-                                                    <option key={type} value={type}>
+                                                    <option
+                                                        key={type}
+                                                        value={type}
+                                                    >
                                                         {type}
                                                     </option>
                                                 ))}
                                             </select>
                                         </Field>
 
-                                        <Field label="Date of Incident" required error={errors.incidentDate}>
+                                        <Field
+                                            label="Date of Incident"
+                                            required
+                                            error={errors.incidentDate}
+                                        >
                                             <input
                                                 type="date"
                                                 value={data.incidentDate}
-                                                onChange={(event) => updateForm('incidentDate', event.target.value)}
+                                                onChange={(event) =>
+                                                    updateForm(
+                                                        'incidentDate',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 className={inputClass}
                                             />
                                         </Field>
 
-                                        <Field label="Time of Incident" optional error={errors.incidentTime}>
+                                        <Field
+                                            label="Time of Incident"
+                                            optional
+                                            error={errors.incidentTime}
+                                        >
                                             <input
                                                 type="time"
                                                 value={data.incidentTime}
-                                                onChange={(event) => updateForm('incidentTime', event.target.value)}
+                                                onChange={(event) =>
+                                                    updateForm(
+                                                        'incidentTime',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 className={inputClass}
                                             />
                                         </Field>
 
-                                        <Field label="Place of Incident" required error={errors.incidentLocation}>
+                                        <Field
+                                            label="Place of Incident"
+                                            required
+                                            error={errors.incidentLocation}
+                                        >
                                             <input
                                                 type="text"
                                                 value={data.incidentLocation}
-                                                onChange={(event) => updateForm('incidentLocation', event.target.value)}
+                                                onChange={(event) =>
+                                                    updateForm(
+                                                        'incidentLocation',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 placeholder="Where did it happen?"
                                                 className={inputClass}
                                             />
@@ -399,21 +515,36 @@ function LuponContent({
                                             <textarea
                                                 rows={5}
                                                 value={data.narrative}
-                                                onChange={(event) => updateForm('narrative', event.target.value)}
+                                                onChange={(event) =>
+                                                    updateForm(
+                                                        'narrative',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 placeholder="Describe what happened clearly and briefly..."
                                                 className={`${inputClass} resize-none`}
                                             />
 
                                             <p className="mt-1.5 text-xs leading-5 text-gray-400">
-                                                Include only information that is relevant to the complaint.
+                                                Include only information that is
+                                                relevant to the complaint.
                                             </p>
                                         </Field>
 
-                                        <Field label="Requested Action" required error={errors.requestedAction}>
+                                        <Field
+                                            label="Requested Action"
+                                            required
+                                            error={errors.requestedAction}
+                                        >
                                             <textarea
                                                 rows={3}
                                                 value={data.requestedAction}
-                                                onChange={(event) => updateForm('requestedAction', event.target.value)}
+                                                onChange={(event) =>
+                                                    updateForm(
+                                                        'requestedAction',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 placeholder="What assistance or resolution are you requesting?"
                                                 className={`${inputClass} resize-none`}
                                             />
@@ -421,6 +552,20 @@ function LuponContent({
                                     </div>
                                 </SectionCard>
 
+                                <div className="rounded-xl border bg-white p-5">
+                                    <EvidenceInput
+                                        files={data.evidence}
+                                        onChange={(files) =>
+                                            setData('evidence', files)
+                                        }
+                                        error={Object.entries(errors)
+                                            .filter(([key]) =>
+                                                key.startsWith('evidence'),
+                                            )
+                                            .map(([, value]) => value)
+                                            .join(' ')}
+                                    />
+                                </div>
                                 <div className="flex justify-end pb-3">
                                     <button
                                         type="submit"
@@ -446,7 +591,9 @@ function LuponContent({
                                                 Review Your Complaint
                                             </h2>
                                             <p className="mt-1 text-sm leading-6 text-gray-500">
-                                                Please make sure the information below is correct before submitting.
+                                                Please make sure the information
+                                                below is correct before
+                                                submitting.
                                             </p>
                                         </div>
                                     </div>
@@ -457,7 +604,10 @@ function LuponContent({
                                         title="Complainant"
                                         items={[
                                             ['Name', resident.fullName],
-                                            ['Resident Number', resident.residentNumber],
+                                            [
+                                                'Resident Number',
+                                                resident.residentNumber,
+                                            ],
                                             ['Address', resident.address],
                                         ]}
                                     />
@@ -468,9 +618,20 @@ function LuponContent({
                                         title="Respondent"
                                         items={[
                                             ['Full Name', data.respondentName],
-                                            ['Barangay Resident', data.respondentResidentStatus],
-                                            ['Address', data.respondentAddress || 'Not provided'],
-                                            ['Contact Number', data.respondentContact || 'Not provided'],
+                                            [
+                                                'Barangay Resident',
+                                                data.respondentResidentStatus,
+                                            ],
+                                            [
+                                                'Address',
+                                                data.respondentAddress ||
+                                                    'Not provided',
+                                            ],
+                                            [
+                                                'Contact Number',
+                                                data.respondentContact ||
+                                                    'Not provided',
+                                            ],
                                         ]}
                                     />
 
@@ -479,18 +640,36 @@ function LuponContent({
                                     <ReviewSection
                                         title="Complaint"
                                         items={[
-                                            ['Nature of Complaint', data.complaintType],
-                                            ['Date of Incident', formatInputDate(data.incidentDate)],
-                                            ['Time of Incident', data.incidentTime ? data.incidentTime : 'Not provided'],
-                                            ['Place of Incident', data.incidentLocation],
+                                            [
+                                                'Nature of Complaint',
+                                                data.complaintType,
+                                            ],
+                                            [
+                                                'Date of Incident',
+                                                formatInputDate(
+                                                    data.incidentDate,
+                                                ),
+                                            ],
+                                            [
+                                                'Time of Incident',
+                                                data.incidentTime
+                                                    ? data.incidentTime
+                                                    : 'Not provided',
+                                            ],
+                                            [
+                                                'Place of Incident',
+                                                data.incidentLocation,
+                                            ],
                                         ]}
                                     />
 
                                     <Divider />
 
                                     <div>
-                                        <p className="text-sm font-bold text-gray-900">Complaint Details</p>
-                                        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                                        <p className="text-sm font-bold text-gray-900">
+                                            Complaint Details
+                                        </p>
+                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
                                             {data.narrative}
                                         </p>
                                     </div>
@@ -498,8 +677,10 @@ function LuponContent({
                                     <Divider />
 
                                     <div>
-                                        <p className="text-sm font-bold text-gray-900">Requested Action</p>
-                                        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                                        <p className="text-sm font-bold text-gray-900">
+                                            Requested Action
+                                        </p>
+                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
                                             {data.requestedAction}
                                         </p>
                                     </div>
@@ -520,7 +701,9 @@ function LuponContent({
                                         disabled={processing}
                                         className="min-h-12 rounded-xl bg-[#3f6f3d] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-40"
                                     >
-                                        {processing ? 'Submitting...' : 'Submit Complaint'}
+                                        {processing
+                                            ? 'Submitting...'
+                                            : 'Submit Complaint'}
                                     </button>
                                 </div>
                             </div>
@@ -538,33 +721,42 @@ function LuponContent({
                                     </h2>
 
                                     <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-gray-500">
-                                        Your complaint has been sent to the Lupong Tagapamayapa for review.
+                                        Your complaint has been sent to the
+                                        Lupong Tagapamayapa for review.
                                     </p>
 
                                     <div className="mx-auto mt-6 max-w-md rounded-xl border border-gray-200 bg-gray-50 p-4">
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                        <p className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
                                             Case Reference
                                         </p>
 
-                                        <p className="mt-1 text-lg font-bold text-[#3f6f3d]">{justSubmitted.reference}</p>
+                                        <p className="mt-1 text-lg font-bold text-[#3f6f3d]">
+                                            {justSubmitted.reference}
+                                        </p>
 
                                         <div className="my-4 border-t border-gray-200" />
 
                                         <div className="flex items-center justify-between gap-4 text-left">
                                             <div>
-                                                <p className="text-xs text-gray-400">Current Status</p>
+                                                <p className="text-xs text-gray-400">
+                                                    Current Status
+                                                </p>
                                                 <p className="mt-1 text-sm font-semibold text-gray-800">
                                                     {justSubmitted.status}
                                                 </p>
                                             </div>
 
-                                            <StatusBadge status={justSubmitted.status} />
+                                            <StatusBadge
+                                                status={justSubmitted.status}
+                                            />
                                         </div>
                                     </div>
 
                                     <p className="mx-auto mt-5 max-w-lg text-xs leading-5 text-gray-400">
-                                        Keep your case reference number. You can view future updates under My
-                                        Complaints. Hearing scheduling is not yet available.
+                                        Keep your case reference number. You can
+                                        view future updates under My Complaints.
+                                        Open the docketed case to see hearing
+                                        schedules and released documents.
                                     </p>
 
                                     <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -595,29 +787,43 @@ function LuponContent({
                         {!selectedComplaint && (
                             <div className="space-y-4">
                                 <div>
-                                    <h2 className="text-base font-bold text-gray-900 sm:text-lg">My Complaints</h2>
+                                    <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                                        My Complaints
+                                    </h2>
                                     <p className="mt-1 text-sm text-gray-500">
-                                        View your submitted complaints and their current status.
+                                        View your submitted complaints and their
+                                        current status.
                                     </p>
                                 </div>
 
-                                {complaints.length > 0 ? (
+                                {complaints.data.length > 0 ? (
                                     <div className="grid gap-4">
-                                        {complaints.map((complaint) => (
+                                        {complaints.data.map((complaint) => (
                                             <ComplaintCard
                                                 key={complaint.id}
                                                 complaint={complaint}
                                                 onView={() => {
-                                                    setSelectedComplaint(complaint);
+                                                    setSelectedComplaint(
+                                                        complaint,
+                                                    );
                                                     setShowTracking(false);
 
-                                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                    window.scrollTo({
+                                                        top: 0,
+                                                        behavior: 'smooth',
+                                                    });
                                                 }}
                                             />
                                         ))}
+                                        <Pagination
+                                            paginator={complaints}
+                                            label="Complaint"
+                                        />
                                     </div>
                                 ) : (
-                                    <EmptyComplaints onFile={() => setActiveTab('file')} />
+                                    <EmptyComplaints
+                                        onFile={() => setActiveTab('file')}
+                                    />
                                 )}
                             </div>
                         )}
@@ -636,44 +842,73 @@ function LuponContent({
                                 <SectionCard>
                                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                         <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                            <p className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
                                                 Case Reference
                                             </p>
                                             <h2 className="mt-1 text-xl font-bold text-gray-900">
                                                 {selectedComplaint.reference}
                                             </h2>
                                             <p className="mt-1 text-sm text-gray-500">
-                                                Submitted {selectedComplaint.submittedDate}
+                                                Submitted{' '}
+                                                {
+                                                    selectedComplaint.submittedDate
+                                                }
                                             </p>
                                         </div>
 
-                                        <StatusBadge status={selectedComplaint.status} />
+                                        <StatusBadge
+                                            status={selectedComplaint.status}
+                                        />
                                     </div>
                                 </SectionCard>
 
-                                <HearingUnavailableNotice />
+                                {!selectedComplaint.case && (
+                                    <p className="rounded-xl border bg-white p-4 text-sm text-slate-600">
+                                        Lupon staff will review your complaint
+                                        before docketing it and scheduling a
+                                        hearing.
+                                    </p>
+                                )}
 
                                 <SectionCard>
                                     <ReviewSection
                                         title="Case Information"
                                         items={[
-                                            ['Respondent', selectedComplaint.respondent],
+                                            [
+                                                'Respondent',
+                                                selectedComplaint.respondent,
+                                            ],
                                             [
                                                 'Barangay Resident',
                                                 selectedComplaint.respondentResidentStatus,
                                             ],
-                                            ['Nature of Complaint', selectedComplaint.complaintType],
-                                            ['Incident Date', selectedComplaint.incidentDate],
-                                            ['Incident Time', selectedComplaint.incidentTime || 'Not provided'],
-                                            ['Incident Location', selectedComplaint.incidentLocation],
+                                            [
+                                                'Nature of Complaint',
+                                                selectedComplaint.complaintType,
+                                            ],
+                                            [
+                                                'Incident Date',
+                                                selectedComplaint.incidentDate,
+                                            ],
+                                            [
+                                                'Incident Time',
+                                                selectedComplaint.incidentTime ||
+                                                    'Not provided',
+                                            ],
+                                            [
+                                                'Incident Location',
+                                                selectedComplaint.incidentLocation,
+                                            ],
                                         ]}
                                     />
 
                                     <Divider />
 
                                     <div>
-                                        <p className="text-sm font-bold text-gray-900">Complaint Details</p>
-                                        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                                        <p className="text-sm font-bold text-gray-900">
+                                            Complaint Details
+                                        </p>
+                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
                                             {selectedComplaint.narrative}
                                         </p>
                                     </div>
@@ -681,20 +916,29 @@ function LuponContent({
                                     <Divider />
 
                                     <div>
-                                        <p className="text-sm font-bold text-gray-900">Requested Action</p>
-                                        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                                        <p className="text-sm font-bold text-gray-900">
+                                            Requested Action
+                                        </p>
+                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
                                             {selectedComplaint.requestedAction}
                                         </p>
                                     </div>
 
+                                    <EvidenceList
+                                        files={selectedComplaint.evidence ?? []}
+                                    />
                                     {selectedComplaint.luponNote && (
                                         <>
                                             <Divider />
 
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900">Note from Lupon</p>
-                                                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
-                                                    {selectedComplaint.luponNote}
+                                                <p className="text-sm font-bold text-gray-900">
+                                                    Note from Lupon
+                                                </p>
+                                                <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
+                                                    {
+                                                        selectedComplaint.luponNote
+                                                    }
                                                 </p>
                                             </div>
                                         </>
@@ -706,7 +950,10 @@ function LuponContent({
                                         type="button"
                                         onClick={() => {
                                             setShowTracking(true);
-                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                            window.scrollTo({
+                                                top: 0,
+                                                behavior: 'smooth',
+                                            });
                                         }}
                                         className="min-h-11 w-full rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#315b30] sm:w-auto"
                                     >
@@ -721,7 +968,10 @@ function LuponContent({
                                 complaint={selectedComplaint}
                                 onBack={() => {
                                     setShowTracking(false);
-                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    window.scrollTo({
+                                        top: 0,
+                                        behavior: 'smooth',
+                                    });
                                 }}
                             />
                         )}
@@ -731,15 +981,19 @@ function LuponContent({
                 {activeTab === 'against' && (
                     <div className="space-y-4">
                         <div>
-                            <h2 className="text-base font-bold text-gray-900 sm:text-lg">Complaints Against Me</h2>
+                            <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                                Complaints Against Me
+                            </h2>
                             <p className="mt-1 text-sm text-gray-500">
-                                Official Lupon cases where you have been named and staff-verified as a respondent.
+                                Official Lupon cases where you have been named
+                                and staff-verified as a respondent.
                             </p>
                         </div>
 
-                        {complaintsAgainstMe.length > 0 ? (
+                        {complaintsAgainstMe &&
+                        complaintsAgainstMe.data.length > 0 ? (
                             <div className="grid gap-4">
-                                {complaintsAgainstMe.map((item) => (
+                                {complaintsAgainstMe.data.map((item) => (
                                     <div
                                         key={item.id}
                                         className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#3f6f3d]/50"
@@ -747,53 +1001,86 @@ function LuponContent({
                                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                             <div className="space-y-1.5">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="text-base font-bold text-gray-900">{item.caseNumber}</span>
+                                                    <span className="text-base font-bold text-gray-900">
+                                                        {item.caseNumber}
+                                                    </span>
                                                     <span className="rounded-full bg-[#e8f1e4] px-2.5 py-0.5 text-xs font-semibold text-[#3f6f3d]">
                                                         {item.phase} Phase
                                                     </span>
-                                                    <span className="rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                                                        {item.status}
+                                                    <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                                                        {item.trackingStatus}
                                                     </span>
                                                 </div>
 
                                                 <p className="text-sm font-semibold text-gray-800">
-                                                    Nature of Dispute: {item.caseType}
+                                                    Nature of Dispute:{' '}
+                                                    {item.caseType}
                                                 </p>
 
                                                 <div className="mt-2 grid gap-1 text-xs text-gray-500 sm:grid-cols-2 sm:gap-x-8">
                                                     <p>
-                                                        <span className="text-gray-400">Complainant:</span> {item.complainantName}
+                                                        <span className="text-gray-400">
+                                                            Complainant:
+                                                        </span>{' '}
+                                                        {item.complainantName}
                                                     </p>
                                                     <p>
-                                                        <span className="text-gray-400">Filed Date:</span> {item.filedDate}
+                                                        <span className="text-gray-400">
+                                                            Filed Date:
+                                                        </span>{' '}
+                                                        {item.filedDate}
                                                     </p>
                                                     {item.nextHearing ? (
-                                                        <p className="sm:col-span-2 text-[#3f6f3d] font-medium">
-                                                            📅 Next Hearing: {item.nextHearing.date}
-                                                            {item.nextHearing.time && ` at ${item.nextHearing.time}`} ({item.nextHearing.venue})
+                                                        <p className="font-medium text-[#3f6f3d] sm:col-span-2">
+                                                            📅 Next Hearing:{' '}
+                                                            {
+                                                                item.nextHearing
+                                                                    .date
+                                                            }
+                                                            {item.nextHearing
+                                                                .time &&
+                                                                ` at ${item.nextHearing.time}`}{' '}
+                                                            (
+                                                            {
+                                                                item.nextHearing
+                                                                    .venue
+                                                            }
+                                                            )
                                                         </p>
                                                     ) : (
-                                                        <p className="text-gray-400 italic">No hearing scheduled yet</p>
+                                                        <p className="text-gray-400 italic">
+                                                            No hearing scheduled
+                                                            yet
+                                                        </p>
                                                     )}
                                                 </div>
                                             </div>
 
                                             <a
                                                 href={`/resident/lupon/cases/${item.id}`}
-                                                className="shrink-0 inline-flex items-center justify-center rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
                                             >
                                                 View Proceedings →
                                             </a>
                                         </div>
                                     </div>
                                 ))}
+                                <Pagination
+                                    paginator={complaintsAgainstMe}
+                                    label="Case"
+                                />
                             </div>
                         ) : (
                             <div className="rounded-2xl border border-dashed border-gray-300 bg-[#fafaf7] p-10 text-center">
                                 <span className="text-3xl">🛡️</span>
-                                <h3 className="mt-3 text-base font-semibold text-gray-800">No complaints against you</h3>
+                                <h3 className="mt-3 text-base font-semibold text-gray-800">
+                                    No complaints against you
+                                </h3>
                                 <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-gray-500">
-                                    You have no active cases where you are named and verified as a respondent. If a case is filed and staff verifies your account, it will appear here.
+                                    You have no active cases where you are named
+                                    and verified as a respondent. If a case is
+                                    filed and staff verifies your account, it
+                                    will appear here.
                                 </p>
                             </div>
                         )}
@@ -827,11 +1114,15 @@ function ComplaintTracking({
             <SectionCard>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        <p className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
                             Complaint Tracking
                         </p>
-                        <h2 className="mt-1 text-xl font-bold text-gray-900">{complaint.reference}</h2>
-                        <p className="mt-1 text-sm text-gray-500">{complaint.complaintType}</p>
+                        <h2 className="mt-1 text-xl font-bold text-gray-900">
+                            {complaint.reference}
+                        </h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                            {complaint.complaintType}
+                        </p>
                     </div>
 
                     <StatusBadge status={complaint.status} />
@@ -839,29 +1130,46 @@ function ComplaintTracking({
             </SectionCard>
 
             <div className="rounded-2xl border border-[#d8e6d3] bg-[#f4f8f2] p-4 shadow-sm sm:p-5">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#5d8058]">Current Status</p>
-                <p className="mt-1 text-lg font-bold text-[#315b30]">{complaint.status}</p>
-                <p className="mt-2 text-sm leading-6 text-gray-600">{getStatusDescription(complaint.status)}</p>
+                <p className="text-xs font-semibold tracking-wide text-[#5d8058] uppercase">
+                    Current Status
+                </p>
+                <p className="mt-1 text-lg font-bold text-[#315b30]">
+                    {complaint.trackingStatus ?? complaint.status}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                    {getStatusDescription(complaint.status)}
+                </p>
             </div>
 
             {complaint.luponNote && (
                 <SectionCard>
-                    <p className="text-sm font-bold text-gray-900">Note from Lupon</p>
-                    <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                    <p className="text-sm font-bold text-gray-900">
+                        Note from Lupon
+                    </p>
+                    <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
                         {complaint.luponNote}
                     </p>
                 </SectionCard>
             )}
 
             {complaint.case && (
-                <div className="rounded-2xl border border-[#3f6f3d]/30 bg-[#f4f8f2] p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-[#3f6f3d]/30 bg-[#f4f8f2] p-5 shadow-sm sm:flex-row">
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-lg">⚖️</span>
-                            <span className="font-bold text-gray-900">Case Created: {complaint.case.caseNumber}</span>
+                            <span className="font-bold text-gray-900">
+                                Case Created: {complaint.case.caseNumber}
+                            </span>
                         </div>
                         <p className="mt-1 text-xs text-gray-600">
-                            This complaint has been officially promoted into a Lupon Case ({complaint.case.phase} Phase).
+                            This complaint has been docketed.{' '}
+                            <a
+                                className="font-bold underline"
+                                href={`/resident/lupon/cases/${complaint.case.id}`}
+                            >
+                                Open case tracking, hearings and released
+                                documents →
+                            </a>
                         </p>
                     </div>
 
@@ -876,8 +1184,12 @@ function ComplaintTracking({
 
             <SectionCard>
                 <div className="mb-6">
-                    <h3 className="font-bold text-gray-900">Complaint Progress</h3>
-                    <p className="mt-1 text-sm text-gray-500">Follow the progress of your complaint.</p>
+                    <h3 className="font-bold text-gray-900">
+                        Complaint Progress
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Follow the progress of your complaint.
+                    </p>
                 </div>
 
                 <div className="mx-auto max-w-2xl">
@@ -885,11 +1197,16 @@ function ComplaintTracking({
                         const isLast = index === steps.length - 1;
 
                         return (
-                            <div key={item.label} className="relative flex gap-4">
+                            <div
+                                key={item.label}
+                                className="relative flex gap-4"
+                            >
                                 {!isLast && (
                                     <div
-                                        className={`absolute left-[17px] top-9 h-[calc(100%-12px)] w-0.5 ${
-                                            item.state === 'completed' ? 'bg-[#7da477]' : 'bg-gray-200'
+                                        className={`absolute top-9 left-[17px] h-[calc(100%-12px)] w-0.5 ${
+                                            item.state === 'completed'
+                                                ? 'bg-[#7da477]'
+                                                : 'bg-gray-200'
                                         }`}
                                     />
                                 )}
@@ -914,18 +1231,22 @@ function ComplaintTracking({
                                     )}
                                 </div>
 
-                                <div className={`min-w-0 flex-1 ${isLast ? 'pb-0' : 'pb-7'}`}>
+                                <div
+                                    className={`min-w-0 flex-1 ${isLast ? 'pb-0' : 'pb-7'}`}
+                                >
                                     <div className="flex flex-wrap items-center gap-2">
                                         <p
                                             className={`text-sm font-semibold ${
-                                                item.state === 'future' ? 'text-gray-400' : 'text-gray-900'
+                                                item.state === 'future'
+                                                    ? 'text-gray-400'
+                                                    : 'text-gray-900'
                                             }`}
                                         >
                                             {item.label}
                                         </p>
 
                                         {item.state === 'current' && (
-                                            <span className="rounded-full bg-[#e8f1e4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#3f6f3d]">
+                                            <span className="rounded-full bg-[#e8f1e4] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[#3f6f3d] uppercase">
                                                 Current
                                             </span>
                                         )}
@@ -933,7 +1254,9 @@ function ComplaintTracking({
 
                                     <p
                                         className={`mt-1 text-xs leading-5 ${
-                                            item.state === 'future' ? 'text-gray-400' : 'text-gray-500'
+                                            item.state === 'future'
+                                                ? 'text-gray-400'
+                                                : 'text-gray-500'
                                         }`}
                                     >
                                         {item.description}
@@ -945,30 +1268,12 @@ function ComplaintTracking({
                 </div>
             </SectionCard>
 
-            <HearingUnavailableNotice />
-        </div>
-    );
-}
-
-/**
- * Clear notice that hearing scheduling is not part of this intake batch.
- */
-function HearingUnavailableNotice() {
-    return (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm sm:p-5">
-            <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                    <CalendarIcon />
-                </div>
-
-                <div>
-                    <p className="font-bold text-amber-900">Hearing scheduling is not yet available</p>
-                    <p className="mt-1 text-sm leading-6 text-amber-800">
-                        Hearings, mediation schedules, and case management are not yet connected to
-                        this portal. No hearing date is assigned to a complaint at this time.
-                    </p>
-                </div>
-            </div>
+            {!complaint.case && (
+                <p className="rounded-xl border bg-white p-4 text-sm text-slate-600">
+                    Lupon staff will review your complaint before docketing it
+                    and scheduling a hearing.
+                </p>
+            )}
         </div>
     );
 }
@@ -989,15 +1294,18 @@ function getTrackingSteps(status: ComplaintStatus): TrackingStep[] {
     const baseSteps = [
         {
             label: 'Complaint Submitted',
-            description: 'Your complaint was successfully submitted to the barangay.',
+            description:
+                'Your complaint was successfully submitted to the barangay.',
         },
         {
             label: 'Under Review',
-            description: 'Lupon staff is reviewing the information in your complaint.',
+            description:
+                'Lupon staff is reviewing the information in your complaint.',
         },
         {
             label: 'Final Decision',
-            description: 'Lupon staff will accept the complaint for mediation or reject it with a note.',
+            description:
+                'Lupon staff will accept the complaint for mediation or reject it with a note.',
         },
     ];
 
@@ -1029,18 +1337,24 @@ function ComplaintCard({
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-bold text-gray-900">{complaint.reference}</p>
+                        <p className="font-bold text-gray-900">
+                            {complaint.reference}
+                        </p>
                         <StatusBadge status={complaint.status} />
                     </div>
 
-                    <p className="mt-2 text-sm font-semibold text-gray-800">{complaint.complaintType}</p>
+                    <p className="mt-2 text-sm font-semibold text-gray-800">
+                        {complaint.complaintType}
+                    </p>
 
                     <div className="mt-3 grid gap-2 text-sm text-gray-500 sm:grid-cols-2 sm:gap-x-8">
                         <p>
-                            <span className="text-gray-400">Respondent:</span> {complaint.respondent}
+                            <span className="text-gray-400">Respondent:</span>{' '}
+                            {complaint.respondent}
                         </p>
                         <p>
-                            <span className="text-gray-400">Submitted:</span> {complaint.submittedDate}
+                            <span className="text-gray-400">Submitted:</span>{' '}
+                            {complaint.submittedDate}
                         </p>
                     </div>
                 </div>
@@ -1076,7 +1390,9 @@ function StatusBadge({ status }: { status: ComplaintStatus }) {
 
 function SectionCard({ children }: { children: React.ReactNode }) {
     return (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6">{children}</div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
+            {children}
+        </div>
     );
 }
 
@@ -1097,7 +1413,9 @@ function SectionHeading({
 
             <div>
                 <h2 className="font-bold text-gray-900">{title}</h2>
-                <p className="mt-1 text-sm leading-5 text-gray-500">{description}</p>
+                <p className="mt-1 text-sm leading-5 text-gray-500">
+                    {description}
+                </p>
             </div>
         </div>
     );
@@ -1124,18 +1442,28 @@ function Field({
                 {required && <span className="ml-1 text-red-500">*</span>}
 
                 {optional && (
-                    <span className="ml-1 text-xs font-normal text-gray-400">(Optional)</span>
+                    <span className="ml-1 text-xs font-normal text-gray-400">
+                        (Optional)
+                    </span>
                 )}
             </label>
 
             {children}
 
-            {error && <p className="mt-1.5 text-xs leading-5 text-red-500">{error}</p>}
+            {error && (
+                <p className="mt-1.5 text-xs leading-5 text-red-500">{error}</p>
+            )}
         </div>
     );
 }
 
-function ReviewSection({ title, items }: { title: string; items: [string, string][] }) {
+function ReviewSection({
+    title,
+    items,
+}: {
+    title: string;
+    items: [string, string][];
+}) {
     return (
         <div>
             <h3 className="text-sm font-bold text-gray-900">{title}</h3>
@@ -1144,7 +1472,9 @@ function ReviewSection({ title, items }: { title: string; items: [string, string
                 {items.map(([label, value]) => (
                     <div key={label}>
                         <p className="text-xs text-gray-400">{label}</p>
-                        <p className="mt-1 break-words text-sm font-medium leading-5 text-gray-700">{value}</p>
+                        <p className="mt-1 text-sm leading-5 font-medium break-words text-gray-700">
+                            {value}
+                        </p>
                     </div>
                 ))}
             </div>
@@ -1166,7 +1496,8 @@ function EmptyComplaints({ onFile }: { onFile: () => void }) {
             <h3 className="mt-4 font-bold text-gray-900">No complaints yet</h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-                Complaints you submit will appear here together with their current status.
+                Complaints you submit will appear here together with their
+                current status.
             </p>
 
             <button
@@ -1182,11 +1513,14 @@ function EmptyComplaints({ onFile }: { onFile: () => void }) {
 
 function getStatusDescription(status: ComplaintStatus) {
     const descriptions: Record<ComplaintStatus, string> = {
-        Submitted: 'Your complaint has been submitted and is waiting for Lupon review.',
-        'Under Review': 'Lupon staff is currently reviewing the information in your complaint.',
+        Submitted:
+            'Your complaint has been submitted and is waiting for Lupon review.',
+        'Under Review':
+            'Lupon staff is currently reviewing the information in your complaint.',
         Accepted:
-            'Lupon staff accepted your complaint for mediation. Hearing scheduling is not yet available.',
-        Rejected: 'Lupon staff rejected the complaint. See the note from Lupon for the reason.',
+            'Lupon staff accepted your complaint for docketing. Open the linked case when available to see hearing schedules and proceedings.',
+        Rejected:
+            'Lupon staff rejected the complaint. See the note from Lupon for the reason.',
     };
 
     return descriptions[status];
@@ -1259,26 +1593,6 @@ function ReviewIcon() {
         >
             <path d="M9 11l3 3L22 4" />
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-        </svg>
-    );
-}
-
-function CalendarIcon() {
-    return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-5 w-5"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-        >
-            <rect x="3" y="5" width="18" height="16" rx="2" />
-            <path d="M16 3v4" />
-            <path d="M8 3v4" />
-            <path d="M3 11h18" />
         </svg>
     );
 }

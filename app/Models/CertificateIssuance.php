@@ -23,6 +23,7 @@ class CertificateIssuance extends Model
         'resident_number',
         'purok',
         'fee',
+        'details',
         'issued_by',
         'issued_at',
     ];
@@ -31,6 +32,7 @@ class CertificateIssuance extends Model
     {
         return [
             'fee' => 'decimal:2',
+            'details' => 'array',
             'issued_at' => 'datetime',
         ];
     }

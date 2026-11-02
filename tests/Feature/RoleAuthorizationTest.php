@@ -112,9 +112,44 @@ class RoleAuthorizationTest extends TestCase
         $admin = $this->createAssignedStaff(['barangay' => $this->barangay, 'purok' => $purok], 'admin', 'Barangay Admin');
 
         $this->actingAs($admin)->get('/admin')->assertOk();
-        $this->actingAs($admin)->get('/clerk/dashboard')->assertOk();
+        $this->actingAs($admin)->get('/clerk/dashboard')->assertForbidden();
         $this->actingAs($admin)->get('/senior/dashboard')->assertForbidden();
         $this->actingAs($admin)->get('/pwd/dashboard')->assertForbidden();
+    }
+
+    public function test_admin_is_denied_every_clerk_workspace(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        foreach ([
+            '/clerk/dashboard',
+            '/clerk/certificates',
+            '/clerk/disbursements',
+            '/clerk/citizen-charter',
+            '/clerk/org-chart',
+            '/clerk/announcements',
+            '/clerk/updates',
+            '/clerk/programs',
+        ] as $uri) {
+            $this->actingAs($admin)->get($uri)->assertForbidden();
+        }
+    }
+
+    public function test_clerk_is_denied_every_admin_workspace(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        foreach ([
+            '/admin',
+            '/admin/residents',
+            '/admin/certificates',
+            '/admin/staff',
+            '/admin/settings',
+            '/admin/reports',
+            '/admin/audit-log',
+        ] as $uri) {
+            $this->actingAs($clerk)->get($uri)->assertForbidden();
+        }
     }
 
     public function test_lupon_cannot_access_admin_portal(): void
@@ -216,6 +251,26 @@ class RoleAuthorizationTest extends TestCase
                 'password' => 'password',
             ])
             ->assertRedirect(route('admin.dashboard'));
+    }
+
+    public function test_clerk_login_redirects_to_clerk_dashboard(): void
+    {
+        $user = $this->createAssignedStaff([
+            'barangay' => $this->barangay,
+            'purok' => $this->purok,
+            'first_name' => 'Clerk',
+            'last_name' => 'User',
+        ], 'clerk', 'Clerk');
+
+        $this
+            ->post('https://staff.kabarangay.com/login', [
+                'barangay_id' => $this->barangay->id,
+                'department' => 'clerk',
+                'position' => 'Clerk',
+                'full_name' => $user->resident->full_name,
+                'password' => 'password',
+            ])
+            ->assertRedirect(route('clerk.dashboard'));
     }
 
     public function test_any_authenticated_role_can_log_out(): void

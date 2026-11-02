@@ -39,6 +39,8 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        $this->call(BarangayBrandingSeeder::class);
+
         /*
         |--------------------------------------------------------------------------
         | Initial Admin Accounts

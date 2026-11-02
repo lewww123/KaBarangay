@@ -24,6 +24,7 @@ class RegistrationEmailOtpTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['registration.email_verification_required' => true]);
         $this->freezeTime();
         $this->withoutVite();
         Mail::fake();
@@ -196,6 +197,30 @@ class RegistrationEmailOtpTest extends TestCase
         $this->postJson('/register/send-otp', ['email' => 'resident@example.test'])->assertStatus(503);
         $this->postJson('/register/send-otp', ['email' => 'resident@example.test'])->assertStatus(503);
         $this->assertNull(session(RegistrationEmailOtp::SESSION_KEY));
+    }
+
+    public function test_registration_can_submit_without_otp_and_without_sending_email(): void
+    {
+        config(['registration.email_verification_required' => false]);
+        $payload = $this->payload();
+        $this->post('/resident/register', [...$payload, 'email_verified' => true])->assertRedirect()->assertSessionHasNoErrors();
+        $registration = ResidentRegistration::firstOrFail();
+        $this->assertSame('pending', $registration->status);
+        $this->assertSame($payload['email'], $registration->email);
+        $this->assertNull($registration->email_verified_at);
+        $this->assertDatabaseCount('resident_registration_email_verification_tokens', 0);
+        $this->assertDatabaseCount('resident_accounts', 0);
+        Mail::assertNothingSent();
+        $this->postJson('/register/send-otp', ['email' => $payload['email']])->assertStatus(409)->assertJsonPath('email_verification_required', false)->assertJsonPath('reload_required', true);
+    }
+
+    public function test_email_format_is_still_validated_when_otp_is_disabled(): void
+    {
+        config(['registration.email_verification_required' => false]);
+        $payload = $this->payload();
+        $this->postJson('/resident/register', [...$payload, 'email' => 'invalid-email'])->assertUnprocessable()->assertJsonValidationErrors('email');
+        $this->assertDatabaseCount('resident_registrations', 0);
+        Mail::assertNothingSent();
     }
 
     private function payload(): array

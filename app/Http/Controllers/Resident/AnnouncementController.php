@@ -15,7 +15,7 @@ use Inertia\Response;
 
 class AnnouncementController extends Controller
 {
-    private const PER_PAGE = 8;
+    private const PER_PAGE = 10;
 
     public function index(Request $request, string $kind = 'announcements'): Response
     {
@@ -75,7 +75,7 @@ class AnnouncementController extends Controller
         };
 
         return Inertia::render('Resident/Announcements', [
-            'announcements' => $this->deferProp(fn () => $resolvePaginator()->items()),
+            'announcements' => $this->deferProp($resolvePaginator),
             'categories' => $this->deferProp(fn () => (clone $baseQuery)
                 ->reorder()
                 ->select('category')
@@ -87,18 +87,6 @@ class AnnouncementController extends Controller
             'filters' => $filters,
             'kind' => $kind,
             'period' => $period,
-            'pagination' => $this->deferProp(function () use ($resolvePaginator): array {
-                $page = $resolvePaginator();
-
-                return [
-                    'current_page' => $page->currentPage(),
-                    'last_page' => $page->lastPage(),
-                    'per_page' => $page->perPage(),
-                    'total' => $page->total(),
-                    'from' => $page->firstItem(),
-                    'to' => $page->lastItem(),
-                ];
-            }),
         ]);
     }
 
