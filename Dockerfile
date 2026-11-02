@@ -1,6 +1,6 @@
 FROM php:8.3-apache
 
-# Mag-install ng system dependencies at PHP extensions na kailangan ng Laravel
+# Mag-install ng system dependencies at PHP extensions na kailangan ng Laravel (kasama ang libonig-dev para sa mbstring)
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libicu-dev \
     libxml2-dev \
+    libonig-dev \
     zip \
     unzip \
     git \
