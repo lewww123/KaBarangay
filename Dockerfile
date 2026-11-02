@@ -1,4 +1,8 @@
-FROM php:8.3-apache
+FROM php:8.3-apache AS app
+
+ENV APP_ENV=production \
+    APP_DEBUG=false \
+    LOG_CHANNEL=stderr
 
 # Mag-install ng system dependencies at PHP extensions
 RUN apt-get update && apt-get install -y \
@@ -51,5 +55,17 @@ RUN sed -ri -s 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
 # Baguhin ang permissions para sa storage at cache
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Build React assets with PHP available for the Wayfinder route generator.
+FROM node:22-bookworm-slim AS node
+
+FROM app AS frontend
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN node /usr/local/lib/node_modules/npm/bin/npm-cli.js ci --include=dev
+RUN node /usr/local/lib/node_modules/npm/bin/npm-cli.js run build
+
+FROM app AS production
+COPY --from=frontend /var/www/html/public/build /var/www/html/public/build
 
 EXPOSE 80
