@@ -1068,23 +1068,7 @@ export default function Login() {
 
 
 
-                                <p className="mt-4 text-xs leading-5 text-gray-500">
 
-                                    Already registered by your barangay?{' '}
-
-                                    <Link
-
-                                        href="/resident/register"
-
-                                        className="font-semibold text-[#3f6f3d] hover:underline"
-
-                                    >
-
-                                        Register your online account
-
-                                    </Link>
-
-                                </p>
 
                             </div>
 
