@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Auth\CachedEloquentUserProvider;
+use App\Mail\Transport\GmailApiTransport;
 use App\Models\Certificate;
 use App\Models\CitizenCharterService;
 use App\Models\CitizenCharterVersion;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -43,6 +45,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Mail::extend('gmail', fn (array $config = []) => new GmailApiTransport(
+            (string) config('services.gmail.client_id', ''),
+            (string) config('services.gmail.client_secret', ''),
+            (string) config('services.gmail.refresh_token', ''),
+        ));
+
         $this->configureDefaults();
         $this->configureRateLimiters();
         $this->configureAdminQueryLogging();
