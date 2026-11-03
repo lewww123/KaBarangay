@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y \
     curl
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install pdo pdo_pgsql gd zip intl xml bcmath mbstring
+RUN docker-php-ext-install pdo pdo_pgsql gd zip intl xml bcmath mbstring opcache
+COPY docker/php-production.ini /usr/local/etc/php/conf.d/production.ini
 
 # I-install ang Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -41,7 +42,9 @@ COPY . .
 RUN composer dump-autoload --optimize
 
 # I-enable ang Apache rewrite at i-configure ang AllowOverride para sa Laravel
-RUN a2enmod rewrite
+RUN a2enmod rewrite headers deflate
+COPY docker/performance.conf /etc/apache2/conf-available/performance.conf
+RUN a2enconf performance
 RUN echo '<Directory /var/www/html/public>\n\
     Options Indexes FollowSymLinks\n\
     AllowOverride All\n\
@@ -69,3 +72,6 @@ FROM app AS production
 COPY --from=frontend /var/www/html/public/build /var/www/html/public/build
 
 EXPOSE 80
+
+# Cache only at startup, after Render supplies the actual environment values.
+CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && php artisan view:cache && chown -R www-data:www-data bootstrap/cache storage/framework/views && exec apache2-foreground"]

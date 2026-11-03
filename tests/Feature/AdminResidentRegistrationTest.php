@@ -11,6 +11,7 @@ use App\Models\ResidentQrCredential;
 use App\Models\ResidentRegistration;
 use App\Models\Sector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -257,6 +258,32 @@ class AdminResidentRegistrationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/residents/'.$registration->id.'/documents/'.$document->id)
             ->assertStatus(200);
+    }
+
+    public function test_private_document_survives_loss_of_local_storage(): void
+    {
+        Storage::fake('local');
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000015',
+        ]);
+        $path = 'resident-verifications/'.$registration->public_id.'/valid_id.jpg';
+        Storage::disk('local')->put($path, 'private-image-bytes');
+        $document = $this->createDocument($registration, ['path' => $path]);
+        $this->assertDatabaseHas('registration_document_contents', ['registration_document_id' => $document->id]);
+        $this->assertStringNotContainsString('private-image-bytes', DB::table('registration_document_contents')->value('encrypted_content'));
+        Storage::disk('local')->delete($path);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $response = $this->actingAs($admin)
+            ->get('/admin/residents/'.$registration->id.'/documents/'.$document->id)
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/jpeg');
+        $this->assertSame('private-image-bytes', $response->streamedContent());
+
+        $otherAdmin = $this->createStaff($this->other, 'admin');
+        $this->actingAs($otherAdmin)
+            ->get('/admin/residents/'.$registration->id.'/documents/'.$document->id)
+            ->assertNotFound();
     }
 
     /*

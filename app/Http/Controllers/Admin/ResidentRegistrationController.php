@@ -4,16 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RequestResidentRegistrationCorrectionRequest;
-use App\Models\Purok;
 use App\Models\Household;
+use App\Models\Purok;
 use App\Models\RegistrationDocument;
 use App\Models\Resident;
 use App\Models\ResidentAccount;
-use App\Models\User;
 use App\Models\ResidentNotification;
 use App\Models\ResidentQrCredential;
 use App\Models\ResidentRegistration;
 use App\Models\ResidentRegistrationCorrectionCycle;
+use App\Models\User;
 use App\Support\AuditLogger;
 use App\Support\ResidentRegistrationCorrectionPolicy;
 use App\Support\ResidentRegistrationDecisionNotificationService;
@@ -670,6 +670,19 @@ class ResidentRegistrationController extends Controller
         );
 
         $disk = $document->disk ?: 'local';
+
+        if (! Storage::disk($disk)->exists($document->path)) {
+            $content = $document->backedUpContent();
+            abort_if($content === null, 404);
+
+            return response()->stream(function () use ($content): void {
+                echo $content;
+            }, 200, [
+                'Content-Type' => $document->mime_type ?: 'application/octet-stream',
+                'Cache-Control' => 'private, no-store, max-age=0',
+                'X-Content-Type-Options' => 'nosniff',
+            ]);
+        }
 
         abort_unless(
             Storage::disk($disk)->exists($document->path),
@@ -1536,7 +1549,8 @@ class ResidentRegistrationController extends Controller
                 [
                     'registration' => $registrationId,
                     'document' => $document->id,
-                ]
+                ],
+                absolute: false,
             ),
             'is_image' => str_starts_with(
                 (string) $document->mime_type,

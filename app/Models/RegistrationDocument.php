@@ -6,10 +6,36 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class RegistrationDocument extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        // Keep private uploads available when a deployment replaces local storage.
+        // Separate content from metadata so review lists never load file binaries.
+        static::created(function (self $document): void {
+            $disk = Storage::disk($document->disk ?: 'local');
+            if ($disk->exists($document->path)) {
+                DB::table('registration_document_contents')->insert([
+                    'registration_document_id' => $document->id,
+                    'encrypted_content' => Crypt::encryptString(base64_encode($disk->get($document->path))),
+                ]);
+            }
+        });
+    }
+
+    public function backedUpContent(): ?string
+    {
+        $encrypted = DB::table('registration_document_contents')
+            ->where('registration_document_id', $this->id)->value('encrypted_content');
+
+        return $encrypted === null ? null : base64_decode(Crypt::decryptString($encrypted), true);
+    }
 
     protected $fillable = [
         'resident_registration_id',

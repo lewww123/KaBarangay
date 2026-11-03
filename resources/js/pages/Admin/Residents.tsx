@@ -2717,6 +2717,7 @@ function ApplicationDocuments({
 }: {
     documents: RegistrationDocument[];
 }) {
+    const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
     if (documents.length === 0) {
         return (
             <div className="rounded-lg border border-gray-200 bg-[#fafaf7] p-4">
@@ -2759,7 +2760,11 @@ function ApplicationDocuments({
                         </div>
                     </div>
 
-                    {document.is_image ? (
+                    {document.is_image && failedImages[document.id] ? (
+                        <div role="alert" className="flex h-56 items-center justify-center bg-amber-50 p-4 text-center text-sm text-amber-900">
+                            Hindi ma-load ang image. Buksan ang full image para subukan ulit. Kung unavailable pa rin, mag-request ng correction para ma-upload muli ang file.
+                        </div>
+                    ) : document.is_image ? (
                         <a
                             href={document.url}
                             target="_blank"
@@ -2772,6 +2777,7 @@ function ApplicationDocuments({
                                 alt={document.label}
                                 loading="lazy"
                                 decoding="async"
+                                onError={() => setFailedImages((current) => ({ ...current, [document.id]: true }))}
                                 className="h-56 w-full object-contain p-3"
                             />
                         </a>
