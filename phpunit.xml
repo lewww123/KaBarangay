@@ -30,6 +30,7 @@
         <env name="DB_URL" value="" force="true"/>
         <env name="INERTIA_DEFER_HEAVY_PROPS" value="false" force="true"/>
         <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="MAIL_FROM_ADDRESS" value="tests@example.invalid" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
         <env name="PULSE_ENABLED" value="false" force="true"/>

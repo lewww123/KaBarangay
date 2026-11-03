@@ -8,8 +8,8 @@ use App\Models\StaffAssignment;
 use App\Support\AuditLogger;
 use App\Support\LoginAttemptRecorder;
 use App\Support\LoginIdentifier;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -49,6 +49,8 @@ class StaffLoginController extends Controller
                 ->where('status', 'active'))
             ->whereHas('user', fn ($query) => $query
                 ->where('barangay_id', $validated['barangay_id'])
+                ->where('name', $fullName)
+                ->whereColumn('users.resident_id', 'staff_assignments.resident_id')
                 ->where('status', 'active'))
             ->get()
             ->first(fn (StaffAssignment $assignment) => $assignment->resident_id === $assignment->user?->resident_id

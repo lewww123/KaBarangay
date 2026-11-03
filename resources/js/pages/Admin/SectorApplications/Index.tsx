@@ -1,36 +1,25 @@
-import { Deferred, Head, Link } from '@inertiajs/react';
+import { Deferred, Head, Link, router } from '@inertiajs/react';
 import AdminPageSkeleton from '@/components/AdminPageSkeleton';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import type { SectorApplicationItem } from '@/components/sectors/types';
 
 interface Props {
     applications: SectorApplicationItem[];
+    pagination?: { total: number; current_page: number; last_page: number; previous: string | null; next: string | null };
+    stats?: Record<string, number>;
+    filters?: { search?: string; sector?: string; status?: string };
 }
 
 export default function AdminSectorApplicationsIndex(props: Props) {
-    return <Deferred data="applications" fallback={<AdminLayout active="sector-applications"><AdminPageSkeleton /></AdminLayout>}><SectorApplicationsContent {...props} /></Deferred>;
+    return <Deferred data={['applications', 'pagination', 'stats']} fallback={<AdminLayout active="sector-applications"><AdminPageSkeleton /></AdminLayout>}><SectorApplicationsContent {...props} /></Deferred>;
 }
 
-function SectorApplicationsContent({ applications = [] }: Props) {
-    const [search, setSearch] = useState('');
-    const [sectorFilter, setSectorFilter] = useState<'all' | 'senior' | 'pwd'>('all');
-    const [statusFilter, setStatusFilter] = useState<'all' | string>('all');
-
-    const filteredApplications = useMemo(() => {
-        return applications.filter((app) => {
-            const matchesSector = sectorFilter === 'all' || app.sector === sectorFilter;
-            const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-            const term = search.toLowerCase().trim();
-            const matchesSearch =
-                !term ||
-                app.applicant_name.toLowerCase().includes(term) ||
-                app.resident_number.toLowerCase().includes(term) ||
-                app.tracking_number.toLowerCase().includes(term);
-
-            return matchesSector && matchesStatus && matchesSearch;
-        });
-    }, [applications, search, sectorFilter, statusFilter]);
+function SectorApplicationsContent({ applications = [], pagination, stats = {}, filters = {} }: Props) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [sectorFilter, setSectorFilter] = useState(filters.sector ?? 'all');
+    const [statusFilter, setStatusFilter] = useState(filters.status ?? 'all');
+    const filteredApplications = applications;
 
     return (
         <AdminLayout active="sector-applications">
@@ -50,7 +39,7 @@ function SectorApplicationsContent({ applications = [] }: Props) {
 
                     <div className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm">
                         <span>Total Queue:</span>
-                        <span className="font-extrabold text-[#3f6f3d]">{applications.length}</span>
+                        <span className="font-extrabold text-[#3f6f3d]">{stats.total ?? 0}</span>
                     </div>
                 </div>
 
@@ -61,7 +50,7 @@ function SectorApplicationsContent({ applications = [] }: Props) {
                             Pending Final Decision
                         </span>
                         <p className="mt-1 text-2xl font-black text-amber-900">
-                            {applications.filter((a) => a.status === 'under_admin_review').length}
+                            {stats.pending ?? 0}
                         </p>
                     </div>
 
@@ -70,7 +59,7 @@ function SectorApplicationsContent({ applications = [] }: Props) {
                             Admin Approved
                         </span>
                         <p className="mt-1 text-2xl font-black text-emerald-900">
-                            {applications.filter((a) => a.status === 'approved').length}
+                            {stats.approved ?? 0}
                         </p>
                     </div>
 
@@ -79,7 +68,7 @@ function SectorApplicationsContent({ applications = [] }: Props) {
                             In Staff Review
                         </span>
                         <p className="mt-1 text-2xl font-black text-purple-900">
-                            {applications.filter((a) => a.status === 'pending_staff_review').length}
+                            {stats.staff_review ?? 0}
                         </p>
                     </div>
 
@@ -88,14 +77,14 @@ function SectorApplicationsContent({ applications = [] }: Props) {
                             Rejected / Returned
                         </span>
                         <p className="mt-1 text-2xl font-black text-red-900">
-                            {applications.filter((a) => a.status === 'rejected' || a.status === 'needs_correction').length}
+                            {stats.returned ?? 0}
                         </p>
                     </div>
                 </div>
 
                 {/* SEARCH & FILTER CONTROLS */}
                 <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <form onSubmit={(event) => { event.preventDefault(); router.get('/admin/sector-applications', { search, sector: sectorFilter, status: statusFilter }, { preserveState: true, preserveScroll: true }); }} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="relative flex-1">
                             <input
                                 type="text"
@@ -109,7 +98,7 @@ function SectorApplicationsContent({ applications = [] }: Props) {
                         <div className="flex gap-2">
                             <select
                                 value={sectorFilter}
-                                onChange={(e) => setSectorFilter(e.target.value as any)}
+                                onChange={(e) => setSectorFilter(e.target.value)}
                                 className="rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#3f6f3d]"
                             >
                                 <option value="all">All Sectors</option>
@@ -127,9 +116,11 @@ function SectorApplicationsContent({ applications = [] }: Props) {
                                 <option value="pending_staff_review">Pending Staff Review</option>
                                 <option value="approved">Approved</option>
                                 <option value="rejected">Rejected</option>
+                                <option value="requires_correction">Needs Correction</option>
                             </select>
+                            <button type="submit" className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white">Apply</button>
                         </div>
-                    </div>
+                    </form>
 
                     {/* TABLE */}
                     <div className="overflow-x-auto rounded-xl border border-gray-100">
@@ -210,6 +201,11 @@ function SectorApplicationsContent({ applications = [] }: Props) {
                             </tbody>
                         </table>
                     </div>
+                    {pagination && <nav aria-label="Application pages" className="flex items-center justify-between text-sm">
+                        {pagination.previous ? <Link href={pagination.previous} preserveScroll>Previous</Link> : <span />}
+                        <span>Page {pagination.current_page} of {pagination.last_page} · {pagination.total} results</span>
+                        {pagination.next ? <Link href={pagination.next} preserveScroll>Next</Link> : <span />}
+                    </nav>}
                 </div>
             </div>
         </AdminLayout>

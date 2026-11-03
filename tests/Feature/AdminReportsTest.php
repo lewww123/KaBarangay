@@ -275,6 +275,9 @@ class AdminReportsTest extends TestCase
 
         DB::listen(function (QueryExecuted $event) use (&$reportQueries, $reportTables): void {
             $sql = strtolower($event->sql);
+            if (str_starts_with($sql, 'select exists(select * from "staff_assignments"')) {
+                return; // Authorization reads are required even for an unavailable report.
+            }
             foreach ($reportTables as $table) {
                 if (preg_match('/\\b'.preg_quote($table, '/').'\\b/', $sql)) {
                     $reportQueries[] = $event->sql;
@@ -348,7 +351,6 @@ class AdminReportsTest extends TestCase
     public function test_population_matches_approved_directory_and_excludes_unqualified_active_rows(): void
     {
         $admin = $this->createStaff($this->barangay, 'admin');
-        $admin->resident->account()->delete();
         $qualified = [];
         for ($i = 0; $i < 6; $i++) {
             $qualified[] = $this->createResident($this->barangay, $this->purok, ['mobile' => '0917444000'.$i]);
@@ -360,15 +362,15 @@ class AdminReportsTest extends TestCase
         $pwd = Sector::create(['name' => 'PWD', 'slug' => 'pwd', 'requires_proof' => true, 'is_active' => true]);
         $pwd->residents()->attach($qualified[3]->id);
         $this->actingAs($admin)->get('/admin/reports?period=monthly&date=2026-11-01')->assertOk()->assertInertia(fn ($page) => $page
-            ->where('population.metrics.Total active Residents', 2)
-            ->where('population.metrics.General Residents', 2)
+            ->where('population.metrics.Total active Residents', 3)
+            ->where('population.metrics.General Residents', 3)
             ->where('population.metrics.PWD', 0)
             ->where('population.sectors.0.count', 0));
         $csv = $this->get('/admin/reports/export?period=monthly&date=2026-11-01&category=population')->assertOk()->streamedContent();
-        $this->assertStringContainsString('"Total active Residents","Current snapshot",2', $csv);
-        $this->assertStringContainsString('"General Residents","Current snapshot",2', $csv);
+        $this->assertStringContainsString('"Total active Residents","Current snapshot",3', $csv);
+        $this->assertStringContainsString('"General Residents","Current snapshot",3', $csv);
         $qualified[1]->account()->update(['is_active' => false]);
-        $this->get('/admin/reports?period=monthly&date=2026-11-01')->assertOk()->assertInertia(fn ($page) => $page->where('population.metrics.Total active Residents', 1)->where('population.metrics.General Residents', 1));
+        $this->get('/admin/reports?period=monthly&date=2026-11-01')->assertOk()->assertInertia(fn ($page) => $page->where('population.metrics.Total active Residents', 2)->where('population.metrics.General Residents', 2));
     }
 
     private function createIssuance(Barangay $barangay, string $utcTimestamp, array $overrides = []): CertificateIssuance

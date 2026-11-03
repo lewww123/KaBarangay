@@ -27,7 +27,7 @@ class CachedUserProviderTest extends TestCase
         $user = $this->createStaff($this->createBarangay('Auth Cache', 'AUTH-CACHE'), 'admin');
         $queries = 0;
         DB::listen(function ($query) use (&$queries): void {
-            if (str_contains($query->sql, 'from "users"')) {
+            if (str_contains($query->sql, 'from "users"') && ! str_starts_with($query->sql, 'select exists(select * from "staff_assignments"')) {
                 $queries++;
             }
         });

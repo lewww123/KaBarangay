@@ -159,6 +159,7 @@ class LuponLifecycleIntegrationTest extends TestCase
 
     public function test_no_case_progression_on_elapsed_deadlines_or_stale_edit_and_no_future_hearing_held(): void
     {
+        config(['lupon.hearing_actions_unlocked' => false]);
         $case = $this->docket(['hearing_date' => '2026-11-05']);
         $this->patch('/lupon/hearings/'.$case->hearings()->first()->id, ['status' => 'Held'])->assertSessionHasErrors('status');
         $this->patch('/lupon/cases/'.$case->id.'/status', ['status' => 'certified_to_file_action', 'prerequisites_verified' => true, 'notes' => 'skip'])->assertSessionHasErrors('status');
@@ -339,7 +340,7 @@ class LuponLifecycleIntegrationTest extends TestCase
         $this->assertSame('No agreement reached.', $first->fresh()->notes);
         $this->assertSame('mediation_active', $case->fresh()->status);
         $this->assertSame(2, $case->hearings()->count());
-        $this->assertSame('2026-11-17', $case->hearings()->orderByDesc('id')->first()->hearing_date->toDateString());
+        $this->assertSame('2026-11-17', $case->hearings()->reorder('id', 'desc')->first()->hearing_date->toDateString());
     }
 
     public function test_pangkat_members_and_first_lupon_schedule_are_saved_together(): void

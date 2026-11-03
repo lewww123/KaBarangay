@@ -111,14 +111,7 @@ class ClerkOverviewTest extends TestCase
 
         $this->actingAs($clerk)
             ->get('/clerk/dashboard')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Clerk/Dashboard')
-                ->where('stats.totalResidents', 0)
-                ->where('stats.totalAnnouncements', 0)
-                ->where('stats.pendingAnnouncements', 0)
-                ->where('stats.approvedAnnouncements', 0)
-                ->has('recentAnnouncements', 0));
+            ->assertForbidden();
     }
 
     public function test_clerk_overview_recent_announcements_expose_only_overview_fields(): void

@@ -68,8 +68,8 @@ class StaffManagementController extends Controller
         $residents = Resident::query()
             ->where('barangay_id', $request->user()->barangay_id)
             ->where('status', 'active')
-            ->whereHas('account')
-            ->whereHas('user', fn ($query) => $query->where('barangay_id', $request->user()->barangay_id))
+            ->whereHas('account', fn ($query) => $query->where('is_active', true))
+            ->whereHas('user', fn ($query) => $query->where('barangay_id', $request->user()->barangay_id)->where('status', 'active'))
             ->where(function ($query) use ($search) {
                 $query->where('first_name', 'like', "%{$search}%")
                     ->orWhere('middle_name', 'like', "%{$search}%")
@@ -141,7 +141,7 @@ class StaffManagementController extends Controller
             ->where('status', 'active')
             ->first();
 
-        if (! $resident || ! $resident->account || ! $resident->user || (int) $resident->user->barangay_id !== (int) $request->user()->barangay_id) {
+        if (! $resident || ! $resident->account?->is_active || ! $resident->user || $resident->user->status !== 'active' || (int) $resident->user->barangay_id !== (int) $request->user()->barangay_id) {
             throw ValidationException::withMessages([
                 'resident_id' => 'The resident must have an account and linked user before receiving a staff assignment.',
             ]);

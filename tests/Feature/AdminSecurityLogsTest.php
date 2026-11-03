@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\LoginAttempt;
-use App\Models\SuspiciousLoginAlert;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -101,10 +102,7 @@ class AdminSecurityLogsTest extends TestCase
         $this->insertAttempt($this->barangay);
 
         $this->actingAs($orphan)->get('/admin/audit-log?tab=security')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('loginAttempts.total', 0)
-                ->where('loginAttempts.data', []));
+            ->assertForbidden();
     }
 
     /*
@@ -323,7 +321,7 @@ class AdminSecurityLogsTest extends TestCase
     {
         $admin = $this->createStaff($this->barangay, 'admin');
 
-        \App\Models\AuditLog::create([
+        AuditLog::create([
             'barangay_id' => $this->barangay->id,
             'event' => 'login.success',
         ]);
@@ -355,7 +353,7 @@ class AdminSecurityLogsTest extends TestCase
     {
         $admin = $this->createStaff($this->barangay, 'admin');
 
-        \App\Models\AuditLog::create([
+        AuditLog::create([
             'barangay_id' => $this->barangay->id,
             'event' => 'login.success',
         ]);
@@ -364,7 +362,7 @@ class AdminSecurityLogsTest extends TestCase
         $this->insertAttempt($this->barangay);
 
         $this->partialMock(
-            \App\Http\Controllers\Admin\AuditLogController::class,
+            AuditLogController::class,
             function ($mock) {
                 $mock->shouldAllowMockingProtectedMethods();
                 $mock->shouldReceive('loginAttempts')
@@ -398,7 +396,7 @@ class AdminSecurityLogsTest extends TestCase
     {
         $admin = $this->createStaff($this->barangay, 'admin');
 
-        \App\Models\AuditLog::create([
+        AuditLog::create([
             'barangay_id' => $this->barangay->id,
             'event' => 'login.success',
         ]);
@@ -407,7 +405,7 @@ class AdminSecurityLogsTest extends TestCase
         $this->insertAlert($this->barangay);
 
         $this->partialMock(
-            \App\Http\Controllers\Admin\AuditLogController::class,
+            AuditLogController::class,
             function ($mock) {
                 $mock->shouldAllowMockingProtectedMethods();
                 $mock->shouldReceive('suspiciousAlerts')
@@ -439,13 +437,13 @@ class AdminSecurityLogsTest extends TestCase
     {
         $admin = $this->createStaff($this->barangay, 'admin');
 
-        \App\Models\AuditLog::create([
+        AuditLog::create([
             'barangay_id' => $this->barangay->id,
             'event' => 'staff.created',
         ]);
 
         $this->partialMock(
-            \App\Http\Controllers\Admin\AuditLogController::class,
+            AuditLogController::class,
             function ($mock) {
                 $mock->shouldAllowMockingProtectedMethods();
                 $mock->shouldReceive('loginAttempts')

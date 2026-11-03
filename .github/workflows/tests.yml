@@ -36,3 +36,11 @@ jobs:
 
       - name: Run CI Checks
         run: composer ci:check
+
+      - name: Audit PHP Dependencies
+        if: always()
+        run: composer audit --locked
+
+      - name: Audit JavaScript Dependencies
+        if: always()
+        run: npm audit --audit-level=moderate

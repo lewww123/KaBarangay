@@ -2,10 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Barangay;
 use App\Models\AuditLog;
+use App\Models\Barangay;
 use App\Models\Purok;
-use App\Models\Resident;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -550,16 +549,7 @@ class AdminSettingsExportTest extends TestCase
         $admin = $this->createStaff($this->barangay, 'admin', ['barangay_id' => null]);
         $this->createResident($this->barangay, $this->purok, ['resident_number' => 'OWN-1']);
 
-        $body = $this->actingAs($admin)->get('/admin/settings/export/backup')->getContent();
-        $data = json_decode($body, true);
-
-        $this->assertNull($data['meta']['barangay_id']);
-        $this->assertNull($data['meta']['barangay_code']);
-        $this->assertSame([], $data['tables']);
-        $this->assertStringNotContainsString('OWN-1', json_encode($data));
-
-        $this->assertStringContainsString('"tables": {}', $body);
-        $this->assertStringNotContainsString('"tables": []', $body);
+        $this->actingAs($admin)->get('/admin/settings/export/backup')->assertForbidden();
     }
 
     public function test_backup_cannot_be_broadened_by_client_supplied_barangay_id(): void

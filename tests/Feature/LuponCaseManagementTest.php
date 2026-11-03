@@ -371,7 +371,7 @@ class LuponCaseManagementTest extends TestCase
         $residentSelects = [];
         DB::listen(function ($query) use (&$capture, &$residentSelects): void {
             $sql = strtolower($query->sql);
-            if ($capture && str_starts_with(ltrim($sql), 'select') && str_contains($sql, 'from "residents"')) {
+            if ($capture && str_starts_with(ltrim($sql), 'select') && str_contains($sql, 'from "residents"') && ! str_starts_with($sql, 'select exists(select * from "staff_assignments"')) {
                 $residentSelects[] = $query->sql;
             }
         });

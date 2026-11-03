@@ -28,7 +28,12 @@ export default defineConfig({
     ]),
     server: {
         host: '127.0.0.1',
-        cors: true,
+        cors: {
+            origin: [
+                process.env.APP_URL ?? 'http://localhost',
+                /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
+            ],
+        },
         watch: {
             ignored: [
                 '**/.agents/**',
