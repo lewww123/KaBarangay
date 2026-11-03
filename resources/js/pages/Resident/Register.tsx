@@ -1,5 +1,6 @@
 import { Deferred, Head, Link, useForm } from '@inertiajs/react';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import LegalLinks from '@/components/LegalLinks';
 import EmailVerificationSection from '@/components/registration/EmailVerificationSection';
 import useRegistrationEmailOtp, { type RegistrationEmailVerification, type RegistrationEmailOtpControls } from '@/hooks/useRegistrationEmailOtp';
 import {
@@ -779,6 +780,7 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                             </Link>
                         </p>
 
+                        <LegalLinks />
                         {selectedBarangay && (
                             <p className="mt-2 text-center text-xs text-gray-400">
                                 Selected location: {barangayLocation}

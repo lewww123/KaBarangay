@@ -76,6 +76,9 @@ use Inertia\Inertia;
 */
 
 Route::redirect('/', '/resident/login')->name('home');
+Route::view('/privacy-policy', 'legal.privacy')->name('privacy-policy');
+Route::view('/terms-and-conditions', 'legal.terms')->name('terms-and-conditions');
+Route::redirect('/terms-of-service', '/terms-and-conditions', 301)->name('terms-of-service');
 Route::post('/chatbot/send', [ChatbotController::class, 'sendMessage'])
     ->middleware(['resident.auth', 'throttle:20,1'])->name('chatbot.send');
 Route::post('/register/send-otp', [RegistrationOtpController::class, 'send'])

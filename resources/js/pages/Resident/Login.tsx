@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import LegalLinks from '@/components/LegalLinks';
 
 import {
 
@@ -1008,6 +1009,7 @@ export default function Login() {
 
 
 
+                            <LegalLinks />
                             {/* DIVIDER */}
 
 
