@@ -15,7 +15,7 @@ try {
     await writeFile(resolve(dir,'fixture.tsx'),`import React from 'react';import {createRoot} from 'react-dom/client';import './style.css';import Chat from '/resources/js/components/resident/BarangayChatbot';createRoot(document.getElementById('root')).render(<main className="mx-auto max-w-3xl p-3"><Chat floating={location.search==='?floating'} storageKey={location.search==='?other'?'chat-test-other':'chat-test-resident'}/></main>);`);
     server=await createServer({configFile:false,root,plugins:[react(),tailwind()],resolve:{alias:{'@':resolve('resources/js')}},server:{host:'127.0.0.1',port:5191,strictPort:true},logLevel:'error'}); await server.listen();
     browser=await chromium.launch({executablePath:process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
-    const page=await browser.newPage({viewport:{width:1000,height:900}});page.setDefaultTimeout(20000);
+    const page=await browser.newPage({viewport:{width:1000,height:900},hasTouch:true});page.setDefaultTimeout(20000);
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     let calls=0;let release;const bodies=[];
     await page.route('**/chatbot/send',async route=>{
@@ -49,10 +49,36 @@ try {
     await page.getByRole('log').getByText('Ready for Claim',{exact:true}).waitFor();
     await page.getByRole('button',{name:'Bagong usapan',exact:true}).click();assert.equal(await page.getByRole('log').getByText('At ang Lupon?',{exact:false}).count(),0);
     await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-    await page.goto(url+'?floating',{waitUntil:'domcontentloaded'});await page.getByRole('button',{name:'Kausapin si Kabarangay AI'}).click();await page.getByRole('dialog',{name:'Kabarangay AI assistant'}).waitFor();
+    await page.goto(url+'?floating',{waitUntil:'domcontentloaded'});
+    const launcher=page.getByRole('button',{name:'Kausapin si Kabarangay AI'});
+    await launcher.waitFor();
+    assert.equal((await launcher.innerText()).trim(),'');
+    const initial=await launcher.boundingBox();assert.equal(initial.width,56);assert.equal(initial.height,56);
+    await page.mouse.move(initial.x+28,initial.y+28);await page.mouse.down();
+    await page.mouse.move(initial.x-60,initial.y-240,{steps:12});await page.mouse.up();
+    assert.equal(await page.getByRole('dialog').count(),0,'Dragging must not open the chat');
+    const moved=await launcher.boundingBox();assert.ok(moved.y<initial.y-200);assert.equal(moved.x,initial.x);
+    await page.reload({waitUntil:'domcontentloaded'});await launcher.waitFor();
+    await page.waitForFunction(y=>Math.abs(document.querySelector('button[aria-controls="kabarangay-ai-chat"]').getBoundingClientRect().y-y)<2,moved.y);
+    await launcher.focus();await launcher.press('ArrowUp');
+    assert.ok((await launcher.boundingBox()).y<moved.y-20);
+    await launcher.press('Home');assert.equal((await launcher.boundingBox()).y,16);
+    await launcher.press('Enter');await page.getByRole('dialog',{name:'Kabarangay AI assistant'}).waitFor();
     const compactBox=await page.getByRole('dialog',{name:'Kabarangay AI assistant'}).boundingBox();assert.ok(compactBox.width<=361);assert.ok(compactBox.height<=521);
     await page.setViewportSize({width:1280,height:900});
     const desktopBox=await page.getByRole('dialog',{name:'Kabarangay AI assistant'}).boundingBox();assert.ok(desktopBox.width<=361);assert.ok(desktopBox.height<=521);
     await page.getByRole('button',{name:'Close assistant'}).click();assert.equal(await page.getByRole('dialog').count(),0);
-    assert.deepEqual(errors,[]);console.log('PASS: loading, AI replies, bounded history, retry without duplicates, escaped content, CSRF header, no navigation, reset, mobile layout and floating assistant.');
+    await page.setViewportSize({width:390,height:844});
+    const touch=await launcher.boundingBox();
+    const cdp=await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:touch.x+28,y:touch.y+28}]});
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:touch.x+28,y:400}]});
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await page.waitForFunction(()=>document.querySelector('button[aria-controls="kabarangay-ai-chat"]').getBoundingClientRect().top>300);
+    assert.equal(await page.getByRole('dialog').count(),0,'Touch dragging must not open the chat');
+    const touchMoved=await launcher.boundingBox();await page.touchscreen.tap(touchMoved.x+28,touchMoved.y+28);
+    await page.getByRole('dialog').waitFor();
+    await page.setViewportSize({width:844,height:390});
+    await page.waitForFunction(()=>{const r=document.querySelector('[role="dialog"]').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&r.right<=innerWidth});
+    assert.deepEqual(errors,[]);console.log('PASS: chat flow, persistence, icon-only launcher, mouse/touch dragging, keyboard movement, click after drag, saved position, right-edge docking and viewport containment.');
 } finally {await browser?.close();await server?.close();if(resolve(dir).startsWith(parent+'\\')||resolve(dir).startsWith(parent+'/'))await rm(dir,{recursive:true,force:true});}

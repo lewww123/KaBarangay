@@ -77,17 +77,23 @@ class LuponComplaintController extends Controller
                         'requestedAction' => $complaint->requested_action,
                         'status' => $complaint->status,
                         'luponNote' => $complaint->lupon_note,
+                        'assessedFee' => $complaint->assessed_fee,
                         'submittedDate' => (
                             $complaint->submitted_at
                             ?? $complaint->created_at
                         )?->format('F j, Y') ?? '',
-                        'trackingStatus' => $complaint->case ? LuponCaseWorkflow::tracking($complaint->case) : ($complaint->status === 'Submitted' ? 'Pending' : ($complaint->status === 'Rejected' ? 'Rejected' : 'Under Review')),
+                        'trackingStatus' => $complaint->case ? LuponCaseWorkflow::tracking($complaint->case) : match ($complaint->status) {
+                            'For Payment' => 'For Payment', 'Rejected' => 'Rejected', default => 'For Review',
+                        },
                         'evidence' => $complaint->evidence->map(fn ($file) => LuponEvidenceStore::summary($file, 'resident'))->all(),
                         'case' => $complaint->case ? [
                             'id' => $complaint->case->id,
                             'caseNumber' => $complaint->case->case_number,
                             'phase' => $complaint->case->phase,
                             'status' => $complaint->case->status,
+                            'paymentStatus' => $complaint->case->payment_status,
+                            'orNumber' => $complaint->case->or_number,
+                            'feeAmount' => $complaint->case->fee_amount,
                         ] : null,
                     ];
                 })),

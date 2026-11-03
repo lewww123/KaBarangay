@@ -264,13 +264,14 @@ class LuponLifecycleIntegrationTest extends TestCase
         $complaint = LuponComplaint::firstOrFail();
         $file = $complaint->evidence()->firstOrFail();
         $this->get('/resident/lupon/evidence/'.$file->id)->assertOk();
-        $this->get('/resident/lupon')->assertInertia(fn ($page) => $page->where('complaints.data.0.trackingStatus', 'Pending')->has('complaints.data.0.evidence', 1));
-        $complaint->update(['status' => 'Accepted', 'submitted_at' => now()->subDays(3)]);
-        $this->post('/lupon/complaints/'.$complaint->id.'/promote', ['hearing_date' => '2026-11-03', 'hearing_time' => '10:00'])->assertSessionHasNoErrors();
+        $this->get('/resident/lupon')->assertInertia(fn ($page) => $page->where('complaints.data.0.trackingStatus', 'For Review')->has('complaints.data.0.evidence', 1));
+        $complaint->update(['submitted_at' => now()->subDays(3)]);
+        $this->post('/lupon/complaints/'.$complaint->id.'/request-payment', ['assessed_fee' => 100])->assertSessionHasNoErrors();
+        $this->post('/lupon/complaints/'.$complaint->id.'/promote', ['or_number' => 'OR-ONLINE-1', 'venue' => 'Barangay Hall', 'hearing_date' => '2026-11-03', 'hearing_time' => '10:00'])->assertSessionHasNoErrors();
         $case = $complaint->case()->firstOrFail();
         $this->assertSame($case->id, $file->fresh()->case_id);
-        $this->assertSame('2026-10-30', $case->filed_date->toDateString());
-        $this->assertSame('2026-11-02', $case->summons_due_at->toDateString());
+        $this->assertSame('2026-11-02', $case->filed_date->toDateString());
+        $this->assertSame('2026-11-03', $case->summons_due_at->toDateString());
         $this->get('/resident/lupon/cases/'.$case->id)->assertOk()->assertInertia(fn ($page) => $page->has('caseData.evidence', 1)->has('caseData.documents', 0));
     }
 

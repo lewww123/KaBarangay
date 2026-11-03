@@ -30,7 +30,7 @@ type ComplaintAgainstMe = {
  * Intake statuses only. Hearing, mediation, and case-management statuses are
  * deliberately not part of this batch.
  */
-type ComplaintStatus = 'Submitted' | 'Under Review' | 'Accepted' | 'Rejected';
+type ComplaintStatus = 'Submitted' | 'Under Review' | 'For Payment' | 'Accepted' | 'Rejected';
 
 type Complaint = {
     id: number;
@@ -49,12 +49,16 @@ type Complaint = {
     evidence: LuponEvidenceFile[];
     status: ComplaintStatus;
     luponNote?: string | null;
+    assessedFee?: string | null;
     submittedDate: string;
     case?: {
         id: number;
         caseNumber: string;
         phase: string;
         status: string;
+        paymentStatus?: string;
+        orNumber?: string | null;
+        feeAmount?: string | number | null;
     } | null;
 };
 
@@ -945,6 +949,7 @@ function LuponContent({
                                     )}
                                 </SectionCard>
 
+                                <ComplaintPayment complaint={selectedComplaint} />
                                 <div className="flex justify-end">
                                     <button
                                         type="button"
@@ -1091,6 +1096,19 @@ function LuponContent({
     );
 }
 
+function ComplaintPayment({ complaint }: { complaint: Complaint }) {
+    if (complaint.status !== 'For Payment' && !complaint.case) return null;
+    const paid = complaint.case?.paymentStatus === 'paid';
+    return (
+        <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-gray-800">
+            <h3 className="font-bold">{paid ? 'Filing fee recorded' : complaint.case ? 'Filing fee' : 'For Payment — pay at the barangay office'}</h3>
+            <p className="mt-2">Filing fee: ₱{Number(complaint.case?.feeAmount ?? complaint.assessedFee ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+            {complaint.case?.orNumber && <p className="mt-1">OR / reference: {complaint.case.orNumber}</p>}
+            {!complaint.case && <p className="mt-2 leading-6">Dalhin ang reference na <strong>{complaint.reference}</strong> sa barangay office at bayaran ang assessed filing fee. Kunin ang official receipt. Itatala ng staff ang OR number at unang hearing schedule bago malikha ang case. Walang online payment sa form na ito.</p>}
+        </div>
+    );
+}
+
 function ComplaintTracking({
     complaint,
     onBack,
@@ -1098,7 +1116,7 @@ function ComplaintTracking({
     complaint: Complaint;
     onBack: () => void;
 }) {
-    const steps = getTrackingSteps(complaint.status);
+    const steps = getTrackingSteps(complaint.status, Boolean(complaint.case));
 
     return (
         <div className="space-y-5">
@@ -1141,6 +1159,7 @@ function ComplaintTracking({
                 </p>
             </div>
 
+            <ComplaintPayment complaint={complaint} />
             {complaint.luponNote && (
                 <SectionCard>
                     <p className="text-sm font-bold text-gray-900">
@@ -1270,8 +1289,8 @@ function ComplaintTracking({
 
             {!complaint.case && (
                 <p className="rounded-xl border bg-white p-4 text-sm text-slate-600">
-                    Lupon staff will review your complaint before docketing it
-                    and scheduling a hearing.
+                    A case and its first Kapitan hearing are created only after
+                    staff records the barangay payment and official receipt.
                 </p>
             )}
         </div>
@@ -1287,10 +1306,9 @@ type TrackingStep = {
 };
 
 /**
- * Intake tracking: Submitted -> Under Review -> Decision.
- * Hearing steps are intentionally absent.
+ * Review -> payment -> case creation. Actual proceedings are in the linked case.
  */
-function getTrackingSteps(status: ComplaintStatus): TrackingStep[] {
+function getTrackingSteps(status: ComplaintStatus, hasCase = false): TrackingStep[] {
     const baseSteps = [
         {
             label: 'Complaint Submitted',
@@ -1303,14 +1321,25 @@ function getTrackingSteps(status: ComplaintStatus): TrackingStep[] {
                 'Lupon staff is reviewing the information in your complaint.',
         },
         {
-            label: 'Final Decision',
+            label: 'Barangay Payment',
             description:
-                'Lupon staff will accept the complaint for mediation or reject it with a note.',
+                'After review, pay the assessed filing fee at the barangay and obtain an official receipt.',
+        },
+        {
+            label: 'Case and Kapitan Hearing #1',
+            description: 'Staff records the OR number and first schedule. The case then starts in the Kapitan phase.',
         },
     ];
 
+    if (status === 'Rejected') {
+        return [
+            { ...baseSteps[0], state: 'completed' },
+            { label: 'Complaint rejected', description: 'Read the note from Lupon for the reason.', state: 'current' },
+        ];
+    }
+
     const currentIndex =
-        status === 'Submitted' ? 0 : status === 'Under Review' ? 1 : 2;
+        hasCase ? 3 : status === 'For Payment' ? 2 : 1;
 
     return baseSteps.map((item, index) => {
         let state: TrackingState = 'future';
@@ -1375,6 +1404,7 @@ function StatusBadge({ status }: { status: ComplaintStatus }) {
     const styles: Record<ComplaintStatus, string> = {
         Submitted: 'bg-blue-50 text-blue-700 border-blue-200',
         'Under Review': 'bg-amber-50 text-amber-700 border-amber-200',
+        'For Payment': 'bg-orange-50 text-orange-800 border-orange-200',
         Accepted: 'bg-green-50 text-green-700 border-green-200',
         Rejected: 'bg-red-50 text-red-700 border-red-200',
     };
@@ -1383,7 +1413,7 @@ function StatusBadge({ status }: { status: ComplaintStatus }) {
         <span
             className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-bold ${styles[status]}`}
         >
-            {status}
+            {status === 'Submitted' ? 'For Review' : status}
         </span>
     );
 }
@@ -1517,6 +1547,8 @@ function getStatusDescription(status: ComplaintStatus) {
             'Your complaint has been submitted and is waiting for Lupon review.',
         'Under Review':
             'Lupon staff is currently reviewing the information in your complaint.',
+        'For Payment':
+            'Your complaint has been reviewed. Pay the assessed filing fee at the barangay office and obtain an official receipt. Staff must record the OR before your case and first hearing are created.',
         Accepted:
             'Lupon staff accepted your complaint for docketing. Open the linked case when available to see hearing schedules and proceedings.',
         Rejected:

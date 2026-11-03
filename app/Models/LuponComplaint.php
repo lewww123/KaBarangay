@@ -28,6 +28,8 @@ class LuponComplaint extends Model
         'submitted_at',
         'reviewed_at',
         'rejected_at',
+        'assessed_fee',
+        'payment_requested_at',
     ];
 
     protected function casts(): array
@@ -37,6 +39,8 @@ class LuponComplaint extends Model
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'rejected_at' => 'datetime',
+            'assessed_fee' => 'decimal:2',
+            'payment_requested_at' => 'datetime',
         ];
     }
 

@@ -22,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -478,7 +479,7 @@ class LuponCaseController extends Controller
     }
 
     /**
-     * Promote an Accepted complaint into an active LuponCase.
+     * Verify an actual paid receipt and docket the online complaint atomically.
      */
     public function promote(Request $request, LuponComplaint $complaint): RedirectResponse
     {
@@ -492,9 +493,9 @@ class LuponCaseController extends Controller
             abort(403, 'Unauthorized access to complaint.');
         }
 
-        if ($complaint->status !== 'Accepted') {
+        if ($complaint->status !== 'For Payment' || ! $complaint->assessed_fee || (float) $complaint->assessed_fee <= 0) {
             return redirect()->back()->withErrors([
-                'complaint' => 'Only complaints with "Accepted" status can be promoted to a case.',
+                'complaint' => 'Complete the complaint review and assess the filing fee before recording payment and creating a case.',
             ]);
         }
 
@@ -505,12 +506,24 @@ class LuponCaseController extends Controller
             ]);
         }
 
-        $request->validate(['acting_captain_id' => ['nullable', 'integer', 'min:1'], 'hearing_date' => ['nullable', 'date', 'after_or_equal:'.LuponCaseWorkflow::today()], 'hearing_time' => ['nullable', 'required_with:hearing_date', 'date_format:H:i'], 'venue' => ['nullable', 'string', 'max:255']]);
+        if (is_string($request->input('or_number'))) {
+            $request->merge(['or_number' => trim($request->input('or_number'))]);
+        }
+        $request->validate([
+            'or_number' => ['required', 'string', 'max:100', Rule::unique('lupon_cases', 'or_number')->where('barangay_id', $user->barangay_id)],
+            'acting_captain_id' => ['nullable', 'integer', 'min:1'],
+            'hearing_date' => ['required', 'date', 'after_or_equal:'.LuponCaseWorkflow::today()],
+            'hearing_time' => ['required', 'date_format:H:i'],
+            'venue' => ['required', 'string', 'max:255'],
+        ]);
         CertificateOfficials::resolve($user->barangay_id, $request->filled('acting_captain_id') ? $request->integer('acting_captain_id') : null);
         $case = $this->createCaseWithRetry($complaint, $user, $request);
+        Cache::forget('lupon:complaints:stats:'.$user->barangay_id);
+        Cache::forget('lupon:cases:counts:'.$user->barangay_id);
+        Cache::forget('lupon:dashboard:metrics:'.$user->barangay_id);
 
-        return redirect()->route('lupon.cases.show', $case->id)
-            ->with('success', "Complaint successfully promoted to Case {$case->case_number}.");
+        return redirect()->back()
+            ->with('success', "Payment and OR recorded. Case {$case->case_number} and Kapitan hearing #1 have been created with the selected schedule.");
     }
 
     /**
@@ -528,6 +541,14 @@ class LuponCaseController extends Controller
                     if ($existing = $complaint->case()->first()) {
                         return $existing;
                     }
+                    if ($complaint->status !== 'For Payment' || (float) $complaint->assessed_fee <= 0) {
+                        throw ValidationException::withMessages(['complaint' => 'This complaint is no longer awaiting payment. Refresh the queue.']);
+                    }
+                    // Serialize online receipt recording within this barangay.
+                    \App\Models\Barangay::whereKey($user->barangay_id)->lockForUpdate()->firstOrFail();
+                    if (LuponCase::where('barangay_id', $user->barangay_id)->where('or_number', $request->input('or_number'))->lockForUpdate()->exists()) {
+                        throw ValidationException::withMessages(['or_number' => 'This OR number is already recorded in your barangay.']);
+                    }
                     $complaint->loadMissing(['resident.purok:id,name', 'barangay:id,name']);
 
                     $caseNumber = $this->generateCaseNumber($complaint->barangay_id);
@@ -544,8 +565,12 @@ class LuponCaseController extends Controller
                         'status' => 'filed',
                         'created_by' => $user->id,
                         'assigned_to' => $user->id,
-                        'filed_date' => ($complaint->submitted_at ?? $complaint->created_at)->copy()->timezone(config('lupon.timezone'))->toDateString(),
+                        'filed_date' => LuponCaseWorkflow::today(),
                         'promoted_at' => now(),
+                        'payment_status' => 'paid',
+                        'fee_amount' => $complaint->assessed_fee,
+                        'or_number' => $request->input('or_number'),
+                        'paid_at' => now(),
                     ]);
 
                     // Add primary complainant
@@ -588,6 +613,10 @@ class LuponCaseController extends Controller
                     );
 
                     LuponDocket::finish($newCase, $request->only(['hearing_date', 'hearing_time', 'venue']), $user->id);
+                    $complaint->update(['status' => 'Accepted']);
+                    AuditLogger::record('lupon_case.fee_verified', barangayId: $newCase->barangay_id,
+                        actorId: $user->id, entityType: 'lupon_case', entityId: $newCase->id,
+                        context: ['payment_status' => 'paid', 'case_number' => $newCase->case_number]);
 
                     return $newCase;
                 });

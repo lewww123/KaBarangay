@@ -75,10 +75,12 @@ use Inertia\Inertia;
 |--------------------------------------------------------------------------
 */
 
-Route::redirect('/', '/resident/login')->name('home');
+Route::get('/', fn () => redirect('/resident/login'))->name('home');
+// Accept legacy logout links from either portal, including expired sessions.
+Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 Route::view('/privacy-policy', 'legal.privacy')->name('privacy-policy');
 Route::view('/terms-and-conditions', 'legal.terms')->name('terms-and-conditions');
-Route::redirect('/terms-of-service', '/terms-and-conditions', 301)->name('terms-of-service');
+Route::get('/terms-of-service', fn () => redirect('/terms-and-conditions', 301))->name('terms-of-service');
 Route::post('/chatbot/send', [ChatbotController::class, 'sendMessage'])
     ->middleware(['resident.auth', 'throttle:20,1'])->name('chatbot.send');
 Route::post('/register/send-otp', [RegistrationOtpController::class, 'send'])
@@ -109,6 +111,7 @@ Route::get('/sector-applications/{application}/documents/{document}/download', [
 Route::prefix('resident')->name('resident.')->group(function () {
 
     Route::inertia('/login', 'Resident/Login')->name('login');
+    Route::post('/logout', [\App\Http\Controllers\Resident\SessionController::class, 'destroy'])->name('logout');
     Route::post('/login', [AuthController::class, 'processResidentLogin'])->middleware('throttle:login-resident')->name('login.process');
     Route::get('/login/barangays', [AuthController::class, 'residentLoginBarangays'])->name('login.barangays');
 
@@ -500,8 +503,6 @@ Route::group(['domain' => config('app.staff_domain')], function () {
 
 Route::middleware('auth')->group(function () {
 
-    Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
-
     Route::get('/admin/residents/search', \App\Http\Controllers\ResidentSearchController::class)
         ->middleware(['role:admin,clerk', 'throttle:120,1'])
         ->name('admin.residents.search');
@@ -892,6 +893,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/complaints', [LuponComplaintController::class, 'index'])->name('complaints.index');
         Route::patch('/complaints/{complaint}/status', [LuponComplaintController::class, 'updateStatus'])->name('complaints.status');
         Route::post('/complaints/{complaint}/verify-fee', [LuponComplaintController::class, 'verifyFee'])->name('complaints.verify-fee');
+        Route::post('/complaints/{complaint}/request-payment', [LuponComplaintController::class, 'requestPayment'])->name('complaints.request-payment');
         Route::post('/complaints/{complaint}/promote', [LuponCaseController::class, 'promote'])->name('complaints.promote');
 
         Route::get('/residents/search', \App\Http\Controllers\ResidentSearchController::class)->middleware('throttle:120,1')->name('residents.search');

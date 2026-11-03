@@ -2,6 +2,7 @@ import { plainAssistantText } from '@/lib/assistantText';
 import axios from 'axios';
 import { Link } from '@inertiajs/react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import AssistantLauncher, { type LauncherPosition } from './AssistantLauncher';
 
 type TrackingRecord = { category: string; reference: string; label: string; status: string; detail: string; url: string; updatedAt?: string };
 type Message = { id: string; role: 'user' | 'assistant'; content: string; records?: TrackingRecord[]; checkedAt?: string };
@@ -11,6 +12,7 @@ const suggestions = ['I-track ang status ng requests ko', 'Paano kumuha ng Indig
 
 export default function BarangayChatbot({ floating = false, storageKey = null }: { floating?: boolean; storageKey?: string | null }) {
     const [open, setOpen] = useState(!floating);
+    const [launcherPosition, setLauncherPosition] = useState<LauncherPosition | null>(null);
     const [messages, setMessages] = useState<Message[]>([greeting()]);
     const [input, setInput] = useState('');
     const [hydratedKey, setHydratedKey] = useState<string | null>(null);
@@ -82,9 +84,20 @@ export default function BarangayChatbot({ floating = false, storageKey = null }:
         }
     };
     const submit = (event: FormEvent) => { event.preventDefault(); void send(); };
+    const floatingStyle = (() => {
+        if (!floating || !launcherPosition) return undefined;
+        const { top, viewportHeight } = launcherPosition;
+        const above = Math.max(0, top - 28);
+        const below = Math.max(0, viewportHeight - top - 84);
+        // Keep the icon outside the chat when there is room above or below it.
+        // On short landscape screens the chat uses the available viewport.
+        if (Math.max(above, below) < 300) return { top: 16, bottom: 'auto', height: Math.max(180, viewportHeight - 32), right: 84, width: 'min(360px, calc(100vw - 100px))' };
+        const height = Math.min(520, Math.max(above, below));
+        return { top: above >= below ? top - height - 12 : top + 68, bottom: 'auto', height };
+    })();
     return <>
-        {floating && <button type="button" onClick={() => setOpen(value => !value)} aria-expanded={open} aria-controls="kabarangay-ai-chat" aria-label={open ? 'Isara si Kabarangay AI' : 'Kausapin si Kabarangay AI'} className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-2xl border border-emerald-300 bg-gradient-to-br from-emerald-900 to-[#3f6f3d] px-3 py-2 text-sm font-semibold text-white shadow-xl"><RobotAvatar className="h-8 w-8 shrink-0" /><span>{open ? 'Isara' : 'Kabarangay AI'}</span></button>}
-        {open && <section id="kabarangay-ai-chat" role={floating ? 'dialog' : undefined} aria-label="Kabarangay AI assistant" className={floating ? 'fixed right-3 bottom-20 z-50 flex h-[min(520px,calc(100dvh-7rem))] w-[min(360px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border bg-white shadow-2xl' : 'flex h-[min(76dvh,740px)] min-h-96 flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm'}>
+        {floating && <AssistantLauncher open={open} onToggle={() => setOpen(value => !value)} onPositionChange={setLauncherPosition}><RobotAvatar className="h-10 w-10 shrink-0" /></AssistantLauncher>}
+        {open && <section id="kabarangay-ai-chat" role={floating ? 'dialog' : undefined} aria-label="Kabarangay AI assistant" style={floatingStyle} className={floating ? 'fixed right-3 bottom-20 z-50 flex h-[min(520px,calc(100dvh-7rem))] w-[min(360px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border bg-white shadow-2xl' : 'flex h-[min(76dvh,740px)] min-h-96 flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm'}>
             <header className={`flex shrink-0 items-center justify-between gap-2 bg-[#3f6f3d] text-white ${floating ? 'p-3' : 'p-4'}`}><div className="flex min-w-0 items-center gap-3"><RobotAvatar className={floating ? 'h-9 w-9 shrink-0' : 'h-12 w-12 shrink-0'} thinking={loading} /><div><h1 className={floating ? 'text-sm font-bold' : 'font-bold'}>Kabarangay AI</h1>{!floating && <p className="text-xs text-white/80">Personal barangay assistant</p>}<p className="mt-1 flex items-center gap-1 text-[10px] text-emerald-100"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />Live request tracking</p></div></div><div className="flex gap-2"><button type="button" onClick={reset} className="rounded-lg border border-white/40 px-2 py-1 text-xs">Bagong usapan</button>{floating && <button type="button" onClick={() => setOpen(false)} aria-label="Close assistant" className="rounded px-2 py-1">×</button>}</div></header>
             <div className={`flex min-h-0 flex-1 flex-col overflow-y-auto bg-stone-50 ${floating ? 'p-3' : 'p-4'}`}>
                 <div role="log" aria-live="polite" aria-relevant="additions" aria-label="Mga mensahe" className="space-y-3">{messages.map(item => <div key={item.id} className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap break-words ${item.role === 'user' ? 'bg-[#3f6f3d] text-white' : 'border border-emerald-100 bg-white text-stone-800 shadow-sm'}`}><span className="mb-1 block text-[10px] font-bold opacity-70">{item.role === 'user' ? 'Ikaw' : <span className="flex items-center gap-1"><RobotAvatar className="h-5 w-5" />Kabarangay AI</span>}</span>{item.role === 'assistant' ? plainAssistantText(item.records?.length ? item.content.split('\n\n')[0] : item.content) : item.content}{item.records?.map((record,index) => <div key={record.reference + index} className="mt-3 space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 text-stone-800"><p className="text-xs font-bold">{record.label}</p><p className="font-mono text-[11px] text-stone-500">{record.reference}</p><p className="inline-block rounded-full border border-emerald-200 bg-white px-2 py-1 text-xs font-semibold text-emerald-900">{record.status}</p><p className="text-xs leading-5">{record.detail}</p><Link href={record.url} className="inline-flex text-xs font-bold text-emerald-800 underline">Buksan ang record →</Link></div>)}{item.checkedAt && <p className="mt-2 text-[10px] text-stone-500">Mula sa system · Sinuri {new Date(item.checkedAt).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'Asia/Manila'})}</p>}</div></div>)}</div>

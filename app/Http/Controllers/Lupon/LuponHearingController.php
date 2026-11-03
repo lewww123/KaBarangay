@@ -127,7 +127,7 @@ class LuponHearingController extends Controller
             }
             if (! empty($data['previous_hearing_id'])) {
                 $previous = $locked->hearings()->where('phase', $phase)->whereKey($data['previous_hearing_id'])->first();
-                $latest = $locked->hearings()->where('phase', $phase)->orderByDesc('hearing_number')->first();
+                $latest = $locked->hearings()->where('phase', $phase)->reorder('hearing_number', 'desc')->first();
                 if (! $previous || $previous->id !== $latest?->id || ! in_array($previous->status, ['Scheduled', 'Rescheduled', 'Held'], true) || $previous->outcome === 'Settled') {
                     throw ValidationException::withMessages(['hearing_date' => 'Only the latest unresolved hearing can proceed to a next schedule.']);
                 }

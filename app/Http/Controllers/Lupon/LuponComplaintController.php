@@ -11,6 +11,8 @@ use App\Support\LuponEvidenceStore;
 use App\Support\ReferenceData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -27,6 +29,7 @@ class LuponComplaintController extends Controller
     private const STATUSES = [
         'Submitted',
         'Under Review',
+        'For Payment',
         'Accepted',
         'Rejected',
     ];
@@ -34,13 +37,13 @@ class LuponComplaintController extends Controller
     /**
      * Allowed status transitions for an intake complaint.
      *
-     * Submitted -> Under Review -> {Accepted, Rejected}. Accepted and
-     * Rejected are terminal for intake. Re-applying the current status is
-     * allowed so a note can be updated without moving the complaint.
+     * Review/rejection actions only. Acceptance is recorded atomically with
+     * the paid receipt and case creation, never through a status picker.
      */
     private const TRANSITIONS = [
-        'Submitted' => ['Under Review', 'Accepted', 'Rejected'],
-        'Under Review' => ['Accepted', 'Rejected'],
+        'Submitted' => ['Under Review', 'Rejected'],
+        'Under Review' => ['Rejected'],
+        'For Payment' => ['Rejected'],
         'Accepted' => [],
         'Rejected' => [],
     ];
@@ -95,7 +98,7 @@ class LuponComplaintController extends Controller
                     'id', 'barangay_id', 'resident_id', 'reference', 'respondent_name',
                     'respondent_resident_status', 'respondent_address', 'respondent_contact',
                     'complaint_type', 'incident_date', 'incident_time', 'incident_location',
-                    'narrative', 'requested_action', 'status', 'lupon_note', 'submitted_at', 'created_at',
+                    'narrative', 'requested_action', 'status', 'lupon_note', 'submitted_at', 'created_at', 'assessed_fee', 'payment_requested_at',
                 ])
                 ->latest('created_at')
                 ->paginate(15)
@@ -124,6 +127,8 @@ class LuponComplaintController extends Controller
                         'requestedAction' => $complaint->requested_action,
                         'status' => $complaint->status,
                         'luponNote' => $complaint->lupon_note,
+                        'assessedFee' => $complaint->assessed_fee,
+                        'paymentRequestedAt' => $complaint->payment_requested_at?->toIso8601String(),
                         'submittedDate' => (
                             $complaint->submitted_at
                             ?? $complaint->created_at
@@ -186,58 +191,95 @@ class LuponComplaintController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => ['required', 'string', Rule::in(self::STATUSES)],
+            'status' => ['required', 'string', Rule::in(['Under Review', 'Rejected'])],
             'lupon_note' => ['nullable', 'string', 'max:1000', 'required_if:status,Rejected'],
         ]);
 
         $status = $validated['status'];
-        $currentStatus = $complaint->status;
+        DB::transaction(function () use ($complaint, $user, $validated, $status, $request) {
+            $complaint = LuponComplaint::whereKey($complaint->id)->lockForUpdate()->firstOrFail();
+            $currentStatus = $complaint->status;
 
-        if ($status !== $currentStatus) {
-            if (in_array($currentStatus, self::TERMINAL_STATUSES, true)) {
-                throw ValidationException::withMessages([
-                    'status' => "A {$currentStatus} complaint is final and cannot change status.",
-                ]);
+            if ($status !== $currentStatus) {
+                if (in_array($currentStatus, self::TERMINAL_STATUSES, true)) {
+                    throw ValidationException::withMessages([
+                        'status' => "A {$currentStatus} complaint is final and cannot change status.",
+                    ]);
+                }
+
+                if (! in_array($status, self::TRANSITIONS[$currentStatus] ?? [], true)) {
+                    throw ValidationException::withMessages([
+                        'status' => "A complaint cannot move from \"{$currentStatus}\" to \"{$status}\".",
+                    ]);
+                }
             }
 
-            if (! in_array($status, self::TRANSITIONS[$currentStatus] ?? [], true)) {
-                throw ValidationException::withMessages([
-                    'status' => "A complaint cannot move from \"{$currentStatus}\" to \"{$status}\".",
-                ]);
+            $attributes = [
+                'status' => $status,
+                'lupon_note' => $validated['lupon_note'] ?? null,
+            ];
+
+            if ($status !== 'Submitted' && $complaint->reviewed_at === null) {
+                $attributes['reviewed_at'] = now();
             }
-        }
 
-        $attributes = [
-            'status' => $status,
-            'lupon_note' => $validated['lupon_note'] ?? null,
-        ];
+            if ($status === 'Rejected' && $complaint->rejected_at === null) {
+                $attributes['rejected_at'] = now();
+            }
 
-        if ($status !== 'Submitted' && $complaint->reviewed_at === null) {
-            $attributes['reviewed_at'] = now();
-        }
+            $complaint->update($attributes);
+            Cache::forget('lupon:complaints:stats:'.$user->barangay_id);
 
-        if ($status === 'Rejected' && $complaint->rejected_at === null) {
-            $attributes['rejected_at'] = now();
-        }
-
-        $complaint->update($attributes);
-
-        AuditLogger::record(
-            event: 'lupon_complaint.status_updated',
-            barangayId: $user->barangay_id,
-            actorId: $user->id,
-            entityType: 'lupon_complaint',
-            entityId: $complaint->id,
-            context: [
-                'action' => 'status_updated',
-                'entity_reference' => $complaint->reference,
-                'previous_status' => $currentStatus,
-                'new_status' => $status,
-            ],
-            ipAddress: $request->ip()
-        );
+            AuditLogger::record(
+                event: 'lupon_complaint.status_updated',
+                barangayId: $user->barangay_id,
+                actorId: $user->id,
+                entityType: 'lupon_complaint',
+                entityId: $complaint->id,
+                context: [
+                    'action' => 'status_updated',
+                    'entity_reference' => $complaint->reference,
+                    'previous_status' => $currentStatus,
+                    'new_status' => $status,
+                ],
+                ipAddress: $request->ip()
+            );
+        });
 
         return redirect()->back()->with('success', 'Complaint status updated.');
+    }
+
+    /** Completing intake review requests payment; it does not create a case. */
+    public function requestPayment(Request $request, LuponComplaint $complaint): RedirectResponse
+    {
+        LuponAccess::staff($request);
+        abort_unless((int) $complaint->barangay_id === (int) $request->user()->barangay_id, 403);
+        $data = $request->validate([
+            'assessed_fee' => ['required', 'numeric', 'min:0.01', 'max:999999.99', 'decimal:0,2'],
+            'lupon_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        DB::transaction(function () use ($complaint, $request, $data) {
+            $locked = LuponComplaint::whereKey($complaint->id)->lockForUpdate()->firstOrFail();
+            if (! in_array($locked->status, ['Submitted', 'Under Review', 'Accepted'], true) || $locked->case()->exists()) {
+                throw ValidationException::withMessages(['assessed_fee' => 'This complaint has already advanced. Refresh and review its current record.']);
+            }
+            $previous = $locked->status;
+            $locked->update([
+                'status' => 'For Payment',
+                'assessed_fee' => $data['assessed_fee'],
+                'payment_requested_at' => now(),
+                'reviewed_at' => $locked->reviewed_at ?? now(),
+                'lupon_note' => $data['lupon_note'] ?? null,
+            ]);
+            AuditLogger::record('lupon_complaint.payment_requested', barangayId: $locked->barangay_id,
+                actorId: $request->user()->id, entityType: 'lupon_complaint', entityId: $locked->id,
+                context: ['entity_reference' => $locked->reference, 'previous_status' => $previous, 'new_status' => 'For Payment'],
+                ipAddress: $request->ip());
+        });
+        Cache::forget('lupon:complaints:stats:'.$request->user()->barangay_id);
+
+        return back()->with('success', 'Review completed. The resident can now see the filing fee and payment instructions. No case has been created yet.');
     }
 
     /** Record the manual fee and activate a promoted, verified KP case. */
@@ -245,11 +287,7 @@ class LuponComplaintController extends Controller
     {
         LuponAccess::staff($request);
         abort_unless((int) $complaint->barangay_id === (int) $request->user()->barangay_id, 403);
-        $case = $complaint->case()->first();
-        if (! $case) {
-            throw ValidationException::withMessages(['fee_amount' => 'Promote the accepted complaint to a case first.']);
-        }
 
-        return app(LuponDocumentController::class)->verifyFee($request, $case);
+        return app(LuponCaseController::class)->promote($request, $complaint);
     }
 }

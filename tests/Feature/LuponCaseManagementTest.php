@@ -55,6 +55,15 @@ class LuponCaseManagementTest extends TestCase
         $this->get("/lupon/residents/{$other->id}/lookup")->assertNotFound();
     }
 
+    private function paymentSchedule(LuponComplaint $complaint): array
+    {
+        return [
+            'or_number' => 'OR-'.$complaint->id,
+            'hearing_date' => now()->timezone('Asia/Manila')->toDateString(),
+            'hearing_time' => '09:00',
+            'venue' => 'Barangay Hall',
+        ];
+    }
     private function createComplaint(
         Barangay $barangay,
         Resident $resident,
@@ -80,15 +89,15 @@ class LuponCaseManagementTest extends TestCase
         ]);
     }
 
-    public function test_accepted_complaint_can_be_manually_promoted_to_case(): void
+    public function test_payment_receipt_creates_case_and_first_hearing(): void
     {
         $complaint = $this->createComplaint($this->barangay, $this->resident, [
             'reference' => 'LUP-2026-00001',
-            'status' => 'Accepted',
+            'status' => 'For Payment', 'assessed_fee' => 100,
         ]);
 
         $response = $this->actingAs($this->luponStaff)
-            ->post("/lupon/complaints/{$complaint->id}/promote");
+            ->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
 
         $response->assertRedirect();
 
@@ -127,7 +136,7 @@ class LuponCaseManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->luponStaff)
-            ->post("/lupon/complaints/{$complaint->id}/promote");
+            ->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
 
         $response->assertSessionHasErrors('complaint');
         $this->assertDatabaseCount('lupon_cases', 0);
@@ -137,18 +146,18 @@ class LuponCaseManagementTest extends TestCase
     {
         $complaint = $this->createComplaint($this->barangay, $this->resident, [
             'reference' => 'LUP-2026-00001',
-            'status' => 'Accepted',
+            'status' => 'For Payment', 'assessed_fee' => 100,
         ]);
 
         // First promotion
         $this->actingAs($this->luponStaff)
-            ->post("/lupon/complaints/{$complaint->id}/promote");
+            ->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
 
         $this->assertDatabaseCount('lupon_cases', 1);
 
         // Second promotion should be rejected
         $response = $this->actingAs($this->luponStaff)
-            ->post("/lupon/complaints/{$complaint->id}/promote");
+            ->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
 
         $response->assertSessionHasErrors('complaint');
         $this->assertDatabaseCount('lupon_cases', 1);
@@ -162,11 +171,11 @@ class LuponCaseManagementTest extends TestCase
             'mobile' => '09170000099',
         ]);
         $complaint = $this->createComplaint($otherBarangay, $otherResident, [
-            'status' => 'Accepted',
+            'status' => 'For Payment', 'assessed_fee' => 100,
         ]);
 
         $response = $this->actingAs($this->luponStaff)
-            ->post("/lupon/complaints/{$complaint->id}/promote");
+            ->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
 
         $response->assertForbidden();
         $this->assertDatabaseCount('lupon_cases', 0);
@@ -174,8 +183,8 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_can_schedule_hearing_for_case(): void
     {
-        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'Accepted']);
-        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
+        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'For Payment', 'assessed_fee' => 100]);
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::first();
 
         $response = $this->actingAs($this->luponStaff)
@@ -183,6 +192,8 @@ class LuponCaseManagementTest extends TestCase
                 'hearing_date' => now()->addDays(3)->toDateString(),
                 'hearing_time' => '10:00',
                 'venue' => 'Barangay Session Hall',
+                'previous_hearing_id' => $case->hearings()->firstOrFail()->id,
+                'previous_hearing_notes' => 'Unresolved first hearing.',
                 'phase' => 'Kapitan',
             ]);
 
@@ -190,7 +201,7 @@ class LuponCaseManagementTest extends TestCase
 
         $this->assertDatabaseHas('lupon_hearings', [
             'case_id' => $case->id,
-            'hearing_number' => 1,
+            'hearing_number' => 2,
             'venue' => 'Barangay Session Hall',
             'status' => 'Scheduled',
         ]);
@@ -200,12 +211,13 @@ class LuponCaseManagementTest extends TestCase
     {
         $complaint = $this->createComplaint($this->barangay, $this->resident, [
             'reference' => 'LUP-2026-00071',
-            'status' => 'Accepted',
+            'status' => 'For Payment', 'assessed_fee' => 100,
         ]);
 
-        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::where('complaint_id', $complaint->id)->firstOrFail();
-        $hearing = LuponHearing::create([
+        $hearing = $case->hearings()->firstOrFail();
+        $hearing->update([
             'case_id' => $case->id,
             'barangay_id' => $this->barangay->id,
             'hearing_number' => 1,
@@ -397,8 +409,8 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_can_record_settlement_for_case(): void
     {
-        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'Accepted']);
-        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
+        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'For Payment', 'assessed_fee' => 100]);
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::first();
 
         LuponCaseWorkflow::transition($case, 'mediation_active', $this->luponStaff->id, ['event_date' => now()->toDateString()]);
@@ -423,8 +435,8 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_resident_complainant_can_view_own_case_details(): void
     {
-        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'Accepted']);
-        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
+        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'For Payment', 'assessed_fee' => 100]);
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::first();
 
         $response = $this->withSession(['resident_id' => $this->resident->id])
@@ -438,8 +450,8 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_unrelated_resident_cannot_view_case(): void
     {
-        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'Accepted']);
-        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
+        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'For Payment', 'assessed_fee' => 100]);
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::first();
 
         $unrelatedResident = $this->createResident($this->barangay, $this->purok, [
@@ -454,8 +466,8 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_additional_complainant_cannot_be_from_another_barangay(): void
     {
-        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'Accepted']);
-        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
+        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'For Payment', 'assessed_fee' => 100]);
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::first();
 
         $otherBarangay = $this->createBarangay('Barangay Two', 'BRGY-TWO');
@@ -480,8 +492,8 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_additional_complainant_from_same_barangay_succeeds(): void
     {
-        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'Accepted']);
-        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
+        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'For Payment', 'assessed_fee' => 100]);
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::first();
 
         $secondResident = $this->createResident($this->barangay, $this->purok, [
@@ -594,8 +606,8 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_staff_can_link_verify_and_unlink_respondent_association(): void
     {
-        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'Accepted']);
-        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
+        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'For Payment', 'assessed_fee' => 100]);
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::first();
         $respondentParty = $case->respondents()->first();
 
@@ -635,8 +647,8 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_staff_cannot_link_resident_from_another_barangay_to_respondent(): void
     {
-        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'Accepted']);
-        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
+        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'For Payment', 'assessed_fee' => 100]);
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::first();
         $respondentParty = $case->respondents()->first();
 
@@ -659,11 +671,11 @@ class LuponCaseManagementTest extends TestCase
     public function test_verified_respondent_sees_case_in_complaints_against_me_and_can_view_show(): void
     {
         $complaint = $this->createComplaint($this->barangay, $this->resident, [
-            'status' => 'Accepted',
+            'status' => 'For Payment', 'assessed_fee' => 100,
             'narrative' => 'Top secret complainant narrative.',
             'requested_action' => 'Demand payment of 100,000 PHP.',
         ]);
-        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote");
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::first();
         $respondentParty = $case->respondents()->first();
 

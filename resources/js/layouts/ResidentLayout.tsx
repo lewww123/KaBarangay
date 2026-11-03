@@ -133,7 +133,7 @@ export default function ResidentLayout({
             return;
         }
 
-        router.post('/logout');
+        router.post('/resident/logout');
     };
 
     return (

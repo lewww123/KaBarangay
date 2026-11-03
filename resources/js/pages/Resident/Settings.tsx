@@ -202,7 +202,7 @@ export default function Settings() {
             return;
         }
 
-        router.post('/logout');
+        router.post('/resident/logout');
     };
 
     return (

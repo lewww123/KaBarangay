@@ -119,6 +119,7 @@ class LuponComplaintReviewTest extends TestCase
                     'byStatus' => [
                         'Submitted' => 1,
                         'Under Review' => 0,
+                        'For Payment' => 0,
                         'Accepted' => 0,
                         'Rejected' => 1,
                     ],
@@ -141,7 +142,7 @@ class LuponComplaintReviewTest extends TestCase
         $this->assertNull($complaint->rejected_at);
     }
 
-    public function test_lupon_can_accept_a_complaint(): void
+    public function test_acceptance_cannot_be_set_manually_before_payment(): void
     {
         $complaint = $this->createComplaint($this->barangay, $this->resident, [
             'status' => 'Under Review',
@@ -149,12 +150,12 @@ class LuponComplaintReviewTest extends TestCase
 
         $this->actingAs($this->lupon)
             ->patch('/lupon/complaints/'.$complaint->id.'/status', ['status' => 'Accepted'])
-            ->assertRedirect();
+            ->assertSessionHasErrors('status');
 
         $complaint->refresh();
 
-        $this->assertSame('Accepted', $complaint->status);
-        $this->assertNotNull($complaint->reviewed_at);
+        $this->assertSame('Under Review', $complaint->status);
+        $this->assertNull($complaint->case);
     }
 
     public function test_lupon_can_reject_a_complaint_with_a_note(): void
