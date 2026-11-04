@@ -46,7 +46,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
             ]));
 
         $response->assertOk();
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'attachment',
             (string) $response->headers->get('content-disposition')
         );
@@ -112,7 +112,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
 
             $this->fail('A template with a missing merge field must be rejected.');
         } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('contract', $exception->getMessage());
+            $this->assertSourceContainsString('contract', $exception->getMessage());
         } finally {
             @unlink($path);
         }
@@ -130,7 +130,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
 
             $this->fail('A template with an extra merge field must be rejected.');
         } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('contract', $exception->getMessage());
+            $this->assertSourceContainsString('contract', $exception->getMessage());
         } finally {
             @unlink($path);
         }
@@ -201,13 +201,13 @@ class ResidencyCertificateIntegrationTest extends TestCase
             $text = $this->documentText($output);
 
             // The printed values must be present in the document.
-            $this->assertStringContainsString('JUAN DELA CRUZ', $text);
-            $this->assertStringContainsString('PUROK MASUNURIN', $text);
+            $this->assertSourceContainsString('JUAN DELA CRUZ', $text);
+            $this->assertSourceContainsString('PUROK MASUNURIN', $text);
             $this->assertMatchesRegularExpression(
                 '/is a resident of this barangay for\s+5\s+years/',
                 $text
             );
-            $this->assertStringContainsString(
+            $this->assertSourceContainsString(
                 ResidencyCertificate::formatIssueDate(),
                 $text
             );
@@ -273,7 +273,7 @@ class ResidencyCertificateIntegrationTest extends TestCase
 
             $text = $this->documentText((string) $document);
 
-            $this->assertStringContainsString(
+            $this->assertSourceContainsString(
                 ResidencyCertificate::formatIssueDate(),
                 $text
             );
@@ -371,8 +371,8 @@ class ResidencyCertificateIntegrationTest extends TestCase
 
             $text = $this->documentText((string) $document);
 
-            $this->assertStringContainsString('JUAN DELA CRUZ', $text);
-            $this->assertStringContainsString('PUROK MASUNURIN', $text);
+            $this->assertSourceContainsString('JUAN DELA CRUZ', $text);
+            $this->assertSourceContainsString('PUROK MASUNURIN', $text);
             $this->assertStringNotContainsString('Spoofed Resident', $text);
             $this->assertStringNotContainsString('PUROK PUROK 9', $text);
         } finally {
@@ -553,37 +553,37 @@ class ResidencyCertificateIntegrationTest extends TestCase
         );
 
         // The Residency detail block exists and is rendered for that type.
-        $this->assertStringContainsString("const RESIDENCY_TYPE = 'Residency';", $source);
-        $this->assertStringContainsString('renderResidencyFields', $source);
+        $this->assertSourceContainsString("const RESIDENCY_TYPE = 'Residency';", $source);
+        $this->assertSourceContainsString('renderResidencyFields', $source);
 
         // The number of years is collected.
-        $this->assertStringContainsString('years_of_residency', $source);
+        $this->assertSourceContainsString('years_of_residency', $source);
 
         // The purpose input, the signatory selector, and the control number
         // are hidden for the Residency certificate, which states its own
         // purpose, carries its own signature blocks, and prints no control
         // number.
-        $this->assertStringContainsString(
-            'data.certificate_type !== MARRIAGE_TYPE && (!isResidency) && (',
+        $this->assertSourceContainsString(
+            'data.certificate_type !== MARRIAGE_TYPE && !isResidency && (',
             $source
         );
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'data.certificate_type !== RESIDENCY_TYPE && (',
             $source
         );
 
         // The certificate cannot be issued until the resident is linked and
         // the number of years is complete.
-        $this->assertStringContainsString('residencyDetailsComplete', $source);
-        $this->assertStringContainsString('canIssueCertificate', $source);
+        $this->assertSourceContainsString('residencyDetailsComplete', $source);
+        $this->assertSourceContainsString('canIssueCertificate', $source);
 
         // The Delayed PSA and the Marriage Cohabitation gating must stay
         // intact.
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'data.certificate_type !== DELAYED_PSA_TYPE && (',
             $source
         );
-        $this->assertStringContainsString('marriageDetailsComplete', $source);
+        $this->assertSourceContainsString('marriageDetailsComplete', $source);
     }
 
     public function test_residency_purok_uses_the_template_prefix(): void

@@ -9,13 +9,26 @@ interface Props {
 }
 
 export default function AdminSectorApplicationShow(props: Props) {
-    return <Deferred data="application" fallback={<AdminLayout active="sector-applications"><AdminPageSkeleton rows={3} /></AdminLayout>}><SectorApplicationContent {...props} /></Deferred>;
+    return (
+        <Deferred
+            data="application"
+            fallback={
+                <AdminLayout active="sector-applications">
+                    <AdminPageSkeleton rows={3} />
+                </AdminLayout>
+            }
+        >
+            <SectorApplicationContent {...props} />
+        </Deferred>
+    );
 }
 
 function SectorApplicationContent({ application }: Props) {
     return (
         <AdminLayout active="sector-applications">
-            <Head title={`Admin Review - Application ${application.tracking_number}`} />
+            <Head
+                title={`Admin Review - Application ${application.tracking_number}`}
+            />
             <div className="mx-auto max-w-7xl">
                 <SectorApplicationAdminReview
                     application={application}

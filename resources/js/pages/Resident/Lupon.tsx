@@ -30,7 +30,12 @@ type ComplaintAgainstMe = {
  * Intake statuses only. Hearing, mediation, and case-management statuses are
  * deliberately not part of this batch.
  */
-type ComplaintStatus = 'Submitted' | 'Under Review' | 'For Payment' | 'Accepted' | 'Rejected';
+type ComplaintStatus =
+    | 'Submitted'
+    | 'Under Review'
+    | 'For Payment'
+    | 'Accepted'
+    | 'Rejected';
 
 type Complaint = {
     id: number;
@@ -949,7 +954,9 @@ function LuponContent({
                                     )}
                                 </SectionCard>
 
-                                <ComplaintPayment complaint={selectedComplaint} />
+                                <ComplaintPayment
+                                    complaint={selectedComplaint}
+                                />
                                 <div className="flex justify-end">
                                     <button
                                         type="button"
@@ -1100,11 +1107,37 @@ function ComplaintPayment({ complaint }: { complaint: Complaint }) {
     if (complaint.status !== 'For Payment' && !complaint.case) return null;
     const paid = complaint.case?.paymentStatus === 'paid';
     return (
-        <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-gray-800">
-            <h3 className="font-bold">{paid ? 'Filing fee recorded' : complaint.case ? 'Filing fee' : 'For Payment — pay at the barangay office'}</h3>
-            <p className="mt-2">Filing fee: ₱{Number(complaint.case?.feeAmount ?? complaint.assessedFee ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
-            {complaint.case?.orNumber && <p className="mt-1">OR / reference: {complaint.case.orNumber}</p>}
-            {!complaint.case && <p className="mt-2 leading-6">Dalhin ang reference na <strong>{complaint.reference}</strong> sa barangay office at bayaran ang assessed filing fee. Kunin ang official receipt. Itatala ng staff ang OR number at unang hearing schedule bago malikha ang case. Walang online payment sa form na ito.</p>}
+        <div
+            role="status"
+            className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-gray-800"
+        >
+            <h3 className="font-bold">
+                {paid
+                    ? 'Filing fee recorded'
+                    : complaint.case
+                      ? 'Filing fee'
+                      : 'For Payment — pay at the barangay office'}
+            </h3>
+            <p className="mt-2">
+                Filing fee: ₱
+                {Number(
+                    complaint.case?.feeAmount ?? complaint.assessedFee ?? 0,
+                ).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+            </p>
+            {complaint.case?.orNumber && (
+                <p className="mt-1">
+                    OR / reference: {complaint.case.orNumber}
+                </p>
+            )}
+            {!complaint.case && (
+                <p className="mt-2 leading-6">
+                    Dalhin ang reference na{' '}
+                    <strong>{complaint.reference}</strong> sa barangay office at
+                    bayaran ang assessed filing fee. Kunin ang official receipt.
+                    Itatala ng staff ang OR number at unang hearing schedule
+                    bago malikha ang case. Walang online payment sa form na ito.
+                </p>
+            )}
         </div>
     );
 }
@@ -1308,7 +1341,10 @@ type TrackingStep = {
 /**
  * Review -> payment -> case creation. Actual proceedings are in the linked case.
  */
-function getTrackingSteps(status: ComplaintStatus, hasCase = false): TrackingStep[] {
+function getTrackingSteps(
+    status: ComplaintStatus,
+    hasCase = false,
+): TrackingStep[] {
     const baseSteps = [
         {
             label: 'Complaint Submitted',
@@ -1327,19 +1363,23 @@ function getTrackingSteps(status: ComplaintStatus, hasCase = false): TrackingSte
         },
         {
             label: 'Case and Kapitan Hearing #1',
-            description: 'Staff records the OR number and first schedule. The case then starts in the Kapitan phase.',
+            description:
+                'Staff records the OR number and first schedule. The case then starts in the Kapitan phase.',
         },
     ];
 
     if (status === 'Rejected') {
         return [
             { ...baseSteps[0], state: 'completed' },
-            { label: 'Complaint rejected', description: 'Read the note from Lupon for the reason.', state: 'current' },
+            {
+                label: 'Complaint rejected',
+                description: 'Read the note from Lupon for the reason.',
+                state: 'current',
+            },
         ];
     }
 
-    const currentIndex =
-        hasCase ? 3 : status === 'For Payment' ? 2 : 1;
+    const currentIndex = hasCase ? 3 : status === 'For Payment' ? 2 : 1;
 
     return baseSteps.map((item, index) => {
         let state: TrackingState = 'future';

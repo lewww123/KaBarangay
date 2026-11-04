@@ -8,23 +8,42 @@ export interface RegistrationEmailVerification {
     retry_after: number;
 }
 
-const EMPTY_VERIFICATION: RegistrationEmailVerification = { status: 'unsent', email: '', expires_in: 0, retry_after: 0 };
+const EMPTY_VERIFICATION: RegistrationEmailVerification = {
+    status: 'unsent',
+    email: '',
+    expires_in: 0,
+    retry_after: 0,
+};
 
 const csrfHeaders = () => ({
-    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+    'X-CSRF-TOKEN':
+        document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content') ?? '',
     Accept: 'application/json',
 });
 
-export default function useRegistrationEmailOtp(email: string, initial: RegistrationEmailVerification = EMPTY_VERIFICATION) {
+export default function useRegistrationEmailOtp(
+    email: string,
+    initial: RegistrationEmailVerification = EMPTY_VERIFICATION,
+) {
     const [status, setStatus] = useState(initial.status);
     const [activeEmail, setActiveEmail] = useState(initial.email);
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState<'send' | 'verify' | null>(null);
-    const [resendAt, setResendAt] = useState(() => Date.now() + initial.retry_after * 1000);
-    const [expiresAt, setExpiresAt] = useState(() => Date.now() + initial.expires_in * 1000);
+    const [resendAt, setResendAt] = useState(
+        () => Date.now() + initial.retry_after * 1000,
+    );
+    const [expiresAt, setExpiresAt] = useState(
+        () => Date.now() + initial.expires_in * 1000,
+    );
     const [clock, setClock] = useState(Date.now());
-    const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
-    const ticking = resendAt > clock || (status === 'verified' && expiresAt > clock);
+    const [feedback, setFeedback] = useState<{
+        kind: 'success' | 'error';
+        message: string;
+    } | null>(null);
+    const ticking =
+        resendAt > clock || (status === 'verified' && expiresAt > clock);
 
     useEffect(() => {
         if (!ticking) return;
@@ -36,7 +55,11 @@ export default function useRegistrationEmailOtp(email: string, initial: Registra
         if (status === 'verified' && expiresAt <= clock) {
             setStatus('pending');
             setCode('');
-            setFeedback({ kind: 'error', message: 'Email verification expired. Send a new OTP before submitting registration.' });
+            setFeedback({
+                kind: 'error',
+                message:
+                    'Email verification expired. Send a new OTP before submitting registration.',
+            });
         }
     }, [clock, expiresAt, status]);
 
@@ -60,10 +83,23 @@ export default function useRegistrationEmailOtp(email: string, initial: Registra
         let message = fallback;
         if (axios.isAxiosError(reason)) {
             const payload = reason.response?.data;
-            const fieldMessage = payload?.errors ? Object.values(payload.errors).flat().find((value) => typeof value === 'string') : null;
-            message = typeof fieldMessage === 'string' ? fieldMessage : payload?.message || fallback;
-            const retryAfter = Number(payload?.retry_after ?? reason.response?.headers['retry-after']);
-            if (reason.response?.status === 429 && Number.isFinite(retryAfter) && retryAfter > 0) {
+            const fieldMessage = payload?.errors
+                ? Object.values(payload.errors)
+                      .flat()
+                      .find((value) => typeof value === 'string')
+                : null;
+            message =
+                typeof fieldMessage === 'string'
+                    ? fieldMessage
+                    : payload?.message || fallback;
+            const retryAfter = Number(
+                payload?.retry_after ?? reason.response?.headers['retry-after'],
+            );
+            if (
+                reason.response?.status === 429 &&
+                Number.isFinite(retryAfter) &&
+                retryAfter > 0
+            ) {
                 setResendAt(Date.now() + retryAfter * 1000);
                 setClock(Date.now());
             }
@@ -74,16 +110,26 @@ export default function useRegistrationEmailOtp(email: string, initial: Registra
     const send = async () => {
         if (busy) return;
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-            setFeedback({ kind: 'error', message: 'Enter a valid email address before sending an OTP.' });
+            setFeedback({
+                kind: 'error',
+                message: 'Enter a valid email address before sending an OTP.',
+            });
             return;
         }
         setBusy('send');
         try {
-            const response = await axios.post('/register/send-otp', { email }, { headers: csrfHeaders() });
+            const response = await axios.post(
+                '/register/send-otp',
+                { email },
+                { headers: csrfHeaders() },
+            );
             apply(response.data);
             setFeedback({ kind: 'success', message: response.data.message });
         } catch (reason) {
-            reportError(reason, 'Unable to send the OTP. Check your connection and try again.');
+            reportError(
+                reason,
+                'Unable to send the OTP. Check your connection and try again.',
+            );
         } finally {
             setBusy(null);
         }
@@ -93,7 +139,11 @@ export default function useRegistrationEmailOtp(email: string, initial: Registra
         if (busy || !/^[0-9]{6}$/.test(code)) return;
         setBusy('verify');
         try {
-            const response = await axios.post('/register/verify-otp', { email, code }, { headers: csrfHeaders() });
+            const response = await axios.post(
+                '/register/verify-otp',
+                { email, code },
+                { headers: csrfHeaders() },
+            );
             apply(response.data);
             setFeedback({ kind: 'success', message: response.data.message });
         } catch (reason) {
@@ -113,14 +163,26 @@ export default function useRegistrationEmailOtp(email: string, initial: Registra
     };
 
     return {
-        status, code, busy, feedback, send, verify, reset,
-        verified: status === 'verified' && activeEmail === email.trim().toLowerCase() && expiresAt > clock,
+        status,
+        code,
+        busy,
+        feedback,
+        send,
+        verify,
+        reset,
+        verified:
+            status === 'verified' &&
+            activeEmail === email.trim().toLowerCase() &&
+            expiresAt > clock,
         locked: busy !== null || status !== 'unsent',
         secondsRemaining: Math.max(0, Math.ceil((resendAt - clock) / 1000)),
-        setCode: (value: string) => setCode(value.replace(/\D/g, '').slice(0, 6)),
+        setCode: (value: string) =>
+            setCode(value.replace(/\D/g, '').slice(0, 6)),
         showError: (message: string) => setFeedback({ kind: 'error', message }),
         dismissFeedback: () => setFeedback(null),
     };
 }
 
-export type RegistrationEmailOtpControls = ReturnType<typeof useRegistrationEmailOtp>;
+export type RegistrationEmailOtpControls = ReturnType<
+    typeof useRegistrationEmailOtp
+>;

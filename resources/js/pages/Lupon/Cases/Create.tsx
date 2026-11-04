@@ -235,7 +235,13 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
                         <h2 className="font-bold text-slate-900">
                             First hearing & presiding official
                         </h2>
-                        <p className="text-sm text-slate-600">Enter the first hearing date, time and venue so the summons can include the saved case and party details. After saving the case, open Summons in Overview to review and print the prepared document. Preparation does not record service.</p>
+                        <p className="text-sm text-slate-600">
+                            Enter the first hearing date, time and venue so the
+                            summons can include the saved case and party
+                            details. After saving the case, open Summons in
+                            Overview to review and print the prepared document.
+                            Preparation does not record service.
+                        </p>
                         <div className="grid gap-4 sm:grid-cols-3">
                             <label className="text-sm font-semibold">
                                 Hearing date

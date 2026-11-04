@@ -16,19 +16,19 @@ manually exercising every route in a browser.
 
 ## Changes prepared
 
-| Area | Change and reason |
-| --- | --- |
-| Staff RBAC | Active assignments must match both the user's barangay and linked resident. Barangay, resident, resident account, and live database user must be active. Invalid or missing identity context returns 403. |
-| Revocation | Role checks validate the database user even when authentication returns a cached identity. Bulk deactivation cannot continue to authorize the stale cached user. |
-| Staff assignment eligibility | Search and creation reject inactive login accounts and inactive linked users. Existing custom department labels remain supported; portal access still requires a recognized department. |
-| Staff login | Filter by user name and matching user/assignment resident ID in SQL before loading candidates and their relationships. Passwords remain hashed; database filtering does not replace credential verification. |
-| Browser protection | Add nosniff, SAMEORIGIN framing, and same-origin referrer policy. Authenticated responses use private/no-store cache control. HTTPS APP_URL defaults to secure session cookies unless explicitly overridden. |
-| Development server | Restrict CORS to the application origin and local development origins. |
-| Admin sector queue | Replace the unlimited application/document collection with 25 rows per page, stable ordering, validated server search/status/sector filters, and aggregate counts. Documents load on details rather than on every list row. Search applies across all pages. |
-| Indexes | Add barangay/status/created_at/id coverage for the filtered sector queue and barangay/created_at coverage for staff listing. Reuse the existing unfiltered sector queue index. |
-| Dependencies | Update Laravel, CommonMark, relevant Symfony packages, and frontend build dependencies. Use the official Vite+ upgrade layout with npm aliases to preserve npm-based Docker/CI installation. |
-| Tests | Add adversarial identity/revocation and queue-bounds/isolation tests. Isolate test sender settings from local .env. Update stale purok and Lupon test assumptions and distinguish necessary authorization SQL from report-data SQL. |
-| CI | Add PHP and JavaScript dependency security audits, including execution when preceding CI checks fail. |
+| Area                         | Change and reason                                                                                                                                                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Staff RBAC                   | Active assignments must match both the user's barangay and linked resident. Barangay, resident, resident account, and live database user must be active. Invalid or missing identity context returns 403.                                                    |
+| Revocation                   | Role checks validate the database user even when authentication returns a cached identity. Bulk deactivation cannot continue to authorize the stale cached user.                                                                                             |
+| Staff assignment eligibility | Search and creation reject inactive login accounts and inactive linked users. Existing custom department labels remain supported; portal access still requires a recognized department.                                                                      |
+| Staff login                  | Filter by user name and matching user/assignment resident ID in SQL before loading candidates and their relationships. Passwords remain hashed; database filtering does not replace credential verification.                                                 |
+| Browser protection           | Add nosniff, SAMEORIGIN framing, and same-origin referrer policy. Authenticated responses use private/no-store cache control. HTTPS APP_URL defaults to secure session cookies unless explicitly overridden.                                                 |
+| Development server           | Restrict CORS to the application origin and local development origins.                                                                                                                                                                                       |
+| Admin sector queue           | Replace the unlimited application/document collection with 25 rows per page, stable ordering, validated server search/status/sector filters, and aggregate counts. Documents load on details rather than on every list row. Search applies across all pages. |
+| Indexes                      | Add barangay/status/created_at/id coverage for the filtered sector queue and barangay/created_at coverage for staff listing. Reuse the existing unfiltered sector queue index.                                                                               |
+| Dependencies                 | Update Laravel, CommonMark, relevant Symfony packages, and frontend build dependencies. Use the official Vite+ upgrade layout with npm aliases to preserve npm-based Docker/CI installation.                                                                 |
+| Tests                        | Add adversarial identity/revocation and queue-bounds/isolation tests. Isolate test sender settings from local .env. Update stale purok and Lupon test assumptions and distinguish necessary authorization SQL from report-data SQL.                          |
+| CI                           | Add PHP and JavaScript dependency security audits, including execution when preceding CI checks fail.                                                                                                                                                        |
 
 ## Outstanding findings, ordered by priority
 

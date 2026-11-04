@@ -10,17 +10,17 @@ return new class extends Migration
     {
         // 1. Add approval columns to announcements table
         Schema::table('announcements', function (Blueprint $table) {
-            if (!Schema::hasColumn('announcements', 'approval_status')) {
-                $table->string('approval_status', 30)->default('pending')->after('is_published'); 
+            if (! Schema::hasColumn('announcements', 'approval_status')) {
+                $table->string('approval_status', 30)->default('pending')->after('is_published');
                 // 'pending', 'approved', 'rejected'
             }
-            if (!Schema::hasColumn('announcements', 'rejection_reason')) {
+            if (! Schema::hasColumn('announcements', 'rejection_reason')) {
                 $table->text('rejection_reason')->nullable()->after('approval_status');
             }
-            if (!Schema::hasColumn('announcements', 'reviewed_by')) {
+            if (! Schema::hasColumn('announcements', 'reviewed_by')) {
                 $table->foreignId('reviewed_by')->nullable()->after('rejection_reason')->constrained('users')->nullOnDelete();
             }
-            if (!Schema::hasColumn('announcements', 'reviewed_at')) {
+            if (! Schema::hasColumn('announcements', 'reviewed_at')) {
                 $table->timestamp('reviewed_at')->nullable()->after('reviewed_by');
             }
 
@@ -28,7 +28,7 @@ return new class extends Migration
         });
 
         // 2. Audit Trail Table for Approval History
-        if (!Schema::hasTable('announcement_approval_logs')) {
+        if (! Schema::hasTable('announcement_approval_logs')) {
             Schema::create('announcement_approval_logs', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('barangay_id')->constrained('barangays')->cascadeOnDelete();

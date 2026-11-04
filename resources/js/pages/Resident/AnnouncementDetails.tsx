@@ -23,7 +23,11 @@ export default function ResidentAnnouncementDetails({
             <div className="mx-auto max-w-4xl">
                 <AnnouncementDetails
                     announcement={announcement}
-                    backHref={isUpdates ? `/resident/updates?period=${period}` : '/resident/announcements'}
+                    backHref={
+                        isUpdates
+                            ? `/resident/updates?period=${period}`
+                            : '/resident/announcements'
+                    }
                 />
             </div>
         </ResidentLayout>

@@ -2,11 +2,7 @@ export type AnnouncementPortal = 'clerk' | 'pwd' | 'senior';
 
 export type AnnouncementImportance = 'low' | 'normal' | 'high' | 'urgent';
 
-export type AnnouncementTab =
-    | 'all'
-    | 'ongoing'
-    | 'draft'
-    | 'done';
+export type AnnouncementTab = 'all' | 'ongoing' | 'draft' | 'done';
 
 export type AnnouncementTabCounts = Record<AnnouncementTab, number>;
 
@@ -82,7 +78,10 @@ export function canMarkAnnouncementDone(
 export function isAttendanceAvailable(
     record: AnnouncementEligibilityRecord,
 ): boolean {
-    if (record.approval_status !== 'approved' || record.program_status === 'draft') {
+    if (
+        record.approval_status !== 'approved' ||
+        record.program_status === 'draft'
+    ) {
         return false;
     }
 
@@ -117,9 +116,22 @@ export function formatApprovalStatusLabel(status?: string | null): string {
     return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-export function formatAnnouncementStatusLabel(record: AnnouncementEligibilityRecord & { completed_at?: string | null; is_published?: boolean }): string {
+export function formatAnnouncementStatusLabel(
+    record: AnnouncementEligibilityRecord & {
+        completed_at?: string | null;
+        is_published?: boolean;
+    },
+): string {
     if (isEventAnnouncement(record)) {
-        return formatApprovalStatusLabel(record.program_status ?? (record.completed_at ? 'done' : record.approval_status === 'approved' && record.is_published ? 'ongoing' : 'draft'));
+        return formatApprovalStatusLabel(
+            record.program_status ??
+                (record.completed_at
+                    ? 'done'
+                    : record.approval_status === 'approved' &&
+                        record.is_published
+                      ? 'ongoing'
+                      : 'draft'),
+        );
     }
 
     return formatApprovalStatusLabel(record.approval_status);

@@ -11,9 +11,7 @@ type Props = {
 export default function Settings({ barangay }: Props) {
     const barangayName = barangay?.name ?? null;
 
-    const [adminName, setAdminName] = useState(
-        'San Jose Administrator',
-    );
+    const [adminName, setAdminName] = useState('San Jose Administrator');
 
     const [adminUsername, setAdminUsername] = useState(
         'admin.sanjose@kabarangay.local',
@@ -83,8 +81,8 @@ export default function Settings({ barangay }: Props) {
                     </h1>
 
                     <p className="mt-1 text-sm text-gray-500">
-                        Manage barangay information, administrator account,
-                        and system security
+                        Manage barangay information, administrator account, and
+                        system security
                     </p>
                 </div>
 
@@ -102,8 +100,7 @@ export default function Settings({ barangay }: Props) {
                         </h2>
 
                         <p className="mt-1 text-xs text-gray-500">
-                            Basic information displayed throughout the
-                            system
+                            Basic information displayed throughout the system
                         </p>
                     </div>
 
@@ -139,8 +136,7 @@ export default function Settings({ barangay }: Props) {
                         </h2>
 
                         <p className="mt-1 text-xs text-gray-500">
-                            Account information for the current
-                            administrator
+                            Account information for the current administrator
                         </p>
                     </div>
 
@@ -166,9 +162,7 @@ export default function Settings({ barangay }: Props) {
                                     type="text"
                                     value={adminUsername}
                                     onChange={(event) =>
-                                        setAdminUsername(
-                                            event.target.value,
-                                        )
+                                        setAdminUsername(event.target.value)
                                     }
                                     className="form-control"
                                     required
@@ -219,8 +213,8 @@ export default function Settings({ barangay }: Props) {
                         </h2>
 
                         <p className="mt-1 text-xs text-gray-500">
-                            Update the password used for this
-                            administrator account
+                            Update the password used for this administrator
+                            account
                         </p>
                     </div>
 
@@ -232,9 +226,7 @@ export default function Settings({ barangay }: Props) {
                             {passwordMessage && (
                                 <div
                                     className={`rounded-md px-4 py-3 text-xs font-medium ${
-                                        passwordMessage.includes(
-                                            'successfully',
-                                        )
+                                        passwordMessage.includes('successfully')
                                             ? 'bg-[#edf4ea] text-[#315b30]'
                                             : 'bg-[#fff1f0] text-[#a33b3b]'
                                     }`}
@@ -248,9 +240,7 @@ export default function Settings({ barangay }: Props) {
                                     type="password"
                                     value={currentPassword}
                                     onChange={(event) =>
-                                        setCurrentPassword(
-                                            event.target.value,
-                                        )
+                                        setCurrentPassword(event.target.value)
                                     }
                                     placeholder="Enter current password"
                                     className="form-control"
@@ -263,9 +253,7 @@ export default function Settings({ barangay }: Props) {
                                         type="password"
                                         value={newPassword}
                                         onChange={(event) =>
-                                            setNewPassword(
-                                                event.target.value,
-                                            )
+                                            setNewPassword(event.target.value)
                                         }
                                         placeholder="Enter new password"
                                         className="form-control"
@@ -288,8 +276,8 @@ export default function Settings({ barangay }: Props) {
                             </div>
 
                             <p className="text-[11px] leading-5 text-gray-400">
-                                Use at least 8 characters. For production,
-                                the backend should enforce stronger password
+                                Use at least 8 characters. For production, the
+                                backend should enforce stronger password
                                 validation and securely hash all passwords.
                             </p>
                         </div>
@@ -482,9 +470,7 @@ function SettingToggle({
             }`}
         >
             <div>
-                <p className="text-sm font-medium text-gray-800">
-                    {title}
-                </p>
+                <p className="text-sm font-medium text-gray-800">{title}</p>
 
                 <p className="mt-1 max-w-2xl text-xs leading-5 text-gray-500">
                     {description}

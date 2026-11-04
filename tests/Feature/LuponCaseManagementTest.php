@@ -64,6 +64,7 @@ class LuponCaseManagementTest extends TestCase
             'venue' => 'Barangay Hall',
         ];
     }
+
     private function createComplaint(
         Barangay $barangay,
         Resident $resident,
@@ -413,11 +414,11 @@ class LuponCaseManagementTest extends TestCase
         $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
         $case = LuponCase::first();
 
-        LuponCaseWorkflow::transition($case, 'mediation_active', $this->luponStaff->id, ['event_date' => now()->toDateString()]);
+        LuponCaseWorkflow::transition($case, 'mediation_active', $this->luponStaff->id, ['event_date' => LuponCaseWorkflow::today()]);
         $response = $this->actingAs($this->luponStaff)
             ->post("/lupon/cases/{$case->id}/settlements", [
                 'settlement_type' => 'Amicable Settlement',
-                'settlement_date' => now()->toDateString(),
+                'settlement_date' => LuponCaseWorkflow::today(),
                 'terms' => 'Respondent agreed to pay debt in installments.',
             ]);
 

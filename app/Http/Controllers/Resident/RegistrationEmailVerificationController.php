@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Resident;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureResidentRegistrationAccess;
 use App\Models\ResidentRegistration;
 use App\Support\AuditLogger;
 use App\Support\ResidentRegistrationEmailVerificationService;
-use App\Http\Middleware\EnsureResidentRegistrationAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;

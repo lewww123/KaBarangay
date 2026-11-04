@@ -10,10 +10,7 @@ type Props = {
     csvPreview: CsvPreview | null;
 };
 
-export default function DisbursementPreview({
-    document,
-    csvPreview,
-}: Props) {
+export default function DisbursementPreview({ document, csvPreview }: Props) {
     const previewLimited =
         csvPreview !== null &&
         (csvPreview.rows_truncated ||
@@ -128,7 +125,7 @@ function CsvPreviewTable({ preview }: { preview: CsvPreview }) {
                             {preview.columns.map((_, columnIndex) => (
                                 <td
                                     key={columnIndex}
-                                    className="max-w-64 border-b border-gray-100 px-3 py-2 align-top whitespace-pre-wrap break-words text-gray-600"
+                                    className="max-w-64 border-b border-gray-100 px-3 py-2 align-top break-words whitespace-pre-wrap text-gray-600"
                                 >
                                     {row[columnIndex] || '\u00a0'}
                                 </td>

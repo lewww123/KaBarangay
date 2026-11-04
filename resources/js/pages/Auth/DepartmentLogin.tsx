@@ -45,10 +45,7 @@ const departments = [
     },
 ];
 
-export default function DepartmentLogin({
-    barangay,
-    errors = {},
-}: Props) {
+export default function DepartmentLogin({ barangay, errors = {} }: Props) {
     const [department, setDepartment] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -83,7 +80,6 @@ export default function DepartmentLogin({
             <main className="min-h-screen bg-slate-50">
                 <div className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
                     <div className="w-full max-w-md">
-
                         {/* Brand */}
                         <div className="mb-8 text-center">
                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg">
@@ -103,7 +99,6 @@ export default function DepartmentLogin({
 
                         {/* Card */}
                         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-
                             <div className="mb-6">
                                 <h2 className="text-xl font-semibold text-slate-900">
                                     Department Login
@@ -117,7 +112,7 @@ export default function DepartmentLogin({
 
                             {/* Selected Barangay */}
                             <div className="mb-6 rounded-xl bg-blue-50 p-4">
-                                <p className="text-xs font-medium uppercase tracking-wide text-blue-600">
+                                <p className="text-xs font-medium tracking-wide text-blue-600 uppercase">
                                     Selected Barangay
                                 </p>
 
@@ -136,7 +131,6 @@ export default function DepartmentLogin({
                             </div>
 
                             <form onSubmit={submit} className="space-y-5">
-
                                 {/* Department */}
                                 <div>
                                     <label
@@ -153,7 +147,7 @@ export default function DepartmentLogin({
                                             setDepartment(event.target.value)
                                         }
                                         disabled={processing}
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm text-slate-900 transition outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                                         required
                                     >
                                         <option value="">
@@ -208,7 +202,7 @@ export default function DepartmentLogin({
                                         placeholder="Enter your username"
                                         autoComplete="username"
                                         disabled={processing}
-                                        className="w-full rounded-xl border border-slate-300 px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+                                        className="w-full rounded-xl border border-slate-300 px-4 py-3.5 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
                                         required
                                     />
 
@@ -238,7 +232,7 @@ export default function DepartmentLogin({
                                         placeholder="Enter your password"
                                         autoComplete="current-password"
                                         disabled={processing}
-                                        className="w-full rounded-xl border border-slate-300 px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+                                        className="w-full rounded-xl border border-slate-300 px-4 py-3.5 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
                                         required
                                     />
 
@@ -264,11 +258,9 @@ export default function DepartmentLogin({
                                         !password ||
                                         processing
                                     }
-                                    className="w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    className="w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-300"
                                 >
-                                    {processing
-                                        ? 'Verifying...'
-                                        : 'Continue'}
+                                    {processing ? 'Verifying...' : 'Continue'}
                                 </button>
                             </form>
                         </div>

@@ -45,7 +45,6 @@ export default function Login({ barangay, errors = {} }: Props) {
 
             <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-8">
                 <section className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg sm:p-8">
-
                     <div className="mb-8 text-center">
                         <h1 className="text-3xl font-bold text-gray-900">
                             KaBarangay
@@ -67,7 +66,7 @@ export default function Login({ barangay, errors = {} }: Props) {
                     </div>
 
                     <div className="mb-6 rounded-lg bg-blue-50 p-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-blue-600">
+                        <p className="text-xs font-medium tracking-wide text-blue-600 uppercase">
                             Selected Barangay
                         </p>
 
@@ -85,7 +84,6 @@ export default function Login({ barangay, errors = {} }: Props) {
                     </div>
 
                     <form onSubmit={submit} className="space-y-5">
-
                         <div>
                             <label
                                 htmlFor="login"
@@ -103,7 +101,7 @@ export default function Login({ barangay, errors = {} }: Props) {
                                 }
                                 placeholder="Enter Staff ID or Email"
                                 autoComplete="username"
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 required
                             />
 
@@ -131,7 +129,7 @@ export default function Login({ barangay, errors = {} }: Props) {
                                 }
                                 placeholder="Enter your password"
                                 autoComplete="current-password"
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 required
                             />
 

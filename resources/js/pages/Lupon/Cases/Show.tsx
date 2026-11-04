@@ -1,4 +1,8 @@
-import { caseSaveOptions, CaseSaveFeedback, useCaseSaveStatus } from '@/components/lupon/CaseSaveFeedback';
+import {
+    caseSaveOptions,
+    CaseSaveFeedback,
+    useCaseSaveStatus,
+} from '@/components/lupon/CaseSaveFeedback';
 import PangkatFormation from '@/components/lupon/PangkatFormation';
 import SettlementDocument from '@/components/lupon/SettlementDocument';
 import { createPortal } from 'react-dom';
@@ -120,8 +124,15 @@ export default withDeferredPage(CaseShow, ['caseData'], (props) => (
 
 function CaseShow({ auth, caseData, officials }: Props) {
     const { notice, busy: saving, dismiss } = useCaseSaveStatus();
-    const { start: startPolling, stop: stopPolling } = usePoll(15000, { only: ['caseData'] }, { autoStart: false });
-    useEffect(() => { if (saving) stopPolling(); else startPolling(); }, [saving, startPolling, stopPolling]);
+    const { start: startPolling, stop: stopPolling } = usePoll(
+        15000,
+        { only: ['caseData'] },
+        { autoStart: false },
+    );
+    useEffect(() => {
+        if (saving) stopPolling();
+        else startPolling();
+    }, [saving, startPolling, stopPolling]);
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const [residentSearch, setResidentSearch] = useState('');
 
@@ -131,15 +142,45 @@ function CaseShow({ auth, caseData, officials }: Props) {
     const [hearingTime, setHearingTime] = useState('');
     const [venue, setVenue] = useState('Barangay Hall');
     const [hearingPhase, setHearingPhase] = useState(caseData.phase);
-    const [previousHearingId, setPreviousHearingId] = useState<number | null>(null);
+    const [previousHearingId, setPreviousHearingId] = useState<number | null>(
+        null,
+    );
     const [previousHearingNotes, setPreviousHearingNotes] = useState('');
-    const phaseFirstDate = caseData.hearings.filter(h => h.phase === caseData.phase).sort((a,b) => a.hearingNumber - b.hearingNumber)[0]?.date;
-    const phaseStart = caseData.phase === 'Kapitan' ? caseData.workflow.milestones.mediation_started_at : caseData.workflow.milestones.conciliation_started_at;
-    const todayInManila = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
-    const firstDateISO = phaseFirstDate ? new Date(phaseFirstDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }) : undefined;
-    const windowStart = phaseStart ?? (firstDateISO && caseData.hearingActionsUnlocked !== false && firstDateISO > todayInManila ? todayInManila : firstDateISO);
-    const fallbackDeadline = windowStart ? new Date(Date.parse(windowStart + 'T00:00:00Z') + 15 * 86400000).toISOString().slice(0,10) : undefined;
-    const hearingDeadline = caseData.workflow.deadlines.find(d => d.active && d.label.includes(caseData.phase === 'Kapitan' ? 'Mediation' : 'Conciliation'))?.date ?? fallbackDeadline;
+    const phaseFirstDate = caseData.hearings
+        .filter((h) => h.phase === caseData.phase)
+        .sort((a, b) => a.hearingNumber - b.hearingNumber)[0]?.date;
+    const phaseStart =
+        caseData.phase === 'Kapitan'
+            ? caseData.workflow.milestones.mediation_started_at
+            : caseData.workflow.milestones.conciliation_started_at;
+    const todayInManila = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Manila',
+    });
+    const firstDateISO = phaseFirstDate
+        ? new Date(phaseFirstDate).toLocaleDateString('en-CA', {
+              timeZone: 'Asia/Manila',
+          })
+        : undefined;
+    const windowStart =
+        phaseStart ??
+        (firstDateISO &&
+        caseData.hearingActionsUnlocked !== false &&
+        firstDateISO > todayInManila
+            ? todayInManila
+            : firstDateISO);
+    const fallbackDeadline = windowStart
+        ? new Date(Date.parse(windowStart + 'T00:00:00Z') + 15 * 86400000)
+              .toISOString()
+              .slice(0, 10)
+        : undefined;
+    const hearingDeadline =
+        caseData.workflow.deadlines.find(
+            (d) =>
+                d.active &&
+                d.label.includes(
+                    caseData.phase === 'Kapitan' ? 'Mediation' : 'Conciliation',
+                ),
+        )?.date ?? fallbackDeadline;
     useEffect(() => setHearingPhase(caseData.phase), [caseData.phase]);
 
     const [showPartyModal, setShowPartyModal] = useState(false);
@@ -218,7 +259,9 @@ function CaseShow({ auth, caseData, officials }: Props) {
                 terms: settlementTerms,
             },
             {
-                onSuccess: () => { setShowSettlementModal(true); },
+                onSuccess: () => {
+                    setShowSettlementModal(true);
+                },
                 ...caseSaveOptions,
             },
         );
@@ -319,7 +362,8 @@ function CaseShow({ auth, caseData, officials }: Props) {
                             </p>
                             <p className="text-xs text-gray-500">
                                 Filed on {caseData.filedDate}
-                                {caseData.assignedStaffName && ` • Assigned to ${caseData.assignedStaffName}`}
+                                {caseData.assignedStaffName &&
+                                    ` • Assigned to ${caseData.assignedStaffName}`}
                                 {caseData.promotedAt &&
                                     ` • Promoted on ${caseData.promotedAt}`}
                                 {caseData.createdByName &&
@@ -329,438 +373,585 @@ function CaseShow({ auth, caseData, officials }: Props) {
                     </div>
                 </div>
 
-                <CaseWorkspace overview={<CaseOverview caseData={caseData} />} key={caseData.id} workflow={caseData.workflow} hearings={caseData.hearings} documents={caseData.documents} hasSettlement={Boolean(caseData.settlement)} onSchedule={() => setShowHearingModal(true)} panels={{
-                    hearings: <><p className="text-sm text-slate-600">Dito magtakda ng meeting at mag-update ng hearing record pagkatapos ng aktuwal na pagdinig.</p>                        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                <h2 className="font-bold">Mga pagdinig</h2>
-
-                            </div>
-                            <HearingRecords
-                                hearings={caseData.hearings}
-                                currentPhase={caseData.phase}
-                                actionsUnlocked={caseData.hearingActionsUnlocked}
-                                pangkat={caseData.workflow.milestones}
-                                maxDate={caseData.workflow.deadlines.find(d => d.active && d.label.includes(caseData.phase === 'Kapitan' ? 'Mediation' : 'Conciliation'))?.date}
-                                onSettle={() => setShowSettlementModal(true)}
-                                onNext={(hearing, notes) => { setPreviousHearingId(hearing?.id ?? null); setPreviousHearingNotes(notes ?? ''); setVenue(hearing?.venue ?? 'Barangay Hall'); setHearingPhase(caseData.phase); setHearingDate(''); setHearingTime(''); setShowHearingModal(true); }}
-                                documents={caseData.documents}
-                                hasSettlement={Boolean(caseData.settlement)}
-                            />
-                        </section>
-
-</>,
-                    documents: <><p className="text-sm text-slate-600">Unahin ang fee o waiver kung kailangan, saka piliin ang dokumento at kaukulang pagdinig. Itala ang pag-abot kapag aktuwal nang naibigay ang notice.</p><DocumentPanel caseId={caseData.id} status={caseData.status} paymentStatus={caseData.paymentStatus} actingCaptainId={caseData.actingCaptainId} documents={caseData.documents} officials={officials} hearings={caseData.hearings} hasSettlement={Boolean(caseData.settlement)} onSchedule={() => setShowHearingModal(true)} /></>,
-                    resolution: caseData.phase === 'Kapitan' ? <PangkatFormation caseId={caseData.id} workflow={caseData.workflow} candidates={caseData.luponMembers ?? []} /> : <WorkflowPanel caseId={caseData.id} workflow={caseData.workflow} />,
-                    details: <>                        {/* Parties Card */}
-                        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                                <h2 className="text-base font-bold text-gray-900">
-                                    Mga partido sa kaso
-                                </h2>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPartyModal(true)}
-                                    className="rounded-lg border border-[#3f6f3d] px-3 py-1 text-xs font-semibold text-[#3f6f3d] hover:bg-[#f0f6ee]"
-                                >
-                                    + Add Complainant
-                                </button>
-                            </div>
-
-                            <div className="mt-4 grid gap-6 sm:grid-cols-2">
-                                <div>
-                                    <h3 className="text-xs font-bold tracking-wider text-gray-400 uppercase">
-                                        Complainants
-                                    </h3>
-                                    <div className="mt-3 space-y-3">
-                                        {caseData.complainants.map((c) => (
-                                            <div
-                                                key={c.id}
-                                                className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-semibold text-gray-900">
-                                                        {c.name}
-                                                    </span>
-                                                    {c.isPrimary && (
-                                                        <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
-                                                            Primary
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="mt-1 text-xs text-gray-500">
-                                                    {c.address ||
-                                                        'Address not provided'}
-                                                </p>
-                                                {c.contactNumber && (
-                                                    <p className="text-xs text-gray-500">
-                                                        📞 {c.contactNumber}
-                                                    </p>
-                                                )}
-                                                {c.residentNumber && (
-                                                    <p className="mt-1 text-[11px] font-medium text-[#3f6f3d]">
-                                                        Resident ID:{' '}
-                                                        {c.residentNumber}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        ))}
+                <CaseWorkspace
+                    overview={<CaseOverview caseData={caseData} />}
+                    key={caseData.id}
+                    workflow={caseData.workflow}
+                    hearings={caseData.hearings}
+                    documents={caseData.documents}
+                    hasSettlement={Boolean(caseData.settlement)}
+                    onSchedule={() => setShowHearingModal(true)}
+                    panels={{
+                        hearings: (
+                            <>
+                                <p className="text-sm text-slate-600">
+                                    Dito magtakda ng meeting at mag-update ng
+                                    hearing record pagkatapos ng aktuwal na
+                                    pagdinig.
+                                </p>{' '}
+                                <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <h2 className="font-bold">
+                                            Mga pagdinig
+                                        </h2>
                                     </div>
-                                </div>
+                                    <HearingRecords
+                                        hearings={caseData.hearings}
+                                        currentPhase={caseData.phase}
+                                        actionsUnlocked={
+                                            caseData.hearingActionsUnlocked
+                                        }
+                                        pangkat={caseData.workflow.milestones}
+                                        maxDate={
+                                            caseData.workflow.deadlines.find(
+                                                (d) =>
+                                                    d.active &&
+                                                    d.label.includes(
+                                                        caseData.phase ===
+                                                            'Kapitan'
+                                                            ? 'Mediation'
+                                                            : 'Conciliation',
+                                                    ),
+                                            )?.date
+                                        }
+                                        onSettle={() =>
+                                            setShowSettlementModal(true)
+                                        }
+                                        onNext={(hearing, notes) => {
+                                            setPreviousHearingId(
+                                                hearing?.id ?? null,
+                                            );
+                                            setPreviousHearingNotes(
+                                                notes ?? '',
+                                            );
+                                            setVenue(
+                                                hearing?.venue ??
+                                                    'Barangay Hall',
+                                            );
+                                            setHearingPhase(caseData.phase);
+                                            setHearingDate('');
+                                            setHearingTime('');
+                                            setShowHearingModal(true);
+                                        }}
+                                        documents={caseData.documents}
+                                        hasSettlement={Boolean(
+                                            caseData.settlement,
+                                        )}
+                                    />
+                                </section>
+                            </>
+                        ),
+                        documents: (
+                            <>
+                                <p className="text-sm text-slate-600">
+                                    Unahin ang fee o waiver kung kailangan, saka
+                                    piliin ang dokumento at kaukulang pagdinig.
+                                    Itala ang pag-abot kapag aktuwal nang
+                                    naibigay ang notice.
+                                </p>
+                                <DocumentPanel
+                                    caseId={caseData.id}
+                                    status={caseData.status}
+                                    paymentStatus={caseData.paymentStatus}
+                                    actingCaptainId={caseData.actingCaptainId}
+                                    documents={caseData.documents}
+                                    officials={officials}
+                                    hearings={caseData.hearings}
+                                    hasSettlement={Boolean(caseData.settlement)}
+                                    onSchedule={() => setShowHearingModal(true)}
+                                />
+                            </>
+                        ),
+                        resolution:
+                            caseData.phase === 'Kapitan' ? (
+                                <PangkatFormation
+                                    caseId={caseData.id}
+                                    workflow={caseData.workflow}
+                                    candidates={caseData.luponMembers ?? []}
+                                />
+                            ) : (
+                                <WorkflowPanel
+                                    caseId={caseData.id}
+                                    workflow={caseData.workflow}
+                                />
+                            ),
+                        details: (
+                            <>
+                                {' '}
+                                {/* Parties Card */}
+                                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                                    <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                                        <h2 className="text-base font-bold text-gray-900">
+                                            Mga partido sa kaso
+                                        </h2>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowPartyModal(true)
+                                            }
+                                            className="rounded-lg border border-[#3f6f3d] px-3 py-1 text-xs font-semibold text-[#3f6f3d] hover:bg-[#f0f6ee]"
+                                        >
+                                            + Add Complainant
+                                        </button>
+                                    </div>
 
-                                <div>
-                                    <h3 className="text-xs font-bold tracking-wider text-gray-400 uppercase">
-                                        Respondents
-                                    </h3>
-                                    <div className="mt-3 space-y-3">
-                                        {caseData.respondents.map((r) => (
-                                            <div
-                                                key={r.id}
-                                                className="space-y-2 rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 text-sm"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-semibold text-gray-900">
-                                                        {r.name}
-                                                    </span>
-                                                    {r.isPrimary && (
-                                                        <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
-                                                            Primary
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="text-xs text-gray-500">
-                                                    {r.address ||
-                                                        'Address not provided'}
-                                                </p>
-                                                {r.contactNumber && (
-                                                    <p className="text-xs text-gray-500">
-                                                        📞 {r.contactNumber}
-                                                    </p>
-                                                )}
-
-                                                {/* Account Association Section */}
-                                                <div className="mt-2.5 space-y-2 rounded-lg border border-gray-200 bg-white p-2.5">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-[11px] font-semibold text-gray-500">
-                                                            Portal Account:
-                                                        </span>
-                                                        {r.associationStatus ===
-                                                        'verified' ? (
-                                                            <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700">
-                                                                ✓ Staff-Verified
-                                                            </span>
-                                                        ) : (
-                                                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
-                                                                Unlinked /
-                                                                Offline
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    {r.associationStatus ===
-                                                        'verified' &&
-                                                        r.residentName && (
-                                                            <div className="text-xs text-gray-700">
-                                                                <p className="font-medium">
-                                                                    Linked:{' '}
-                                                                    {
-                                                                        r.residentName
-                                                                    }
-                                                                </p>
-                                                                {r.residentNumber && (
-                                                                    <p className="text-[11px] text-gray-500">
-                                                                        ID:{' '}
-                                                                        {
-                                                                            r.residentNumber
-                                                                        }
-                                                                    </p>
-                                                                )}
-                                                                {r.verifiedAt && (
-                                                                    <p className="text-[10px] text-gray-400">
-                                                                        Verified:{' '}
-                                                                        {
-                                                                            r.verifiedAt
-                                                                        }
-                                                                    </p>
+                                    <div className="mt-4 grid gap-6 sm:grid-cols-2">
+                                        <div>
+                                            <h3 className="text-xs font-bold tracking-wider text-gray-400 uppercase">
+                                                Complainants
+                                            </h3>
+                                            <div className="mt-3 space-y-3">
+                                                {caseData.complainants.map(
+                                                    (c) => (
+                                                        <div
+                                                            key={c.id}
+                                                            className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm"
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="font-semibold text-gray-900">
+                                                                    {c.name}
+                                                                </span>
+                                                                {c.isPrimary && (
+                                                                    <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
+                                                                        Primary
+                                                                    </span>
                                                                 )}
                                                             </div>
-                                                        )}
-
-                                                    <div className="flex gap-2 border-t border-gray-100 pt-1">
-                                                        {r.associationStatus ===
-                                                        'verified' ? (
-                                                            <>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        openAssociateModal(
-                                                                            r,
-                                                                            'link_verify',
-                                                                        )
+                                                            <p className="mt-1 text-xs text-gray-500">
+                                                                {c.address ||
+                                                                    'Address not provided'}
+                                                            </p>
+                                                            {c.contactNumber && (
+                                                                <p className="text-xs text-gray-500">
+                                                                    📞{' '}
+                                                                    {
+                                                                        c.contactNumber
                                                                     }
-                                                                    className="text-xs font-semibold text-[#3f6f3d] hover:underline"
-                                                                >
-                                                                    Change
-                                                                    Account
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        openAssociateModal(
-                                                                            r,
-                                                                            'unlink',
-                                                                        )
+                                                                </p>
+                                                            )}
+                                                            {c.residentNumber && (
+                                                                <p className="mt-1 text-[11px] font-medium text-[#3f6f3d]">
+                                                                    Resident ID:{' '}
+                                                                    {
+                                                                        c.residentNumber
                                                                     }
-                                                                    className="text-xs font-semibold text-red-600 hover:underline"
-                                                                >
-                                                                    Unlink
-                                                                </button>
-                                                            </>
-                                                        ) : (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    openAssociateModal(
-                                                                        r,
-                                                                        'link_verify',
-                                                                    )
-                                                                }
-                                                                className="rounded-lg bg-[#3f6f3d] px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-[#315b30]"
-                                                            >
-                                                                Link & Verify
-                                                                Resident Account
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ),
+                                                )}
                                             </div>
-                                        ))}
+                                        </div>
+
+                                        <div>
+                                            <h3 className="text-xs font-bold tracking-wider text-gray-400 uppercase">
+                                                Respondents
+                                            </h3>
+                                            <div className="mt-3 space-y-3">
+                                                {caseData.respondents.map(
+                                                    (r) => (
+                                                        <div
+                                                            key={r.id}
+                                                            className="space-y-2 rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 text-sm"
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="font-semibold text-gray-900">
+                                                                    {r.name}
+                                                                </span>
+                                                                {r.isPrimary && (
+                                                                    <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
+                                                                        Primary
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs text-gray-500">
+                                                                {r.address ||
+                                                                    'Address not provided'}
+                                                            </p>
+                                                            {r.contactNumber && (
+                                                                <p className="text-xs text-gray-500">
+                                                                    📞{' '}
+                                                                    {
+                                                                        r.contactNumber
+                                                                    }
+                                                                </p>
+                                                            )}
+
+                                                            {/* Account Association Section */}
+                                                            <div className="mt-2.5 space-y-2 rounded-lg border border-gray-200 bg-white p-2.5">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-[11px] font-semibold text-gray-500">
+                                                                        Portal
+                                                                        Account:
+                                                                    </span>
+                                                                    {r.associationStatus ===
+                                                                    'verified' ? (
+                                                                        <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                                                                            ✓
+                                                                            Staff-Verified
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                                                                            Unlinked
+                                                                            /
+                                                                            Offline
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+
+                                                                {r.associationStatus ===
+                                                                    'verified' &&
+                                                                    r.residentName && (
+                                                                        <div className="text-xs text-gray-700">
+                                                                            <p className="font-medium">
+                                                                                Linked:{' '}
+                                                                                {
+                                                                                    r.residentName
+                                                                                }
+                                                                            </p>
+                                                                            {r.residentNumber && (
+                                                                                <p className="text-[11px] text-gray-500">
+                                                                                    ID:{' '}
+                                                                                    {
+                                                                                        r.residentNumber
+                                                                                    }
+                                                                                </p>
+                                                                            )}
+                                                                            {r.verifiedAt && (
+                                                                                <p className="text-[10px] text-gray-400">
+                                                                                    Verified:{' '}
+                                                                                    {
+                                                                                        r.verifiedAt
+                                                                                    }
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+
+                                                                <div className="flex gap-2 border-t border-gray-100 pt-1">
+                                                                    {r.associationStatus ===
+                                                                    'verified' ? (
+                                                                        <>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    openAssociateModal(
+                                                                                        r,
+                                                                                        'link_verify',
+                                                                                    )
+                                                                                }
+                                                                                className="text-xs font-semibold text-[#3f6f3d] hover:underline"
+                                                                            >
+                                                                                Change
+                                                                                Account
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    openAssociateModal(
+                                                                                        r,
+                                                                                        'unlink',
+                                                                                    )
+                                                                                }
+                                                                                className="text-xs font-semibold text-red-600 hover:underline"
+                                                                            >
+                                                                                Unlink
+                                                                            </button>
+                                                                        </>
+                                                                    ) : (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                openAssociateModal(
+                                                                                    r,
+                                                                                    'link_verify',
+                                                                                )
+                                                                            }
+                                                                            className="rounded-lg bg-[#3f6f3d] px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                                                        >
+                                                                            Link
+                                                                            &
+                                                                            Verify
+                                                                            Resident
+                                                                            Account
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ),
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                {caseData.origin === 'manual' && (
-                    <section className="space-y-2 rounded-xl border bg-white p-5">
-                        <h2 className="font-bold">Walk-in dispute record</h2>
-                        <p className="text-xs text-slate-500">
-                            {caseData.intake.incidentDate} ·{' '}
-                            {caseData.intake.incidentLocation}
-                        </p>
-                        <p className="text-sm whitespace-pre-wrap">
-                            {caseData.intake.narrative}
-                        </p>
-                        <p className="text-sm whitespace-pre-wrap text-slate-600">
-                            Requested action: {caseData.intake.requestedAction}
-                        </p>
-                    </section>
-                )}
-                    {/* Right Col: Originating Complaint or Manual Case Information */}
-                    <div className="space-y-6">
-                        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                            <h2 className="border-b border-gray-100 pb-3 text-base font-bold text-gray-900">
-                                {caseData.complaint
-                                    ? 'Originating Complaint Details'
-                                    : 'Manual Walk-in Details'}
-                            </h2>
-                            <div className="mt-4 space-y-3 text-xs leading-5 text-gray-600">
-                                <div>
-                                    <span className="font-semibold text-gray-400 uppercase">
-                                        Nature
-                                    </span>
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {caseData.caseType}
-                                    </p>
-                                </div>
-
-                                {caseData.complaint ? (
-                                    <>
-                                        <div>
-                                            <span className="font-semibold text-gray-400 uppercase">
-                                                Incident Location
-                                            </span>
-                                            <p className="text-gray-800">
-                                                {caseData.complaint
-                                                    .incidentLocation || 'N/A'}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <span className="font-semibold text-gray-400 uppercase">
-                                                Incident Date
-                                            </span>
-                                            <p className="text-gray-800">
-                                                {caseData.complaint
-                                                    .incidentDate || 'N/A'}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <span className="font-semibold text-gray-400 uppercase">
-                                                Complainant Narrative
-                                            </span>
-                                            <p className="mt-1 rounded-lg border border-gray-200 bg-gray-50 p-2.5 whitespace-pre-line text-gray-800">
-                                                {caseData.complaint.narrative}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <span className="font-semibold text-gray-400 uppercase">
-                                                Requested Action
-                                            </span>
-                                            <p className="mt-1 rounded-lg border border-gray-200 bg-gray-50 p-2.5 whitespace-pre-line text-gray-800">
-                                                {
-                                                    caseData.complaint
-                                                        .requestedAction
-                                                }
-                                            </p>
-                                        </div>
-
-                                        {caseData.complaint.luponNote && (
-                                            <div>
-                                                <span className="font-semibold text-gray-400 uppercase">
-                                                    Intake Review Note
-                                                </span>
-                                                <p className="mt-1 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-amber-900">
-                                                    {
-                                                        caseData.complaint
-                                                            .luponNote
-                                                    }
-                                                </p>
-                                            </div>
-                                        )}
-                                    </>
-                                ) : (
-                                    <>
-                                        <div>
-                                            <span className="font-semibold text-gray-400 uppercase">
-                                                Registration Type
-                                            </span>
-                                            <p className="font-medium text-gray-800">
-                                                Walk-in Direct Entry (Manual
-                                                Case)
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <span className="font-semibold text-gray-400 uppercase">
-                                                Filed Date
-                                            </span>
-                                            <p className="text-gray-800">
-                                                {caseData.filedDate}
-                                            </p>
-                                        </div>
-                                        {caseData.createdByName && (
-                                            <div>
-                                                <span className="font-semibold text-gray-400 uppercase">
-                                                    Encoded By
-                                                </span>
-                                                <p className="text-gray-800">
-                                                    {caseData.createdByName}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </>
+                                {caseData.origin === 'manual' && (
+                                    <section className="space-y-2 rounded-xl border bg-white p-5">
+                                        <h2 className="font-bold">
+                                            Walk-in dispute record
+                                        </h2>
+                                        <p className="text-xs text-slate-500">
+                                            {caseData.intake.incidentDate} ·{' '}
+                                            {caseData.intake.incidentLocation}
+                                        </p>
+                                        <p className="text-sm whitespace-pre-wrap">
+                                            {caseData.intake.narrative}
+                                        </p>
+                                        <p className="text-sm whitespace-pre-wrap text-slate-600">
+                                            Requested action:{' '}
+                                            {caseData.intake.requestedAction}
+                                        </p>
+                                    </section>
                                 )}
-                            </div>
-                        </div>
-                    </div>
-                    <EvidencePanel caseId={caseData.id} files={caseData.evidence} /></>,
-                    history: <CaseTimeline workflow={caseData.workflow} />,
-                }} />
+                                {/* Right Col: Originating Complaint or Manual Case Information */}
+                                <div className="space-y-6">
+                                    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                                        <h2 className="border-b border-gray-100 pb-3 text-base font-bold text-gray-900">
+                                            {caseData.complaint
+                                                ? 'Originating Complaint Details'
+                                                : 'Manual Walk-in Details'}
+                                        </h2>
+                                        <div className="mt-4 space-y-3 text-xs leading-5 text-gray-600">
+                                            <div>
+                                                <span className="font-semibold text-gray-400 uppercase">
+                                                    Nature
+                                                </span>
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {caseData.caseType}
+                                                </p>
+                                            </div>
+
+                                            {caseData.complaint ? (
+                                                <>
+                                                    <div>
+                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                            Incident Location
+                                                        </span>
+                                                        <p className="text-gray-800">
+                                                            {caseData.complaint
+                                                                .incidentLocation ||
+                                                                'N/A'}
+                                                        </p>
+                                                    </div>
+
+                                                    <div>
+                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                            Incident Date
+                                                        </span>
+                                                        <p className="text-gray-800">
+                                                            {caseData.complaint
+                                                                .incidentDate ||
+                                                                'N/A'}
+                                                        </p>
+                                                    </div>
+
+                                                    <div>
+                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                            Complainant
+                                                            Narrative
+                                                        </span>
+                                                        <p className="mt-1 rounded-lg border border-gray-200 bg-gray-50 p-2.5 whitespace-pre-line text-gray-800">
+                                                            {
+                                                                caseData
+                                                                    .complaint
+                                                                    .narrative
+                                                            }
+                                                        </p>
+                                                    </div>
+
+                                                    <div>
+                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                            Requested Action
+                                                        </span>
+                                                        <p className="mt-1 rounded-lg border border-gray-200 bg-gray-50 p-2.5 whitespace-pre-line text-gray-800">
+                                                            {
+                                                                caseData
+                                                                    .complaint
+                                                                    .requestedAction
+                                                            }
+                                                        </p>
+                                                    </div>
+
+                                                    {caseData.complaint
+                                                        .luponNote && (
+                                                        <div>
+                                                            <span className="font-semibold text-gray-400 uppercase">
+                                                                Intake Review
+                                                                Note
+                                                            </span>
+                                                            <p className="mt-1 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-amber-900">
+                                                                {
+                                                                    caseData
+                                                                        .complaint
+                                                                        .luponNote
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div>
+                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                            Registration Type
+                                                        </span>
+                                                        <p className="font-medium text-gray-800">
+                                                            Walk-in Direct Entry
+                                                            (Manual Case)
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                            Filed Date
+                                                        </span>
+                                                        <p className="text-gray-800">
+                                                            {caseData.filedDate}
+                                                        </p>
+                                                    </div>
+                                                    {caseData.createdByName && (
+                                                        <div>
+                                                            <span className="font-semibold text-gray-400 uppercase">
+                                                                Encoded By
+                                                            </span>
+                                                            <p className="text-gray-800">
+                                                                {
+                                                                    caseData.createdByName
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <EvidencePanel
+                                    caseId={caseData.id}
+                                    files={caseData.evidence}
+                                />
+                            </>
+                        ),
+                        history: <CaseTimeline workflow={caseData.workflow} />,
+                    }}
+                />
             </div>
 
             {/* Modal: Schedule Hearing */}
-            {showHearingModal && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-                        <h3 className="text-lg font-bold text-gray-900">
-                            {previousHearingId ? 'Unresolved — schedule next hearing' : 'Schedule Case Hearing'}
-                        </h3>
-                        <form
-                            onSubmit={handleScheduleHearing}
-                            className="mt-4 space-y-4"
-                        >
-                            <Errors errors={errors} />
-                            <p className="text-sm text-stone-600">{caseData.phase} phase · maximum 3 hearings. {hearingDeadline ? `Allowed until ${hearingDeadline} (15-day phase period).` : 'The first meeting starts the 15-day period.'}</p>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700">
-                                    Hearing Date
-                                </label>
-                                <input
-                                    type="date"
-                                    required
-                                    min={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })}
-                                    max={hearingDeadline}
-                                    value={hearingDate}
-                                    onChange={(e) =>
-                                        setHearingDate(e.target.value)
-                                    }
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
-                                />
-                            </div>
+            {showHearingModal &&
+                createPortal(
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                            <h3 className="text-lg font-bold text-gray-900">
+                                {previousHearingId
+                                    ? 'Unresolved — schedule next hearing'
+                                    : 'Schedule Case Hearing'}
+                            </h3>
+                            <form
+                                onSubmit={handleScheduleHearing}
+                                className="mt-4 space-y-4"
+                            >
+                                <Errors errors={errors} />
+                                <p className="text-sm text-stone-600">
+                                    {caseData.phase} phase · maximum 3 hearings.{' '}
+                                    {hearingDeadline
+                                        ? `Allowed until ${hearingDeadline} (15-day phase period).`
+                                        : 'The first meeting starts the 15-day period.'}
+                                </p>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700">
+                                        Hearing Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        required
+                                        min={new Date().toLocaleDateString(
+                                            'en-CA',
+                                            { timeZone: 'Asia/Manila' },
+                                        )}
+                                        max={hearingDeadline}
+                                        value={hearingDate}
+                                        onChange={(e) =>
+                                            setHearingDate(e.target.value)
+                                        }
+                                        className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700">
-                                    Time
-                                </label>
-                                <input
-                                    type="time"
-                                    required
-                                    value={hearingTime}
-                                    onChange={(e) =>
-                                        setHearingTime(e.target.value)
-                                    }
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700">
+                                        Time
+                                    </label>
+                                    <input
+                                        type="time"
+                                        required
+                                        value={hearingTime}
+                                        onChange={(e) =>
+                                            setHearingTime(e.target.value)
+                                        }
+                                        className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700">
-                                    Venue
-                                </label>
-                                <input
-                                    type="text"
-                                    value={venue}
-                                    onChange={(e) => setVenue(e.target.value)}
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700">
+                                        Venue
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={venue}
+                                        onChange={(e) =>
+                                            setVenue(e.target.value)
+                                        }
+                                        className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700">
-                                    Proceedings Phase
-                                </label>
-                                <select
-                                    value={hearingPhase}
-                                    onChange={(e) =>
-                                        setHearingPhase(e.target.value)
-                                    }
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
-                                >
-                                    <option value={caseData.phase}>
-                                        {caseData.phase === 'Kapitan'
-                                            ? 'Kapitan Mediation Phase'
-                                            : 'Lupon Conciliation Phase'}
-                                    </option>
-                                </select>
-                            </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700">
+                                        Proceedings Phase
+                                    </label>
+                                    <select
+                                        value={hearingPhase}
+                                        onChange={(e) =>
+                                            setHearingPhase(e.target.value)
+                                        }
+                                        className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                    >
+                                        <option value={caseData.phase}>
+                                            {caseData.phase === 'Kapitan'
+                                                ? 'Kapitan Mediation Phase'
+                                                : 'Lupon Conciliation Phase'}
+                                        </option>
+                                    </select>
+                                </div>
 
-                            <div className="mt-6 flex justify-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowHearingModal(false)}
-                                    className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit" disabled={saving} aria-busy={saving}
-                                    className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
-                                >{saving ? 'Saving hearing schedule…' : 'Schedule'}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>, document.getElementById('hearing-modal-host') ?? document.body
-            )}
+                                <div className="mt-6 flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowHearingModal(false)
+                                        }
+                                        className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        aria-busy={saving}
+                                        className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                                    >
+                                        {saving
+                                            ? 'Saving hearing schedule…'
+                                            : 'Schedule'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>,
+                    document.getElementById('hearing-modal-host') ??
+                        document.body,
+                )}
 
             {/* Modal: Add Complainant */}
             {showPartyModal && (
@@ -826,9 +1017,13 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     Cancel
                                 </button>
                                 <button
-                                    type="submit" disabled={saving} aria-busy={saving}
+                                    type="submit"
+                                    disabled={saving}
+                                    aria-busy={saving}
                                     className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
-                                >{saving ? 'Saving complainant…' : 'Save'}</button>
+                                >
+                                    {saving ? 'Saving complainant…' : 'Save'}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -836,87 +1031,136 @@ function CaseShow({ auth, caseData, officials }: Props) {
             )}
 
             {/* Modal: Record Settlement */}
-            {showSettlementModal && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="max-h-[88vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-6 shadow-xl">
-                        <h3 className="text-lg font-bold text-gray-900">
-                            Amicable Settlement
-                        </h3>
-                        {caseData.settlement ? <><p className="mt-3 whitespace-pre-wrap text-sm">{caseData.settlement.terms}</p><SettlementDocument caseId={caseData.id} document={caseData.documents.find(d => d.kind === 'amicable_settlement' && d.status !== 'superseded')} /><button type="button" onClick={() => setShowSettlementModal(false)} className="mt-4 rounded-lg border px-4 py-2">Close settlement</button></> : <>
-                        <p className="mt-2 text-sm text-stone-600">Itala kung paano nagkasundo ang magkabilang panig at ang napagkasunduang obligasyon. Pagkatapos i-save, lalabas dito ang Amicable Settlement DOCX.</p>
-                        <form
-                            onSubmit={handleRecordSettlement}
-                            className="mt-4 space-y-4"
-                        >
-                            <Errors errors={errors} />
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700">
-                                    Settlement Type
-                                </label>
-                                <select
-                                    value={settlementType}
-                                    onChange={(e) =>
-                                        setSettlementType(e.target.value)
-                                    }
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
-                                >
-                                    <option value="Amicable Settlement">
-                                        Amicable Settlement
-                                    </option>
-                                </select>
-                            </div>
+            {showSettlementModal &&
+                createPortal(
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                        <div className="max-h-[88vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-6 shadow-xl">
+                            <h3 className="text-lg font-bold text-gray-900">
+                                Amicable Settlement
+                            </h3>
+                            {caseData.settlement ? (
+                                <>
+                                    <p className="mt-3 text-sm whitespace-pre-wrap">
+                                        {caseData.settlement.terms}
+                                    </p>
+                                    <SettlementDocument
+                                        caseId={caseData.id}
+                                        document={caseData.documents.find(
+                                            (d) =>
+                                                d.kind ===
+                                                    'amicable_settlement' &&
+                                                d.status !== 'superseded',
+                                        )}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowSettlementModal(false)
+                                        }
+                                        className="mt-4 rounded-lg border px-4 py-2"
+                                    >
+                                        Close settlement
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="mt-2 text-sm text-stone-600">
+                                        Itala kung paano nagkasundo ang
+                                        magkabilang panig at ang napagkasunduang
+                                        obligasyon. Pagkatapos i-save, lalabas
+                                        dito ang Amicable Settlement DOCX.
+                                    </p>
+                                    <form
+                                        onSubmit={handleRecordSettlement}
+                                        className="mt-4 space-y-4"
+                                    >
+                                        <Errors errors={errors} />
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-700">
+                                                Settlement Type
+                                            </label>
+                                            <select
+                                                value={settlementType}
+                                                onChange={(e) =>
+                                                    setSettlementType(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                            >
+                                                <option value="Amicable Settlement">
+                                                    Amicable Settlement
+                                                </option>
+                                            </select>
+                                        </div>
 
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700">
-                                    Date of Agreement
-                                </label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={settlementDate}
-                                    onChange={(e) =>
-                                        setSettlementDate(e.target.value)
-                                    }
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
-                                />
-                            </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-700">
+                                                Date of Agreement
+                                            </label>
+                                            <input
+                                                type="date"
+                                                required
+                                                value={settlementDate}
+                                                onChange={(e) =>
+                                                    setSettlementDate(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                            />
+                                        </div>
 
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700">
-                                    Dahilan ng settlement / napagkasunduang terms
-                                </label>
-                                <textarea
-                                    required
-                                    rows={4}
-                                    value={settlementTerms}
-                                    onChange={(e) =>
-                                        setSettlementTerms(e.target.value)
-                                    }
-                                    placeholder="Enter stipulations, agreements, or obligations decided upon by the parties..."
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
-                                />
-                            </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-700">
+                                                Dahilan ng settlement /
+                                                napagkasunduang terms
+                                            </label>
+                                            <textarea
+                                                required
+                                                rows={4}
+                                                value={settlementTerms}
+                                                onChange={(e) =>
+                                                    setSettlementTerms(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Enter stipulations, agreements, or obligations decided upon by the parties..."
+                                                className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                            />
+                                        </div>
 
-                            <div className="mt-6 flex justify-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setShowSettlementModal(false)
-                                    }
-                                    className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit" disabled={saving} aria-busy={saving}
-                                    className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
-                                >{saving ? 'Saving settlement…' : 'Record Agreement'}</button>
-                            </div>
-                        </form>
-                        </>}
-                    </div>
-                </div>, document.getElementById('hearing-modal-host') ?? document.body
-            )}
+                                        <div className="mt-6 flex justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setShowSettlementModal(
+                                                        false,
+                                                    )
+                                                }
+                                                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={saving}
+                                                aria-busy={saving}
+                                                className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                                            >
+                                                {saving
+                                                    ? 'Saving settlement…'
+                                                    : 'Record Agreement'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </>
+                            )}
+                        </div>
+                    </div>,
+                    document.getElementById('hearing-modal-host') ??
+                        document.body,
+                )}
 
             {/* Modal: Associate / Unlink Respondent Resident Account */}
             {showAssociateModal && selectedParty && (
@@ -1003,7 +1247,8 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     Cancel
                                 </button>
                                 <button
-                                    type="submit" aria-busy={saving || associationLoading}
+                                    type="submit"
+                                    aria-busy={saving || associationLoading}
                                     disabled={saving || associationLoading}
                                     className={`rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm ${
                                         associationAction === 'link_verify'

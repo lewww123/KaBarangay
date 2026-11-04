@@ -26,7 +26,11 @@ export default function ResidentCitizenCharter(props: Props) {
     return (
         <Deferred
             data={['services', 'categories']}
-            fallback={<ResidentLayout active="charter"><PortalPageSkeleton list /></ResidentLayout>}
+            fallback={
+                <ResidentLayout active="charter">
+                    <PortalPageSkeleton list />
+                </ResidentLayout>
+            }
         >
             <CitizenCharterContent {...props} />
         </Deferred>
@@ -37,7 +41,7 @@ function CitizenCharterContent({
     services,
     categories,
     filters,
-    resident,
+    resident: _resident,
 }: Props) {
     const [search, setSearch] = useState(filters.search);
 
@@ -46,12 +50,15 @@ function CitizenCharterContent({
             '/resident/citizen-charter',
             {
                 search: next.search !== undefined ? next.search : search,
-                category: next.category !== undefined ? next.category : filters.category,
+                category:
+                    next.category !== undefined
+                        ? next.category
+                        : filters.category,
             },
             {
                 preserveScroll: true,
                 only: ['services', 'filters'],
-            }
+            },
         );
     };
 
@@ -65,14 +72,14 @@ function CitizenCharterContent({
             <Head title="Citizen's Charter | Barangay Services" />
 
             <div className="mx-auto w-full max-w-5xl space-y-6">
-
                 {/* TITLE & HEADER */}
                 <div>
                     <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
                         Citizen&apos;s Charter
                     </h1>
                     <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                        Official barangay service directory, requirements, fees, and procedures.
+                        Official barangay service directory, requirements, fees,
+                        and procedures.
                     </p>
                 </div>
 
@@ -114,7 +121,9 @@ function CitizenCharterContent({
                                     <button
                                         key={cat}
                                         type="button"
-                                        onClick={() => filterBy({ category: cat })}
+                                        onClick={() =>
+                                            filterBy({ category: cat })
+                                        }
                                         className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
                                             active
                                                 ? 'bg-[#3f6f3d] text-white shadow-xs'
@@ -139,7 +148,7 @@ function CitizenCharterContent({
                         <p className="mt-1 text-xs text-gray-500">
                             {filters.search || filters.category
                                 ? 'No services match your search criteria. Try clearing the filter.'
-                                : 'The barangay has not published any Citizen\'s Charter services yet.'}
+                                : "The barangay has not published any Citizen's Charter services yet."}
                         </p>
                         {(filters.search || filters.category) && (
                             <button
@@ -163,30 +172,38 @@ function CitizenCharterContent({
                             >
                                 <div>
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                                            {service.category || 'General Service'}
+                                        <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                                            {service.category ||
+                                                'General Service'}
                                         </span>
                                         {service.current_version && (
                                             <span className="text-[10px] text-gray-400">
-                                                {formatFileSize(service.current_version.file_size)} PDF
+                                                {formatFileSize(
+                                                    service.current_version
+                                                        .file_size,
+                                                )}{' '}
+                                                PDF
                                             </span>
                                         )}
                                     </div>
 
-                                    <h2 className="mt-3 text-base font-bold text-gray-900 line-clamp-2">
+                                    <h2 className="mt-3 line-clamp-2 text-base font-bold text-gray-900">
                                         {service.title}
                                     </h2>
 
                                     {service.description && (
-                                        <p className="mt-2 text-xs leading-relaxed text-gray-500 line-clamp-3">
+                                        <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-gray-500">
                                             {service.description}
                                         </p>
                                     )}
                                 </div>
 
-                                <div className="mt-5 border-t border-gray-100 pt-4 flex items-center justify-between">
+                                <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4">
                                     <span className="text-[10px] text-gray-400">
-                                        Published: {formatCharterDate(service.published_at)}
+                                        Published:{' '}
+                                        {formatCharterDate(
+                                            service.published_at,
+                                        )}
                                     </span>
 
                                     <div className="flex items-center gap-2">
@@ -200,7 +217,10 @@ function CitizenCharterContent({
                                             </a>
                                         )}
                                         <Link
-                                            href={service.detail_url || `/resident/citizen-charter/${service.id}`}
+                                            href={
+                                                service.detail_url ||
+                                                `/resident/citizen-charter/${service.id}`
+                                            }
                                             className="inline-flex items-center gap-1.5 rounded-lg bg-[#3f6f3d] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#315b30]"
                                         >
                                             <span>View Details</span>
@@ -217,9 +237,17 @@ function CitizenCharterContent({
                 {services.last_page > 1 && (
                     <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-xs text-gray-600 shadow-sm">
                         <div>
-                            Showing <span className="font-semibold">{services.from}</span> to{' '}
-                            <span className="font-semibold">{services.to}</span> of{' '}
-                            <span className="font-semibold">{services.total}</span> services
+                            Showing{' '}
+                            <span className="font-semibold">
+                                {services.from}
+                            </span>{' '}
+                            to{' '}
+                            <span className="font-semibold">{services.to}</span>{' '}
+                            of{' '}
+                            <span className="font-semibold">
+                                {services.total}
+                            </span>{' '}
+                            services
                         </div>
                         <div className="flex gap-1">
                             {services.links.map((link, idx) => (
@@ -227,8 +255,20 @@ function CitizenCharterContent({
                                     key={idx}
                                     type="button"
                                     disabled={!link.url}
-                                    onClick={() => link.url && router.get(link.url, {}, { preserveScroll: true, only: ['services', 'filters'] })}
-                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                    onClick={() =>
+                                        link.url &&
+                                        router.get(
+                                            link.url,
+                                            {},
+                                            {
+                                                preserveScroll: true,
+                                                only: ['services', 'filters'],
+                                            },
+                                        )
+                                    }
+                                    dangerouslySetInnerHTML={{
+                                        __html: link.label,
+                                    }}
                                     className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                         link.active
                                             ? 'bg-[#3f6f3d] text-white'
@@ -241,7 +281,6 @@ function CitizenCharterContent({
                         </div>
                     </div>
                 )}
-
             </div>
         </ResidentLayout>
     );

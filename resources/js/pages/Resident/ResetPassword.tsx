@@ -27,8 +27,12 @@ export default function ResetPassword({ token, email }: Props) {
                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-lg font-bold text-[#3f6f3d] shadow-sm">
                         SJ
                     </div>
-                    <h1 className="mt-4 text-xl font-bold text-gray-900">Reset Password</h1>
-                    <p className="mt-1 text-sm text-gray-500">Choose a new password for your resident account.</p>
+                    <h1 className="mt-4 text-xl font-bold text-gray-900">
+                        Reset Password
+                    </h1>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Choose a new password for your resident account.
+                    </p>
                 </div>
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
@@ -39,10 +43,18 @@ export default function ResetPassword({ token, email }: Props) {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <input type="hidden" name="token" value={data.token} readOnly />
+                        <input
+                            type="hidden"
+                            name="token"
+                            value={data.token}
+                            readOnly
+                        />
 
                         <div>
-                            <label htmlFor="reset-account-email" className="block text-xs font-bold text-gray-700">
+                            <label
+                                htmlFor="reset-account-email"
+                                className="block text-xs font-bold text-gray-700"
+                            >
                                 Email Address
                             </label>
                             <input
@@ -50,14 +62,19 @@ export default function ResetPassword({ token, email }: Props) {
                                 type="email"
                                 autoComplete="email"
                                 value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
+                                onChange={(e) =>
+                                    setData('email', e.target.value)
+                                }
                                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d]"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="reset-password" className="block text-xs font-bold text-gray-700">
+                            <label
+                                htmlFor="reset-password"
+                                className="block text-xs font-bold text-gray-700"
+                            >
                                 New Password
                             </label>
                             <input
@@ -65,16 +82,25 @@ export default function ResetPassword({ token, email }: Props) {
                                 type="password"
                                 autoComplete="new-password"
                                 value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
+                                onChange={(e) =>
+                                    setData('password', e.target.value)
+                                }
                                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d]"
                                 minLength={8}
                                 required
                             />
-                            {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+                            {errors.password && (
+                                <p className="mt-1 text-xs text-red-500">
+                                    {errors.password}
+                                </p>
+                            )}
                         </div>
 
                         <div>
-                            <label htmlFor="reset-password-confirmation" className="block text-xs font-bold text-gray-700">
+                            <label
+                                htmlFor="reset-password-confirmation"
+                                className="block text-xs font-bold text-gray-700"
+                            >
                                 Confirm New Password
                             </label>
                             <input
@@ -82,7 +108,12 @@ export default function ResetPassword({ token, email }: Props) {
                                 type="password"
                                 autoComplete="new-password"
                                 value={data.password_confirmation}
-                                onChange={(e) => setData('password_confirmation', e.target.value)}
+                                onChange={(e) =>
+                                    setData(
+                                        'password_confirmation',
+                                        e.target.value,
+                                    )
+                                }
                                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d]"
                                 minLength={8}
                                 required
@@ -99,7 +130,10 @@ export default function ResetPassword({ token, email }: Props) {
                     </form>
 
                     <p className="mt-5 text-center text-xs text-gray-500">
-                        <a href="/resident/login" className="font-semibold text-[#3f6f3d] hover:underline">
+                        <a
+                            href="/resident/login"
+                            className="font-semibold text-[#3f6f3d] hover:underline"
+                        >
                             Back to login
                         </a>
                     </p>

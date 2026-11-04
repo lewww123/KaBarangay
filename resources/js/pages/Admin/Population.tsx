@@ -27,7 +27,18 @@ type Props = {
 };
 
 export default function Population(props: Props) {
-    return <Deferred data={['stats', 'puroks']} fallback={<AdminLayout active="population"><AdminPageSkeleton metrics={4} /></AdminLayout>}><PopulationContent {...props} /></Deferred>;
+    return (
+        <Deferred
+            data={['stats', 'puroks']}
+            fallback={
+                <AdminLayout active="population">
+                    <AdminPageSkeleton metrics={4} />
+                </AdminLayout>
+            }
+        >
+            <PopulationContent {...props} />
+        </Deferred>
+    );
 }
 
 function PopulationContent({ stats, puroks }: Props) {
@@ -198,8 +209,8 @@ function PopulationContent({ stats, puroks }: Props) {
                             />
 
                             <p className="mt-3 text-xs text-gray-400">
-                                Senior and PWD membership can overlap
-                                ({stats.seniorAndPwd} resident
+                                Senior and PWD membership can overlap (
+                                {stats.seniorAndPwd} resident
                                 {stats.seniorAndPwd === 1 ? '' : 's'} in both),
                                 so category counts are not mutually exclusive.
                             </p>
@@ -207,7 +218,7 @@ function PopulationContent({ stats, puroks }: Props) {
 
                         {/* EXCLUDED FROM POPULATION */}
                         <div className="mt-4 rounded-xl border border-[#d9d0c3] bg-[#fafaf7] p-4">
-                            <h3 className="text-xs font-semibold uppercase tracking-wide text-[#a7846b]">
+                            <h3 className="text-xs font-semibold tracking-wide text-[#a7846b] uppercase">
                                 Not Counted as Population
                             </h3>
 
@@ -267,7 +278,7 @@ function SummaryCard({
 
     return (
         <div className={`rounded-xl border p-5 ${styles[type]}`}>
-            <p className="text-xs font-semibold uppercase tracking-wide">
+            <p className="text-xs font-semibold tracking-wide uppercase">
                 {title}
             </p>
 
@@ -282,7 +293,7 @@ function SummaryCard({
 
 function TableHead({ children }: { children: React.ReactNode }) {
     return (
-        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#a7846b]">
+        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-[#a7846b] uppercase">
             {children}
         </th>
     );

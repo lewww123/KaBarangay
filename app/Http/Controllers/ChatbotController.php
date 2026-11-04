@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\AssistantResidentRecords;
+use App\Support\AssistantSystemKnowledge;
+use App\Support\ResidentContext;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,15 +23,18 @@ class ChatbotController extends Controller
             'history.*.role' => ['required', 'in:user,assistant'],
             'history.*.content' => ['required', 'string', 'max:1000'],
         ]);
-        $resident = \App\Support\ResidentContext::find();
-        $recordsService = app(\App\Support\AssistantResidentRecords::class);
+        $resident = ResidentContext::find();
+        $recordsService = app(AssistantResidentRecords::class);
         preg_match('/\b[A-Z]{2,12}-[A-Z0-9-]*\d[A-Z0-9-]*\b/i', $data['message'], $referenceMatch);
         $records = $resident ? $recordsService->snapshot($resident, isset($referenceMatch[0]) ? strtoupper($referenceMatch[0]) : null) : [];
         if ($recordsService->isTrackingQuestion($data['message'])) {
-            if (! $resident) return response()->json(['error' => 'Mag-sign in bilang residente para makita ang sarili mong request status.'], 401);
+            if (! $resident) {
+                return response()->json(['error' => 'Mag-sign in bilang residente para makita ang sarili mong request status.'], 401);
+            }
+
             return response()->json($recordsService->trackingReply($data['message'], $records));
         }
-        $knowledge = app(\App\Support\AssistantSystemKnowledge::class)->snapshot($resident);
+        $knowledge = app(AssistantSystemKnowledge::class)->snapshot($resident);
         $key = config('services.groq.key');
         if (! is_string($key) || trim($key) === '') {
             return response()->json(['error' => 'Hindi pa available si Kabarangay AI. Pakisabi sa administrator na i-configure ang AI assistant.'], 503);
@@ -76,6 +82,7 @@ class ChatbotController extends Controller
         $reply = preg_replace('/\*{2,3}([^\n]*?)\*{2,3}/u', '$1', $reply);
         $reply = preg_replace('/^[ \t]*\*\s+/mu', '• ', $reply);
         $reply = preg_replace('/^#{1,6}\s+/mu', '', $reply);
+
         return response()->json(['reply' => trim($reply)]);
     }
 }

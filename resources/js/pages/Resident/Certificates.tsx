@@ -3,7 +3,10 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Pagination from '@/components/Pagination';
 import ResidentLayout from '@/layouts/ResidentLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
-import { offlineCertificateStore, prepareOfflineCertificates } from '@/lib/offlineCertificates';
+import {
+    offlineCertificateStore,
+    prepareOfflineCertificates,
+} from '@/lib/offlineCertificates';
 import type { PaginatedData } from '@/types';
 
 /*
@@ -113,17 +116,26 @@ export default function Certificates(props: PageProps) {
     return (
         <Deferred
             data={['resident', 'certificates', 'requests']}
-            fallback={<ResidentLayout active="certificates"><PortalPageSkeleton showTabs /></ResidentLayout>}
+            fallback={
+                <ResidentLayout active="certificates">
+                    <PortalPageSkeleton showTabs />
+                </ResidentLayout>
+            }
         >
             <CertificatesContent {...props} />
         </Deferred>
     );
 }
 
-function CertificatesContent({ resident, certificates, requests, errors }: PageProps) {
+function CertificatesContent({
+    resident,
+    certificates,
+    requests,
+    errors,
+}: PageProps) {
     const [activeTab, setActiveTab] = useState<Tab>('request');
     const [step, setStep] = useState<Step>('form');
-    
+
     // Form State
     const [certificateId, setCertificateId] = useState('');
     const [purpose, setPurpose] = useState('');
@@ -132,10 +144,12 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
     const [businessName, setBusinessName] = useState('');
     const [businessAddress, setBusinessAddress] = useState('');
     const [details, setDetails] = useState<Record<string, string>>({});
-    
+
     // UI State
-    const [submittedRequest, setSubmittedRequest] = useState<CertificateRequest | null>(null);
-    const [selectedRequest, setSelectedRequest] = useState<CertificateRequest | null>(null);
+    const [submittedRequest, setSubmittedRequest] =
+        useState<CertificateRequest | null>(null);
+    const [selectedRequest, setSelectedRequest] =
+        useState<CertificateRequest | null>(null);
     const [cameFromAssistant, setCameFromAssistant] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [draftMessage, setDraftMessage] = useState('');
@@ -144,11 +158,31 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
         setProcessing(true);
         try {
             let store = await offlineCertificateStore();
-            try { await store.context(); } catch { store = await prepareOfflineCertificates(); }
-            await store.saveDraft({ certificate_id: selectedCertificate.id, purpose: effectivePurpose, business_name: businessName, business_address: businessAddress, additional_details: additionalDetails, details });
-            setDraftMessage('Draft saved on this device. Open Offline drafts & requests to review and queue it. It is not officially submitted yet.');
-        } catch (error) { setDraftMessage(error instanceof Error ? error.message : 'Unable to save this draft.'); }
-        finally { setProcessing(false); }
+            try {
+                await store.context();
+            } catch {
+                store = await prepareOfflineCertificates();
+            }
+            await store.saveDraft({
+                certificate_id: selectedCertificate.id,
+                purpose: effectivePurpose,
+                business_name: businessName,
+                business_address: businessAddress,
+                additional_details: additionalDetails,
+                details,
+            });
+            setDraftMessage(
+                'Draft saved on this device. Open Offline drafts & requests to review and queue it. It is not officially submitted yet.',
+            );
+        } catch (error) {
+            setDraftMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to save this draft.',
+            );
+        } finally {
+            setProcessing(false);
+        }
     };
 
     /*
@@ -184,7 +218,10 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
             setStep('form');
             setCameFromAssistant(true);
         } catch (error) {
-            console.error('Unable to load certificate selected by KaBarangay Assistant.', error);
+            console.error(
+                'Unable to load certificate selected by KaBarangay Assistant.',
+                error,
+            );
         }
     }, [certificates]);
 
@@ -195,12 +232,16 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
     */
 
     const selectedCertificate = useMemo(
-        () => certificates.find((certificate) => certificate.id === certificateId),
-        [certificateId, certificates]
+        () =>
+            certificates.find(
+                (certificate) => certificate.id === certificateId,
+            ),
+        [certificateId, certificates],
     );
 
     const effectivePurpose =
-        selectedCertificate?.fixedPurpose ?? (purpose === 'Other' ? otherPurpose : purpose);
+        selectedCertificate?.fixedPurpose ??
+        (purpose === 'Other' ? otherPurpose : purpose);
 
     const detailsFields = selectedCertificate?.detailsFields ?? [];
 
@@ -255,8 +296,17 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
         event.preventDefault();
 
         if (!selectedCertificate?.available || !effectivePurpose.trim()) return;
-        if (!selectedCertificate.fixedPurpose && purpose === 'Other' && !otherPurpose.trim()) return;
-        if (selectedCertificate.requiresBusinessDetails && (!businessName.trim() || !businessAddress.trim())) return;
+        if (
+            !selectedCertificate.fixedPurpose &&
+            purpose === 'Other' &&
+            !otherPurpose.trim()
+        )
+            return;
+        if (
+            selectedCertificate.requiresBusinessDetails &&
+            (!businessName.trim() || !businessAddress.trim())
+        )
+            return;
         if (!detailsComplete) return;
 
         setStep('review');
@@ -273,40 +323,49 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
         if (!selectedCertificate?.available || processing) return;
         setProcessing(true);
 
-        router.post('/resident/certificates', {
-            certificate_id: selectedCertificate.id,
-            purpose: effectivePurpose,
-            business_name: businessName || undefined,
-            business_address: businessAddress || undefined,
-            additional_details: additionalDetails || undefined,
-            details,
-        }, {
-            preserveScroll: true,
-            onSuccess: (page: any) => {
-                // The newest request will be the first item in the newly loaded page.
-                const requests = page.props.requests as PaginatedData<CertificateRequest> | undefined;
-                if (requests?.data.length) {
-                    setSubmittedRequest(requests.data[0]);
-                }
-
-                try {
-                    window.localStorage.removeItem(CERTIFICATE_FLOW_KEY);
-                } catch (error) {
-                    console.error('Unable to clear certificate assistant flow.', error);
-                }
-
-                setCameFromAssistant(false);
-                setStep('success');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+        router.post(
+            '/resident/certificates',
+            {
+                certificate_id: selectedCertificate.id,
+                purpose: effectivePurpose,
+                business_name: businessName || undefined,
+                business_address: businessAddress || undefined,
+                additional_details: additionalDetails || undefined,
+                details,
             },
-            onError: () => {
-                // Return to form so user can see validation errors
-                setStep('form');
+            {
+                preserveScroll: true,
+                onSuccess: (page: any) => {
+                    // The newest request will be the first item in the newly loaded page.
+                    const requests = page.props.requests as
+                        | PaginatedData<CertificateRequest>
+                        | undefined;
+                    if (requests?.data.length) {
+                        setSubmittedRequest(requests.data[0]);
+                    }
+
+                    try {
+                        window.localStorage.removeItem(CERTIFICATE_FLOW_KEY);
+                    } catch (error) {
+                        console.error(
+                            'Unable to clear certificate assistant flow.',
+                            error,
+                        );
+                    }
+
+                    setCameFromAssistant(false);
+                    setStep('success');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                },
+                onError: () => {
+                    // Return to form so user can see validation errors
+                    setStep('form');
+                },
+                onFinish: () => {
+                    setProcessing(false);
+                },
             },
-            onFinish: () => {
-                setProcessing(false);
-            }
-        });
+        );
     };
 
     return (
@@ -322,10 +381,23 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                         Certificate Request
                     </h1>
                     <p className="mt-2 text-sm leading-6 text-gray-500 sm:text-base">
-                        Request a barangay certificate or track your submitted request.
+                        Request a barangay certificate or track your submitted
+                        request.
                     </p>
-                    <a href="/offline-certificates.html" className="mt-2 inline-block text-sm font-semibold text-[#3f6f3d] underline">Offline drafts & pending requests</a>
-                    {draftMessage && <p role="status" className="mt-3 rounded-lg border bg-white p-3 text-sm">{draftMessage}</p>}
+                    <a
+                        href="/offline-certificates.html"
+                        className="mt-2 inline-block text-sm font-semibold text-[#3f6f3d] underline"
+                    >
+                        Offline drafts & pending requests
+                    </a>
+                    {draftMessage && (
+                        <p
+                            role="status"
+                            className="mt-3 rounded-lg border bg-white p-3 text-sm"
+                        >
+                            {draftMessage}
+                        </p>
+                    )}
                 </section>
 
                 {/* ======================================================
@@ -372,17 +444,23 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-semibold text-gray-800">
-                                                    Selected by KaBarangay Assistant
+                                                    Selected by KaBarangay
+                                                    Assistant
                                                 </p>
                                                 <p className="mt-1 text-sm leading-6 text-gray-600">
-                                                    {selectedCertificate.name} is already selected. Continue with the request details below.
+                                                    {selectedCertificate.name}{' '}
+                                                    is already selected.
+                                                    Continue with the request
+                                                    details below.
                                                 </p>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => {
                                                     setCameFromAssistant(false);
-                                                    window.localStorage.removeItem(CERTIFICATE_FLOW_KEY);
+                                                    window.localStorage.removeItem(
+                                                        CERTIFICATE_FLOW_KEY,
+                                                    );
                                                 }}
                                                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-white hover:text-gray-600"
                                                 aria-label="Dismiss assistant message"
@@ -393,14 +471,20 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                     </div>
                                 )}
 
-                                <form onSubmit={handleContinue} className="mx-auto w-full max-w-3xl">
+                                <form
+                                    onSubmit={handleContinue}
+                                    className="mx-auto w-full max-w-3xl"
+                                >
                                     {/* VERIFIED RESIDENT */}
                                     <section className="mb-4 rounded-xl border border-gray-200 bg-white p-4 sm:mb-5 sm:p-6">
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                             <div>
-                                                <h2 className="text-lg font-semibold text-gray-800">Your Information</h2>
+                                                <h2 className="text-lg font-semibold text-gray-800">
+                                                    Your Information
+                                                </h2>
                                                 <p className="mt-1 text-sm leading-6 text-gray-500">
-                                                    Taken from your verified resident profile.
+                                                    Taken from your verified
+                                                    resident profile.
                                                 </p>
                                             </div>
                                             <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#edf4ea] px-3 py-1.5 text-sm font-semibold text-[#3f6f3d]">
@@ -408,86 +492,171 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                             </span>
                                         </div>
                                         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                            <InfoItem label="Resident Name" value={resident.full_name} />
-                                            <InfoItem label="KaBarangay ID" value={resident.resident_number} />
-                                            {resident.purok && <InfoItem label="Purok" value={resident.purok} />}
-                                            {resident.birthdate && <InfoItem label="Date of Birth" value={resident.birthdate} />}
-                                            {resident.sex && <InfoItem label="Sex" value={resident.sex} />}
+                                            <InfoItem
+                                                label="Resident Name"
+                                                value={resident.full_name}
+                                            />
+                                            <InfoItem
+                                                label="KaBarangay ID"
+                                                value={resident.resident_number}
+                                            />
+                                            {resident.purok && (
+                                                <InfoItem
+                                                    label="Purok"
+                                                    value={resident.purok}
+                                                />
+                                            )}
+                                            {resident.birthdate && (
+                                                <InfoItem
+                                                    label="Date of Birth"
+                                                    value={resident.birthdate}
+                                                />
+                                            )}
+                                            {resident.sex && (
+                                                <InfoItem
+                                                    label="Sex"
+                                                    value={resident.sex}
+                                                />
+                                            )}
                                             <div className="sm:col-span-2">
-                                                <InfoItem label="Barangay" value={`${resident.barangay.name}, ${resident.barangay.city_municipality}`} />
+                                                <InfoItem
+                                                    label="Barangay"
+                                                    value={`${resident.barangay.name}, ${resident.barangay.city_municipality}`}
+                                                />
                                             </div>
                                         </div>
                                     </section>
 
                                     {/* REQUEST DETAILS */}
                                     <section className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
-                                        <h2 className="text-lg font-semibold text-gray-800">Request Details</h2>
+                                        <h2 className="text-lg font-semibold text-gray-800">
+                                            Request Details
+                                        </h2>
                                         <p className="mt-1 text-sm leading-6 text-gray-500">
-                                            Enter only the information needed for this request.
+                                            Enter only the information needed
+                                            for this request.
                                         </p>
 
                                         {/* CERTIFICATE TYPE */}
                                         <div className="mt-5 sm:mt-6">
-                                            <label htmlFor="certificate" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
+                                            <label
+                                                htmlFor="certificate"
+                                                className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                            >
                                                 Certificate Type *
                                             </label>
                                             <select
                                                 id="certificate"
                                                 value={certificateId}
-                                                onChange={(event) => handleCertificateChange(event.target.value)}
+                                                onChange={(event) =>
+                                                    handleCertificateChange(
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 className={inputClass}
                                                 required
                                             >
-                                                <option value="">Select certificate</option>
-                                                {availableCertificates.map((certificate) => (
-                                                    <option
-                                                        key={certificate.id}
-                                                        value={certificate.id}
-                                                    >
-                                                        {certificate.name}
-                                                    </option>
-                                                ))}
+                                                <option value="">
+                                                    Select certificate
+                                                </option>
+                                                {availableCertificates.map(
+                                                    (certificate) => (
+                                                        <option
+                                                            key={certificate.id}
+                                                            value={
+                                                                certificate.id
+                                                            }
+                                                        >
+                                                            {certificate.name}
+                                                        </option>
+                                                    ),
+                                                )}
                                             </select>
-                                            {errors.certificate_id && <p className="mt-2 text-sm text-red-600">{errors.certificate_id}</p>}
+                                            {errors.certificate_id && (
+                                                <p className="mt-2 text-sm text-red-600">
+                                                    {errors.certificate_id}
+                                                </p>
+                                            )}
                                         </div>
 
                                         {/* CERTIFICATE INFORMATION */}
                                         {selectedCertificate && (
                                             <div className="mt-4 rounded-xl bg-[#f7f8f5] p-4">
-                                                <p className="text-base font-semibold text-gray-800">{selectedCertificate.name}</p>
-                                                <p className="mt-1 text-sm leading-6 text-gray-500">{selectedCertificate.description}</p>
+                                                <p className="text-base font-semibold text-gray-800">
+                                                    {selectedCertificate.name}
+                                                </p>
+                                                <p className="mt-1 text-sm leading-6 text-gray-500">
+                                                    {
+                                                        selectedCertificate.description
+                                                    }
+                                                </p>
 
                                                 {!selectedCertificate.available && (
                                                     <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-800">
-                                                        This certificate is currently unavailable. Please choose another certificate type.
+                                                        This certificate is
+                                                        currently unavailable.
+                                                        Please choose another
+                                                        certificate type.
                                                     </p>
                                                 )}
-                                                {selectedCertificate.available && !selectedCertificate.templateAvailable && (
-                                                    <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                                                        This active service can accept requests. Certificate generation is not available yet; the barangay office may need to complete processing after its template is provisioned.
-                                                    </div>
-                                                )}
+                                                {selectedCertificate.available &&
+                                                    !selectedCertificate.templateAvailable && (
+                                                        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                                            This active service
+                                                            can accept requests.
+                                                            Certificate
+                                                            generation is not
+                                                            available yet; the
+                                                            barangay office may
+                                                            need to complete
+                                                            processing after its
+                                                            template is
+                                                            provisioned.
+                                                        </div>
+                                                    )}
 
-                                                {selectedCertificate.requirements?.length > 0 && (
+                                                {selectedCertificate
+                                                    .requirements?.length >
+                                                    0 && (
                                                     <div className="mt-4">
-                                                        <p className="text-sm font-semibold text-gray-700">Requirements</p>
+                                                        <p className="text-sm font-semibold text-gray-700">
+                                                            Requirements
+                                                        </p>
                                                         <ul className="mt-2 space-y-2">
-                                                            {selectedCertificate.requirements.map((requirement) => (
-                                                                <li key={requirement} className="flex items-start gap-2 text-sm leading-6 text-gray-600">
-                                                                    <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#3f6f3d] text-white">
-                                                                        <CheckSmallIcon />
-                                                                    </span>
-                                                                    <span>{requirement}</span>
-                                                                </li>
-                                                            ))}
+                                                            {selectedCertificate.requirements.map(
+                                                                (
+                                                                    requirement,
+                                                                ) => (
+                                                                    <li
+                                                                        key={
+                                                                            requirement
+                                                                        }
+                                                                        className="flex items-start gap-2 text-sm leading-6 text-gray-600"
+                                                                    >
+                                                                        <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#3f6f3d] text-white">
+                                                                            <CheckSmallIcon />
+                                                                        </span>
+                                                                        <span>
+                                                                            {
+                                                                                requirement
+                                                                            }
+                                                                        </span>
+                                                                    </li>
+                                                                ),
+                                                            )}
                                                         </ul>
                                                     </div>
                                                 )}
-                                                
+
                                                 <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-                                                    <span className="text-sm font-medium text-gray-600">Fee</span>
+                                                    <span className="text-sm font-medium text-gray-600">
+                                                        Fee
+                                                    </span>
                                                     <span className="text-lg font-semibold text-[#3f6f3d]">
-                                                        {selectedCertificate.fee > 0 ? `₱${selectedCertificate.fee.toLocaleString()}` : 'Free'}
+                                                        {selectedCertificate.fee >
+                                                        0
+                                                            ? `₱${selectedCertificate.fee.toLocaleString()}`
+                                                            : 'Free'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -496,12 +665,18 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                         {/* FIXED PURPOSE */}
                                         {selectedCertificate?.fixedPurpose && (
                                             <div className="mt-5 rounded-lg border border-[#d7e3d4] bg-[#edf4ea] p-4">
-                                                <p className="text-sm font-medium text-gray-600">Purpose</p>
+                                                <p className="text-sm font-medium text-gray-600">
+                                                    Purpose
+                                                </p>
                                                 <p className="mt-1 text-base font-semibold text-gray-800">
-                                                    {selectedCertificate.fixedPurpose}
+                                                    {
+                                                        selectedCertificate.fixedPurpose
+                                                    }
                                                 </p>
                                                 <p className="mt-1 text-xs leading-5 text-gray-500">
-                                                    This certificate uses a fixed purpose set by the barangay.
+                                                    This certificate uses a
+                                                    fixed purpose set by the
+                                                    barangay.
                                                 </p>
                                             </div>
                                         )}
@@ -510,44 +685,90 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                         {!selectedCertificate?.fixedPurpose && (
                                             <>
                                                 <div className="mt-5">
-                                                    <label htmlFor="purpose" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
-                                                        Purpose / Requirement For *
+                                                    <label
+                                                        htmlFor="purpose"
+                                                        className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                    >
+                                                        Purpose / Requirement
+                                                        For *
                                                     </label>
                                                     <select
                                                         id="purpose"
                                                         value={purpose}
-                                                        onChange={(event) => setPurpose(event.target.value)}
+                                                        onChange={(event) =>
+                                                            setPurpose(
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
                                                         className={inputClass}
                                                         required
                                                     >
-                                                        <option value="">Select purpose</option>
-                                                        <option value="Employment">Employment</option>
-                                                        <option value="School Requirement">School Requirement</option>
-                                                        <option value="Government Requirement">Government Requirement</option>
-                                                        <option value="Financial Assistance">Financial Assistance</option>
-                                                        <option value="DSWD Assistance">DSWD Assistance</option>
-                                                        <option value="Medical Assistance">Medical Assistance</option>
-                                                        <option value="Scholarship">Scholarship</option>
-                                                        <option value="Business">Business</option>
-                                                        <option value="Personal">Personal</option>
-                                                        <option value="Other">Other</option>
+                                                        <option value="">
+                                                            Select purpose
+                                                        </option>
+                                                        <option value="Employment">
+                                                            Employment
+                                                        </option>
+                                                        <option value="School Requirement">
+                                                            School Requirement
+                                                        </option>
+                                                        <option value="Government Requirement">
+                                                            Government
+                                                            Requirement
+                                                        </option>
+                                                        <option value="Financial Assistance">
+                                                            Financial Assistance
+                                                        </option>
+                                                        <option value="DSWD Assistance">
+                                                            DSWD Assistance
+                                                        </option>
+                                                        <option value="Medical Assistance">
+                                                            Medical Assistance
+                                                        </option>
+                                                        <option value="Scholarship">
+                                                            Scholarship
+                                                        </option>
+                                                        <option value="Business">
+                                                            Business
+                                                        </option>
+                                                        <option value="Personal">
+                                                            Personal
+                                                        </option>
+                                                        <option value="Other">
+                                                            Other
+                                                        </option>
                                                     </select>
-                                                    {errors.purpose && <p className="mt-2 text-sm text-red-600">{errors.purpose}</p>}
+                                                    {errors.purpose && (
+                                                        <p className="mt-2 text-sm text-red-600">
+                                                            {errors.purpose}
+                                                        </p>
+                                                    )}
                                                 </div>
 
                                                 {/* OTHER PURPOSE */}
                                                 {purpose === 'Other' && (
                                                     <div className="mt-5">
-                                                        <label htmlFor="otherPurpose" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
+                                                        <label
+                                                            htmlFor="otherPurpose"
+                                                            className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                        >
                                                             Please specify *
                                                         </label>
                                                         <input
                                                             id="otherPurpose"
                                                             type="text"
                                                             value={otherPurpose}
-                                                            onChange={(event) => setOtherPurpose(event.target.value)}
+                                                            onChange={(event) =>
+                                                                setOtherPurpose(
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
                                                             placeholder="Enter purpose"
-                                                            className={inputClass}
+                                                            className={
+                                                                inputClass
+                                                            }
                                                             required
                                                         />
                                                     </div>
@@ -558,8 +779,14 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                         {/* BUSINESS DETAILS */}
                                         {selectedCertificate?.requiresBusinessDetails && (
                                             <div className="mt-6 border-t border-gray-100 pt-6">
-                                                <h3 className="text-base font-semibold text-gray-800">Business Information</h3>
-                                                <p className="mt-1 text-sm text-gray-500">Enter the business information required for this certificate.</p>
+                                                <h3 className="text-base font-semibold text-gray-800">
+                                                    Business Information
+                                                </h3>
+                                                <p className="mt-1 text-sm text-gray-500">
+                                                    Enter the business
+                                                    information required for
+                                                    this certificate.
+                                                </p>
                                                 <div className="mt-4 space-y-4">
                                                     <div>
                                                         <label className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
@@ -567,42 +794,81 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                                         </label>
                                                         <input
                                                             type="text"
-                                                            value={resident.full_name}
+                                                            value={
+                                                                resident.full_name
+                                                            }
                                                             readOnly
                                                             aria-readonly="true"
                                                             className={`${inputClass} cursor-not-allowed bg-gray-50 text-gray-600`}
                                                         />
                                                         <p className="mt-2 text-xs text-gray-500">
-                                                            The verified Resident account holder is used as the business owner.
+                                                            The verified
+                                                            Resident account
+                                                            holder is used as
+                                                            the business owner.
                                                         </p>
                                                     </div>
                                                     <div>
-                                                        <label htmlFor="businessName" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
+                                                        <label
+                                                            htmlFor="businessName"
+                                                            className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                        >
                                                             Business Name *
                                                         </label>
                                                         <input
                                                             id="businessName"
                                                             type="text"
                                                             value={businessName}
-                                                            onChange={(event) => setBusinessName(event.target.value)}
-                                                            className={inputClass}
+                                                            onChange={(event) =>
+                                                                setBusinessName(
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className={
+                                                                inputClass
+                                                            }
                                                             required
                                                         />
-                                                        {errors.business_name && <p className="mt-2 text-sm text-red-600">{errors.business_name}</p>}
+                                                        {errors.business_name && (
+                                                            <p className="mt-2 text-sm text-red-600">
+                                                                {
+                                                                    errors.business_name
+                                                                }
+                                                            </p>
+                                                        )}
                                                     </div>
                                                     <div>
-                                                        <label htmlFor="businessAddress" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
+                                                        <label
+                                                            htmlFor="businessAddress"
+                                                            className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                        >
                                                             Business Address *
                                                         </label>
                                                         <input
                                                             id="businessAddress"
                                                             type="text"
-                                                            value={businessAddress}
-                                                            onChange={(event) => setBusinessAddress(event.target.value)}
-                                                            className={inputClass}
+                                                            value={
+                                                                businessAddress
+                                                            }
+                                                            onChange={(event) =>
+                                                                setBusinessAddress(
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className={
+                                                                inputClass
+                                                            }
                                                             required
                                                         />
-                                                        {errors.business_address && <p className="mt-2 text-sm text-red-600">{errors.business_address}</p>}
+                                                        {errors.business_address && (
+                                                            <p className="mt-2 text-sm text-red-600">
+                                                                {
+                                                                    errors.business_address
+                                                                }
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -612,71 +878,130 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                         {detailsFields.length > 0 && (
                                             <div className="mt-6 border-t border-gray-100 pt-6">
                                                 <h3 className="text-base font-semibold text-gray-800">
-                                                    {selectedCertificate?.certificateType ?? 'Certificate'} Information
+                                                    {selectedCertificate?.certificateType ??
+                                                        'Certificate'}{' '}
+                                                    Information
                                                 </h3>
                                                 <p className="mt-1 text-sm text-gray-500">
-                                                    These details are printed on the certificate. Please review them carefully.
+                                                    These details are printed on
+                                                    the certificate. Please
+                                                    review them carefully.
                                                 </p>
                                                 <div className="mt-4 space-y-4">
-                                                    {detailsFields.map((field) => (
-                                                        <div key={field.key}>
-                                                            <label
-                                                                htmlFor={`detail-${field.key}`}
-                                                                className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                    {detailsFields.map(
+                                                        (field) => (
+                                                            <div
+                                                                key={field.key}
                                                             >
-                                                                {field.label}
-                                                                {field.required && ' *'}
-                                                            </label>
-                                                            <input
-                                                                id={`detail-${field.key}`}
-                                                                type={field.type}
-                                                                value={details[field.key] ?? ''}
-                                                                onChange={(event) => {
-                                                                    const value = event.target.value;
-                                                                    setDetails((current) => ({
-                                                                        ...current,
-                                                                        [field.key]: value,
-                                                                    }));
-                                                                }}
-                                                                min={field.min}
-                                                                max={field.max}
-                                                                step={
-                                                                    field.type === 'number'
-                                                                        ? field.kind === 'numeric'
-                                                                            ? '0.01'
-                                                                            : '1'
-                                                                        : undefined
-                                                                }
-                                                                placeholder={field.placeholder}
-                                                                className={inputClass}
-                                                                required={field.required}
-                                                            />
-                                                            {errors[`details.${field.key}`] && (
-                                                                <p className="mt-2 text-sm text-red-600">
-                                                                    {errors[`details.${field.key}`]}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    ))}
+                                                                <label
+                                                                    htmlFor={`detail-${field.key}`}
+                                                                    className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                                >
+                                                                    {
+                                                                        field.label
+                                                                    }
+                                                                    {field.required &&
+                                                                        ' *'}
+                                                                </label>
+                                                                <input
+                                                                    id={`detail-${field.key}`}
+                                                                    type={
+                                                                        field.type
+                                                                    }
+                                                                    value={
+                                                                        details[
+                                                                            field
+                                                                                .key
+                                                                        ] ?? ''
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) => {
+                                                                        const value =
+                                                                            event
+                                                                                .target
+                                                                                .value;
+                                                                        setDetails(
+                                                                            (
+                                                                                current,
+                                                                            ) => ({
+                                                                                ...current,
+                                                                                [field.key]:
+                                                                                    value,
+                                                                            }),
+                                                                        );
+                                                                    }}
+                                                                    min={
+                                                                        field.min
+                                                                    }
+                                                                    max={
+                                                                        field.max
+                                                                    }
+                                                                    step={
+                                                                        field.type ===
+                                                                        'number'
+                                                                            ? field.kind ===
+                                                                              'numeric'
+                                                                                ? '0.01'
+                                                                                : '1'
+                                                                            : undefined
+                                                                    }
+                                                                    placeholder={
+                                                                        field.placeholder
+                                                                    }
+                                                                    className={
+                                                                        inputClass
+                                                                    }
+                                                                    required={
+                                                                        field.required
+                                                                    }
+                                                                />
+                                                                {errors[
+                                                                    `details.${field.key}`
+                                                                ] && (
+                                                                    <p className="mt-2 text-sm text-red-600">
+                                                                        {
+                                                                            errors[
+                                                                                `details.${field.key}`
+                                                                            ]
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ),
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
 
                                         {/* ADDITIONAL DETAILS */}
                                         <div className="mt-5">
-                                            <label htmlFor="additionalDetails" className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
+                                            <label
+                                                htmlFor="additionalDetails"
+                                                className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                            >
                                                 Additional Details
-                                                <span className="ml-1 text-xs font-normal text-gray-400 sm:text-sm">(Optional)</span>
+                                                <span className="ml-1 text-xs font-normal text-gray-400 sm:text-sm">
+                                                    (Optional)
+                                                </span>
                                             </label>
                                             <textarea
                                                 id="additionalDetails"
                                                 rows={3}
                                                 value={additionalDetails}
-                                                onChange={(event) => setAdditionalDetails(event.target.value)}
+                                                onChange={(event) =>
+                                                    setAdditionalDetails(
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 placeholder="Enter additional information if needed"
                                                 className={`${inputClass} resize-none py-3`}
                                             />
-                                            {errors.additional_details && <p className="mt-2 text-sm text-red-600">{errors.additional_details}</p>}
+                                            {errors.additional_details && (
+                                                <p className="mt-2 text-sm text-red-600">
+                                                    {errors.additional_details}
+                                                </p>
+                                            )}
                                         </div>
 
                                         <button
@@ -685,7 +1010,19 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                         >
                                             Continue
                                         </button>
-                                        <button type="button" onClick={() => void saveOfflineDraft()} disabled={processing || !selectedCertificate} className="mt-3 min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 font-semibold text-[#3f6f3d] disabled:opacity-50">Save draft on this device</button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                void saveOfflineDraft()
+                                            }
+                                            disabled={
+                                                processing ||
+                                                !selectedCertificate
+                                            }
+                                            className="mt-3 min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 font-semibold text-[#3f6f3d] disabled:opacity-50"
+                                        >
+                                            Save draft on this device
+                                        </button>
                                     </section>
                                 </form>
                             </div>
@@ -695,27 +1032,53 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                         {step === 'review' && selectedCertificate && (
                             <div className="mx-auto w-full max-w-3xl">
                                 <section className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
-                                    <h2 className="text-xl font-semibold text-gray-800">Review Your Request</h2>
+                                    <h2 className="text-xl font-semibold text-gray-800">
+                                        Review Your Request
+                                    </h2>
                                     <p className="mt-2 text-sm leading-6 text-gray-500 sm:text-base">
-                                        Check the information before submitting your request.
+                                        Check the information before submitting
+                                        your request.
                                     </p>
 
                                     <div className="mt-5 sm:mt-6">
-                                        <ReviewRow label="Resident" value={resident.full_name} />
-                                        <ReviewRow label="KaBarangay ID" value={resident.resident_number} />
-                                        <ReviewRow label="Certificate" value={selectedCertificate.name} />
-                                        <ReviewRow label="Purpose" value={effectivePurpose} />
+                                        <ReviewRow
+                                            label="Resident"
+                                            value={resident.full_name}
+                                        />
+                                        <ReviewRow
+                                            label="KaBarangay ID"
+                                            value={resident.resident_number}
+                                        />
+                                        <ReviewRow
+                                            label="Certificate"
+                                            value={selectedCertificate.name}
+                                        />
+                                        <ReviewRow
+                                            label="Purpose"
+                                            value={effectivePurpose}
+                                        />
 
                                         {selectedCertificate.requiresBusinessDetails && (
                                             <>
-                                                <ReviewRow label="Business Owner" value={resident.full_name} />
-                                                <ReviewRow label="Business Name" value={businessName} />
-                                                <ReviewRow label="Business Address" value={businessAddress} />
+                                                <ReviewRow
+                                                    label="Business Owner"
+                                                    value={resident.full_name}
+                                                />
+                                                <ReviewRow
+                                                    label="Business Name"
+                                                    value={businessName}
+                                                />
+                                                <ReviewRow
+                                                    label="Business Address"
+                                                    value={businessAddress}
+                                                />
                                             </>
                                         )}
 
                                         {detailsFields.map((field) =>
-                                            (details[field.key] ?? '').trim() !== '' ? (
+                                            (
+                                                details[field.key] ?? ''
+                                            ).trim() !== '' ? (
                                                 <ReviewRow
                                                     key={field.key}
                                                     label={field.label}
@@ -725,18 +1088,34 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                         )}
 
                                         {additionalDetails && (
-                                            <ReviewRow label="Additional Details" value={additionalDetails} />
+                                            <ReviewRow
+                                                label="Additional Details"
+                                                value={additionalDetails}
+                                            />
                                         )}
-                                        
+
                                         <ReviewRow
                                             label="Fee"
-                                            value={selectedCertificate.fee > 0 ? `₱${selectedCertificate.fee.toLocaleString()}` : 'Free'}
+                                            value={
+                                                selectedCertificate.fee > 0
+                                                    ? `₱${selectedCertificate.fee.toLocaleString()}`
+                                                    : 'Free'
+                                            }
                                             last
                                         />
                                     </div>
 
                                     <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                        <button type="button" onClick={() => void saveOfflineDraft()} disabled={processing} className="min-h-12 rounded-lg border border-[#3f6f3d] px-4 font-semibold text-[#3f6f3d] disabled:opacity-50">Save draft on this device</button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                void saveOfflineDraft()
+                                            }
+                                            disabled={processing}
+                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-4 font-semibold text-[#3f6f3d] disabled:opacity-50"
+                                        >
+                                            Save draft on this device
+                                        </button>
                                         <button
                                             type="button"
                                             onClick={() => setStep('form')}
@@ -751,7 +1130,9 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                             disabled={processing}
                                             className="min-h-12 w-full rounded-lg bg-[#3f6f3d] px-6 text-base font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-50 sm:w-auto"
                                         >
-                                            {processing ? 'Submitting...' : 'Submit Request'}
+                                            {processing
+                                                ? 'Submitting...'
+                                                : 'Submit Request'}
                                         </button>
                                     </div>
                                 </section>
@@ -765,18 +1146,31 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#3f6f3d] text-white">
                                         <CheckLargeIcon />
                                     </div>
-                                    <h2 className="mt-5 text-xl font-semibold text-gray-800 sm:text-2xl">Request Submitted</h2>
+                                    <h2 className="mt-5 text-xl font-semibold text-gray-800 sm:text-2xl">
+                                        Request Submitted
+                                    </h2>
                                     <p className="mt-2 text-sm leading-6 text-gray-500 sm:text-base">
-                                        Your certificate request has been submitted for barangay review.
+                                        Your certificate request has been
+                                        submitted for barangay review.
                                     </p>
                                     <div className="mt-6 rounded-xl bg-[#f7f8f5] p-4 text-left sm:p-5">
-                                        <InfoItem label="Request Number" value={submittedRequest.reference} />
+                                        <InfoItem
+                                            label="Request Number"
+                                            value={submittedRequest.reference}
+                                        />
                                         <div className="my-4 border-t border-gray-200" />
-                                        <InfoItem label="Certificate" value={submittedRequest.certificate} />
+                                        <InfoItem
+                                            label="Certificate"
+                                            value={submittedRequest.certificate}
+                                        />
                                         <div className="my-4 border-t border-gray-200" />
                                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                            <span className="text-sm text-gray-500">Status</span>
-                                            <StatusBadge status={submittedRequest.status} />
+                                            <span className="text-sm text-gray-500">
+                                                Status
+                                            </span>
+                                            <StatusBadge
+                                                status={submittedRequest.status}
+                                            />
                                         </div>
                                     </div>
                                     <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -789,7 +1183,9 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => setActiveTab('requests')}
+                                            onClick={() =>
+                                                setActiveTab('requests')
+                                            }
                                             className="min-h-12 rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
                                         >
                                             My Requests
@@ -807,30 +1203,44 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                 {activeTab === 'requests' && (
                     <section className="mx-auto w-full max-w-4xl">
                         <div className="mb-4">
-                            <h2 className="text-xl font-semibold text-gray-800">My Requests</h2>
+                            <h2 className="text-xl font-semibold text-gray-800">
+                                My Requests
+                            </h2>
                             <p className="mt-1 text-sm leading-6 text-gray-500 sm:text-base">
-                                View and track your submitted certificate requests.
+                                View and track your submitted certificate
+                                requests.
                             </p>
                         </div>
                         {requests.data.length > 0 ? (
                             <div className="space-y-4">
                                 {requests.data.map((request) => (
-                                    <div key={request.id} className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
+                                    <div
+                                        key={request.id}
+                                        className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5"
+                                    >
                                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                             <div className="min-w-0">
-                                                <p className="break-words text-base font-semibold text-gray-800 sm:text-lg">
+                                                <p className="text-base font-semibold break-words text-gray-800 sm:text-lg">
                                                     {request.certificate}
                                                 </p>
-                                                <p className="mt-1 break-all text-sm font-medium text-gray-500">
+                                                <p className="mt-1 text-sm font-medium break-all text-gray-500">
                                                     {request.reference}
                                                 </p>
-                                                <p className="mt-1 text-sm text-gray-400">Submitted: {request.date}</p>
+                                                <p className="mt-1 text-sm text-gray-400">
+                                                    Submitted: {request.date}
+                                                </p>
                                             </div>
                                             <div className="flex flex-col gap-3 sm:items-end">
-                                                <StatusBadge status={request.status} />
+                                                <StatusBadge
+                                                    status={request.status}
+                                                />
                                                 <button
                                                     type="button"
-                                                    onClick={() => setSelectedRequest(request)}
+                                                    onClick={() =>
+                                                        setSelectedRequest(
+                                                            request,
+                                                        )
+                                                    }
                                                     className="min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 text-sm font-semibold text-[#3f6f3d] transition hover:bg-[#edf4ea] sm:w-auto"
                                                 >
                                                     View Details
@@ -839,12 +1249,17 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                         </div>
                                     </div>
                                 ))}
-                                <Pagination paginator={requests} label="Certificate request" />
+                                <Pagination
+                                    paginator={requests}
+                                    label="Certificate request"
+                                />
                             </div>
                         ) : (
                             <div className="rounded-xl border border-gray-200 bg-white p-7 text-center">
                                 <CertificateOutlineIcon />
-                                <h3 className="mt-4 text-lg font-semibold text-gray-800">No certificate requests</h3>
+                                <h3 className="mt-4 text-lg font-semibold text-gray-800">
+                                    No certificate requests
+                                </h3>
                                 <p className="mt-2 text-sm leading-6 text-gray-500">
                                     Your submitted requests will appear here.
                                 </p>
@@ -867,7 +1282,10 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                     DETAILS MODAL
                 ====================================================== */}
                 {selectedRequest && (
-                    <RequestDetailsModal request={selectedRequest} onClose={() => setSelectedRequest(null)} />
+                    <RequestDetailsModal
+                        request={selectedRequest}
+                        onClose={() => setSelectedRequest(null)}
+                    />
                 )}
             </ResidentLayout>
         </>
@@ -889,15 +1307,25 @@ const inputClass =
 |--------------------------------------------------------------------------
 */
 
-function RequestDetailsModal({ request, onClose }: { request: CertificateRequest; onClose: () => void }) {
+function RequestDetailsModal({
+    request,
+    onClose,
+}: {
+    request: CertificateRequest;
+    onClose: () => void;
+}) {
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4">
             <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
                 {/* HEADER */}
                 <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-4 sm:px-5">
                     <div className="min-w-0">
-                        <h2 className="text-lg font-semibold text-gray-800 sm:text-xl">Request Details</h2>
-                        <p className="mt-1 break-all text-sm font-medium text-gray-500">{request.reference}</p>
+                        <h2 className="text-lg font-semibold text-gray-800 sm:text-xl">
+                            Request Details
+                        </h2>
+                        <p className="mt-1 text-sm font-medium break-all text-gray-500">
+                            {request.reference}
+                        </p>
                     </div>
                     <button
                         type="button"
@@ -913,31 +1341,57 @@ function RequestDetailsModal({ request, onClose }: { request: CertificateRequest
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                     <div className="rounded-xl border border-gray-200 bg-[#fafaf7] p-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <InfoItem label="Certificate" value={request.certificate} />
+                            <InfoItem
+                                label="Certificate"
+                                value={request.certificate}
+                            />
                             <InfoItem label="Purpose" value={request.purpose} />
                             <InfoItem label="Submitted" value={request.date} />
                             <InfoItem
                                 label="Fee"
-                                value={request.fee > 0 ? `₱${request.fee.toLocaleString()}` : 'Free'}
+                                value={
+                                    request.fee > 0
+                                        ? `₱${request.fee.toLocaleString()}`
+                                        : 'Free'
+                                }
                             />
-                            {request.businessName && <InfoItem label="Business Name" value={request.businessName} />}
-                            {request.businessAddress && <InfoItem label="Business Address" value={request.businessAddress} />}
+                            {request.businessName && (
+                                <InfoItem
+                                    label="Business Name"
+                                    value={request.businessName}
+                                />
+                            )}
+                            {request.businessAddress && (
+                                <InfoItem
+                                    label="Business Address"
+                                    value={request.businessAddress}
+                                />
+                            )}
                             {request.details?.map((detail) => (
-                                <InfoItem key={detail.label} label={detail.label} value={detail.value} />
+                                <InfoItem
+                                    key={detail.label}
+                                    label={detail.label}
+                                    value={detail.value}
+                                />
                             ))}
                         </div>
                         {request.additionalDetails && (
                             <>
                                 <div className="my-4 border-t border-gray-200" />
-                                <InfoItem label="Additional Details" value={request.additionalDetails} />
+                                <InfoItem
+                                    label="Additional Details"
+                                    value={request.additionalDetails}
+                                />
                             </>
                         )}
                         {request.adminNote && (
                             <>
                                 <div className="my-4 border-t border-gray-200" />
                                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                                    <p className="text-sm font-semibold text-amber-800">Barangay Note</p>
-                                    <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-amber-900">
+                                    <p className="text-sm font-semibold text-amber-800">
+                                        Barangay Note
+                                    </p>
+                                    <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-amber-900">
                                         {request.adminNote}
                                     </p>
                                 </div>
@@ -945,15 +1399,21 @@ function RequestDetailsModal({ request, onClose }: { request: CertificateRequest
                         )}
                         <div className="my-4 border-t border-gray-200" />
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <span className="text-sm text-gray-500">Current Status</span>
+                            <span className="text-sm text-gray-500">
+                                Current Status
+                            </span>
                             <StatusBadge status={request.status} />
                         </div>
                     </div>
 
                     {/* TRACK STATUS */}
                     <div className="mt-6">
-                        <h3 className="text-lg font-semibold text-gray-800">Track Status</h3>
-                        <p className="mt-1 text-sm leading-6 text-gray-500">Follow the progress of your certificate request.</p>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                            Track Status
+                        </h3>
+                        <p className="mt-1 text-sm leading-6 text-gray-500">
+                            Follow the progress of your certificate request.
+                        </p>
                         <div className="mt-5">
                             <RequestTracker status={request.status} />
                         </div>
@@ -990,9 +1450,12 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                         <CloseIcon />
                     </div>
                     <div>
-                        <p className="font-semibold text-red-700">Request Rejected</p>
+                        <p className="font-semibold text-red-700">
+                            Request Rejected
+                        </p>
                         <p className="mt-1 text-sm leading-6 text-red-600">
-                            Your request could not be processed. Please check the provided reason or contact the barangay office.
+                            Your request could not be processed. Please check
+                            the provided reason or contact the barangay office.
                         </p>
                     </div>
                 </div>
@@ -1008,9 +1471,12 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                         <AlertIcon />
                     </div>
                     <div>
-                        <p className="font-semibold text-orange-700">Action Required</p>
+                        <p className="font-semibold text-orange-700">
+                            Action Required
+                        </p>
                         <p className="mt-1 text-sm leading-6 text-orange-600">
-                            Additional or corrected information is needed before processing can continue.
+                            Additional or corrected information is needed before
+                            processing can continue.
                         </p>
                     </div>
                 </div>
@@ -1047,8 +1513,10 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                         <div key={step} className="relative flex gap-3">
                             {index !== steps.length - 1 && (
                                 <div
-                                    className={`absolute left-[17px] top-9 h-[calc(100%-1px)] w-[2px] ${
-                                        index < currentStep ? 'bg-[#3f6f3d]' : 'bg-gray-200'
+                                    className={`absolute top-9 left-[17px] h-[calc(100%-1px)] w-[2px] ${
+                                        index < currentStep
+                                            ? 'bg-[#3f6f3d]'
+                                            : 'bg-gray-200'
                                     }`}
                                 />
                             )}
@@ -1061,14 +1529,27 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                           : 'border-gray-300 bg-white text-gray-400'
                                 }`}
                             >
-                                <TrackerIcon step={step} completed={completed} />
+                                <TrackerIcon
+                                    step={step}
+                                    completed={completed}
+                                />
                             </div>
                             <div className="min-w-0 pb-6">
-                                <p className={`text-sm font-semibold ${completed || current ? 'text-gray-800' : 'text-gray-400'}`}>
+                                <p
+                                    className={`text-sm font-semibold ${completed || current ? 'text-gray-800' : 'text-gray-400'}`}
+                                >
                                     {step}
                                 </p>
-                                {completed && <p className="mt-1 text-xs text-gray-500">Completed</p>}
-                                {current && <p className="mt-1 text-xs font-semibold text-[#3f6f3d]">Current status</p>}
+                                {completed && (
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Completed
+                                    </p>
+                                )}
+                                {current && (
+                                    <p className="mt-1 text-xs font-semibold text-[#3f6f3d]">
+                                        Current status
+                                    </p>
+                                )}
                             </div>
                         </div>
                     );
@@ -1077,17 +1558,26 @@ function RequestTracker({ status }: { status: RequestStatus }) {
 
             {/* TABLET / DESKTOP TRACKER */}
             <div className="hidden overflow-x-auto pb-2 sm:block">
-                <div className={steps.length === 6 ? 'flex min-w-[690px] items-start px-2' : 'flex min-w-[560px] items-start px-2'}>
+                <div
+                    className={
+                        steps.length === 6
+                            ? 'flex min-w-[690px] items-start px-2'
+                            : 'flex min-w-[560px] items-start px-2'
+                    }
+                >
                     {steps.map((step, index) => {
                         const completed = index < currentStep;
                         const current = index === currentStep;
                         const reached = index <= currentStep;
 
                         return (
-                            <div key={step} className="relative flex flex-1 flex-col items-center">
+                            <div
+                                key={step}
+                                className="relative flex flex-1 flex-col items-center"
+                            >
                                 {index > 0 && (
                                     <div
-                                        className={`absolute right-1/2 top-5 h-[3px] w-full ${reached ? 'bg-[#3f6f3d]' : 'bg-gray-200'}`}
+                                        className={`absolute top-5 right-1/2 h-[3px] w-full ${reached ? 'bg-[#3f6f3d]' : 'bg-gray-200'}`}
                                     />
                                 )}
                                 <div
@@ -1099,16 +1589,25 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                               : 'border-gray-300 bg-white text-gray-400'
                                     }`}
                                 >
-                                    <TrackerIcon step={step} completed={completed} />
+                                    <TrackerIcon
+                                        step={step}
+                                        completed={completed}
+                                    />
                                 </div>
                                 <p
-                                    className={`mt-2 max-w-[105px] text-center text-xs font-semibold leading-4 ${
-                                        completed || current ? 'text-gray-800' : 'text-gray-400'
+                                    className={`mt-2 max-w-[105px] text-center text-xs leading-4 font-semibold ${
+                                        completed || current
+                                            ? 'text-gray-800'
+                                            : 'text-gray-400'
                                     }`}
                                 >
                                     {step}
                                 </p>
-                                {current && <span className="mt-1 text-[11px] font-semibold text-[#3f6f3d]">Current</span>}
+                                {current && (
+                                    <span className="mt-1 text-[11px] font-semibold text-[#3f6f3d]">
+                                        Current
+                                    </span>
+                                )}
                             </div>
                         );
                     })}
@@ -1122,8 +1621,12 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                         <CurrentStatusIcon status={status} />
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-gray-800">{getFriendlyStatusTitle(status)}</p>
-                        <p className="mt-1 text-sm leading-6 text-gray-600">{getStatusMessage(status)}</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                            {getFriendlyStatusTitle(status)}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-gray-600">
+                            {getStatusMessage(status)}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -1137,10 +1640,24 @@ function RequestTracker({ status }: { status: RequestStatus }) {
 |--------------------------------------------------------------------------
 */
 
-function TrackerIcon({ step, completed }: { step: string; completed: boolean }) {
+function TrackerIcon({
+    step,
+    completed,
+}: {
+    step: string;
+    completed: boolean;
+}) {
     if (completed) {
         return (
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
                 <path d="M5 12.5l4 4L19 7" />
             </svg>
         );
@@ -1148,7 +1665,15 @@ function TrackerIcon({ step, completed }: { step: string; completed: boolean }) 
 
     if (step === 'Submitted') {
         return (
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
                 <path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" />
                 <path d="M14 3.5V8h4" />
                 <path d="M9 12h6" />
@@ -1158,12 +1683,20 @@ function TrackerIcon({ step, completed }: { step: string; completed: boolean }) 
     }
 
     if (step === 'For Payment') {
-        return <span className="text-sm font-bold leading-none">₱</span>;
+        return <span className="text-sm leading-none font-bold">₱</span>;
     }
 
     if (step === 'Processing') {
         return (
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
                 <circle cx="12" cy="12" r="3" />
                 <path d="M12 2.5v3" />
                 <path d="M12 18.5v3" />
@@ -1177,7 +1710,15 @@ function TrackerIcon({ step, completed }: { step: string; completed: boolean }) 
 
     if (step === 'Ready for Claim') {
         return (
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
                 <rect x="5" y="4" width="14" height="17" rx="2" />
                 <path d="m8.5 13 2.2 2.2 4.8-5" />
             </svg>
@@ -1186,7 +1727,15 @@ function TrackerIcon({ step, completed }: { step: string; completed: boolean }) 
 
     if (step === 'Released') {
         return (
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
                 <circle cx="12" cy="12" r="9" />
                 <path d="m8 12 2.7 2.7L16.5 9" />
             </svg>
@@ -1209,7 +1758,15 @@ function CurrentStatusIcon({ status }: { status: RequestStatus }) {
 
     if (status === 'Processing') {
         return (
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
                 <circle cx="12" cy="12" r="3" />
                 <path d="M12 3v3" />
                 <path d="M12 18v3" />
@@ -1240,14 +1797,22 @@ function CurrentStatusIcon({ status }: { status: RequestStatus }) {
 
 function getFriendlyStatusTitle(status: RequestStatus) {
     switch (status) {
-        case 'Pending': return 'Request Submitted';
-        case 'For Payment': return 'Payment Required';
-        case 'Processing': return 'Certificate Processing';
-        case 'Ready for Claim': return 'Ready for Claim';
-        case 'Released': return 'Certificate Released';
-        case 'Needs Action': return 'Action Required';
-        case 'Rejected': return 'Request Rejected';
-        default: return 'Request Status';
+        case 'Pending':
+            return 'Request Submitted';
+        case 'For Payment':
+            return 'Payment Required';
+        case 'Processing':
+            return 'Certificate Processing';
+        case 'Ready for Claim':
+            return 'Ready for Claim';
+        case 'Released':
+            return 'Certificate Released';
+        case 'Needs Action':
+            return 'Action Required';
+        case 'Rejected':
+            return 'Request Rejected';
+        default:
+            return 'Request Status';
     }
 }
 
@@ -1259,12 +1824,18 @@ function getFriendlyStatusTitle(status: RequestStatus) {
 
 function getStatusMessage(status: RequestStatus) {
     switch (status) {
-        case 'Pending': return 'Your request has been received and is waiting for review.';
-        case 'For Payment': return 'Please complete the required payment before processing can continue.';
-        case 'Processing': return 'Your certificate is currently being prepared.';
-        case 'Ready for Claim': return 'Your certificate is ready. Please proceed to the barangay office to claim it.';
-        case 'Released': return 'Your certificate has been successfully released.';
-        default: return '';
+        case 'Pending':
+            return 'Your request has been received and is waiting for review.';
+        case 'For Payment':
+            return 'Please complete the required payment before processing can continue.';
+        case 'Processing':
+            return 'Your certificate is currently being prepared.';
+        case 'Ready for Claim':
+            return 'Your certificate is ready. Please proceed to the barangay office to claim it.';
+        case 'Released':
+            return 'Your certificate has been successfully released.';
+        default:
+            return '';
     }
 }
 
@@ -1277,8 +1848,12 @@ function getStatusMessage(status: RequestStatus) {
 function InfoItem({ label, value }: { label: string; value: string }) {
     return (
         <div className="min-w-0">
-            <p className="text-xs font-medium text-gray-500 sm:text-sm">{label}</p>
-            <p className="mt-1 break-words text-sm font-semibold text-gray-800 sm:text-base">{value}</p>
+            <p className="text-xs font-medium text-gray-500 sm:text-sm">
+                {label}
+            </p>
+            <p className="mt-1 text-sm font-semibold break-words text-gray-800 sm:text-base">
+                {value}
+            </p>
         </div>
     );
 }
@@ -1289,11 +1864,21 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 |--------------------------------------------------------------------------
 */
 
-function ReviewRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
+function ReviewRow({
+    label,
+    value,
+    last = false,
+}: {
+    label: string;
+    value: string;
+    last?: boolean;
+}) {
     return (
-        <div className={`flex flex-col gap-1 py-4 sm:flex-row sm:justify-between sm:gap-6 ${!last ? 'border-b border-gray-100' : ''}`}>
+        <div
+            className={`flex flex-col gap-1 py-4 sm:flex-row sm:justify-between sm:gap-6 ${!last ? 'border-b border-gray-100' : ''}`}
+        >
             <span className="text-sm text-gray-500">{label}</span>
-            <span className="break-words text-sm font-medium text-gray-800 sm:max-w-[65%] sm:text-right sm:text-base">
+            <span className="text-sm font-medium break-words text-gray-800 sm:max-w-[65%] sm:text-right sm:text-base">
                 {value}
             </span>
         </div>
@@ -1318,7 +1903,9 @@ function StatusBadge({ status }: { status: RequestStatus }) {
     };
 
     return (
-        <span className={`inline-flex w-fit items-center rounded-full px-3 py-1.5 text-xs font-semibold sm:text-sm ${styles[status]}`}>
+        <span
+            className={`inline-flex w-fit items-center rounded-full px-3 py-1.5 text-xs font-semibold sm:text-sm ${styles[status]}`}
+        >
             {status}
         </span>
     );
@@ -1332,7 +1919,15 @@ function StatusBadge({ status }: { status: RequestStatus }) {
 
 function CheckLargeIcon() {
     return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-6 w-6"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
             <path d="M5 12.5l4 4L19 7" />
         </svg>
     );
@@ -1340,7 +1935,15 @@ function CheckLargeIcon() {
 
 function CheckSmallIcon() {
     return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-3.5 w-3.5"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
             <path d="M5 12.5l4 4L19 7" />
         </svg>
     );
@@ -1348,7 +1951,15 @@ function CheckSmallIcon() {
 
 function CloseIcon() {
     return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-5 w-5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
             <path d="M6 6l12 12" />
             <path d="M18 6 6 18" />
         </svg>
@@ -1357,7 +1968,15 @@ function CloseIcon() {
 
 function AlertIcon() {
     return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-5 w-5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
             <path d="M12 3 2.8 19h18.4L12 3Z" />
             <path d="M12 9v4" />
             <path d="M12 17h.01" />
@@ -1367,7 +1986,15 @@ function AlertIcon() {
 
 function CertificateOutlineIcon({ small = false }: { small?: boolean }) {
     return (
-        <svg viewBox="0 0 24 24" fill="none" className={small ? 'h-4 w-4' : 'mx-auto h-10 w-10 text-[#3f6f3d]'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className={small ? 'h-4 w-4' : 'mx-auto h-10 w-10 text-[#3f6f3d]'}
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
             <path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
             <path d="M14 3v5h4" />
             <path d="M9 13h6" />

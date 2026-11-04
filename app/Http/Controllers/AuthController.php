@@ -4,14 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Barangay;
 use App\Models\Resident;
-use App\Models\User;
 use App\Support\AuditLogger;
 use App\Support\LoginAttemptRecorder;
 use App\Support\LoginIdentifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
-use Inertia\Inertia;
 use Throwable;
 
 class AuthController extends Controller
@@ -260,5 +258,4 @@ class AuthController extends Controller
             'barangays' => $barangays,
         ]);
     }
-
 }

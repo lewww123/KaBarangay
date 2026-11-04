@@ -5,11 +5,14 @@ import SectorApplicationList from '@/components/sectors/SectorApplicationList';
 import type { SectorApplicationItem } from '@/components/sectors/types';
 
 interface Props {
-    auth?: { user?: { name?: string }; staffAssignments?: { department: string; position: string }[] };
+    auth?: {
+        user?: { name?: string };
+        staffAssignments?: { department: string; position: string }[];
+    };
     applications: SectorApplicationItem[];
 }
 
-export default function SeniorApplicationsIndex({ auth, applications = [] }: Props) {
+export default function SeniorApplicationsIndex({ auth, applications }: Props) {
     return (
         <SeniorLayout active="applications" user={auth?.user}>
             <Head title="Senior Citizen Applications Queue" />

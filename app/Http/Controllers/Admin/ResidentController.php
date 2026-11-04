@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreResidentRequest;
 use App\Models\Barangay;
 use App\Models\Household;
 use App\Models\Resident;
+use App\Models\ResidentNotification;
 use App\Models\ResidentQrCredential;
 use App\Support\AuditLogger;
 use App\Support\ResidentNotificationService;
@@ -116,7 +117,7 @@ class ResidentController extends Controller
 
         $message = match (true) {
             ! $resident->email => 'Resident created. No registration invitation was sent because no email address was provided.',
-            $notification?->status === \App\Models\ResidentNotification::STATUS_SENT => 'Resident created. The registration invitation asks them to prepare their Resident ID and QR reference.',
+            $notification?->status === ResidentNotification::STATUS_SENT => 'Resident created. The registration invitation asks them to prepare their Resident ID and QR reference.',
             default => 'Resident created. The registration invitation could not be delivered and can be retried from the notification queue.',
         };
 

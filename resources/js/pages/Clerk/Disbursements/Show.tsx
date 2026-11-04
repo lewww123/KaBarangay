@@ -29,14 +29,11 @@ export default function ClerkDisbursementShow({
     user,
 }: Props) {
     const [busy, setBusy] = useState(false);
-    const status =
-        document.status as DisbursementDocumentStatus;
+    const status = document.status as DisbursementDocumentStatus;
 
     const runAction = (action: 'publish' | 'archive') => {
         const url =
-            action === 'publish'
-                ? document.publish_url
-                : document.archive_url;
+            action === 'publish' ? document.publish_url : document.archive_url;
 
         if (!url) {
             return;
@@ -150,10 +147,7 @@ export default function ClerkDisbursementShow({
                         />
                         <Detail
                             label="Uploaded by"
-                            value={
-                                document.uploader_name ||
-                                'Not available'
-                            }
+                            value={document.uploader_name || 'Not available'}
                         />
                         <Detail
                             label="Published"
@@ -177,10 +171,8 @@ export default function ClerkDisbursementShow({
                     {status === 'archived' && (
                         <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
                             Archived on{' '}
-                            {formatDisbursementDateTime(
-                                document.archived_at,
-                            )}
-                            . Archived documents cannot be republished.
+                            {formatDisbursementDateTime(document.archived_at)}.
+                            Archived documents cannot be republished.
                         </p>
                     )}
                 </section>
@@ -206,13 +198,7 @@ export default function ClerkDisbursementShow({
     );
 }
 
-function Detail({
-    label,
-    value,
-}: {
-    label: string;
-    value: string;
-}) {
+function Detail({ label, value }: { label: string; value: string }) {
     return (
         <div className="min-w-0">
             <dt className="font-medium text-gray-400">{label}</dt>

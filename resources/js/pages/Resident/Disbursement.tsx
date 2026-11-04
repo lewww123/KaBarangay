@@ -20,24 +20,25 @@ export default function ResidentDisbursement(props: Props) {
     return (
         <Deferred
             data="documents"
-            fallback={<ResidentLayout active="disbursement"><PortalPageSkeleton list /></ResidentLayout>}
+            fallback={
+                <ResidentLayout active="disbursement">
+                    <PortalPageSkeleton list />
+                </ResidentLayout>
+            }
         >
             <DisbursementContent {...props} />
         </Deferred>
     );
 }
 
-function DisbursementContent({
-    documents,
-    resident,
-}: Props) {
+function DisbursementContent({ documents, resident }: Props) {
     return (
         <ResidentLayout active="disbursement">
             <Head title="Disbursement Documents" />
 
             <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
                 <section className="overflow-hidden rounded-2xl bg-[#3f6f3d] px-5 py-6 text-white shadow-sm sm:px-7">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
+                    <p className="text-xs font-semibold tracking-wide text-white/70 uppercase">
                         Barangay transparency
                     </p>
 
@@ -65,9 +66,7 @@ function DisbursementContent({
 
                         <p className="mt-0.5 text-xs text-gray-500">
                             {documents.total}{' '}
-                            {documents.total === 1
-                                ? 'document'
-                                : 'documents'}{' '}
+                            {documents.total === 1 ? 'document' : 'documents'}{' '}
                             available
                         </p>
                     </div>
@@ -85,8 +84,8 @@ function DisbursementContent({
 
                         <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-gray-500">
                             Published payout records will appear here. Please
-                            check again later or contact the barangay office
-                            for assistance.
+                            check again later or contact the barangay office for
+                            assistance.
                         </p>
                     </section>
                 ) : (
@@ -100,9 +99,7 @@ function DisbursementContent({
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <span className="rounded-md border border-[#3f6f3d]/20 bg-[#3f6f3d]/5 px-2 py-0.5 text-[11px] font-semibold text-[#3f6f3d]">
-                                                {disbursementFileType(
-                                                    document,
-                                                )}
+                                                {disbursementFileType(document)}
                                             </span>
 
                                             <span className="text-[11px] text-gray-400">
@@ -160,8 +157,8 @@ function DisbursementContent({
                 {documents.last_page > 1 && (
                     <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                         <p className="text-xs text-gray-500">
-                            Showing {documents.from ?? 0} to{' '}
-                            {documents.to ?? 0} of {documents.total}
+                            Showing {documents.from ?? 0} to {documents.to ?? 0}{' '}
+                            of {documents.total}
                         </p>
 
                         <div className="flex flex-wrap gap-1">

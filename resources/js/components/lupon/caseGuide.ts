@@ -26,7 +26,13 @@ export function hearingSummary<
     );
 }
 
-export type CaseSection = 'overview' | 'hearings' | 'documents' | 'resolution' | 'details' | 'history';
+export type CaseSection =
+    | 'overview'
+    | 'hearings'
+    | 'documents'
+    | 'resolution'
+    | 'details'
+    | 'history';
 export const caseSections: { id: CaseSection; label: string }[] = [
     { id: 'overview', label: 'Case details' },
     { id: 'hearings', label: 'Hearings' },

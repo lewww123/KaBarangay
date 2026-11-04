@@ -82,10 +82,26 @@ function formatPeso(value: number): string {
 }
 
 export default function AdminCertificates(props: Props) {
-    return <Deferred data={['requests', 'stats']} fallback={<AdminLayout active="certificates"><AdminPageSkeleton metrics={4} /></AdminLayout>}><CertificatesContent {...props} /></Deferred>;
+    return (
+        <Deferred
+            data={['requests', 'stats']}
+            fallback={
+                <AdminLayout active="certificates">
+                    <AdminPageSkeleton metrics={4} />
+                </AdminLayout>
+            }
+        >
+            <CertificatesContent {...props} />
+        </Deferred>
+    );
 }
 
-function CertificatesContent({ requests, stats, statuses = [], filters }: Props) {
+function CertificatesContent({
+    requests,
+    stats,
+    statuses = [],
+    filters,
+}: Props) {
     const { flash } = usePage<{ flash?: { success?: string | null } }>().props;
 
     const paginator: Paginator<CertificateRequestRow> =
@@ -132,11 +148,15 @@ function CertificatesContent({ requests, stats, statuses = [], filters }: Props)
     // Pagination reuses the server-generated links, which already carry the
     // active search and status filters.
     const navigateRequests = (url: string) => {
-        router.get(url, {}, {
-            only: CERTIFICATE_PARTIAL_PROPS,
-            preserveState: true,
-            preserveScroll: true,
-        });
+        router.get(
+            url,
+            {},
+            {
+                only: CERTIFICATE_PARTIAL_PROPS,
+                preserveState: true,
+                preserveScroll: true,
+            },
+        );
     };
 
     useEffect(() => {
@@ -180,18 +200,30 @@ function CertificatesContent({ requests, stats, statuses = [], filters }: Props)
 
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-gray-800">Certificate Requests</h1>
+                    <h1 className="text-2xl font-semibold text-gray-800">
+                        Certificate Requests
+                    </h1>
                     <p className="mt-1 text-sm text-gray-500">
-                        Monitor aggregate certificate request activity submitted by residents.
+                        Monitor aggregate certificate request activity submitted
+                        by residents.
                     </p>
                 </div>
             </div>
 
             <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <StatCard label="Total" value={stats?.total ?? 0} highlight />
-                <StatCard label="Pending" value={stats?.byStatus?.Pending ?? 0} />
-                <StatCard label="Processing" value={stats?.byStatus?.Processing ?? 0} />
-                <StatCard label="Ready for Claim" value={stats?.byStatus?.['Ready for Claim'] ?? 0} />
+                <StatCard
+                    label="Pending"
+                    value={stats?.byStatus?.Pending ?? 0}
+                />
+                <StatCard
+                    label="Processing"
+                    value={stats?.byStatus?.Processing ?? 0}
+                />
+                <StatCard
+                    label="Ready for Claim"
+                    value={stats?.byStatus?.['Ready for Claim'] ?? 0}
+                />
             </div>
 
             <div className="mb-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -205,7 +237,9 @@ function CertificatesContent({ requests, stats, statuses = [], filters }: Props)
                 />
 
                 <div className="flex items-center gap-2">
-                    <label className="text-xs font-medium text-gray-500">Status:</label>
+                    <label className="text-xs font-medium text-gray-500">
+                        Status:
+                    </label>
                     <select
                         aria-label="Filter by status"
                         value={filterStatus}
@@ -245,7 +279,7 @@ function CertificatesContent({ requests, stats, statuses = [], filters }: Props)
             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-gray-600">
-                        <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase text-gray-500">
+                        <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
                             <tr>
                                 <th className="px-5 py-3">Reference</th>
                                 <th className="px-5 py-3">Resident</th>
@@ -257,7 +291,10 @@ function CertificatesContent({ requests, stats, statuses = [], filters }: Props)
                         <tbody className="divide-y divide-gray-100">
                             {rows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-sm text-gray-500">
+                                    <td
+                                        colSpan={5}
+                                        className="p-8 text-center text-sm text-gray-500"
+                                    >
                                         {hasFilters
                                             ? 'No requests match the current filters.'
                                             : 'No certificate requests found.'}
@@ -265,23 +302,42 @@ function CertificatesContent({ requests, stats, statuses = [], filters }: Props)
                                 </tr>
                             ) : (
                                 rows.map((request) => (
-                                    <tr key={request.id} className="hover:bg-gray-50/80">
+                                    <tr
+                                        key={request.id}
+                                        className="hover:bg-gray-50/80"
+                                    >
                                         <td className="px-5 py-3.5 font-mono text-xs font-semibold text-gray-800">
                                             {request.reference}
                                         </td>
                                         <td className="px-5 py-3.5">
-                                            <p className="font-semibold text-gray-900">{request.resident.name}</p>
-                                            {request.resident.resident_number && (
-                                                <p className="text-xs text-gray-400">{request.resident.resident_number}</p>
+                                            <p className="font-semibold text-gray-900">
+                                                {request.resident.name}
+                                            </p>
+                                            {request.resident
+                                                .resident_number && (
+                                                <p className="text-xs text-gray-400">
+                                                    {
+                                                        request.resident
+                                                            .resident_number
+                                                    }
+                                                </p>
                                             )}
                                         </td>
                                         <td className="px-5 py-3.5">
-                                            <p className="text-gray-800">{request.certificate}</p>
-                                            <p className="text-xs text-gray-400">{request.purpose}</p>
+                                            <p className="text-gray-800">
+                                                {request.certificate}
+                                            </p>
+                                            <p className="text-xs text-gray-400">
+                                                {request.purpose}
+                                            </p>
                                         </td>
-                                        <td className="px-5 py-3.5 text-xs text-gray-500">{formatPeso(request.fee)}</td>
+                                        <td className="px-5 py-3.5 text-xs text-gray-500">
+                                            {formatPeso(request.fee)}
+                                        </td>
                                         <td className="px-5 py-3.5">
-                                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[request.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                                            <span
+                                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[request.status] ?? 'bg-gray-100 text-gray-600'}`}
+                                            >
                                                 {request.status}
                                             </span>
                                         </td>
@@ -292,9 +348,11 @@ function CertificatesContent({ requests, stats, statuses = [], filters }: Props)
                     </table>
                 </div>
 
-                <Pagination paginator={paginator} onNavigate={navigateRequests} />
+                <Pagination
+                    paginator={paginator}
+                    onNavigate={navigateRequests}
+                />
             </div>
-
         </AdminLayout>
     );
 }
@@ -320,7 +378,10 @@ function Pagination<T>({
                 <button
                     type="button"
                     disabled={!paginator.prev_page_url}
-                    onClick={() => paginator.prev_page_url && onNavigate(paginator.prev_page_url)}
+                    onClick={() =>
+                        paginator.prev_page_url &&
+                        onNavigate(paginator.prev_page_url)
+                    }
                     className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     Previous
@@ -329,7 +390,10 @@ function Pagination<T>({
                 <button
                     type="button"
                     disabled={!paginator.next_page_url}
-                    onClick={() => paginator.next_page_url && onNavigate(paginator.next_page_url)}
+                    onClick={() =>
+                        paginator.next_page_url &&
+                        onNavigate(paginator.next_page_url)
+                    }
                     className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     Next
@@ -339,13 +403,29 @@ function Pagination<T>({
     );
 }
 
-function StatCard({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
+function StatCard({
+    label,
+    value,
+    highlight = false,
+}: {
+    label: string;
+    value: number;
+    highlight?: boolean;
+}) {
     return (
-        <div className={`rounded-lg border p-4 shadow-sm ${highlight ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white' : 'border-gray-200 bg-white'}`}>
-            <p className={`text-[11px] font-medium uppercase tracking-wide ${highlight ? 'text-white/80' : 'text-gray-400'}`}>
+        <div
+            className={`rounded-lg border p-4 shadow-sm ${highlight ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white' : 'border-gray-200 bg-white'}`}
+        >
+            <p
+                className={`text-[11px] font-medium tracking-wide uppercase ${highlight ? 'text-white/80' : 'text-gray-400'}`}
+            >
                 {label}
             </p>
-            <p className={`mt-2 text-2xl font-semibold ${highlight ? 'text-white' : 'text-gray-800'}`}>{value}</p>
+            <p
+                className={`mt-2 text-2xl font-semibold ${highlight ? 'text-white' : 'text-gray-800'}`}
+            >
+                {value}
+            </p>
         </div>
     );
 }

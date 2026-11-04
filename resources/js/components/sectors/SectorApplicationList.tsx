@@ -16,7 +16,7 @@ export default function SectorApplicationList({
     detailsBaseUrl,
 }: Props) {
     const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | string>('all');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
 
     const sectorTitle = sector === 'senior' ? 'Senior Citizens' : 'PWD Sector';
 
@@ -39,38 +39,38 @@ export default function SectorApplicationList({
         switch (status) {
             case 'pending_staff_review':
                 return (
-                    <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+                    <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 uppercase">
                         Pending Staff Review
                     </span>
                 );
             case 'under_admin_review':
                 return (
-                    <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-800">
+                    <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800 uppercase">
                         Legacy Forwarded
                     </span>
                 );
             case 'approved':
                 return (
-                    <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-800">
+                    <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 uppercase">
                         Approved
                     </span>
                 );
             case 'rejected':
                 return (
-                    <span className="inline-flex items-center rounded-md bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase text-red-800">
+                    <span className="inline-flex items-center rounded-md bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800 uppercase">
                         Rejected
                     </span>
                 );
             case 'requires_correction':
             case 'needs_correction':
                 return (
-                    <span className="inline-flex items-center rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-800">
+                    <span className="inline-flex items-center rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800 uppercase">
                         Needs Correction
                     </span>
                 );
             default:
                 return (
-                    <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase text-gray-700">
+                    <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-700 uppercase">
                         {status}
                     </span>
                 );
@@ -82,11 +82,12 @@ export default function SectorApplicationList({
             {/* HEADER */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+                    <h1 className="text-2xl font-black tracking-tight text-gray-900">
                         {sectorTitle} Applications
                     </h1>
                     <p className="mt-1 text-sm text-gray-600">
-                        Track, verify, and decide sector membership applications.
+                        Track, verify, and decide sector membership
+                        applications.
                     </p>
                 </div>
 
@@ -113,8 +114,12 @@ export default function SectorApplicationList({
                             : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300'
                     }`}
                 >
-                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-75">All Applications</span>
-                    <p className="mt-1 text-2xl font-black">{applications.length}</p>
+                    <span className="text-[10px] font-bold tracking-wider uppercase opacity-75">
+                        All Applications
+                    </span>
+                    <p className="mt-1 text-2xl font-black">
+                        {applications.length}
+                    </p>
                 </div>
 
                 <div
@@ -125,9 +130,15 @@ export default function SectorApplicationList({
                             : 'border-amber-200 bg-amber-50/50 text-amber-900 hover:border-amber-300'
                     }`}
                 >
-                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-75">Staff Review Needed</span>
+                    <span className="text-[10px] font-bold tracking-wider uppercase opacity-75">
+                        Staff Review Needed
+                    </span>
                     <p className="mt-1 text-2xl font-black">
-                        {applications.filter((a) => a.status === 'pending_staff_review').length}
+                        {
+                            applications.filter(
+                                (a) => a.status === 'pending_staff_review',
+                            ).length
+                        }
                     </p>
                 </div>
 
@@ -139,9 +150,15 @@ export default function SectorApplicationList({
                             : 'border-blue-200 bg-blue-50/50 text-blue-900 hover:border-blue-300'
                     }`}
                 >
-                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-75">Legacy Forwarded</span>
+                    <span className="text-[10px] font-bold tracking-wider uppercase opacity-75">
+                        Legacy Forwarded
+                    </span>
                     <p className="mt-1 text-2xl font-black">
-                        {applications.filter((a) => a.status === 'under_admin_review').length}
+                        {
+                            applications.filter(
+                                (a) => a.status === 'under_admin_review',
+                            ).length
+                        }
                     </p>
                 </div>
 
@@ -153,15 +170,20 @@ export default function SectorApplicationList({
                             : 'border-emerald-200 bg-emerald-50/50 text-emerald-900 hover:border-emerald-300'
                     }`}
                 >
-                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-75">Approved</span>
+                    <span className="text-[10px] font-bold tracking-wider uppercase opacity-75">
+                        Approved
+                    </span>
                     <p className="mt-1 text-2xl font-black">
-                        {applications.filter((a) => a.status === 'approved').length}
+                        {
+                            applications.filter((a) => a.status === 'approved')
+                                .length
+                        }
                     </p>
                 </div>
             </div>
 
             {/* SEARCH & FILTERS */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-4">
+            <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="relative flex-1">
                         <input
@@ -169,13 +191,13 @@ export default function SectorApplicationList({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Search applicant name, resident ID, or tracking number..."
-                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#3f6f3d] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#3f6f3d]"
+                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
                         />
                         {search && (
                             <button
                                 type="button"
                                 onClick={() => setSearch('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-gray-600"
+                                className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-gray-600"
                             >
                                 Clear
                             </button>
@@ -186,14 +208,20 @@ export default function SectorApplicationList({
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#3f6f3d]"
+                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
                         >
                             <option value="all">All Statuses</option>
-                            <option value="pending_staff_review">Pending Staff Review</option>
-                            <option value="under_admin_review">Legacy Forwarded</option>
+                            <option value="pending_staff_review">
+                                Pending Staff Review
+                            </option>
+                            <option value="under_admin_review">
+                                Legacy Forwarded
+                            </option>
                             <option value="approved">Approved</option>
                             <option value="rejected">Rejected</option>
-                            <option value="requires_correction">Needs Correction</option>
+                            <option value="requires_correction">
+                                Needs Correction
+                            </option>
                         </select>
                     </div>
                 </div>
@@ -201,26 +229,36 @@ export default function SectorApplicationList({
                 {/* APPLICATIONS TABLE */}
                 <div className="overflow-x-auto rounded-xl border border-gray-100">
                     <table className="w-full text-left text-sm text-gray-600">
-                        <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200">
+                        <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold tracking-wider text-gray-500 uppercase">
                             <tr>
                                 <th className="px-4 py-3.5">Tracking No.</th>
-                                <th className="px-4 py-3.5">Applicant Resident</th>
+                                <th className="px-4 py-3.5">
+                                    Applicant Resident
+                                </th>
                                 <th className="px-4 py-3.5">Purok</th>
                                 <th className="px-4 py-3.5">Source</th>
                                 <th className="px-4 py-3.5">Submitted</th>
                                 <th className="px-4 py-3.5">Status</th>
-                                <th className="px-4 py-3.5 text-right">Review Action</th>
+                                <th className="px-4 py-3.5 text-right">
+                                    Review Action
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
                             {filteredApplications.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">
+                                    <td
+                                        colSpan={7}
+                                        className="px-4 py-12 text-center text-sm text-gray-500"
+                                    >
                                         <div className="flex flex-col items-center justify-center space-y-2">
                                             <span className="text-3xl">📭</span>
-                                            <p className="font-semibold text-gray-700">No applications found</p>
+                                            <p className="font-semibold text-gray-700">
+                                                No applications found
+                                            </p>
                                             <p className="text-xs text-gray-400">
-                                                {search || statusFilter !== 'all'
+                                                {search ||
+                                                statusFilter !== 'all'
                                                     ? 'No applications match your active search or status filter.'
                                                     : 'No sector applications have been submitted yet.'}
                                             </p>
@@ -229,20 +267,28 @@ export default function SectorApplicationList({
                                 </tr>
                             ) : (
                                 filteredApplications.map((app) => (
-                                    <tr key={app.id} className="hover:bg-gray-50/80 transition">
+                                    <tr
+                                        key={app.id}
+                                        className="transition hover:bg-gray-50/80"
+                                    >
                                         <td className="px-4 py-3.5 font-mono text-xs font-bold text-gray-800">
                                             {app.tracking_number}
                                         </td>
                                         <td className="px-4 py-3.5">
-                                            <div className="font-bold text-gray-900">{app.applicant_name}</div>
-                                            <div className="font-mono text-xs text-gray-400">{app.resident_number}</div>
+                                            <div className="font-bold text-gray-900">
+                                                {app.applicant_name}
+                                            </div>
+                                            <div className="font-mono text-xs text-gray-400">
+                                                {app.resident_number}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3.5 text-xs text-gray-600">
                                             {app.purok}
                                         </td>
                                         <td className="px-4 py-3.5">
                                             <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-700">
-                                                {app.submission_type === 'staff_assisted'
+                                                {app.submission_type ===
+                                                'staff_assisted'
                                                     ? 'Staff-Assisted'
                                                     : 'Self-Service'}
                                             </span>
@@ -256,7 +302,7 @@ export default function SectorApplicationList({
                                         <td className="px-4 py-3.5 text-right">
                                             <Link
                                                 href={`${detailsBaseUrl}/${app.id}`}
-                                                className="inline-flex rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-gray-800 transition"
+                                                className="inline-flex rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-gray-800"
                                             >
                                                 Review →
                                             </Link>
@@ -268,10 +314,17 @@ export default function SectorApplicationList({
                     </table>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-gray-500 pt-1">
+                <div className="flex items-center justify-between pt-1 text-xs text-gray-500">
                     <span>
-                        Showing <strong className="text-gray-700">{filteredApplications.length}</strong> of{' '}
-                        <strong className="text-gray-700">{applications.length}</strong> applications
+                        Showing{' '}
+                        <strong className="text-gray-700">
+                            {filteredApplications.length}
+                        </strong>{' '}
+                        of{' '}
+                        <strong className="text-gray-700">
+                            {applications.length}
+                        </strong>{' '}
+                        applications
                     </span>
                 </div>
             </div>

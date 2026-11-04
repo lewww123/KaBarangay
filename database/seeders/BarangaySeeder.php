@@ -15,6 +15,7 @@ class BarangaySeeder extends Seeder
         'Makopa', 'Mahogany', 'Mangga', 'Mulawin', 'Narra',
         'Palawan', 'Cherry', 'Sampaloc', 'Star Apple', 'Talisay',
     ];
+
     public function run(): void
     {
         DB::transaction(function (): void {

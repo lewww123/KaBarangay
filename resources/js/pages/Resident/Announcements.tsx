@@ -50,7 +50,15 @@ export default function Announcements(props: Props) {
     return (
         <Deferred
             data={['announcements', 'categories']}
-            fallback={<ResidentLayout active={props.kind === 'updates' ? 'updates' : 'announcements'}><PortalPageSkeleton list /></ResidentLayout>}
+            fallback={
+                <ResidentLayout
+                    active={
+                        props.kind === 'updates' ? 'updates' : 'announcements'
+                    }
+                >
+                    <PortalPageSkeleton list />
+                </ResidentLayout>
+            }
         >
             <AnnouncementsContent {...props} />
         </Deferred>
@@ -65,7 +73,9 @@ function AnnouncementsContent({
     period = 'current',
 }: Props) {
     const isUpdates = kind === 'updates';
-    const basePath = isUpdates ? '/resident/updates' : '/resident/announcements';
+    const basePath = isUpdates
+        ? '/resident/updates'
+        : '/resident/announcements';
     const [query, setQuery] = useState(filters.q);
     const [category, setCategory] = useState(filters.category);
     const [importance, setImportance] = useState(filters.importance);
@@ -105,7 +115,13 @@ function AnnouncementsContent({
         }
 
         router.get(basePath, params, {
-            only: ['announcements', 'filters', 'kind', 'period', ...(nextPeriod !== period ? ['categories'] : [])],
+            only: [
+                'announcements',
+                'filters',
+                'kind',
+                'period',
+                ...(nextPeriod !== period ? ['categories'] : []),
+            ],
             preserveScroll: true,
             preserveState: true,
             replace: true,
@@ -155,30 +171,36 @@ function AnnouncementsContent({
         setCategory('');
         setImportance('');
 
-        router.get(
-            basePath,
-            isUpdates ? { period } : {},
-            {
-                preserveScroll: true,
-                only: ['announcements', 'filters', 'kind', 'period'],
-                preserveState: true,
-                replace: true,
-                onStart: () => setFiltering(true),
-                onFinish: () => setFiltering(false),
-            },
-        );
+        router.get(basePath, isUpdates ? { period } : {}, {
+            preserveScroll: true,
+            only: ['announcements', 'filters', 'kind', 'period'],
+            preserveState: true,
+            replace: true,
+            onStart: () => setFiltering(true),
+            onFinish: () => setFiltering(false),
+        });
     };
 
     return (
         <ResidentLayout active={isUpdates ? 'updates' : 'announcements'}>
-            <Head title={isUpdates ? (period === 'past' ? 'Past Updates' : 'Current Updates') : 'Barangay Updates'} />
+            <Head
+                title={
+                    isUpdates
+                        ? period === 'past'
+                            ? 'Past Updates'
+                            : 'Current Updates'
+                        : 'Barangay Updates'
+                }
+            />
 
             <div className="mx-auto max-w-4xl space-y-6">
                 {/* HEADER SECTION */}
                 <div className="border-b border-gray-200 pb-5">
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
                         {isUpdates
-                            ? period === 'past' ? 'Past Updates' : 'Current Updates'
+                            ? period === 'past'
+                                ? 'Past Updates'
+                                : 'Current Updates'
                             : 'Barangay Updates & Advisories'}
                     </h1>
                     <p className="mt-2 text-sm text-gray-500 sm:text-base">
@@ -209,7 +231,11 @@ function AnnouncementsContent({
 
                 {/* SEARCH & FILTERS */}
                 <section
-                    aria-label={isUpdates ? 'Search and filter updates' : 'Search and filter announcements'}
+                    aria-label={
+                        isUpdates
+                            ? 'Search and filter updates'
+                            : 'Search and filter announcements'
+                    }
                     className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
                 >
                     <form onSubmit={handleSubmit}>
@@ -219,7 +245,9 @@ function AnnouncementsContent({
                                     htmlFor="announcement-search"
                                     className="mb-1.5 block text-xs font-bold text-gray-700"
                                 >
-                                    {isUpdates ? 'Search updates' : 'Search announcements'}
+                                    {isUpdates
+                                        ? 'Search updates'
+                                        : 'Search announcements'}
                                 </label>
 
                                 <div className="relative">
@@ -331,7 +359,7 @@ function AnnouncementsContent({
                     <p className="text-xs font-medium text-gray-500 sm:text-sm">
                         {announcements.total > 0
                             ? `Showing ${announcements.from}–${announcements.to} of ${announcements.total} ${isUpdates ? 'update' : 'announcement'}${announcements.total === 1 ? '' : 's'}`
-                            : `No ${isUpdates ? period === 'past' ? 'past updates' : 'current updates' : 'announcements'} found`}
+                            : `No ${isUpdates ? (period === 'past' ? 'past updates' : 'current updates') : 'announcements'} found`}
                     </p>
 
                     {hasActiveFilters && (
@@ -360,7 +388,9 @@ function AnnouncementsContent({
                                 {hasActiveFilters
                                     ? 'No announcements match your search'
                                     : isUpdates
-                                      ? period === 'past' ? 'No past updates' : 'No current updates'
+                                      ? period === 'past'
+                                          ? 'No past updates'
+                                          : 'No current updates'
                                       : 'No active announcements'}
                             </h3>
                             <p className="mt-1 max-w-md text-sm text-gray-500">
@@ -480,7 +510,10 @@ function AnnouncementsContent({
                     )}
                 </div>
 
-                <Pagination paginator={announcements} label={isUpdates ? 'Update' : 'Announcement'} />
+                <Pagination
+                    paginator={announcements}
+                    label={isUpdates ? 'Update' : 'Announcement'}
+                />
             </div>
         </ResidentLayout>
     );

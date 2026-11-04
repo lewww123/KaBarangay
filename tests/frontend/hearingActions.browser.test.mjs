@@ -8,17 +8,34 @@ import tailwind from '@tailwindcss/vite';
 
 // Uses existing local tools; no application server, database or mutation request.
 const require = createRequire(import.meta.url);
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/ACER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { chromium } = require(
+    process.env.PLAYWRIGHT_MODULE ||
+        'C:/Users/ACER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright',
+);
 const root = resolve('.');
 const parent = resolve('tests/frontend');
 const dir = await mkdtemp(resolve(parent, '.tmp-case-workspace-'));
 let server, browser;
 try {
-    await writeFile(resolve(dir, 'index.html'), '<div id="root"></div><script type="module" src="./fixture.tsx"></script>');
-    await writeFile(resolve(dir, 'preview.tsx'), `import {useEffect} from 'react'; export default function Preview({onReady}){useEffect(()=>{onReady?.(true)},[onReady]);return <p>Document renderer excluded from workspace UI test.</p>}`);
-    await writeFile(resolve(dir, 'print.ts'), `export async function printCertificateDocument(blob,title){window.printTest={size:blob.size,title}}`);
-    await writeFile(resolve(dir, 'style.css'), '@import "tailwindcss" source(none);\n@source "../../../resources/js/components/lupon";');
-    await writeFile(resolve(dir, 'fixture.tsx'), `
+    await writeFile(
+        resolve(dir, 'index.html'),
+        '<div id="root"></div><script type="module" src="./fixture.tsx"></script>',
+    );
+    await writeFile(
+        resolve(dir, 'preview.tsx'),
+        `import {useEffect} from 'react'; export default function Preview({onReady}){useEffect(()=>{onReady?.(true)},[onReady]);return <p>Document renderer excluded from workspace UI test.</p>}`,
+    );
+    await writeFile(
+        resolve(dir, 'print.ts'),
+        `export async function printCertificateDocument(blob,title){window.printTest={size:blob.size,title}}`,
+    );
+    await writeFile(
+        resolve(dir, 'style.css'),
+        '@import "tailwindcss" source(none);\n@source "../../../resources/js/components/lupon";',
+    );
+    await writeFile(
+        resolve(dir, 'fixture.tsx'),
+        `
 import React from 'react';
 import {CaseSaveFeedback,useCaseSaveStatus} from '/resources/js/components/lupon/CaseSaveFeedback';
 import {createPortal} from 'react-dom';
@@ -41,83 +58,301 @@ const caseData = {status:'mediation_active',phase:'Kapitan',filedDate:'2026-11-0
 function FixtureSaveStatus(){const {notice,dismiss}=useCaseSaveStatus();return <CaseSaveFeedback notice={notice} dismiss={dismiss}/>;}
 function HearingFixture(){const [show,setShow]=React.useState(false);return <><FixtureSaveStatus/><HearingRecords currentPhase="Kapitan" hearings={hearings} hasSettlement={false} documents={documents} onSettle={()=>setShow(true)} onNext={(hearing,notes)=>{window.nextHearingRequested={id:hearing?.id,notes}}}/>{show&&createPortal(<div role="dialog" aria-label="Settlement popup"><SettlementDocument caseId={99} document={{id:1,kind:'amicable_settlement',label:'Amicable Settlement',status:'ready',hearingId:null,generatedAt:null,servedAt:null,url:'/fixture.docx'}}/><button onClick={()=>setShow(false)}>Close settlement popup</button></div>,document.getElementById('hearing-modal-host'))}</>}
 createRoot(document.getElementById('root')).render(location.search === '?formation' ? <PangkatFormation caseId={99} workflow={workflow} candidates={['Member One','Member Two','Member Three']}/> : <main className="mx-auto max-w-5xl space-y-4 p-4"><CaseWorkspace workflow={workflow} hearings={hearings} documents={documents} hasSettlement={false} onSchedule={()=>{}} overview={<CaseOverview caseData={caseData}/>} panels={{resolution:<WorkflowPanel caseId={99} workflow={workflow}/>,details:<label>Party draft<input aria-label="Party draft"/></label>,hearings:<HearingFixture/>,documents:<DocumentPanel caseId={99} status="mediation_active" paymentStatus="paid" documents={documents} officials={{punong_barangay:null,active_kagawads:[],kagawads:[]}} hearings={hearings} hasSettlement={false} onSchedule={()=>{}}/>,history:<CaseTimeline workflow={workflow}/>}}/></main>);
-`);
-    server = await createServer({ configFile: false, root, plugins: [react(), tailwind()], resolve: { alias: { '@/components/DocxPreview': resolve(dir, 'preview.tsx'), '@/lib/certificateDocument':resolve(dir,'print.ts'), '@': resolve('resources/js') } }, server: { host: '127.0.0.1', port: 5189, strictPort: true }, logLevel: 'error' });
+`,
+    );
+    server = await createServer({
+        configFile: false,
+        root,
+        plugins: [react(), tailwind()],
+        resolve: {
+            alias: {
+                '@/components/DocxPreview': resolve(dir, 'preview.tsx'),
+                '@/lib/certificateDocument': resolve(dir, 'print.ts'),
+                '@': resolve('resources/js'),
+            },
+        },
+        server: { host: '127.0.0.1', port: 5189, strictPort: true },
+        logLevel: 'error',
+    });
     await server.listen();
-    browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
-    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    browser = await chromium.launch({
+        executablePath:
+            process.env.CHROME_PATH ||
+            'C:/Program Files/Google/Chrome/Application/chrome.exe',
+        headless: true,
+    });
+    const page = await browser.newPage({
+        viewport: { width: 1280, height: 900 },
+    });
     page.setDefaultTimeout(60000);
     const errors = [];
-    page.on('pageerror', error => { errors.push(error.message); console.error('Browser error:',error.message); });
-    await page.route('**/*', route => ['GET','HEAD'].includes(route.request().method()) ? route.continue() : route.abort());
+    page.on('pageerror', (error) => {
+        errors.push(error.message);
+        console.error('Browser error:', error.message);
+    });
+    await page.route('**/*', (route) =>
+        ['GET', 'HEAD'].includes(route.request().method())
+            ? route.continue()
+            : route.abort(),
+    );
     let printFetches = 0;
-    await page.route('**/lupon/documents/1/preview', route => { printFetches++; return route.fulfill({status:200,body:Buffer.from([0x50,0x4b,0,0]),contentType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}); });
-    const url = 'http://127.0.0.1:5189/' + relative(root, resolve(dir, 'index.html')).replaceAll('\\','/');
-    await page.goto(url, {waitUntil:'domcontentloaded', timeout:120000});
+    await page.route('**/lupon/documents/1/preview', (route) => {
+        printFetches++;
+        return route.fulfill({
+            status: 200,
+            body: Buffer.from([0x50, 0x4b, 0, 0]),
+            contentType:
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        });
+    });
+    const url =
+        'http://127.0.0.1:5189/' +
+        relative(root, resolve(dir, 'index.html')).replaceAll('\\', '/');
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
     console.log('Fixture loaded');
     page.setDefaultTimeout(15000);
 
-    const tab = name => page.getByRole('tab', {name,exact:true});
+    const tab = (name) => page.getByRole('tab', { name, exact: true });
     await tab('Case details').waitFor();
-    assert.equal(await page.getByRole('tab').count(),3);
+    assert.equal(await page.getByRole('tab').count(), 3);
     await tab('Hearings').click();
-    await page.getByRole('button',{name:/Open Kapitan hearings/}).click();
-    const modal=page.getByRole('dialog',{name:'Case hearing records',exact:true});
+    await page.getByRole('button', { name: /Open Kapitan hearings/ }).click();
+    const modal = page.getByRole('dialog', {
+        name: 'Case hearing records',
+        exact: true,
+    });
     await modal.waitFor();
-    assert.equal(await modal.getByRole('heading',{name:'Case-level documents'}).count(),0);
-    assert.equal(await modal.getByRole('heading',{name:'Itala ang pag-usad ng kaso'}).count(),0);
-    await modal.getByRole('navigation',{name:'Saved hearings'}).getByRole('button',{name:/Hearing #1/}).click();
-    await modal.getByRole('button',{name:'Unresolved — next hearing',exact:true}).waitFor();
-    await modal.getByRole('button',{name:'Settled — record agreement',exact:true}).waitFor();
-    assert.equal(await modal.getByRole('button',{name:'Settled — record agreement',exact:true}).isEnabled(),true);
-    assert.equal(await modal.getByRole('button',{name:'Unresolved — next hearing',exact:true}).isEnabled(),true);
-    await modal.getByRole('button',{name:'Unresolved — next hearing',exact:true}).click();
-    await page.waitForFunction(()=>window.nextHearingRequested?.id===11);
-    await modal.getByRole('button',{name:'Settled — record agreement',exact:true}).click();
-    const settlement=page.getByRole('dialog',{name:'Settlement popup',exact:true});
-    await settlement.getByRole('link',{name:'Download Amicable Settlement DOCX'}).waitFor();
-    await settlement.getByRole('button',{name:'Print settlement',exact:true}).click();
-    await page.waitForFunction(()=>window.printTest?.title==='Amicable Settlement');
-    assert.equal(printFetches,1);
-    await settlement.getByRole('button',{name:'Close settlement popup'}).click();
-    await modal.getByText('Hearing notes',{exact:true}).click();
-    assert.equal(await modal.getByText('Record status',{exact:true}).count(),0);
+    assert.equal(
+        await modal
+            .getByRole('heading', { name: 'Case-level documents' })
+            .count(),
+        0,
+    );
+    assert.equal(
+        await modal
+            .getByRole('heading', { name: 'Itala ang pag-usad ng kaso' })
+            .count(),
+        0,
+    );
+    await modal
+        .getByRole('navigation', { name: 'Saved hearings' })
+        .getByRole('button', { name: /Hearing #1/ })
+        .click();
+    await modal
+        .getByRole('button', { name: 'Unresolved — next hearing', exact: true })
+        .waitFor();
+    await modal
+        .getByRole('button', {
+            name: 'Settled — record agreement',
+            exact: true,
+        })
+        .waitFor();
+    assert.equal(
+        await modal
+            .getByRole('button', {
+                name: 'Settled — record agreement',
+                exact: true,
+            })
+            .isEnabled(),
+        true,
+    );
+    assert.equal(
+        await modal
+            .getByRole('button', {
+                name: 'Unresolved — next hearing',
+                exact: true,
+            })
+            .isEnabled(),
+        true,
+    );
+    await modal
+        .getByRole('button', { name: 'Unresolved — next hearing', exact: true })
+        .click();
+    await page.waitForFunction(() => window.nextHearingRequested?.id === 11);
+    await modal
+        .getByRole('button', {
+            name: 'Settled — record agreement',
+            exact: true,
+        })
+        .click();
+    const settlement = page.getByRole('dialog', {
+        name: 'Settlement popup',
+        exact: true,
+    });
+    await settlement
+        .getByRole('link', { name: 'Download Amicable Settlement DOCX' })
+        .waitFor();
+    await settlement
+        .getByRole('button', { name: 'Print settlement', exact: true })
+        .click();
+    await page.waitForFunction(
+        () => window.printTest?.title === 'Amicable Settlement',
+    );
+    assert.equal(printFetches, 1);
+    await settlement
+        .getByRole('button', { name: 'Close settlement popup' })
+        .click();
+    await modal.getByText('Hearing notes', { exact: true }).click();
+    assert.equal(
+        await modal.getByText('Record status', { exact: true }).count(),
+        0,
+    );
     await modal.getByLabel('Hearing record / notes').fill('Notes draft');
-    await page.evaluate(() => document.dispatchEvent(new CustomEvent('inertia:start',{detail:{visit:{method:'patch',url:new URL('/lupon/hearings/11',location.origin)}},cancelable:true})));
-    await modal.getByRole('status').filter({hasText:'Saving hearing record'}).waitFor();
-    assert.equal(await modal.getByLabel('Hearing record / notes').inputValue(),'Notes draft');
+    await page.evaluate(() =>
+        document.dispatchEvent(
+            new CustomEvent('inertia:start', {
+                detail: {
+                    visit: {
+                        method: 'patch',
+                        url: new URL('/lupon/hearings/11', location.origin),
+                    },
+                },
+                cancelable: true,
+            }),
+        ),
+    );
+    await modal
+        .getByRole('status')
+        .filter({ hasText: 'Saving hearing record' })
+        .waitFor();
+    assert.equal(
+        await modal.getByLabel('Hearing record / notes').inputValue(),
+        'Notes draft',
+    );
     await page.evaluate(() => {
-        document.dispatchEvent(new CustomEvent('inertia:error',{detail:{errors:{notes:'Required'}},cancelable:true}));
-        document.dispatchEvent(new CustomEvent('inertia:finish',{detail:{visit:{method:'patch'}},cancelable:true}));
+        document.dispatchEvent(
+            new CustomEvent('inertia:error', {
+                detail: { errors: { notes: 'Required' } },
+                cancelable: true,
+            }),
+        );
+        document.dispatchEvent(
+            new CustomEvent('inertia:finish', {
+                detail: { visit: { method: 'patch' } },
+                cancelable: true,
+            }),
+        );
     });
-    await modal.getByRole('alert').filter({hasText:'was not saved'}).waitFor();
-    await modal.getByRole('button',{name:'Dismiss save notification'}).click();
+    await modal
+        .getByRole('alert')
+        .filter({ hasText: 'was not saved' })
+        .waitFor();
+    await modal
+        .getByRole('button', { name: 'Dismiss save notification' })
+        .click();
     await page.evaluate(() => {
-        document.dispatchEvent(new CustomEvent('inertia:start',{detail:{visit:{method:'patch',url:new URL('/lupon/hearings/11',location.origin)}},cancelable:true}));
-        document.dispatchEvent(new CustomEvent('inertia:success',{detail:{page:{props:{flash:{success:'Hearing notes saved.'}}}},cancelable:true}));
-        document.dispatchEvent(new CustomEvent('inertia:finish',{detail:{visit:{method:'patch'}},cancelable:true}));
+        document.dispatchEvent(
+            new CustomEvent('inertia:start', {
+                detail: {
+                    visit: {
+                        method: 'patch',
+                        url: new URL('/lupon/hearings/11', location.origin),
+                    },
+                },
+                cancelable: true,
+            }),
+        );
+        document.dispatchEvent(
+            new CustomEvent('inertia:success', {
+                detail: {
+                    page: {
+                        props: { flash: { success: 'Hearing notes saved.' } },
+                    },
+                },
+                cancelable: true,
+            }),
+        );
+        document.dispatchEvent(
+            new CustomEvent('inertia:finish', {
+                detail: { visit: { method: 'patch' } },
+                cancelable: true,
+            }),
+        );
     });
-    await modal.getByRole('status').filter({hasText:'Hearing notes saved.'}).waitFor();
-    await modal.getByRole('button',{name:'Dismiss save notification'}).click();
-    assert.equal(await modal.getByRole('heading',{name:'Mga dokumento at pag-abot'}).count(),0);
-    await modal.getByRole('button',{name:'Close records',exact:true}).click();
-    await page.goto(url+'?formation', {waitUntil:'domcontentloaded'});
-    await page.getByRole('heading',{name:'Proceed to Lupon — Pangkat conciliation'}).waitFor();
-    for (const [index,name] of ['Member One','Member Two','Member Three'].entries()) await page.getByLabel('Member '+(index+1),{exact:true}).fill(name);
-    await page.getByLabel('Pangkat chair',{exact:true}).selectOption('Member One');
-    await page.waitForFunction(() => document.querySelector('select[aria-label="Pangkat secretary"] option[value="Member One"]')?.disabled === true);
-    await page.getByLabel('Pangkat secretary',{exact:true}).selectOption('Member Two');
-    await page.waitForFunction(() => document.querySelector('select[aria-label="Pangkat secretary"] option[value="Member One"]')?.disabled === true);
-    assert.equal(await page.getByLabel('Pangkat chair',{exact:true}).inputValue(),'Member One');
-    const formed=await page.getByLabel('Petsa ng pagbuo ng Pangkat').inputValue();
-    const expectedMax=new Date(Date.parse(formed+'T00:00:00Z')+3*86400000).toISOString().slice(0,10);
-    assert.equal(await page.getByLabel('Hearing date',{exact:true}).getAttribute('max'),expectedMax);
-    assert.equal(await page.getByLabel('Pangkat chair',{exact:true}).locator('option').count(),4);
-    assert.deepEqual(errors,[]);
-    console.log('PASS: three tabs, records end at hearing notes, outcome buttons remain, no fee/document/workflow panels or manual status.');
+    await modal
+        .getByRole('status')
+        .filter({ hasText: 'Hearing notes saved.' })
+        .waitFor();
+    await modal
+        .getByRole('button', { name: 'Dismiss save notification' })
+        .click();
+    assert.equal(
+        await modal
+            .getByRole('heading', { name: 'Mga dokumento at pag-abot' })
+            .count(),
+        0,
+    );
+    await modal
+        .getByRole('button', { name: 'Close records', exact: true })
+        .click();
+    await page.goto(url + '?formation', { waitUntil: 'domcontentloaded' });
+    await page
+        .getByRole('heading', {
+            name: 'Proceed to Lupon — Pangkat conciliation',
+        })
+        .waitFor();
+    for (const [index, name] of [
+        'Member One',
+        'Member Two',
+        'Member Three',
+    ].entries())
+        await page
+            .getByLabel('Member ' + (index + 1), { exact: true })
+            .fill(name);
+    await page
+        .getByLabel('Pangkat chair', { exact: true })
+        .selectOption('Member One');
+    await page.waitForFunction(
+        () =>
+            document.querySelector(
+                'select[aria-label="Pangkat secretary"] option[value="Member One"]',
+            )?.disabled === true,
+    );
+    await page
+        .getByLabel('Pangkat secretary', { exact: true })
+        .selectOption('Member Two');
+    await page.waitForFunction(
+        () =>
+            document.querySelector(
+                'select[aria-label="Pangkat secretary"] option[value="Member One"]',
+            )?.disabled === true,
+    );
+    assert.equal(
+        await page.getByLabel('Pangkat chair', { exact: true }).inputValue(),
+        'Member One',
+    );
+    const formed = await page
+        .getByLabel('Petsa ng pagbuo ng Pangkat')
+        .inputValue();
+    const expectedMax = new Date(
+        Date.parse(formed + 'T00:00:00Z') + 3 * 86400000,
+    )
+        .toISOString()
+        .slice(0, 10);
+    assert.equal(
+        await page
+            .getByLabel('Hearing date', { exact: true })
+            .getAttribute('max'),
+        expectedMax,
+    );
+    assert.equal(
+        await page
+            .getByLabel('Pangkat chair', { exact: true })
+            .locator('option')
+            .count(),
+        4,
+    );
+    assert.deepEqual(errors, []);
+    console.log(
+        'PASS: three tabs, records end at hearing notes, outcome buttons remain, no fee/document/workflow panels or manual status.',
+    );
 } finally {
     console.log('Closing frontend test harness');
     await browser?.close();
     await server?.close();
-    if (resolve(dir).startsWith(parent + '/') || resolve(dir).startsWith(parent + '\\')) await rm(dir, { recursive: true, force: true });
+    if (
+        resolve(dir).startsWith(parent + '/') ||
+        resolve(dir).startsWith(parent + '\\')
+    )
+        await rm(dir, { recursive: true, force: true });
 }

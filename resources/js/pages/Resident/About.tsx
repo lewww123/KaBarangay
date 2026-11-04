@@ -4,7 +4,6 @@ export default function About() {
     return (
         <ResidentLayout active="about">
             <div className="mx-auto w-full max-w-4xl">
-
                 {/* ========================================================
                     PAGE HEADER
                 ======================================================== */}
@@ -15,8 +14,8 @@ export default function About() {
                     </h1>
 
                     <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
-                        Learn more about KaBarangay and the services
-                        available through the Resident Portal.
+                        Learn more about KaBarangay and the services available
+                        through the Resident Portal.
                     </p>
                 </div>
 
@@ -25,32 +24,26 @@ export default function About() {
                 ======================================================== */}
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-
                         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#e8f1e4] text-[#3f6f3d]">
                             <BarangayIcon />
                         </div>
 
                         <div className="min-w-0">
-
                             <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
                                 KaBarangay Resident Portal
                             </h2>
 
                             <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                                KaBarangay is a digital resident portal
-                                designed to make barangay services easier,
-                                faster, and more accessible. Residents can
-                                access selected barangay services, monitor
-                                requests, receive updates, and manage their
-                                resident account in one place.
+                                KaBarangay is a digital resident portal designed
+                                to make barangay services easier, faster, and
+                                more accessible. Residents can access selected
+                                barangay services, monitor requests, receive
+                                updates, and manage their resident account in
+                                one place.
                             </p>
-
                         </div>
-
                     </div>
-
                 </div>
 
                 {/* ========================================================
@@ -58,7 +51,6 @@ export default function About() {
                 ======================================================== */}
 
                 <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-
                     <div className="mb-5">
                         <h2 className="text-base font-bold text-gray-900">
                             What You Can Do
@@ -70,7 +62,6 @@ export default function About() {
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
-
                         <ServiceItem
                             icon={<CertificateIcon />}
                             title="Request Certificates"
@@ -106,9 +97,7 @@ export default function About() {
                             title="KaBarangay Assistant"
                             description="Get guided help with supported resident services."
                         />
-
                     </div>
-
                 </div>
 
                 {/* ========================================================
@@ -116,46 +105,34 @@ export default function About() {
                 ======================================================== */}
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
-
                     {/* BARANGAY INFORMATION */}
 
                     <InfoCard
                         icon={<LocationIcon />}
                         title="Barangay Information"
                     >
-                        <InfoRow
-                            label="Barangay"
-                            value="Barangay San Jose"
-                        />
+                        <InfoRow label="Barangay" value="Barangay San Jose" />
 
                         <InfoRow
                             label="City / Municipality"
                             value="Puerto Princesa City"
                         />
 
-                        <InfoRow
-                            label="Province"
-                            value="Palawan"
-                        />
+                        <InfoRow label="Province" value="Palawan" />
                     </InfoCard>
 
                     {/* PRIVACY */}
 
-                    <InfoCard
-                        icon={<ShieldIcon />}
-                        title="Privacy & Security"
-                    >
+                    <InfoCard icon={<ShieldIcon />} title="Privacy & Security">
                         <p className="text-sm leading-6 text-gray-600">
-                            Resident information is intended only for
-                            authorized barangay services, verification,
-                            and official transactions. Access to personal
-                            records should be limited to authorized users.
+                            Resident information is intended only for authorized
+                            barangay services, verification, and official
+                            transactions. Access to personal records should be
+                            limited to authorized users.
                         </p>
 
                         <div className="mt-3 rounded-xl border border-[#dce8d8] bg-[#f5f9f3] p-3">
-
                             <div className="flex items-start gap-2">
-
                                 <div className="mt-0.5 shrink-0 text-[#3f6f3d]">
                                     <CheckIcon />
                                 </div>
@@ -165,12 +142,9 @@ export default function About() {
                                     identifier instead of directly storing
                                     sensitive personal details.
                                 </p>
-
                             </div>
-
                         </div>
                     </InfoCard>
-
                 </div>
 
                 {/* ========================================================
@@ -178,33 +152,25 @@ export default function About() {
                 ======================================================== */}
 
                 <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
                         <div className="flex items-start gap-3">
-
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f1e4] text-[#3f6f3d]">
                                 <HelpIcon />
                             </div>
 
                             <div>
-
                                 <h2 className="text-base font-bold text-gray-900">
                                     Need Help?
                                 </h2>
 
                                 <p className="mt-1 max-w-xl text-sm leading-6 text-gray-500">
                                     You may visit the barangay office for
-                                    assistance or use KaBarangay Assistant
-                                    while using the Resident Portal.
+                                    assistance or use KaBarangay Assistant while
+                                    using the Resident Portal.
                                 </p>
-
                             </div>
-
                         </div>
-
                     </div>
-
                 </div>
 
                 {/* ========================================================
@@ -212,21 +178,12 @@ export default function About() {
                 ======================================================== */}
 
                 <div className="mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-
                     <div className="flex flex-col gap-2 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+                        <p>KaBarangay Resident Portal</p>
 
-                        <p>
-                            KaBarangay Resident Portal
-                        </p>
-
-                        <p>
-                            Version 1.0
-                        </p>
-
+                        <p>Version 1.0</p>
                     </div>
-
                 </div>
-
             </div>
         </ResidentLayout>
     );
@@ -249,27 +206,19 @@ function ServiceItem({
 }) {
     return (
         <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-
             <div className="flex items-start gap-3">
-
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-[#3f6f3d] shadow-sm">
                     {icon}
                 </div>
 
                 <div className="min-w-0">
-
-                    <p className="text-sm font-bold text-gray-900">
-                        {title}
-                    </p>
+                    <p className="text-sm font-bold text-gray-900">{title}</p>
 
                     <p className="mt-1 text-xs leading-5 text-gray-500">
                         {description}
                     </p>
-
                 </div>
-
             </div>
-
         </div>
     );
 }
@@ -291,23 +240,15 @@ function InfoCard({
 }) {
     return (
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-
             <div className="flex items-center gap-3">
-
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f1e4] text-[#3f6f3d]">
                     {icon}
                 </div>
 
-                <h2 className="text-base font-bold text-gray-900">
-                    {title}
-                </h2>
-
+                <h2 className="text-base font-bold text-gray-900">{title}</h2>
             </div>
 
-            <div className="mt-4 space-y-3">
-                {children}
-            </div>
-
+            <div className="mt-4 space-y-3">{children}</div>
         </div>
     );
 }
@@ -318,24 +259,12 @@ function InfoCard({
 |--------------------------------------------------------------------------
 */
 
-function InfoRow({
-    label,
-    value,
-}: {
-    label: string;
-    value: string;
-}) {
+function InfoRow({ label, value }: { label: string; value: string }) {
     return (
         <div>
+            <p className="text-xs text-gray-400">{label}</p>
 
-            <p className="text-xs text-gray-400">
-                {label}
-            </p>
-
-            <p className="mt-1 text-sm font-semibold text-gray-700">
-                {value}
-            </p>
-
+            <p className="mt-1 text-sm font-semibold text-gray-700">{value}</p>
         </div>
     );
 }
@@ -426,11 +355,7 @@ function AnnouncementIcon() {
 }
 
 function PesoIcon() {
-    return (
-        <span className="text-lg font-semibold leading-none">
-            ₱
-        </span>
-    );
+    return <span className="text-lg leading-none font-semibold">₱</span>;
 }
 
 function ProfileIcon() {
@@ -445,11 +370,7 @@ function ProfileIcon() {
             strokeLinejoin="round"
             aria-hidden="true"
         >
-            <circle
-                cx="12"
-                cy="8"
-                r="4"
-            />
+            <circle cx="12" cy="8" r="4" />
 
             <path d="M4 21c.8-4.2 3.5-6 8-6s7.2 1.8 8 6" />
         </svg>
@@ -490,11 +411,7 @@ function LocationIcon() {
         >
             <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
 
-            <circle
-                cx="12"
-                cy="10"
-                r="2.5"
-            />
+            <circle cx="12" cy="10" r="2.5" />
         </svg>
     );
 }
@@ -528,11 +445,7 @@ function HelpIcon() {
             strokeLinejoin="round"
             aria-hidden="true"
         >
-            <circle
-                cx="12"
-                cy="12"
-                r="9"
-            />
+            <circle cx="12" cy="12" r="9" />
 
             <path d="M9.7 9a2.5 2.5 0 1 1 4.6 1.4c-.9 1.1-2.3 1.5-2.3 3.1" />
 

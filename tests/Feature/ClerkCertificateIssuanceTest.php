@@ -6,7 +6,6 @@ use App\Models\Barangay;
 use App\Models\Certificate;
 use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
-use App\Models\Purok;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;

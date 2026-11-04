@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Models\RegistrationDocument;
 use App\Models\Purok;
+use App\Models\RegistrationDocument;
 use App\Models\ResidentRegistration;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -134,7 +134,7 @@ final class ResidentRegistrationCorrectionPolicy
     }
 
     /** @param Collection<int, RegistrationDocument> $documents
-     *  @return list<string>
+     * @return list<string>
      */
     public static function availableDocumentTargets(Collection $documents): array
     {

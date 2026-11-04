@@ -2,11 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Barangay;
-use App\Models\Household;
-use App\Models\Purok;
-use App\Models\Resident;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Models\Household;
+use App\Models\Resident;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;

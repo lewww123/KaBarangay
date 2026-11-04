@@ -61,7 +61,9 @@ export default function EvidencePanel({
                     disabled={form.processing || !form.data.evidence.length}
                     className="rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-50"
                 >
-                    {form.processing ? 'Uploading evidence…' : 'Upload evidence'}
+                    {form.processing
+                        ? 'Uploading evidence…'
+                        : 'Upload evidence'}
                 </button>
             </form>
         </section>

@@ -45,8 +45,7 @@ class QrVerificationController extends Controller
                     'verification' => [
                         'valid' => false,
 
-                        'message' =>
-                            'This QR code is invalid or no longer active.',
+                        'message' => 'This QR code is invalid or no longer active.',
 
                         'barangay' => null,
                     ],
@@ -72,8 +71,7 @@ class QrVerificationController extends Controller
                 'verification' => [
                     'valid' => true,
 
-                    'message' =>
-                        'This credential is valid.',
+                    'message' => 'This credential is valid.',
 
                     'barangay' => null,
                 ],

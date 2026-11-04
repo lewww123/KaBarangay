@@ -74,6 +74,7 @@ class OrgChartPosition extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+
     /**
      * Published positions visible on the resident chart.
      */
@@ -82,4 +83,3 @@ class OrgChartPosition extends Model
         return $query->where('status', 'published');
     }
 }
-?>

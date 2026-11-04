@@ -6,18 +6,29 @@ import SectorApplicationStaffReview from '@/components/sectors/SectorApplication
 import type { SectorApplicationItem } from '@/components/sectors/types';
 
 interface Props {
-    auth?: { user?: { name?: string }; staffAssignments?: { department: string; position: string }[] };
+    auth?: {
+        user?: { name?: string };
+        staffAssignments?: { department: string; position: string }[];
+    };
     application: SectorApplicationItem;
 }
 
-export default withDeferredPage(PwdApplicationShow, ['application'], (props) => (
-    <PwdLayout active="applications" user={props.auth?.user}><PortalPageSkeleton list /></PwdLayout>
-));
+export default withDeferredPage(
+    PwdApplicationShow,
+    ['application'],
+    (props) => (
+        <PwdLayout active="applications" user={props.auth?.user}>
+            <PortalPageSkeleton list />
+        </PwdLayout>
+    ),
+);
 
 function PwdApplicationShow({ auth, application }: Props) {
     return (
         <PwdLayout active="applications" user={auth?.user}>
-            <Head title={`Review PWD Application - ${application.tracking_number}`} />
+            <Head
+                title={`Review PWD Application - ${application.tracking_number}`}
+            />
             <div className="mx-auto max-w-7xl">
                 <SectorApplicationStaffReview
                     application={application}

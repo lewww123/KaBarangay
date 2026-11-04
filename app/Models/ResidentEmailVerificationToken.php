@@ -32,5 +32,4 @@ class ResidentEmailVerificationToken extends Model
     {
         return $this->belongsTo(Resident::class);
     }
-
 }

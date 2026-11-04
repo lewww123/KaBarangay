@@ -13,7 +13,18 @@ interface Props {
 }
 
 export default function SelectBarangay(props: Props) {
-    return <Deferred data="barangays" fallback={<main className="mx-auto max-w-xl p-6"><PortalPageSkeleton list rows={3} /></main>}><SelectBarangayContent {...props} /></Deferred>;
+    return (
+        <Deferred
+            data="barangays"
+            fallback={
+                <main className="mx-auto max-w-xl p-6">
+                    <PortalPageSkeleton list rows={3} />
+                </main>
+            }
+        >
+            <SelectBarangayContent {...props} />
+        </Deferred>
+    );
 }
 
 function SelectBarangayContent({ barangays }: Props) {
@@ -47,7 +58,6 @@ function SelectBarangayContent({ barangays }: Props) {
             <main className="min-h-screen bg-slate-50">
                 <div className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
                     <div className="w-full max-w-md">
-
                         {/* Logo / Brand */}
                         <div className="mb-8 text-center">
                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg">
@@ -67,7 +77,6 @@ function SelectBarangayContent({ barangays }: Props) {
 
                         {/* Card */}
                         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-
                             <div className="mb-7">
                                 <h2 className="text-xl font-semibold text-slate-900">
                                     Select your barangay
@@ -80,7 +89,6 @@ function SelectBarangayContent({ barangays }: Props) {
                             </div>
 
                             <form onSubmit={submit}>
-
                                 <label
                                     htmlFor="barangay"
                                     className="mb-2 block text-sm font-medium text-slate-700"
@@ -95,11 +103,9 @@ function SelectBarangayContent({ barangays }: Props) {
                                         setSelectedBarangay(event.target.value)
                                     }
                                     disabled={processing}
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm text-slate-900 transition outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                                 >
-                                    <option value="">
-                                        Select a barangay
-                                    </option>
+                                    <option value="">Select a barangay</option>
 
                                     {barangays.map((barangay) => (
                                         <option
@@ -121,14 +127,10 @@ function SelectBarangayContent({ barangays }: Props) {
 
                                 <button
                                     type="submit"
-                                    disabled={
-                                        !selectedBarangay || processing
-                                    }
-                                    className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    disabled={!selectedBarangay || processing}
+                                    className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-300"
                                 >
-                                    {processing
-                                        ? 'Continuing...'
-                                        : 'Continue'}
+                                    {processing ? 'Continuing...' : 'Continue'}
                                 </button>
                             </form>
                         </div>

@@ -19,9 +19,23 @@ interface Props {
     };
 }
 
-export default function ClerkAnnouncementShow({ announcement, user, kind = 'auto' }: Props) {
-    const activeTab = kind === 'update' ? 'updates' : kind === 'program' ? 'programs' : 'announcements';
-    const backHref = kind === 'update' ? '/clerk/updates' : kind === 'program' ? '/clerk/programs' : '/clerk/announcements';
+export default function ClerkAnnouncementShow({
+    announcement,
+    user,
+    kind = 'auto',
+}: Props) {
+    const activeTab =
+        kind === 'update'
+            ? 'updates'
+            : kind === 'program'
+              ? 'programs'
+              : 'announcements';
+    const backHref =
+        kind === 'update'
+            ? '/clerk/updates'
+            : kind === 'program'
+              ? '/clerk/programs'
+              : '/clerk/announcements';
     const attendanceHref = isAttendanceAvailable(announcement)
         ? attendanceUrl('clerk', announcement.id)
         : null;

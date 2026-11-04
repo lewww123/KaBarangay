@@ -6,79 +6,284 @@ import { createServer } from 'vite-plus';
 import react from '@vitejs/plugin-react';
 import tailwind from '@tailwindcss/vite';
 const require = createRequire(import.meta.url);
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/ACER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const root=resolve('.'); const parent=resolve('tests/frontend'); const dir=await mkdtemp(resolve(parent,'.tmp-chatbot-'));
-let server,browser;
+const { chromium } = require(
+    process.env.PLAYWRIGHT_MODULE ||
+        'C:/Users/ACER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright',
+);
+const root = resolve('.');
+const parent = resolve('tests/frontend');
+const dir = await mkdtemp(resolve(parent, '.tmp-chatbot-'));
+let server, browser;
 try {
-    await writeFile(resolve(dir,'index.html'),'<meta name="csrf-token" content="test-csrf"><div id="root"></div><script type="module" src="./fixture.tsx"></script>');
-    await writeFile(resolve(dir,'style.css'),'@import "tailwindcss" source(none);\n@source "../../../resources/js/components/resident";');
-    await writeFile(resolve(dir,'fixture.tsx'),`import React from 'react';import {createRoot} from 'react-dom/client';import './style.css';import Chat from '/resources/js/components/resident/BarangayChatbot';createRoot(document.getElementById('root')).render(<main className="mx-auto max-w-3xl p-3"><Chat floating={location.search==='?floating'} storageKey={location.search==='?other'?'chat-test-other':'chat-test-resident'}/></main>);`);
-    server=await createServer({configFile:false,root,plugins:[react(),tailwind()],resolve:{alias:{'@':resolve('resources/js')}},server:{host:'127.0.0.1',port:5191,strictPort:true},logLevel:'error'}); await server.listen();
-    browser=await chromium.launch({executablePath:process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
-    const page=await browser.newPage({viewport:{width:1000,height:900},hasTouch:true});page.setDefaultTimeout(20000);
-    const errors=[];page.on('pageerror',e=>errors.push(e.message));
-    let calls=0;let release;const bodies=[];
-    await page.route('**/chatbot/send',async route=>{
-        calls++;bodies.push(route.request().postDataJSON());assert.equal(route.request().headers()['x-csrf-token'],'test-csrf');
-        if(calls===1)await new Promise(resolve=>{release=resolve});
-        await route.fulfill({status:calls===2?503:200,contentType:'application/json',body:JSON.stringify(calls===4?{reply:'Ito ang status mula sa system.',source:'resident_records',checkedAt:'2026-11-03T00:00:00+08:00',records:[{category:'certificate',reference:'CERT-2026-001',label:'Indigency Certificate',status:'Ready for Claim',detail:'Isinumite: Nov 3, 2026',url:'/resident/certificates'}]}:calls===2?{error:'Hindi makakonekta. Subukan muli.'}:{reply:calls===1?'Magandang araw mula sa AI.':'<img src=x onerror=alert(1)> Sagot mula sa AI.'})});
+    await writeFile(
+        resolve(dir, 'index.html'),
+        '<meta name="csrf-token" content="test-csrf"><div id="root"></div><script type="module" src="./fixture.tsx"></script>',
+    );
+    await writeFile(
+        resolve(dir, 'style.css'),
+        '@import "tailwindcss" source(none);\n@source "../../../resources/js/components/resident";',
+    );
+    await writeFile(
+        resolve(dir, 'fixture.tsx'),
+        `import React from 'react';import {createRoot} from 'react-dom/client';import './style.css';import Chat from '/resources/js/components/resident/BarangayChatbot';createRoot(document.getElementById('root')).render(<main className="mx-auto max-w-3xl p-3"><Chat floating={location.search==='?floating'} storageKey={location.search==='?other'?'chat-test-other':'chat-test-resident'}/></main>);`,
+    );
+    server = await createServer({
+        configFile: false,
+        root,
+        plugins: [react(), tailwind()],
+        resolve: { alias: { '@': resolve('resources/js') } },
+        server: { host: '127.0.0.1', port: 5191, strictPort: true },
+        logLevel: 'error',
     });
-    const url='http://127.0.0.1:5191/'+relative(root,resolve(dir,'index.html')).replaceAll('\\','/');
-    await page.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
-    const input=page.getByLabel('Mensahe kay Kabarangay AI');await input.waitFor();
-    let navigations=0;page.on('framenavigated',()=>navigations++);
-    assert.equal(await input.getAttribute('maxlength'),'1000');
-    await input.fill('Paano kumuha ng certificate?');await page.getByRole('button',{name:'Ipadala',exact:true}).click();
-    await page.getByRole('status').filter({hasText:'Naghahanda'}).waitFor();assert.equal(await page.getByRole('button',{name:'Sandali…'}).isDisabled(),true);
-    release();await page.getByRole('log').getByText('Magandang araw mula sa AI.',{exact:false}).waitFor();
-    assert.equal(bodies[0].message,'Paano kumuha ng certificate?');assert.deepEqual(bodies[0].history,[]);
-    await input.fill('At ang Lupon?');await input.press('Enter');await page.getByRole('alert').waitFor();
-    await page.getByRole('button',{name:'Subukan muli',exact:true}).click();await page.getByRole('log').getByText('<img src=x onerror=alert(1)> Sagot mula sa AI.',{exact:false}).waitFor();
-    assert.equal(await page.getByRole('log').locator('img').count(),0);assert.equal(bodies[1].history.length,2);assert.deepEqual(bodies[1],bodies[2]);
-    assert.equal(await page.getByRole('log').getByText('At ang Lupon?',{exact:false}).count(),1);assert.equal(navigations,0);
-    await input.fill('Track status ko');await page.getByRole('button',{name:'Ipadala',exact:true}).click();
-    await page.getByRole('log').getByText('Ready for Claim',{exact:true}).waitFor();
-    await page.getByRole('log').getByRole('link',{name:'Buksan ang record →'}).waitFor();
-    assert.equal(await page.locator('header svg').count(),1);
-    await page.reload({waitUntil:'domcontentloaded'});
-    await page.getByRole('log').getByText('Ready for Claim',{exact:true}).waitFor();
-    assert.equal(calls,4);
-    await page.goto(url+'?other',{waitUntil:'domcontentloaded'});
-    assert.equal(await page.getByRole('log').getByText('Ready for Claim',{exact:true}).count(),0);
-    await page.goto(url,{waitUntil:'domcontentloaded'});
-    await page.getByRole('log').getByText('Ready for Claim',{exact:true}).waitFor();
-    await page.getByRole('button',{name:'Bagong usapan',exact:true}).click();assert.equal(await page.getByRole('log').getByText('At ang Lupon?',{exact:false}).count(),0);
-    await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-    await page.goto(url+'?floating',{waitUntil:'domcontentloaded'});
-    const launcher=page.getByRole('button',{name:'Kausapin si Kabarangay AI'});
+    await server.listen();
+    browser = await chromium.launch({
+        executablePath:
+            process.env.CHROME_PATH ||
+            'C:/Program Files/Google/Chrome/Application/chrome.exe',
+        headless: true,
+    });
+    const page = await browser.newPage({
+        viewport: { width: 1000, height: 900 },
+        hasTouch: true,
+    });
+    page.setDefaultTimeout(20000);
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    let calls = 0;
+    let release;
+    const bodies = [];
+    await page.route('**/chatbot/send', async (route) => {
+        calls++;
+        bodies.push(route.request().postDataJSON());
+        assert.equal(route.request().headers()['x-csrf-token'], 'test-csrf');
+        if (calls === 1)
+            await new Promise((resolve) => {
+                release = resolve;
+            });
+        await route.fulfill({
+            status: calls === 2 ? 503 : 200,
+            contentType: 'application/json',
+            body: JSON.stringify(
+                calls === 4
+                    ? {
+                          reply: 'Ito ang status mula sa system.',
+                          source: 'resident_records',
+                          checkedAt: '2026-11-03T00:00:00+08:00',
+                          records: [
+                              {
+                                  category: 'certificate',
+                                  reference: 'CERT-2026-001',
+                                  label: 'Indigency Certificate',
+                                  status: 'Ready for Claim',
+                                  detail: 'Isinumite: Nov 3, 2026',
+                                  url: '/resident/certificates',
+                              },
+                          ],
+                      }
+                    : calls === 2
+                      ? { error: 'Hindi makakonekta. Subukan muli.' }
+                      : {
+                            reply:
+                                calls === 1
+                                    ? 'Magandang araw mula sa AI.'
+                                    : '<img src=x onerror=alert(1)> Sagot mula sa AI.',
+                        },
+            ),
+        });
+    });
+    const url =
+        'http://127.0.0.1:5191/' +
+        relative(root, resolve(dir, 'index.html')).replaceAll('\\', '/');
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    const input = page.getByLabel('Mensahe kay Kabarangay AI');
+    await input.waitFor();
+    let navigations = 0;
+    page.on('framenavigated', () => navigations++);
+    assert.equal(await input.getAttribute('maxlength'), '1000');
+    await input.fill('Paano kumuha ng certificate?');
+    await page.getByRole('button', { name: 'Ipadala', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: 'Naghahanda' }).waitFor();
+    assert.equal(
+        await page.getByRole('button', { name: 'Sandali…' }).isDisabled(),
+        true,
+    );
+    release();
+    await page
+        .getByRole('log')
+        .getByText('Magandang araw mula sa AI.', { exact: false })
+        .waitFor();
+    assert.equal(bodies[0].message, 'Paano kumuha ng certificate?');
+    assert.deepEqual(bodies[0].history, []);
+    await input.fill('At ang Lupon?');
+    await input.press('Enter');
+    await page.getByRole('alert').waitFor();
+    await page
+        .getByRole('button', { name: 'Subukan muli', exact: true })
+        .click();
+    await page
+        .getByRole('log')
+        .getByText('<img src=x onerror=alert(1)> Sagot mula sa AI.', {
+            exact: false,
+        })
+        .waitFor();
+    assert.equal(await page.getByRole('log').locator('img').count(), 0);
+    assert.equal(bodies[1].history.length, 2);
+    assert.deepEqual(bodies[1], bodies[2]);
+    assert.equal(
+        await page
+            .getByRole('log')
+            .getByText('At ang Lupon?', { exact: false })
+            .count(),
+        1,
+    );
+    assert.equal(navigations, 0);
+    await input.fill('Track status ko');
+    await page.getByRole('button', { name: 'Ipadala', exact: true }).click();
+    await page
+        .getByRole('log')
+        .getByText('Ready for Claim', { exact: true })
+        .waitFor();
+    await page
+        .getByRole('log')
+        .getByRole('link', { name: 'Buksan ang record →' })
+        .waitFor();
+    assert.equal(await page.locator('header svg').count(), 1);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page
+        .getByRole('log')
+        .getByText('Ready for Claim', { exact: true })
+        .waitFor();
+    assert.equal(calls, 4);
+    await page.goto(url + '?other', { waitUntil: 'domcontentloaded' });
+    assert.equal(
+        await page
+            .getByRole('log')
+            .getByText('Ready for Claim', { exact: true })
+            .count(),
+        0,
+    );
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await page
+        .getByRole('log')
+        .getByText('Ready for Claim', { exact: true })
+        .waitFor();
+    await page
+        .getByRole('button', { name: 'Bagong usapan', exact: true })
+        .click();
+    assert.equal(
+        await page
+            .getByRole('log')
+            .getByText('At ang Lupon?', { exact: false })
+            .count(),
+        0,
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(
+        await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+        true,
+    );
+    await page.goto(url + '?floating', { waitUntil: 'domcontentloaded' });
+    const launcher = page.getByRole('button', {
+        name: 'Kausapin si Kabarangay AI',
+    });
     await launcher.waitFor();
-    assert.equal((await launcher.innerText()).trim(),'');
-    const initial=await launcher.boundingBox();assert.equal(initial.width,56);assert.equal(initial.height,56);
-    await page.mouse.move(initial.x+28,initial.y+28);await page.mouse.down();
-    await page.mouse.move(initial.x-60,initial.y-240,{steps:12});await page.mouse.up();
-    assert.equal(await page.getByRole('dialog').count(),0,'Dragging must not open the chat');
-    const moved=await launcher.boundingBox();assert.ok(moved.y<initial.y-200);assert.equal(moved.x,initial.x);
-    await page.reload({waitUntil:'domcontentloaded'});await launcher.waitFor();
-    await page.waitForFunction(y=>Math.abs(document.querySelector('button[aria-controls="kabarangay-ai-chat"]').getBoundingClientRect().y-y)<2,moved.y);
-    await launcher.focus();await launcher.press('ArrowUp');
-    assert.ok((await launcher.boundingBox()).y<moved.y-20);
-    await launcher.press('Home');assert.equal((await launcher.boundingBox()).y,16);
-    await launcher.press('Enter');await page.getByRole('dialog',{name:'Kabarangay AI assistant'}).waitFor();
-    const compactBox=await page.getByRole('dialog',{name:'Kabarangay AI assistant'}).boundingBox();assert.ok(compactBox.width<=361);assert.ok(compactBox.height<=521);
-    await page.setViewportSize({width:1280,height:900});
-    const desktopBox=await page.getByRole('dialog',{name:'Kabarangay AI assistant'}).boundingBox();assert.ok(desktopBox.width<=361);assert.ok(desktopBox.height<=521);
-    await page.getByRole('button',{name:'Close assistant'}).click();assert.equal(await page.getByRole('dialog').count(),0);
-    await page.setViewportSize({width:390,height:844});
-    const touch=await launcher.boundingBox();
-    const cdp=await page.context().newCDPSession(page);
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:touch.x+28,y:touch.y+28}]});
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:touch.x+28,y:400}]});
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-    await page.waitForFunction(()=>document.querySelector('button[aria-controls="kabarangay-ai-chat"]').getBoundingClientRect().top>300);
-    assert.equal(await page.getByRole('dialog').count(),0,'Touch dragging must not open the chat');
-    const touchMoved=await launcher.boundingBox();await page.touchscreen.tap(touchMoved.x+28,touchMoved.y+28);
+    assert.equal((await launcher.innerText()).trim(), '');
+    const initial = await launcher.boundingBox();
+    assert.equal(initial.width, 56);
+    assert.equal(initial.height, 56);
+    await page.mouse.move(initial.x + 28, initial.y + 28);
+    await page.mouse.down();
+    await page.mouse.move(initial.x - 60, initial.y - 240, { steps: 12 });
+    await page.mouse.up();
+    assert.equal(
+        await page.getByRole('dialog').count(),
+        0,
+        'Dragging must not open the chat',
+    );
+    const moved = await launcher.boundingBox();
+    assert.ok(moved.y < initial.y - 200);
+    assert.equal(moved.x, initial.x);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await launcher.waitFor();
+    await page.waitForFunction(
+        (y) =>
+            Math.abs(
+                document
+                    .querySelector('button[aria-controls="kabarangay-ai-chat"]')
+                    .getBoundingClientRect().y - y,
+            ) < 2,
+        moved.y,
+    );
+    await launcher.focus();
+    await launcher.press('ArrowUp');
+    assert.ok((await launcher.boundingBox()).y < moved.y - 20);
+    await launcher.press('Home');
+    assert.equal((await launcher.boundingBox()).y, 16);
+    await launcher.press('Enter');
+    await page
+        .getByRole('dialog', { name: 'Kabarangay AI assistant' })
+        .waitFor();
+    const compactBox = await page
+        .getByRole('dialog', { name: 'Kabarangay AI assistant' })
+        .boundingBox();
+    assert.ok(compactBox.width <= 361);
+    assert.ok(compactBox.height <= 521);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const desktopBox = await page
+        .getByRole('dialog', { name: 'Kabarangay AI assistant' })
+        .boundingBox();
+    assert.ok(desktopBox.width <= 361);
+    assert.ok(desktopBox.height <= 521);
+    await page.getByRole('button', { name: 'Close assistant' }).click();
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    await page.setViewportSize({ width: 390, height: 844 });
+    const touch = await launcher.boundingBox();
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: touch.x + 28, y: touch.y + 28 }],
+    });
+    await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: touch.x + 28, y: 400 }],
+    });
+    await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+    });
+    await page.waitForFunction(
+        () =>
+            document
+                .querySelector('button[aria-controls="kabarangay-ai-chat"]')
+                .getBoundingClientRect().top > 300,
+    );
+    assert.equal(
+        await page.getByRole('dialog').count(),
+        0,
+        'Touch dragging must not open the chat',
+    );
+    const touchMoved = await launcher.boundingBox();
+    await page.touchscreen.tap(touchMoved.x + 28, touchMoved.y + 28);
     await page.getByRole('dialog').waitFor();
-    await page.setViewportSize({width:844,height:390});
-    await page.waitForFunction(()=>{const r=document.querySelector('[role="dialog"]').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&r.right<=innerWidth});
-    assert.deepEqual(errors,[]);console.log('PASS: chat flow, persistence, icon-only launcher, mouse/touch dragging, keyboard movement, click after drag, saved position, right-edge docking and viewport containment.');
-} finally {await browser?.close();await server?.close();if(resolve(dir).startsWith(parent+'\\')||resolve(dir).startsWith(parent+'/'))await rm(dir,{recursive:true,force:true});}
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.waitForFunction(() => {
+        const r = document
+            .querySelector('[role="dialog"]')
+            .getBoundingClientRect();
+        return r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth;
+    });
+    assert.deepEqual(errors, []);
+    console.log(
+        'PASS: chat flow, persistence, icon-only launcher, mouse/touch dragging, keyboard movement, click after drag, saved position, right-edge docking and viewport containment.',
+    );
+} finally {
+    await browser?.close();
+    await server?.close();
+    if (
+        resolve(dir).startsWith(parent + '\\') ||
+        resolve(dir).startsWith(parent + '/')
+    )
+        await rm(dir, { recursive: true, force: true });
+}

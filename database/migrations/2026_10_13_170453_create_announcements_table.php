@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('category', 50)->default('General'); // General, Event, Relief Goods, Cash Assistance, Meeting, Water Interruption, Others
             $table->string('target_audience', 50)->default('all'); // all, senior_citizens, pwd, sector_specific
             $table->foreignId('target_sector_id')->nullable()->constrained('sectors')->nullOnDelete();
-            
+
             $table->boolean('requires_attendance')->default(false);
             $table->dateTime('event_start_at')->nullable();
             $table->string('location')->nullable();

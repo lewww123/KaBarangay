@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Certificate;
 use App\Models\CertificateIssuance;
+use App\Support\CertificateTemplates;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
@@ -53,8 +54,8 @@ class ReviewedCertificatePdfTest extends TestCase
         $resident = $this->createResident($barangay, $this->createPurok($barangay, 'Purok 1'), ['mobile' => '09178889990']);
         foreach (['Sari-sari Store', 'Marriage Cohabitation'] as $index => $type) {
             config(['certificates.template_paths.'.$type => storage_path('app/no-such-template.docx')]);
-            $this->assertFalse(\App\Support\CertificateTemplates::isAvailable($type));
-            $option = collect(\App\Support\CertificateTemplates::options())->firstWhere('value', $type);
+            $this->assertFalse(CertificateTemplates::isAvailable($type));
+            $option = collect(CertificateTemplates::options())->firstWhere('value', $type);
             $this->assertTrue($option['available']);
             $payload = [...$this->payload(), 'certificate_type' => $type, 'control_no' => now('Asia/Manila')->format('Y-m').'-0001',
                 'resident_id' => $resident->id, 'business_type' => 'Retailer - Fruits & Vegetables', 'or_number' => '3067093', 'amount_paid' => '1000', 'receipt_date' => '2026-11-02', 'business_name' => 'Test Store', 'business_address' => 'Purok 1',

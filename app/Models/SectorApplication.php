@@ -14,9 +14,13 @@ class SectorApplication extends Model
     use HasFactory;
 
     public const STATUS_PENDING_STAFF_REVIEW = 'pending_staff_review';
+
     public const STATUS_UNDER_ADMIN_REVIEW = 'under_admin_review';
+
     public const STATUS_REQUIRES_CORRECTION = 'requires_correction';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
 
     public const ACTIVE_STATUSES = [
@@ -26,6 +30,7 @@ class SectorApplication extends Model
     ];
 
     public const SUBMISSION_STAFF_ASSISTED = 'staff_assisted';
+
     public const SUBMISSION_SELF_SERVICE = 'self_service';
 
     protected $fillable = [

@@ -6,7 +6,6 @@ use App\Mail\ResidentRegistrationEmailVerificationMail;
 use App\Models\ResidentRegistration;
 use App\Models\ResidentRegistrationEmailVerificationToken;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
@@ -274,6 +273,7 @@ final class ResidentRegistrationEmailVerificationService
     {
         if (! config('registration.email_verification_required', false)) {
             $email = $this->normalizedEmail($registration->email);
+
             return filter_var($email, FILTER_VALIDATE_EMAIL) !== false ? $email : null;
         }
         if (

@@ -35,14 +35,24 @@ export default function PromoteComplaint({
             </h3>
             <p className="text-xs text-slate-600">
                 Confirm the actual barangay payment and official receipt, then
-                schedule Kapitan hearing #1. The case is created only when this is saved.
+                schedule Kapitan hearing #1. The case is created only when this
+                is saved.
             </p>
-            <p className="text-sm font-semibold">Assessed filing fee: ₱{Number(assessedFee).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+            <p className="text-sm font-semibold">
+                Assessed filing fee: ₱
+                {Number(assessedFee).toLocaleString('en-PH', {
+                    minimumFractionDigits: 2,
+                })}
+            </p>
             <label className="block text-sm">
                 Official receipt (OR) number
-                <input required maxLength={100} value={form.data.or_number}
+                <input
+                    required
+                    maxLength={100}
+                    value={form.data.or_number}
                     onChange={(e) => form.setData('or_number', e.target.value)}
-                    className="mt-1 block w-full rounded-lg border p-2" />
+                    className="mt-1 block w-full rounded-lg border p-2"
+                />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm">
@@ -50,7 +60,9 @@ export default function PromoteComplaint({
                     <input
                         required
                         type="date"
-                        min={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })}
+                        min={new Date().toLocaleDateString('en-CA', {
+                            timeZone: 'Asia/Manila',
+                        })}
                         value={form.data.hearing_date}
                         onChange={(e) =>
                             form.setData('hearing_date', e.target.value)
@@ -102,7 +114,9 @@ export default function PromoteComplaint({
                 disabled={form.processing}
                 className="rounded-lg bg-emerald-800 px-4 py-2 font-semibold text-white disabled:opacity-50"
             >
-                {form.processing ? 'Recording payment and creating case…' : 'Confirm payment, save OR & create case'}
+                {form.processing
+                    ? 'Recording payment and creating case…'
+                    : 'Confirm payment, save OR & create case'}
             </button>
         </form>
     );

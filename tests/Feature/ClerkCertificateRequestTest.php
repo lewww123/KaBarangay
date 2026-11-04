@@ -332,9 +332,9 @@ class ClerkCertificateRequestTest extends TestCase
         $this->assertSame('PG-012', $response->inertiaProps('requests.data.0.reference'));
 
         $nextPageUrl = (string) $response->inertiaProps('requests.next_page_url');
-        $this->assertStringContainsString('status=Processing', $nextPageUrl);
-        $this->assertStringContainsString('per_page=10', $nextPageUrl);
-        $this->assertStringContainsString('page=2', $nextPageUrl);
+        $this->assertSourceContainsString('status=Processing', $nextPageUrl);
+        $this->assertSourceContainsString('per_page=10', $nextPageUrl);
+        $this->assertSourceContainsString('page=2', $nextPageUrl);
     }
 
     public function test_row_shape_exposes_only_clerk_needed_fields(): void
@@ -528,16 +528,16 @@ class ClerkCertificateRequestTest extends TestCase
 
         // The physical scanner, QR verification endpoint, and Manual Entry mode
         // must survive the certificate-management additions.
-        $this->assertStringContainsString("axios.get('/api/qr/verify-token'", $source);
-        $this->assertStringContainsString('switchMode', $source);
-        $this->assertStringContainsString('MANUAL ENTRY', $source);
-        $this->assertStringContainsString('QR VERIFIED', $source);
-        $this->assertStringContainsString("fetch('/clerk/generate-certificate'", $source);
+        $this->assertSourceContainsString("axios.get('/api/qr/verify-token'", $source);
+        $this->assertSourceContainsString('switchMode', $source);
+        $this->assertSourceContainsString('MANUAL ENTRY', $source);
+        $this->assertSourceContainsString('QR VERIFIED', $source);
+        $this->assertSourceContainsString("fetch('/clerk/generate-certificate'", $source);
 
         // The scan input keeps autofocus on mount so a handheld scanner can type
         // into it, and the "Scan another" control remains available.
-        $this->assertStringContainsString('autoFocus', $source);
-        $this->assertStringContainsString('Scan another', $source);
+        $this->assertSourceContainsString('autoFocus', $source);
+        $this->assertSourceContainsString('Scan another', $source);
 
         // No fabricated records or simulated QR values may be reintroduced.
         $this->assertStringNotContainsString('RES-SAMPLE', $source);
@@ -571,21 +571,21 @@ class ClerkCertificateRequestTest extends TestCase
         $this->assertStringNotContainsString('type="submit"', $scanner);
 
         // The lookup button is a plain button that runs the lookup handler.
-        $this->assertStringContainsString('type="button"', $scanner);
-        $this->assertStringContainsString('onClick={submit}', $scanner);
+        $this->assertSourceContainsString('type="button"', $scanner);
+        $this->assertSourceContainsString('onClick={submit}', $scanner);
 
         // Enter on the scan input is intercepted so it cannot submit the outer
         // form, and instead invokes the QR lookup.
-        $this->assertStringContainsString("e.key === 'Enter'", $scanner);
-        $this->assertStringContainsString('e.preventDefault()', $scanner);
-        $this->assertStringContainsString('submit()', $scanner);
+        $this->assertSourceContainsString("e.key === 'Enter'", $scanner);
+        $this->assertSourceContainsString('e.preventDefault()', $scanner);
+        $this->assertSourceContainsString('submit()', $scanner);
 
         // The input stays a normal editable text field: no readOnly/disabled,
         // because a keyboard-wedge scanner must still be able to send keys.
         $input = $this->section($source, 'ref={inputRef}', '/>');
         $this->assertStringNotContainsString('readOnly', $input);
         $this->assertStringNotContainsString('disabled', $input);
-        $this->assertStringContainsString('type="text"', $input);
+        $this->assertSourceContainsString('type="text"', $input);
     }
 
     public function test_qr_scanner_blocks_paste_but_not_the_physical_scanner(): void
@@ -595,8 +595,8 @@ class ClerkCertificateRequestTest extends TestCase
         $scanner = $this->section($source, 'function QrScanInput', 'export default function Dashboard');
 
         // Paste is blocked so clipboard content cannot be dropped in.
-        $this->assertStringContainsString('onPaste', $scanner);
-        $this->assertStringContainsString('e.preventDefault()', $scanner);
+        $this->assertSourceContainsString('onPaste', $scanner);
+        $this->assertSourceContainsString('e.preventDefault()', $scanner);
 
         // No strict per-keystroke timing filter that could reject real scans.
         $this->assertStringNotContainsString('timeStamp', $scanner);
@@ -608,18 +608,18 @@ class ClerkCertificateRequestTest extends TestCase
         $source = file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx'));
 
         // Empty submission gets its own message.
-        $this->assertStringContainsString('Please scan a resident QR code first.', $source);
+        $this->assertSourceContainsString('Please scan a resident QR code first.', $source);
 
         // A 400/404 (malformed/unknown/inactive) is a distinct invalid-QR message.
-        $this->assertStringContainsString('Invalid QR code. Please scan a valid resident QR code.', $source);
-        $this->assertStringContainsString('status === 400 || status === 404', $source);
+        $this->assertSourceContainsString('Invalid QR code. Please scan a valid resident QR code.', $source);
+        $this->assertSourceContainsString('status === 400 || status === 404', $source);
 
         // A 2xx response without a usable resident payload is a distinct message.
-        $this->assertStringContainsString('Resident not found. Please scan the correct resident QR code.', $source);
+        $this->assertSourceContainsString('Resident not found. Please scan the correct resident QR code.', $source);
 
         // Network/server failures must not be mislabelled as an invalid QR.
-        $this->assertStringContainsString('Unable to verify the QR code right now.', $source);
-        $this->assertStringContainsString('axios.isAxiosError(error)', $source);
+        $this->assertSourceContainsString('Unable to verify the QR code right now.', $source);
+        $this->assertSourceContainsString('axios.isAxiosError(error)', $source);
 
         // Errors stay inline; no browser alert() and no navigation on failure.
         $this->assertStringNotContainsString('window.alert', $source);
@@ -633,40 +633,40 @@ class ClerkCertificateRequestTest extends TestCase
 
         // Confirmation sends exactly one explicit generation request, then
         // validates and saves the returned attachment without printing.
-        $this->assertStringContainsString("fetch('/clerk/generate-certificate'", $submitHandler);
-        $this->assertStringContainsString("method: 'POST'", $submitHandler);
-        $this->assertStringContainsString('response.blob()', $submitHandler);
-        $this->assertStringContainsString('downloadLink.download = `Certificate_${data.control_no}.pdf`', $submitHandler);
-        $this->assertStringContainsString("payload.set('output_format', 'pdf')", $submitHandler);
-        $this->assertStringContainsString('response.headers.get(\'Content-Disposition\')', $submitHandler);
-        $this->assertStringContainsString('if (response.status === 422)', $submitHandler);
-        $this->assertStringContainsString('if (response.redirected)', $submitHandler);
+        $this->assertSourceContainsString("fetch('/clerk/generate-certificate'", $submitHandler);
+        $this->assertSourceContainsString("method: 'POST'", $submitHandler);
+        $this->assertSourceContainsString('response.blob()', $submitHandler);
+        $this->assertSourceContainsString('downloadLink.download = `Certificate_${data.control_no}.pdf`', $submitHandler);
+        $this->assertSourceContainsString("payload.set('output_format', 'pdf')", $submitHandler);
+        $this->assertSourceContainsString('response.headers.get(\'Content-Disposition\')', $submitHandler);
+        $this->assertSourceContainsString('if (response.status === 422)', $submitHandler);
+        $this->assertSourceContainsString('if (response.redirected)', $submitHandler);
         $this->assertStringNotContainsString('window.print()', $submitHandler);
 
         // Printing is explicit and uses the persisted document in an isolated
         // print frame rather than printing the surrounding application modal.
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             "onClick={() => void handleFinalSubmit('print')}",
             $source,
         );
-        $this->assertStringContainsString("onClick={() => void handleFinalSubmit('download')}", $source);
+        $this->assertSourceContainsString("onClick={() => void handleFinalSubmit('download')}", $source);
         $this->assertStringNotContainsString('window.open(', $source);
         $this->assertStringNotContainsString('useEffect(() => window.print()', $source);
 
         // Native form submission is gone, so frontend response handling is
         // explicit and independent of the print path.
         $this->assertStringNotContainsString('form.submit()', $source);
-        $this->assertStringContainsString('generationOutcomeUnknownRef.current = true', $submitHandler);
+        $this->assertSourceContainsString('generationOutcomeUnknownRef.current = true', $submitHandler);
     }
 
     public function test_certificate_generation_returns_the_persisted_certificate_as_an_attachment(): void
     {
         $controller = file_get_contents(base_path('app/Http/Controllers/CertificateController.php'));
-        $this->assertStringContainsString('AuditLogger::record(', $controller);
-        $this->assertStringContainsString("'Certificate_'.\$issuance->reference.(\$pdfOutput ? '.pdf' : '.docx')", $controller);
-        $this->assertStringContainsString('application/pdf', $controller);
-        $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.wordprocessingml.document', $controller);
-        $this->assertStringContainsString('return response()->download(', $controller);
+        $this->assertSourceContainsString('AuditLogger::record(', $controller);
+        $this->assertSourceContainsString("'Certificate_'.\$issuance->reference.(\$pdfOutput ? '.pdf' : '.docx')", $controller);
+        $this->assertSourceContainsString('application/pdf', $controller);
+        $this->assertSourceContainsString('application/vnd.openxmlformats-officedocument.wordprocessingml.document', $controller);
+        $this->assertSourceContainsString('return response()->download(', $controller);
     }
 
     public function test_qr_lookup_failure_keeps_the_form_state(): void
@@ -677,13 +677,13 @@ class ClerkCertificateRequestTest extends TestCase
         // the whole form (which would discard certificate type/purpose/signatory).
         $clear = $this->section($source, 'const clearResidentIdentity', 'const switchMode');
 
-        $this->assertStringContainsString("resident_id: ''", $clear);
-        $this->assertStringContainsString("resident_name: ''", $clear);
+        $this->assertSourceContainsString("resident_id: ''", $clear);
+        $this->assertSourceContainsString("resident_name: ''", $clear);
         $this->assertStringNotContainsString('reset(', $clear);
         $this->assertStringNotContainsString('setFormStep(2)', $clear);
 
         // A visible recovery control is offered on the error state.
-        $this->assertStringContainsString('Try again', $source);
+        $this->assertSourceContainsString('Try again', $source);
     }
 
     /**
@@ -691,6 +691,9 @@ class ClerkCertificateRequestTest extends TestCase
      */
     private function section(string $source, string $start, string $end): string
     {
+        $source = $this->compactSource($source);
+        $start = $this->compactSource($start);
+        $end = $this->compactSource($end);
         $startAt = strpos($source, $start);
 
         if ($startAt === false) {
@@ -712,8 +715,8 @@ class ClerkCertificateRequestTest extends TestCase
         // No placeholder, and no fabricated/sample records may remain.
         $this->assertStringNotContainsString('Issuance history is not available yet.', $source);
         $this->assertStringNotContainsString('Persisted issuance records are coming soon.', $source);
-        $this->assertStringContainsString('Issued / Completed', $source);
-        $this->assertStringContainsString('All Records', $source);
+        $this->assertSourceContainsString('Issued / Completed', $source);
+        $this->assertSourceContainsString('All Records', $source);
         $this->assertStringNotContainsString('RES-SAMPLE', $source);
         $this->assertStringNotContainsString('LEWIN LAGUISMA', $source);
     }

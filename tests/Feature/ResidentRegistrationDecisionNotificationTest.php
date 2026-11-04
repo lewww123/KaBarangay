@@ -335,7 +335,7 @@ class ResidentRegistrationDecisionNotificationTest extends TestCase
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, ['email' => 'no-otp@example.test']);
         $admin = $this->createStaff($this->barangay, 'admin');
         $this->actingAs($admin)->post('/admin/residents/'.$registration->id.'/reject', ['reason' => 'Private admin review notes.'])->assertRedirect();
-        Mail::assertSent(ResidentRegistrationDecisionMail::class, fn ($mail) => $mail->decisionType === 'rejected' && $mail->hasTo('no-otp@example.test') && !str_contains($mail->render(), 'Private admin review notes.'));
+        Mail::assertSent(ResidentRegistrationDecisionMail::class, fn ($mail) => $mail->decisionType === 'rejected' && $mail->hasTo('no-otp@example.test') && ! str_contains($mail->render(), 'Private admin review notes.'));
     }
 
     public function test_unverified_applicant_receives_approval_email_when_otp_is_disabled(): void

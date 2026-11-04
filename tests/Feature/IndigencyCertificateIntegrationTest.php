@@ -47,11 +47,11 @@ class IndigencyCertificateIntegrationTest extends TestCase
             ->post('/clerk/generate-certificate', $this->validPayload());
 
         $response->assertOk();
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'attachment',
             (string) $response->headers->get('content-disposition')
         );
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             '.docx',
             (string) $response->headers->get('content-disposition')
         );
@@ -110,7 +110,7 @@ class IndigencyCertificateIntegrationTest extends TestCase
             $this->assertNotFalse($xml, 'The rendered Indigency document is not a readable DOCX archive.');
 
             foreach ($values as $key => $value) {
-                $this->assertStringContainsString($value, $xml, "Supplied value for [{$key}] is missing.");
+                $this->assertSourceContainsString($value, $xml, "Supplied value for [{$key}] is missing.");
                 $this->assertStringNotContainsString(
                     '${'.$key.'}',
                     $xml,
@@ -154,8 +154,8 @@ class IndigencyCertificateIntegrationTest extends TestCase
                     $renderedProperties,
                     "Replacement for [{$placeholder}] changed its official run formatting."
                 );
-                $this->assertStringContainsString('<w:b/>', $renderedProperties);
-                $this->assertStringContainsString('<w:u w:val="single"/>', $renderedProperties);
+                $this->assertSourceContainsString('<w:b/>', $renderedProperties);
+                $this->assertSourceContainsString('<w:u w:val="single"/>', $renderedProperties);
             }
         } finally {
             @unlink($output);
@@ -188,7 +188,7 @@ class IndigencyCertificateIntegrationTest extends TestCase
             );
         }
 
-        $this->assertStringContainsString('${resident’s_name}', $xml);
+        $this->assertSourceContainsString('${resident’s_name}', $xml);
     }
 
     public function test_indigency_preview_branch_reflects_the_template_wording(): void
@@ -196,7 +196,7 @@ class IndigencyCertificateIntegrationTest extends TestCase
         $source = (string) file_get_contents(base_path('resources/js/pages/Clerk/Certificates.tsx'));
 
         // The preview branch is gated on the exact certificate-type value.
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             "data.certificate_type === 'Indigency'",
             $source
         );
@@ -213,43 +213,43 @@ class IndigencyCertificateIntegrationTest extends TestCase
 
         // Key wording copied from the authoritative DOCX.
         $shell = (string) file_get_contents(base_path('resources/js/components/certificates/BrandedCertificatePreview.tsx'));
-        $this->assertStringContainsString('CERTIFICATION', $shell);
-        $this->assertStringContainsString('(Indigent Certificate)', $shell);
+        $this->assertSourceContainsString('CERTIFICATION', $shell);
+        $this->assertSourceContainsString('(Indigent Certificate)', $shell);
         $branch = (string) preg_replace('/\s+/', ' ', strip_tags($branch));
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'That she/he belongs to the indigent family.',
             $branch
         );
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'Monthly Income is not sufficient for their other Needs.',
             $branch
         );
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'This certification is being issued upon the request of the above-named person for the purpose of',
             $branch
         );
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'Issued on this',
             $branch
         );
-        $this->assertStringContainsString('CaptainSignature', $this->indigencyPreviewBranch($source));
-        $this->assertStringContainsString('official?.name.toUpperCase()', $shell);
-        $this->assertStringContainsString('By the Authority of the Punong Barangay,', $branch);
-        $this->assertStringContainsString('Officer on duty', $branch);
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString('CaptainSignature', $this->indigencyPreviewBranch($source));
+        $this->assertSourceContainsString('official?.name.toUpperCase()', $shell);
+        $this->assertSourceContainsString('By the Authority of the Punong Barangay,', $branch);
+        $this->assertSourceContainsString('Officer on duty', $branch);
+        $this->assertSourceContainsString(
             'Note: This Certification is valid only for Three (3) Months from the day this was issued.',
             $branch
         );
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'Do not accept if a photocopy of this Certification is not a Certified true Copy, with erasures or Alterations.',
             $branch
         );
 
         // The branch must use the existing form state for the merge values.
-        $this->assertStringContainsString('data.resident_name.toUpperCase()', $branch);
-        $this->assertStringContainsString('data.purok', $branch);
-        $this->assertStringContainsString('data.purpose.toUpperCase()', $branch);
-        $this->assertStringContainsString('data.signatory_name', $branch);
+        $this->assertSourceContainsString('data.resident_name.toUpperCase()', $branch);
+        $this->assertSourceContainsString('data.purok', $branch);
+        $this->assertSourceContainsString('data.purpose.toUpperCase()', $branch);
+        $this->assertSourceContainsString('data.signatory_name', $branch);
 
         // No unresolved template tokens may reach the preview.
         $this->assertStringNotContainsString('${', $branch);

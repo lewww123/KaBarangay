@@ -8,6 +8,7 @@ use App\Models\Purok;
 use App\Models\SectorApplication;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\ViewErrorBag;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
@@ -76,8 +77,16 @@ class PortalDeferredPropsTest extends TestCase
             ['/resident/citizen-charter', 'Resident/CitizenCharter', ['services', 'categories']],
             ['/resident/org-chart', 'Resident/OrgChart', ['tree']],
             ['/resident/sector-applications', 'Resident/SectorApplications/Index', ['applications']],
-            ['/resident/register', 'Resident/Register', ['barangays', 'sectors']],
         ];
+    }
+
+    public function test_registration_options_are_present_on_initial_load_and_validation_redirects(): void
+    {
+        $this->get('/resident/register')->assertOk()->assertInertia(fn ($page) => $page
+            ->component('Resident/Register')->has('barangays')->has('sectors'));
+        $this->withSession(['errors' => new ViewErrorBag])
+            ->get('/resident/register')->assertOk()->assertInertia(fn ($page) => $page
+            ->component('Resident/Register')->has('barangays')->has('sectors'));
     }
 
     #[DataProvider('residentPages')]

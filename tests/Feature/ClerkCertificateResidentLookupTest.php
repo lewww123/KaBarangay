@@ -6,6 +6,7 @@ use App\Models\Barangay;
 use App\Models\Purok;
 use App\Models\Resident;
 use App\Models\ResidentQrCredential;
+use App\Support\CertificateTemplates;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -150,7 +151,7 @@ class ClerkCertificateResidentLookupTest extends TestCase
     {
         $clerk = $this->createStaff($this->barangay, 'clerk');
 
-        if (! \App\Support\CertificateTemplates::isAvailable('Tricycle')) {
+        if (! CertificateTemplates::isAvailable('Tricycle')) {
             $this->markTestSkipped('The Tricycle template is not present in this environment.');
         }
 

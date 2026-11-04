@@ -47,7 +47,7 @@ class MarriageCohabitationCertificateIntegrationTest extends TestCase
             ]));
 
         $response->assertOk();
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'attachment',
             (string) $response->headers->get('content-disposition')
         );
@@ -92,7 +92,7 @@ class MarriageCohabitationCertificateIntegrationTest extends TestCase
 
             $this->fail('A template with a missing merge field must be rejected.');
         } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('contract', $exception->getMessage());
+            $this->assertSourceContainsString('contract', $exception->getMessage());
         } finally {
             @unlink($path);
         }
@@ -110,7 +110,7 @@ class MarriageCohabitationCertificateIntegrationTest extends TestCase
 
             $this->fail('A template with an extra merge field must be rejected.');
         } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('contract', $exception->getMessage());
+            $this->assertSourceContainsString('contract', $exception->getMessage());
         } finally {
             @unlink($path);
         }
@@ -174,13 +174,13 @@ class MarriageCohabitationCertificateIntegrationTest extends TestCase
             $text = $this->documentText($output);
 
             // The printed values must be present in the document.
-            $this->assertStringContainsString('JUAN DELA CRUZ', $text);
-            $this->assertStringContainsString('MARIA SANTOS', $text);
-            $this->assertStringContainsString('PUROK MASUNURIN', $text);
-            $this->assertStringContainsString('JUAN DELA CRUZ, 30 and MARIA SANTOS', $text);
-            $this->assertStringContainsString('living together for 5', $text);
-            $this->assertStringContainsString('Marriage Purposes', $text);
-            $this->assertStringContainsString(
+            $this->assertSourceContainsString('JUAN DELA CRUZ', $text);
+            $this->assertSourceContainsString('MARIA SANTOS', $text);
+            $this->assertSourceContainsString('PUROK MASUNURIN', $text);
+            $this->assertSourceContainsString('JUAN DELA CRUZ, 30 and MARIA SANTOS', $text);
+            $this->assertSourceContainsString('living together for 5', $text);
+            $this->assertSourceContainsString('Marriage Purposes', $text);
+            $this->assertSourceContainsString(
                 MarriageCohabitationCertificate::formatIssueDate(),
                 $text
             );
@@ -260,8 +260,8 @@ class MarriageCohabitationCertificateIntegrationTest extends TestCase
 
             $text = $this->documentText((string) $document);
 
-            $this->assertStringContainsString('JUAN DELA CRUZ, 30 and MARIA SANTOS', $text);
-            $this->assertStringContainsString('PUROK MASUNURIN', $text);
+            $this->assertSourceContainsString('JUAN DELA CRUZ, 30 and MARIA SANTOS', $text);
+            $this->assertSourceContainsString('PUROK MASUNURIN', $text);
             $this->assertStringNotContainsString('Spoofed Resident', $text);
             $this->assertStringNotContainsString('PUROK PUROK 9', $text);
         } finally {
@@ -447,8 +447,8 @@ class MarriageCohabitationCertificateIntegrationTest extends TestCase
         );
 
         // The Marriage detail block exists and is rendered for that type.
-        $this->assertStringContainsString("const MARRIAGE_TYPE = 'Marriage Cohabitation';", $source);
-        $this->assertStringContainsString('renderMarriageFields', $source);
+        $this->assertSourceContainsString("const MARRIAGE_TYPE = 'Marriage Cohabitation';", $source);
+        $this->assertSourceContainsString('renderMarriageFields', $source);
 
         // The partner details are collected.
         foreach ([
@@ -456,27 +456,27 @@ class MarriageCohabitationCertificateIntegrationTest extends TestCase
             'partner_age',
             'years_living_together',
         ] as $field) {
-            $this->assertStringContainsString($field, $source, "Field [{$field}] is missing from the form.");
+            $this->assertSourceContainsString($field, $source, "Field [{$field}] is missing from the form.");
         }
 
         // The purpose input and the signatory selector are hidden for the
         // Marriage certificate, which states its own purpose and carries its
         // own signature blocks.
-        $this->assertStringContainsString(
-            'data.certificate_type !== MARRIAGE_TYPE && (',
+        $this->assertSourceContainsString(
+            'data.certificate_type !== MARRIAGE_TYPE && !isResidency && (',
             $source
         );
 
         // The Delayed PSA gating must stay intact.
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'data.certificate_type !== DELAYED_PSA_TYPE && (',
             $source
         );
 
         // The certificate cannot be issued until the partner details are
         // complete.
-        $this->assertStringContainsString('marriageDetailsComplete', $source);
-        $this->assertStringContainsString('canIssueCertificate', $source);
+        $this->assertSourceContainsString('marriageDetailsComplete', $source);
+        $this->assertSourceContainsString('canIssueCertificate', $source);
     }
 
     public function test_marriage_purok_uses_the_template_prefix(): void

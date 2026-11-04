@@ -1,7 +1,10 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
 import SeniorLayout from '@/layouts/SeniorLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
-import { formatAnnouncementStatusLabel, isAttendanceAvailable } from '@/components/announcements/announcement';
+import {
+    formatAnnouncementStatusLabel,
+    isAttendanceAvailable,
+} from '@/components/announcements/announcement';
 
 interface Announcement {
     id: number;
@@ -27,31 +30,28 @@ interface Props {
 
 export default function SeniorDashboard({
     userName,
-    stats = {
-        totalResidents: 0,
-        totalAnnouncements: 0,
-        pendingAnnouncements: 0,
-        approvedAnnouncements: 0,
-    },
-    recentAnnouncements = [],
+    stats,
+    recentAnnouncements,
 }: Props) {
     return (
         <SeniorLayout active="dashboard">
             <Head title="Senior Citizens Desk Portal" />
 
-            <div className="mx-auto max-w-7xl space-y-6 font-sans p-2 sm:p-4">
+            <div className="mx-auto max-w-7xl space-y-6 p-2 font-sans sm:p-4">
                 {/* WELCOME BANNER */}
                 <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-800 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-800 px-2.5 py-1 text-xs font-bold tracking-wider text-white uppercase">
                                 👴 Senior Citizens Desk
                             </span>
                             <h1 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
                                 Welcome, {userName}!
                             </h1>
                             <p className="mt-1 text-sm text-gray-600">
-                                Review sector applications, publish updates, manage programs, and record event or pension attendance.
+                                Review sector applications, publish updates,
+                                manage programs, and record event or pension
+                                attendance.
                             </p>
                         </div>
 
@@ -68,122 +68,144 @@ export default function SeniorDashboard({
                     data={['stats', 'recentAnnouncements']}
                     fallback={<PortalPageSkeleton metrics={4} rows={5} />}
                 >
-                {/* STATS OVERVIEW */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                            Registered Senior Citizens
-                        </span>
-                        <p className="mt-2 text-3xl font-extrabold text-gray-900">
-                            {stats.totalResidents}
-                        </p>
-                    </div>
-
-                    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                            Updates & Programs
-                        </span>
-                        <p className="mt-2 text-3xl font-extrabold text-gray-900">
-                            {stats.totalAnnouncements}
-                        </p>
-                    </div>
-
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm">
-                        <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                            Draft Programs
-                        </span>
-                        <p className="mt-2 text-3xl font-extrabold text-amber-900">
-                            {stats.draftPrograms ?? 0}
-                        </p>
-                    </div>
-
-                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm">
-                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-                            Published Updates & Programs
-                        </span>
-                        <p className="mt-2 text-3xl font-extrabold text-emerald-800">
-                            {stats.approvedAnnouncements}
-                        </p>
-                    </div>
-                </div>
-
-                {/* RECENT ANNOUNCEMENTS TABLE */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-lg font-bold text-gray-900">
-                                Senior Sector Updates & Programs
-                            </h2>
-                            <p className="text-xs text-gray-500">
-                                Recent updates and programs for the Senior Citizens sector.
+                    {/* STATS OVERVIEW */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">
+                                Registered Senior Citizens
+                            </span>
+                            <p className="mt-2 text-3xl font-extrabold text-gray-900">
+                                {stats.totalResidents}
                             </p>
                         </div>
-                        <Link
-                            href="/senior/updates"
-                            className="text-xs font-bold text-amber-800 hover:underline"
-                        >
-                            View All →
-                        </Link>
+
+                        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">
+                                Updates & Programs
+                            </span>
+                            <p className="mt-2 text-3xl font-extrabold text-gray-900">
+                                {stats.totalAnnouncements}
+                            </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm">
+                            <span className="text-xs font-bold tracking-wider text-amber-800 uppercase">
+                                Draft Programs
+                            </span>
+                            <p className="mt-2 text-3xl font-extrabold text-amber-900">
+                                {stats.draftPrograms ?? 0}
+                            </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm">
+                            <span className="text-xs font-bold tracking-wider text-emerald-700 uppercase">
+                                Published Updates & Programs
+                            </span>
+                            <p className="mt-2 text-3xl font-extrabold text-emerald-800">
+                                {stats.approvedAnnouncements}
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-gray-600">
-                            <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 border-b border-gray-200">
-                                <tr>
-                                    <th className="px-4 py-3">Title</th>
-                                    <th className="px-4 py-3">Category</th>
-                                    <th className="px-4 py-3">Approval Status</th>
-                                    <th className="px-4 py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {recentAnnouncements.length === 0 ? (
+                    {/* RECENT ANNOUNCEMENTS TABLE */}
+                    <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900">
+                                    Senior Sector Updates & Programs
+                                </h2>
+                                <p className="text-xs text-gray-500">
+                                    Recent updates and programs for the Senior
+                                    Citizens sector.
+                                </p>
+                            </div>
+                            <Link
+                                href="/senior/updates"
+                                className="text-xs font-bold text-amber-800 hover:underline"
+                            >
+                                View All →
+                            </Link>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm text-gray-600">
+                                <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
                                     <tr>
-                                        <td colSpan={4} className="p-8 text-center text-sm text-gray-500">
-                                            No updates or programs posted yet for Senior Citizens.
-                                        </td>
+                                        <th className="px-4 py-3">Title</th>
+                                        <th className="px-4 py-3">Category</th>
+                                        <th className="px-4 py-3">
+                                            Approval Status
+                                        </th>
+                                        <th className="px-4 py-3 text-right">
+                                            Actions
+                                        </th>
                                     </tr>
-                                ) : (
-                                    recentAnnouncements.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50/80 transition">
-                                            <td className="px-4 py-3.5 font-semibold text-gray-900">
-                                                {item.title}
-                                            </td>
-                                            <td className="px-4 py-3.5">
-                                                <span className="rounded-md bg-amber-100 px-2.5 py-1 text-xs font-bold uppercase text-amber-800">
-                                                    {item.category}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3.5">
-                                                <span className={`rounded-md px-2.5 py-1 text-xs font-bold uppercase ${
-                                                    item.approval_status === 'approved'
-                                                        ? 'bg-emerald-100 text-emerald-800'
-                                                        : item.approval_status === 'rejected'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-amber-100 text-amber-800'
-                                                }`}>
-                                                    {formatAnnouncementStatusLabel(item)}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3.5 text-right">
-                                                {isAttendanceAvailable(item) ? (
-                                                    <Link
-                                                        href={`/senior/announcements/${item.id}/attendance`}
-                                                        className="inline-flex rounded-lg bg-amber-800 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-900 transition"
-                                                    >
-                                                        QR Attendance Sheet
-                                                    </Link>
-                                                ) : (
-                                                    <span className="text-xs text-gray-400">—</span>
-                                                )}
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {recentAnnouncements.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan={4}
+                                                className="p-8 text-center text-sm text-gray-500"
+                                            >
+                                                No updates or programs posted
+                                                yet for Senior Citizens.
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        recentAnnouncements.map((item) => (
+                                            <tr
+                                                key={item.id}
+                                                className="transition hover:bg-gray-50/80"
+                                            >
+                                                <td className="px-4 py-3.5 font-semibold text-gray-900">
+                                                    {item.title}
+                                                </td>
+                                                <td className="px-4 py-3.5">
+                                                    <span className="rounded-md bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 uppercase">
+                                                        {item.category}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3.5">
+                                                    <span
+                                                        className={`rounded-md px-2.5 py-1 text-xs font-bold uppercase ${
+                                                            item.approval_status ===
+                                                            'approved'
+                                                                ? 'bg-emerald-100 text-emerald-800'
+                                                                : item.approval_status ===
+                                                                    'rejected'
+                                                                  ? 'bg-red-100 text-red-800'
+                                                                  : 'bg-amber-100 text-amber-800'
+                                                        }`}
+                                                    >
+                                                        {formatAnnouncementStatusLabel(
+                                                            item,
+                                                        )}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3.5 text-right">
+                                                    {isAttendanceAvailable(
+                                                        item,
+                                                    ) ? (
+                                                        <Link
+                                                            href={`/senior/announcements/${item.id}/attendance`}
+                                                            className="inline-flex rounded-lg bg-amber-800 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-amber-900"
+                                                        >
+                                                            QR Attendance Sheet
+                                                        </Link>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
                 </Deferred>
             </div>
         </SeniorLayout>

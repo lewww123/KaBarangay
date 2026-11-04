@@ -30,5 +30,4 @@ class BarangayBrandingSeeder extends Seeder
             ],
         ]);
     }
-
 }

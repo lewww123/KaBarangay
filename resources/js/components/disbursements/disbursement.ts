@@ -1,7 +1,4 @@
-export type DisbursementDocumentStatus =
-    | 'draft'
-    | 'published'
-    | 'archived';
+export type DisbursementDocumentStatus = 'draft' | 'published' | 'archived';
 
 export type DisbursementDocumentData = {
     id: number;
@@ -64,9 +61,7 @@ export function formatFileSize(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function formatDisbursementDate(
-    value: string | null,
-): string {
+export function formatDisbursementDate(value: string | null): string {
     if (!value) {
         return 'Not available';
     }
@@ -84,9 +79,7 @@ export function formatDisbursementDate(
     }).format(date);
 }
 
-export function formatDisbursementDateTime(
-    value: string | null,
-): string {
+export function formatDisbursementDateTime(value: string | null): string {
     if (!value) {
         return 'Not available';
     }

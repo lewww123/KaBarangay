@@ -76,12 +76,12 @@
 The four audited GET routes are handled by controllers under
 `app/Http/Controllers/Admin/` (there is no `AdminController.php`):
 
-| Page | Controller | Relationship loading |
-| --- | --- | --- |
-| `/admin` | `DashboardController` | Scalar aggregates and a certificate-name subquery; no per-row relationship reads |
+| Page               | Controller                       | Relationship loading                                                                                                                                  |
+| ------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/admin`           | `DashboardController`            | Scalar aggregates and a certificate-name subquery; no per-row relationship reads                                                                      |
 | `/admin/residents` | `ResidentRegistrationController` | `with()` for sectors, nested document/sector data, barangay, and decision notifications; `withExists()` for account/QR flags; batched purok hydration |
-| `/admin/staff` | `StaffManagementController` | Only user columns are rendered; no relationships are needed. The paginator now selects only those columns. |
-| `/admin/sectors` | `SectorController` | `withCount()` for sector totals, `with()` for certificate/resident display data, and batched purok hydration for rosters |
+| `/admin/staff`     | `StaffManagementController`      | Only user columns are rendered; no relationships are needed. The paginator now selects only those columns.                                            |
+| `/admin/sectors`   | `SectorController`               | `withCount()` for sector totals, `with()` for certificate/resident display data, and batched purok hydration for rosters                              |
 
 No per-row lazy-loading query was found in these list renderers. Batched purok
 hydration deliberately reuses the already-loaded reference map and fetches any
@@ -237,13 +237,13 @@ under `resources/js/layouts/`.
 
 ## Verification
 
-| Check | Result |
-| --- | --- |
-| `npm run types:check` | Passed |
-| `npm run build` | Passed |
-| `php artisan test` | 1,231 passed, 1 skipped; 11,467 assertions; zero failures/errors |
+| Check                                  | Result                                                                   |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| `npm run types:check`                  | Passed                                                                   |
+| `npm run build`                        | Passed                                                                   |
+| `php artisan test`                     | 1,231 passed, 1 skipped; 11,467 assertions; zero failures/errors         |
 | Production-bundle browser smoke checks | 41 fixture-backed page renders passed; no captured JavaScript exceptions |
-| `git diff --check` | Passed |
+| `git diff --check`                     | Passed                                                                   |
 
 `tests/Feature/NavigationPerformanceTest.php` enforces these query budgets:
 

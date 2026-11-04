@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Lupon;
 
 use App\Http\Controllers\Controller;
+use App\Models\Barangay;
 use App\Models\LuponCase;
 use App\Models\LuponCaseParty;
 use App\Models\LuponComplaint;
@@ -21,8 +22,8 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -545,7 +546,7 @@ class LuponCaseController extends Controller
                         throw ValidationException::withMessages(['complaint' => 'This complaint is no longer awaiting payment. Refresh the queue.']);
                     }
                     // Serialize online receipt recording within this barangay.
-                    \App\Models\Barangay::whereKey($user->barangay_id)->lockForUpdate()->firstOrFail();
+                    Barangay::whereKey($user->barangay_id)->lockForUpdate()->firstOrFail();
                     if (LuponCase::where('barangay_id', $user->barangay_id)->where('or_number', $request->input('or_number'))->lockForUpdate()->exists()) {
                         throw ValidationException::withMessages(['or_number' => 'This OR number is already recorded in your barangay.']);
                     }
@@ -828,15 +829,15 @@ class LuponCaseController extends Controller
             $changed = LuponCaseWorkflow::transition($case, $validated['status'], $user->id, $validated);
             if (! empty($validated['first_hearing_date'])) {
                 if ($changed->status !== 'pangkat_formed' || $changed->hearings()->where('phase', 'Lupon')->exists()) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['first_hearing_date' => 'The first Lupon schedule belongs to a newly constituted Pangkat.']);
+                    throw ValidationException::withMessages(['first_hearing_date' => 'The first Lupon schedule belongs to a newly constituted Pangkat.']);
                 }
                 $date = Carbon::parse($validated['first_hearing_date']);
                 if ($date->lt($changed->pangkat_formed_at->copy()->startOfDay()) || $date->gt($changed->pangkat_formed_at->copy()->addDays(3)->endOfDay())) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['first_hearing_date' => 'Set the first Pangkat hearing within three days of its constitution.']);
+                    throw ValidationException::withMessages(['first_hearing_date' => 'Set the first Pangkat hearing within three days of its constitution.']);
                 }
                 $hearing = $changed->hearings()->create(['barangay_id' => $changed->barangay_id, 'hearing_number' => ($changed->hearings()->max('hearing_number') ?? 0) + 1, 'phase' => 'Lupon', 'hearing_date' => $validated['first_hearing_date'], 'hearing_time' => $validated['first_hearing_time'], 'venue' => $validated['first_hearing_venue'], 'status' => 'Scheduled', 'officer_id' => $user->id]);
                 LuponDocuments::queueNotices($changed, $hearing, $user->id);
-                \App\Support\AuditLogger::record('lupon_hearing.scheduled', barangayId: $changed->barangay_id, actorId: $user->id, entityType: 'lupon_hearing', entityId: $hearing->id, context: ['phase' => 'Lupon', 'hearing_number' => 1]);
+                AuditLogger::record('lupon_hearing.scheduled', barangayId: $changed->barangay_id, actorId: $user->id, entityType: 'lupon_hearing', entityId: $hearing->id, context: ['phase' => 'Lupon', 'hearing_number' => 1]);
             }
             if ($changed->status === 'certified_to_file_action') {
                 LuponDocuments::generate($changed, 'cfa', $user->id);

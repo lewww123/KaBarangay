@@ -56,7 +56,7 @@ type LuponSummary = {
     total: number;
 };
 
-const emptyPaginator = <T,>(): Paginator<T> => ({
+const _emptyPaginator = <T,>(): Paginator<T> => ({
     data: [],
     current_page: 1,
     last_page: 1,
@@ -68,7 +68,7 @@ const emptyPaginator = <T,>(): Paginator<T> => ({
     next_page_url: null,
 });
 
-const emptyStats = {
+const _emptyStats = {
     total: 0,
     active: 0,
     sectorApplications: 0,
@@ -114,14 +114,14 @@ type ActiveTab =
     | 'lupon';
 
 export default function Sectors({
-    stats = emptyStats,
-    generalMembers = emptyPaginator<MemberRecord>(),
-    pwdMembers = emptyPaginator<MemberRecord>(),
-    seniorMembers = emptyPaginator<MemberRecord>(),
-    puroks = [],
+    stats,
+    generalMembers,
+    pwdMembers,
+    seniorMembers,
+    puroks,
     filters,
-    certificates = { processed: 0, completed: 0 },
-    certificateRequests = emptyPaginator<CertificateRequestRecord>(),
+    certificates,
+    certificateRequests,
     certificateFilters,
     luponSummary = { open: 0, closed: 0, total: 0 },
     initialTab = 'general',
@@ -159,11 +159,22 @@ export default function Sectors({
      * Server-side reload shared by all member rosters.
      */
     const reloadMembers = (params: Record<string, string | number>) => {
-        const pageProps: Record<string, string> = { general_page: 'generalMembers', pwd_page: 'pwdMembers', senior_page: 'seniorMembers' };
+        const pageProps: Record<string, string> = {
+            general_page: 'generalMembers',
+            pwd_page: 'pwdMembers',
+            senior_page: 'seniorMembers',
+        };
         const keys = Object.keys(params);
-        const only = keys.length === 1 && pageProps[keys[0]]
-            ? [pageProps[keys[0]], 'filters']
-            : ['generalMembers', 'pwdMembers', 'seniorMembers', 'stats', 'filters'];
+        const only =
+            keys.length === 1 && pageProps[keys[0]]
+                ? [pageProps[keys[0]], 'filters']
+                : [
+                      'generalMembers',
+                      'pwdMembers',
+                      'seniorMembers',
+                      'stats',
+                      'filters',
+                  ];
         router.get(
             '/admin/sectors',
             {
@@ -216,9 +227,7 @@ export default function Sectors({
         applyMemberFilters();
     };
 
-    const changeMemberPurok = (
-        event: React.ChangeEvent<HTMLSelectElement>,
-    ) => {
+    const changeMemberPurok = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const purok = event.target.value;
         setMemberPurok(purok);
         applyMemberFilters({ purok });
@@ -238,7 +247,9 @@ export default function Sectors({
     /*
      * Server-side reload for the read-only Certificates list.
      */
-    const reloadCertificates = (params: Record<string, string | number> = {}) => {
+    const reloadCertificates = (
+        params: Record<string, string | number> = {},
+    ) => {
         router.get(
             '/admin/sectors',
             {
@@ -281,7 +292,8 @@ export default function Sectors({
                         </h1>
 
                         <p className="mt-1 text-sm text-gray-500">
-                            Consolidated resident sector rosters and community records
+                            Consolidated resident sector rosters and community
+                            records
                         </p>
                     </div>
                 </div>
@@ -307,746 +319,793 @@ export default function Sectors({
                         />
                     }
                 >
-                {/* 6-CATEGORY DASHBOARD METRICS */}
-                <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                    {/* 1. Sector Applications */}
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('applications')}
-                        className={`rounded-lg border p-4 text-left transition-colors ${
-                            activeTab === 'applications'
-                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
-                                : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
-                    >
-                        <p className="text-[11px] font-medium uppercase text-gray-400">
-                            Applications
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold text-gray-800">
-                            {stats.sectorApplications}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-gray-500">
-                            Under Admin Review
-                        </p>
-                    </button>
-
-                    {/* 2. General Resident */}
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('general')}
-                        className={`rounded-lg border p-4 text-left transition-colors ${
-                            activeTab === 'general'
-                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
-                                : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
-                    >
-                        <p className="text-[11px] font-medium uppercase text-gray-400">
-                            General Resident
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold text-gray-800">
-                            {stats.generalMembers}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-gray-500">
-                            No sector affiliation
-                        </p>
-                    </button>
-
-                    {/* 3. PWD Members */}
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('pwd')}
-                        className={`rounded-lg border p-4 text-left transition-colors ${
-                            activeTab === 'pwd'
-                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
-                                : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
-                    >
-                        <p className="text-[11px] font-medium uppercase text-gray-400">
-                            PWD Members
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold text-gray-800">
-                            {stats.pwdMembers}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-gray-500">
-                            Verified PWD roster
-                        </p>
-                    </button>
-
-                    {/* 4. Senior Citizen Members */}
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('senior')}
-                        className={`rounded-lg border p-4 text-left transition-colors ${
-                            activeTab === 'senior'
-                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
-                                : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
-                    >
-                        <p className="text-[11px] font-medium uppercase text-gray-400">
-                            Senior Citizen
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold text-gray-800">
-                            {stats.seniorMembers}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-gray-500">
-                            Verified senior roster
-                        </p>
-                    </button>
-
-                    {/* 5. Certificates */}
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('certificates')}
-                        className={`rounded-lg border p-4 text-left transition-colors ${
-                            activeTab === 'certificates'
-                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
-                                : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
-                    >
-                        <p className="text-[11px] font-medium uppercase text-gray-400">
-                            Certificates
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold text-gray-800">
-                            {stats.certificates}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-gray-500">
-                            Released & Completed
-                        </p>
-                    </button>
-
-                    {/* 6. Lupon Cases */}
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('lupon')}
-                        className={`rounded-lg border p-4 text-left transition-colors ${
-                            activeTab === 'lupon'
-                                ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
-                                : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
-                    >
-                        <p className="text-[11px] font-medium uppercase text-gray-400">
-                            Lupon Cases
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold text-gray-800">
-                            {stats.openCases}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-gray-500">
-                            Active disputes
-                        </p>
-                    </button>
-                </div>
-
-                {/* SECTION TABS */}
-                <div className="mb-6 border-b border-gray-200">
-                    <nav className="-mb-px flex gap-6 overflow-x-auto">
-                        <SectionTab
-                            label="Sector Applications"
-                            active={activeTab === 'applications'}
+                    {/* 6-CATEGORY DASHBOARD METRICS */}
+                    <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                        {/* 1. Sector Applications */}
+                        <button
+                            type="button"
                             onClick={() => setActiveTab('applications')}
-                        />
-                        <SectionTab
-                            label="General Resident"
-                            active={activeTab === 'general'}
+                            className={`rounded-lg border p-4 text-left transition-colors ${
+                                activeTab === 'applications'
+                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                        >
+                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                                Applications
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold text-gray-800">
+                                {stats.sectorApplications}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-gray-500">
+                                Under Admin Review
+                            </p>
+                        </button>
+
+                        {/* 2. General Resident */}
+                        <button
+                            type="button"
                             onClick={() => setActiveTab('general')}
-                        />
-                        <SectionTab
-                            label="PWD Members"
-                            active={activeTab === 'pwd'}
-                            onClick={() => setActiveTab('pwd')}
-                        />
-                        <SectionTab
-                            label="Senior Citizens"
-                            active={activeTab === 'senior'}
-                            onClick={() => setActiveTab('senior')}
-                        />
-                        <SectionTab
-                            label="Certificates"
-                            active={activeTab === 'certificates'}
-                            onClick={() => setActiveTab('certificates')}
-                        />
-                        <SectionTab
-                            label="Lupon Cases"
-                            active={activeTab === 'lupon'}
-                            onClick={() => setActiveTab('lupon')}
-                        />
-                    </nav>
-                </div>
-
-                {/* 1. SECTOR APPLICATIONS TAB */}
-                {activeTab === 'applications' && (
-                    <div className="space-y-4">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
-                                <p className="text-xs uppercase text-white/80">
-                                    Applications Under Review
-                                </p>
-                                <p className="mt-3 text-3xl font-semibold">
-                                    {stats.sectorApplications}
-                                </p>
-                                <p className="mt-1 text-xs text-white/70">
-                                    Sector applications pending Admin final decision
-                                </p>
-                            </div>
-
-                            <Link
-                                href="/admin/sector-applications"
-                                className="inline-flex items-center gap-2 rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#345d33]"
-                            >
-                                Open Full Review Queue &rarr;
-                            </Link>
-                        </div>
-
-                        <div className="rounded-lg border border-gray-200 bg-white p-6">
-                            <h2 className="text-base font-semibold text-gray-800">
-                                Sector Application Processing
-                            </h2>
-                            <p className="mt-2 text-sm text-gray-600">
-                                Resident applications for sector classification (Senior Citizen, PWD, Solo Parent, etc.) undergo desk review before reaching the Admin final decision queue.
+                            className={`rounded-lg border p-4 text-left transition-colors ${
+                                activeTab === 'general'
+                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                        >
+                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                                General Resident
                             </p>
-                            <div className="mt-4 flex items-center gap-3">
-                                <Link
-                                    href="/admin/sector-applications"
-                                    className="text-sm font-medium text-[#3f6f3d] hover:underline"
-                                >
-                                    Go to Sector Applications page to review and process submissions &rarr;
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* 2. GENERAL RESIDENT TAB */}
-                {activeTab === 'general' && (
-                    <div className="space-y-4">
-                        <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
-                            <p className="text-xs uppercase text-white/80">
-                                General Residents
-                            </p>
-                            <p className="mt-3 text-3xl font-semibold">
+                            <p className="mt-2 text-2xl font-semibold text-gray-800">
                                 {stats.generalMembers}
                             </p>
-                            <p className="mt-1 text-xs text-white/70">
-                                Registered residents with no specific sector membership in your barangay
+                            <p className="mt-0.5 text-[11px] text-gray-500">
+                                No sector affiliation
                             </p>
-                        </div>
+                        </button>
 
-                        <MembersToolbar
-                            searchValue={memberSearch}
-                            onSearchChange={setMemberSearch}
-                            onSearchSubmit={submitMemberSearch}
-                            purokValue={memberPurok}
-                            puroks={puroks}
-                            onPurokChange={changeMemberPurok}
-                            hasFilters={
-                                memberSearch.trim() !== '' || memberPurok !== ''
-                            }
-                            onClear={clearMemberFilters}
-                        />
-
-                        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[720px]">
-                                    <thead className="bg-[#fafaf7]">
-                                        <tr className="border-b border-gray-200">
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                RESIDENT NO.
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                NAME
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                PUROK
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                STATUS
-                                            </th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {generalMembers.data.map((member) => (
-                                            <tr
-                                                key={member.id}
-                                                className="border-b border-gray-100 last:border-0"
-                                            >
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    {member.resident_number}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm font-medium">
-                                                    {member.name}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    {member.purok || '-'}
-                                                </td>
-
-                                                <td className="px-5 py-4">
-                                                    <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs text-[#3f6f3d]">
-                                                        {member.status}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {generalMembers.data.length === 0 && (
-                                <p className="px-5 py-10 text-center text-sm text-gray-400">
-                                    {memberSearch.trim() !== '' ||
-                                    memberPurok !== ''
-                                        ? 'No general residents match the current filters.'
-                                        : 'No general residents found for this barangay.'}
-                                </p>
-                            )}
-
-                            <MembersPagination
-                                paginator={generalMembers}
-                                onNavigate={navigateMembersTo}
-                                label="general residents"
-                            />
-                        </div>
-
-                        <p className="text-xs text-gray-400">
-                            Read-only list of verified residents who do not belong to any designated sector (such as Senior Citizen or PWD) in your barangay.
-                        </p>
-                    </div>
-                )}
-
-                {/* 3. PWD MEMBERS TAB */}
-                {activeTab === 'pwd' && (
-                    <div className="space-y-4">
-                        <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
-                            <p className="text-xs uppercase text-white/80">
+                        {/* 3. PWD Members */}
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('pwd')}
+                            className={`rounded-lg border p-4 text-left transition-colors ${
+                                activeTab === 'pwd'
+                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                        >
+                            <p className="text-[11px] font-medium text-gray-400 uppercase">
                                 PWD Members
                             </p>
-
-                            <p className="mt-3 text-3xl font-semibold">
+                            <p className="mt-2 text-2xl font-semibold text-gray-800">
                                 {stats.pwdMembers}
                             </p>
-
-                            <p className="mt-1 text-xs text-white/70">
-                                Residents tagged with the PWD sector in your
-                                barangay
+                            <p className="mt-0.5 text-[11px] text-gray-500">
+                                Verified PWD roster
                             </p>
-                        </div>
+                        </button>
 
-                        <MembersToolbar
-                            searchValue={memberSearch}
-                            onSearchChange={setMemberSearch}
-                            onSearchSubmit={submitMemberSearch}
-                            purokValue={memberPurok}
-                            puroks={puroks}
-                            onPurokChange={changeMemberPurok}
-                            hasFilters={
-                                memberSearch.trim() !== '' || memberPurok !== ''
-                            }
-                            onClear={clearMemberFilters}
-                        />
-
-                        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[720px]">
-                                    <thead className="bg-[#fafaf7]">
-                                        <tr className="border-b border-gray-200">
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                RESIDENT NO.
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                NAME
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                PUROK
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                STATUS
-                                            </th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {pwdMembers.data.map((member) => (
-                                            <tr
-                                                key={member.id}
-                                                className="border-b border-gray-100 last:border-0"
-                                            >
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    {member.resident_number}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm font-medium">
-                                                    {member.name}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    {member.purok || '-'}
-                                                </td>
-
-                                                <td className="px-5 py-4">
-                                                    <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs text-[#3f6f3d]">
-                                                        {member.status}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {pwdMembers.data.length === 0 && (
-                                <p className="px-5 py-10 text-center text-sm text-gray-400">
-                                    {memberSearch.trim() !== '' ||
-                                    memberPurok !== ''
-                                        ? 'No PWD members match the current filters.'
-                                        : 'No PWD members have been recorded for this barangay yet.'}
-                                </p>
-                            )}
-
-                            <MembersPagination
-                                paginator={pwdMembers}
-                                onNavigate={navigateMembersTo}
-                                label="PWD members"
-                            />
-                        </div>
-
-                        <p className="text-xs text-gray-400">
-                            Read-only list of residents tagged with the PWD
-                            sector in your barangay, including inactive
-                            accounts. Contact details and documents are not
-                            shown here.
-                        </p>
-                    </div>
-                )}
-
-                {/* 4. SENIOR CITIZENS TAB */}
-                {activeTab === 'senior' && (
-                    <div className="space-y-4">
-                        <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
-                            <p className="text-xs uppercase text-white/80">
-                                Senior Citizens
+                        {/* 4. Senior Citizen Members */}
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('senior')}
+                            className={`rounded-lg border p-4 text-left transition-colors ${
+                                activeTab === 'senior'
+                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                        >
+                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                                Senior Citizen
                             </p>
-
-                            <p className="mt-3 text-3xl font-semibold">
+                            <p className="mt-2 text-2xl font-semibold text-gray-800">
                                 {stats.seniorMembers}
                             </p>
-
-                            <p className="mt-1 text-xs text-white/70">
-                                Residents tagged with the senior sector in your
-                                barangay
+                            <p className="mt-0.5 text-[11px] text-gray-500">
+                                Verified senior roster
                             </p>
-                        </div>
+                        </button>
 
-                        <MembersToolbar
-                            searchValue={memberSearch}
-                            onSearchChange={setMemberSearch}
-                            onSearchSubmit={submitMemberSearch}
-                            purokValue={memberPurok}
-                            puroks={puroks}
-                            onPurokChange={changeMemberPurok}
-                            hasFilters={
-                                memberSearch.trim() !== '' || memberPurok !== ''
-                            }
-                            onClear={clearMemberFilters}
-                        />
-
-                        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[720px]">
-                                    <thead className="bg-[#fafaf7]">
-                                        <tr className="border-b border-gray-200">
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                RESIDENT NO.
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                NAME
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                PUROK
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                STATUS
-                                            </th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {seniorMembers.data.map((member) => (
-                                            <tr
-                                                key={member.id}
-                                                className="border-b border-gray-100 last:border-0"
-                                            >
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    {member.resident_number}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm font-medium">
-                                                    {member.name}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    {member.purok || '-'}
-                                                </td>
-
-                                                <td className="px-5 py-4">
-                                                    <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs text-[#3f6f3d]">
-                                                        {member.status}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {seniorMembers.data.length === 0 && (
-                                <p className="px-5 py-10 text-center text-sm text-gray-400">
-                                    {memberSearch.trim() !== '' ||
-                                    memberPurok !== ''
-                                        ? 'No senior citizens match the current filters.'
-                                        : 'No senior citizens have been recorded for this barangay yet.'}
-                                </p>
-                            )}
-
-                            <MembersPagination
-                                paginator={seniorMembers}
-                                onNavigate={navigateMembersTo}
-                                label="senior citizens"
-                            />
-                        </div>
-
-                        <p className="text-xs text-gray-400">
-                            Read-only list of residents tagged with the senior
-                            sector in your barangay, including inactive
-                            accounts. Contact details and documents are not
-                            shown here.
-                        </p>
-                    </div>
-                )}
-
-                {/* 5. CERTIFICATES TAB */}
-                {activeTab === 'certificates' && (
-                    <div className="space-y-4">
-                        <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
-                            <p className="text-xs uppercase text-white/80">
-                                Processed Certificates
-                            </p>
-
-                            <p className="mt-3 text-3xl font-semibold">
-                                {certificates.processed}
-                            </p>
-
-                            <p className="mt-1 text-xs text-white/70">
-                                Certificate requests with a terminal status in
-                                your barangay
-                            </p>
-                        </div>
-
-                        <p className="text-xs text-gray-400">
-                            Read-only monitoring of certificate requests whose
-                            status is Released or Rejected. Processed and
-                            Completed share the same approved definition, so a
-                            single count is shown. Requests still being processed
-                            are handled by the Clerk and are not shown here.
-                        </p>
-
-                        <form
-                            onSubmit={submitCertificateSearch}
-                            className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm lg:flex-row lg:items-center lg:justify-between"
+                        {/* 5. Certificates */}
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('certificates')}
+                            className={`rounded-lg border p-4 text-left transition-colors ${
+                                activeTab === 'certificates'
+                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
                         >
-                            <input
-                                type="search"
-                                aria-label="Search certificate requests"
-                                value={certificateSearch}
-                                onChange={(event) =>
-                                    setCertificateSearch(event.target.value)
-                                }
-                                placeholder="Search reference, resident, or certificate type..."
-                                className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
-                            />
+                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                                Certificates
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold text-gray-800">
+                                {stats.certificates}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-gray-500">
+                                Released & Completed
+                            </p>
+                        </button>
 
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="submit"
-                                    className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#345d33]"
-                                >
-                                    Search
-                                </button>
-
-                                {certificateSearch.trim() !== '' && (
-                                    <button
-                                        type="button"
-                                        onClick={clearCertificateFilters}
-                                        className="rounded-md border border-gray-300 px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                                    >
-                                        Clear
-                                    </button>
-                                )}
-                            </div>
-                        </form>
-
-                        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[900px]">
-                                    <thead className="bg-[#fafaf7]">
-                                        <tr className="border-b border-gray-200">
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                REFERENCE
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                CERTIFICATE
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                RESIDENT
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                PURPOSE
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                FEE
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                STATUS
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                SUBMITTED
-                                            </th>
-                                            <th className="px-5 py-3 text-left text-xs text-gray-400">
-                                                RELEASED / REJECTED
-                                            </th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {certificateRequests.data.map((request) => (
-                                            <tr
-                                                key={request.id}
-                                                className="border-b border-gray-100 last:border-0"
-                                            >
-                                                <td className="px-5 py-4 text-sm font-medium">
-                                                    {request.reference}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    {request.certificate}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm">
-                                                    <span className="font-medium">
-                                                        {request.resident_name}
-                                                    </span>
-
-                                                    {request.resident_number && (
-                                                        <span className="block text-xs text-gray-400">
-                                                            {request.resident_number}
-                                                        </span>
-                                                    )}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    {request.purpose}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    ₱{request.fee.toFixed(2)}
-                                                </td>
-
-                                                <td className="px-5 py-4">
-                                                    <span
-                                                        className={`rounded-full px-3 py-1 text-xs ${
-                                                            request.status === 'Released'
-                                                                ? 'bg-[#edf4ea] text-[#3f6f3d]'
-                                                                : 'bg-[#fdecec] text-[#a33a3a]'
-                                                        }`}
-                                                    >
-                                                        {request.status}
-                                                    </span>
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    {request.submitted_at || '-'}
-                                                </td>
-
-                                                <td className="px-5 py-4 text-sm text-gray-600">
-                                                    {request.status_at || '-'}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {certificateRequests.data.length === 0 && (
-                                <p className="px-5 py-10 text-center text-sm text-gray-400">
-                                    {certificateSearch.trim() !== ''
-                                        ? 'No released or rejected requests match the current search.'
-                                        : 'No released or rejected certificate requests have been recorded for this barangay yet.'}
-                                </p>
-                            )}
-
-                            <MembersPagination
-                                paginator={certificateRequests}
-                                onNavigate={navigateCertificatesTo}
-                                label="certificate requests"
-                            />
-                        </div>
+                        {/* 6. Lupon Cases */}
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('lupon')}
+                            className={`rounded-lg border p-4 text-left transition-colors ${
+                                activeTab === 'lupon'
+                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                        >
+                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                                Lupon Cases
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold text-gray-800">
+                                {stats.openCases}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-gray-500">
+                                Active disputes
+                            </p>
+                        </button>
                     </div>
-                )}
 
-                {/* 6. LUPON CASES TAB */}
-                {activeTab === 'lupon' && (
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white">
-                                <p className="text-xs uppercase text-white/80">
-                                    Open / Active Cases
+                    {/* SECTION TABS */}
+                    <div className="mb-6 border-b border-gray-200">
+                        <nav className="-mb-px flex gap-6 overflow-x-auto">
+                            <SectionTab
+                                label="Sector Applications"
+                                active={activeTab === 'applications'}
+                                onClick={() => setActiveTab('applications')}
+                            />
+                            <SectionTab
+                                label="General Resident"
+                                active={activeTab === 'general'}
+                                onClick={() => setActiveTab('general')}
+                            />
+                            <SectionTab
+                                label="PWD Members"
+                                active={activeTab === 'pwd'}
+                                onClick={() => setActiveTab('pwd')}
+                            />
+                            <SectionTab
+                                label="Senior Citizens"
+                                active={activeTab === 'senior'}
+                                onClick={() => setActiveTab('senior')}
+                            />
+                            <SectionTab
+                                label="Certificates"
+                                active={activeTab === 'certificates'}
+                                onClick={() => setActiveTab('certificates')}
+                            />
+                            <SectionTab
+                                label="Lupon Cases"
+                                active={activeTab === 'lupon'}
+                                onClick={() => setActiveTab('lupon')}
+                            />
+                        </nav>
+                    </div>
+
+                    {/* 1. SECTOR APPLICATIONS TAB */}
+                    {activeTab === 'applications' && (
+                        <div className="space-y-4">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                                    <p className="text-xs text-white/80 uppercase">
+                                        Applications Under Review
+                                    </p>
+                                    <p className="mt-3 text-3xl font-semibold">
+                                        {stats.sectorApplications}
+                                    </p>
+                                    <p className="mt-1 text-xs text-white/70">
+                                        Sector applications pending Admin final
+                                        decision
+                                    </p>
+                                </div>
+
+                                <Link
+                                    href="/admin/sector-applications"
+                                    className="inline-flex items-center gap-2 rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#345d33]"
+                                >
+                                    Open Full Review Queue &rarr;
+                                </Link>
+                            </div>
+
+                            <div className="rounded-lg border border-gray-200 bg-white p-6">
+                                <h2 className="text-base font-semibold text-gray-800">
+                                    Sector Application Processing
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-600">
+                                    Resident applications for sector
+                                    classification (Senior Citizen, PWD, Solo
+                                    Parent, etc.) undergo desk review before
+                                    reaching the Admin final decision queue.
+                                </p>
+                                <div className="mt-4 flex items-center gap-3">
+                                    <Link
+                                        href="/admin/sector-applications"
+                                        className="text-sm font-medium text-[#3f6f3d] hover:underline"
+                                    >
+                                        Go to Sector Applications page to review
+                                        and process submissions &rarr;
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 2. GENERAL RESIDENT TAB */}
+                    {activeTab === 'general' && (
+                        <div className="space-y-4">
+                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                                <p className="text-xs text-white/80 uppercase">
+                                    General Residents
                                 </p>
                                 <p className="mt-3 text-3xl font-semibold">
-                                    {luponSummary.open}
+                                    {stats.generalMembers}
                                 </p>
                                 <p className="mt-1 text-xs text-white/70">
-                                    Active, Under Mediation, or Conciliation
+                                    Registered residents with no specific sector
+                                    membership in your barangay
                                 </p>
                             </div>
 
-                            <div className="rounded-lg border border-gray-200 bg-white p-5">
-                                <p className="text-xs uppercase text-gray-400">
-                                    Resolved Cases
+                            <MembersToolbar
+                                searchValue={memberSearch}
+                                onSearchChange={setMemberSearch}
+                                onSearchSubmit={submitMemberSearch}
+                                purokValue={memberPurok}
+                                puroks={puroks}
+                                onPurokChange={changeMemberPurok}
+                                hasFilters={
+                                    memberSearch.trim() !== '' ||
+                                    memberPurok !== ''
+                                }
+                                onClear={clearMemberFilters}
+                            />
+
+                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[720px]">
+                                        <thead className="bg-[#fafaf7]">
+                                            <tr className="border-b border-gray-200">
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    RESIDENT NO.
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    NAME
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    PUROK
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    STATUS
+                                                </th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            {generalMembers.data.map(
+                                                (member) => (
+                                                    <tr
+                                                        key={member.id}
+                                                        className="border-b border-gray-100 last:border-0"
+                                                    >
+                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                            {
+                                                                member.resident_number
+                                                            }
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm font-medium">
+                                                            {member.name}
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                            {member.purok ||
+                                                                '-'}
+                                                        </td>
+
+                                                        <td className="px-5 py-4">
+                                                            <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs text-[#3f6f3d]">
+                                                                {member.status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ),
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {generalMembers.data.length === 0 && (
+                                    <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                        {memberSearch.trim() !== '' ||
+                                        memberPurok !== ''
+                                            ? 'No general residents match the current filters.'
+                                            : 'No general residents found for this barangay.'}
+                                    </p>
+                                )}
+
+                                <MembersPagination
+                                    paginator={generalMembers}
+                                    onNavigate={navigateMembersTo}
+                                    label="general residents"
+                                />
+                            </div>
+
+                            <p className="text-xs text-gray-400">
+                                Read-only list of verified residents who do not
+                                belong to any designated sector (such as Senior
+                                Citizen or PWD) in your barangay.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* 3. PWD MEMBERS TAB */}
+                    {activeTab === 'pwd' && (
+                        <div className="space-y-4">
+                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                                <p className="text-xs text-white/80 uppercase">
+                                    PWD Members
                                 </p>
-                                <p className="mt-3 text-3xl font-semibold text-gray-800">
-                                    {luponSummary.closed}
+
+                                <p className="mt-3 text-3xl font-semibold">
+                                    {stats.pwdMembers}
                                 </p>
-                                <p className="mt-1 text-xs text-gray-500">
-                                    Settled, Dismissed, or Unresolved
+
+                                <p className="mt-1 text-xs text-white/70">
+                                    Residents tagged with the PWD sector in your
+                                    barangay
                                 </p>
                             </div>
 
-                            <div className="rounded-lg border border-gray-200 bg-white p-5">
-                                <p className="text-xs uppercase text-gray-400">
-                                    Total Filed Cases
+                            <MembersToolbar
+                                searchValue={memberSearch}
+                                onSearchChange={setMemberSearch}
+                                onSearchSubmit={submitMemberSearch}
+                                purokValue={memberPurok}
+                                puroks={puroks}
+                                onPurokChange={changeMemberPurok}
+                                hasFilters={
+                                    memberSearch.trim() !== '' ||
+                                    memberPurok !== ''
+                                }
+                                onClear={clearMemberFilters}
+                            />
+
+                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[720px]">
+                                        <thead className="bg-[#fafaf7]">
+                                            <tr className="border-b border-gray-200">
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    RESIDENT NO.
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    NAME
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    PUROK
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    STATUS
+                                                </th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            {pwdMembers.data.map((member) => (
+                                                <tr
+                                                    key={member.id}
+                                                    className="border-b border-gray-100 last:border-0"
+                                                >
+                                                    <td className="px-5 py-4 text-sm text-gray-600">
+                                                        {member.resident_number}
+                                                    </td>
+
+                                                    <td className="px-5 py-4 text-sm font-medium">
+                                                        {member.name}
+                                                    </td>
+
+                                                    <td className="px-5 py-4 text-sm text-gray-600">
+                                                        {member.purok || '-'}
+                                                    </td>
+
+                                                    <td className="px-5 py-4">
+                                                        <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs text-[#3f6f3d]">
+                                                            {member.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {pwdMembers.data.length === 0 && (
+                                    <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                        {memberSearch.trim() !== '' ||
+                                        memberPurok !== ''
+                                            ? 'No PWD members match the current filters.'
+                                            : 'No PWD members have been recorded for this barangay yet.'}
+                                    </p>
+                                )}
+
+                                <MembersPagination
+                                    paginator={pwdMembers}
+                                    onNavigate={navigateMembersTo}
+                                    label="PWD members"
+                                />
+                            </div>
+
+                            <p className="text-xs text-gray-400">
+                                Read-only list of residents tagged with the PWD
+                                sector in your barangay, including inactive
+                                accounts. Contact details and documents are not
+                                shown here.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* 4. SENIOR CITIZENS TAB */}
+                    {activeTab === 'senior' && (
+                        <div className="space-y-4">
+                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                                <p className="text-xs text-white/80 uppercase">
+                                    Senior Citizens
                                 </p>
-                                <p className="mt-3 text-3xl font-semibold text-gray-800">
-                                    {luponSummary.total}
+
+                                <p className="mt-3 text-3xl font-semibold">
+                                    {stats.seniorMembers}
                                 </p>
-                                <p className="mt-1 text-xs text-gray-500">
-                                    All Lupon cases recorded for this barangay
+
+                                <p className="mt-1 text-xs text-white/70">
+                                    Residents tagged with the senior sector in
+                                    your barangay
+                                </p>
+                            </div>
+
+                            <MembersToolbar
+                                searchValue={memberSearch}
+                                onSearchChange={setMemberSearch}
+                                onSearchSubmit={submitMemberSearch}
+                                purokValue={memberPurok}
+                                puroks={puroks}
+                                onPurokChange={changeMemberPurok}
+                                hasFilters={
+                                    memberSearch.trim() !== '' ||
+                                    memberPurok !== ''
+                                }
+                                onClear={clearMemberFilters}
+                            />
+
+                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[720px]">
+                                        <thead className="bg-[#fafaf7]">
+                                            <tr className="border-b border-gray-200">
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    RESIDENT NO.
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    NAME
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    PUROK
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    STATUS
+                                                </th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            {seniorMembers.data.map(
+                                                (member) => (
+                                                    <tr
+                                                        key={member.id}
+                                                        className="border-b border-gray-100 last:border-0"
+                                                    >
+                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                            {
+                                                                member.resident_number
+                                                            }
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm font-medium">
+                                                            {member.name}
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                            {member.purok ||
+                                                                '-'}
+                                                        </td>
+
+                                                        <td className="px-5 py-4">
+                                                            <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs text-[#3f6f3d]">
+                                                                {member.status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ),
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {seniorMembers.data.length === 0 && (
+                                    <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                        {memberSearch.trim() !== '' ||
+                                        memberPurok !== ''
+                                            ? 'No senior citizens match the current filters.'
+                                            : 'No senior citizens have been recorded for this barangay yet.'}
+                                    </p>
+                                )}
+
+                                <MembersPagination
+                                    paginator={seniorMembers}
+                                    onNavigate={navigateMembersTo}
+                                    label="senior citizens"
+                                />
+                            </div>
+
+                            <p className="text-xs text-gray-400">
+                                Read-only list of residents tagged with the
+                                senior sector in your barangay, including
+                                inactive accounts. Contact details and documents
+                                are not shown here.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* 5. CERTIFICATES TAB */}
+                    {activeTab === 'certificates' && (
+                        <div className="space-y-4">
+                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                                <p className="text-xs text-white/80 uppercase">
+                                    Processed Certificates
+                                </p>
+
+                                <p className="mt-3 text-3xl font-semibold">
+                                    {certificates.processed}
+                                </p>
+
+                                <p className="mt-1 text-xs text-white/70">
+                                    Certificate requests with a terminal status
+                                    in your barangay
+                                </p>
+                            </div>
+
+                            <p className="text-xs text-gray-400">
+                                Read-only monitoring of certificate requests
+                                whose status is Released or Rejected. Processed
+                                and Completed share the same approved
+                                definition, so a single count is shown. Requests
+                                still being processed are handled by the Clerk
+                                and are not shown here.
+                            </p>
+
+                            <form
+                                onSubmit={submitCertificateSearch}
+                                className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm lg:flex-row lg:items-center lg:justify-between"
+                            >
+                                <input
+                                    type="search"
+                                    aria-label="Search certificate requests"
+                                    value={certificateSearch}
+                                    onChange={(event) =>
+                                        setCertificateSearch(event.target.value)
+                                    }
+                                    placeholder="Search reference, resident, or certificate type..."
+                                    className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                                />
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="submit"
+                                        className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#345d33]"
+                                    >
+                                        Search
+                                    </button>
+
+                                    {certificateSearch.trim() !== '' && (
+                                        <button
+                                            type="button"
+                                            onClick={clearCertificateFilters}
+                                            className="rounded-md border border-gray-300 px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                                        >
+                                            Clear
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+
+                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[900px]">
+                                        <thead className="bg-[#fafaf7]">
+                                            <tr className="border-b border-gray-200">
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    REFERENCE
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    CERTIFICATE
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    RESIDENT
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    PURPOSE
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    FEE
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    STATUS
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    SUBMITTED
+                                                </th>
+                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                    RELEASED / REJECTED
+                                                </th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            {certificateRequests.data.map(
+                                                (request) => (
+                                                    <tr
+                                                        key={request.id}
+                                                        className="border-b border-gray-100 last:border-0"
+                                                    >
+                                                        <td className="px-5 py-4 text-sm font-medium">
+                                                            {request.reference}
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                            {
+                                                                request.certificate
+                                                            }
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm">
+                                                            <span className="font-medium">
+                                                                {
+                                                                    request.resident_name
+                                                                }
+                                                            </span>
+
+                                                            {request.resident_number && (
+                                                                <span className="block text-xs text-gray-400">
+                                                                    {
+                                                                        request.resident_number
+                                                                    }
+                                                                </span>
+                                                            )}
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                            {request.purpose}
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                            ₱
+                                                            {request.fee.toFixed(
+                                                                2,
+                                                            )}
+                                                        </td>
+
+                                                        <td className="px-5 py-4">
+                                                            <span
+                                                                className={`rounded-full px-3 py-1 text-xs ${
+                                                                    request.status ===
+                                                                    'Released'
+                                                                        ? 'bg-[#edf4ea] text-[#3f6f3d]'
+                                                                        : 'bg-[#fdecec] text-[#a33a3a]'
+                                                                }`}
+                                                            >
+                                                                {request.status}
+                                                            </span>
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                            {request.submitted_at ||
+                                                                '-'}
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                            {request.status_at ||
+                                                                '-'}
+                                                        </td>
+                                                    </tr>
+                                                ),
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {certificateRequests.data.length === 0 && (
+                                    <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                        {certificateSearch.trim() !== ''
+                                            ? 'No released or rejected requests match the current search.'
+                                            : 'No released or rejected certificate requests have been recorded for this barangay yet.'}
+                                    </p>
+                                )}
+
+                                <MembersPagination
+                                    paginator={certificateRequests}
+                                    onNavigate={navigateCertificatesTo}
+                                    label="certificate requests"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 6. LUPON CASES TAB */}
+                    {activeTab === 'lupon' && (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                <div className="rounded-lg bg-[#3f6f3d] p-5 text-white">
+                                    <p className="text-xs text-white/80 uppercase">
+                                        Open / Active Cases
+                                    </p>
+                                    <p className="mt-3 text-3xl font-semibold">
+                                        {luponSummary.open}
+                                    </p>
+                                    <p className="mt-1 text-xs text-white/70">
+                                        Active, Under Mediation, or Conciliation
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg border border-gray-200 bg-white p-5">
+                                    <p className="text-xs text-gray-400 uppercase">
+                                        Resolved Cases
+                                    </p>
+                                    <p className="mt-3 text-3xl font-semibold text-gray-800">
+                                        {luponSummary.closed}
+                                    </p>
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Settled, Dismissed, or Unresolved
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg border border-gray-200 bg-white p-5">
+                                    <p className="text-xs text-gray-400 uppercase">
+                                        Total Filed Cases
+                                    </p>
+                                    <p className="mt-3 text-3xl font-semibold text-gray-800">
+                                        {luponSummary.total}
+                                    </p>
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        All Lupon cases recorded for this
+                                        barangay
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg border border-gray-200 bg-white p-6">
+                                <h2 className="text-base font-semibold text-gray-800">
+                                    Lupong Tagapamayapa Confidentiality Notice
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-600">
+                                    Under Republic Act No. 7160 (Local
+                                    Government Code), Katarungang Pambarangay
+                                    proceedings and case details are
+                                    confidential to protect the parties
+                                    involved. Detailed case records, hearing
+                                    minutes, and amicable settlement terms are
+                                    accessible only to authorized Lupon desk
+                                    officers.
+                                </p>
+                                <p className="mt-3 text-xs text-gray-400">
+                                    The Admin dashboard displays aggregate case
+                                    statistics only. Direct mediation records
+                                    are restricted to the Lupong Tagapamayapa
+                                    portal.
                                 </p>
                             </div>
                         </div>
-
-                        <div className="rounded-lg border border-gray-200 bg-white p-6">
-                            <h2 className="text-base font-semibold text-gray-800">
-                                Lupong Tagapamayapa Confidentiality Notice
-                            </h2>
-                            <p className="mt-2 text-sm text-gray-600">
-                                Under Republic Act No. 7160 (Local Government Code), Katarungang Pambarangay proceedings and case details are confidential to protect the parties involved. Detailed case records, hearing minutes, and amicable settlement terms are accessible only to authorized Lupon desk officers.
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                                The Admin dashboard displays aggregate case statistics only. Direct mediation records are restricted to the Lupong Tagapamayapa portal.
-                            </p>
-                        </div>
-                    </div>
-                )}
+                    )}
                 </Deferred>
             </AdminLayout>
         </>
@@ -1072,7 +1131,7 @@ function SectionTab({
         <button
             type="button"
             onClick={onClick}
-            className={`whitespace-nowrap border-b-2 pb-3 text-sm font-medium transition-colors ${
+            className={`border-b-2 pb-3 text-sm font-medium whitespace-nowrap transition-colors ${
                 active
                     ? 'border-[#3f6f3d] text-[#3f6f3d]'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'

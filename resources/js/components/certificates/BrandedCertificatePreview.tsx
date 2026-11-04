@@ -11,7 +11,8 @@ export type CertificateBranding = {
 };
 
 export type CertificateOfficial = { id: number; name: string; title: string };
-export const officialNameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
+export const officialNameKey = (name: string) =>
+    name.trim().replace(/\s+/g, ' ').toLowerCase();
 const CaptainContext = createContext<CertificateOfficial | null>(null);
 
 type Props = {
@@ -33,25 +34,50 @@ const ARTWORK = {
 };
 
 /** Print-ready government certificate shell around the rendered document body. */
-export default function BrandedCertificatePreview({ body, onReady, liveContent, certificateType, punong_barangay = null, controlNumber = '' }: Props) {
+export default function BrandedCertificatePreview({
+    body,
+    onReady,
+    liveContent,
+    certificateType,
+    punong_barangay = null,
+    controlNumber = '',
+}: Props) {
     const sheetRef = useRef<HTMLElement>(null);
     const hasLiveContent = Boolean(liveContent);
     useEffect(() => {
         if (!hasLiveContent) return;
         let active = true;
         onReady(false);
-        void document.fonts.ready.then(async () => {
-            if (sheetRef.current) await waitForCertificateAssets(sheetRef.current);
-            if (active) onReady(true);
-        }).catch(() => { if (active) onReady(false); });
-        return () => { active = false; };
+        void document.fonts.ready
+            .then(async () => {
+                if (sheetRef.current)
+                    await waitForCertificateAssets(sheetRef.current);
+                if (active) onReady(true);
+            })
+            .catch(() => {
+                if (active) onReady(false);
+            });
+        return () => {
+            active = false;
+        };
     }, [body, hasLiveContent, onReady]);
-    if (certificateType === 'Business Clearance') return (
-        <div className="certificate-preview-frame">
-            <style>{".certificate-preview-frame{--certificate-scale:min(.55,var(--certificate-fit-scale,.55));width:calc(210mm * var(--certificate-scale));height:calc(297mm * var(--certificate-scale));position:relative;margin:0 auto}.certificate-preview-frame .sicsican-sheet{position:absolute;top:0;left:0;width:210mm;height:297mm;transform:scale(var(--certificate-scale));transform-origin:top left;background:white;overflow:hidden}.sicsican-sheet img{position:absolute;inset:0;width:100%;height:100%}.sicsican-value{position:absolute;display:flex;align-items:center;justify-content:center;font:bold 13pt 'Times New Roman';text-align:center;overflow-wrap:anywhere;line-height:1.15;padding:2mm;box-sizing:border-box;background:white;color:black}@media print{.certificate-preview-frame .sicsican-sheet{transform:none}}"}</style>
-            <article ref={sheetRef} id="certificate-print-sheet" className="certificate-print-sheet sicsican-sheet">{liveContent}</article>
-        </div>
-    );
+    if (certificateType === 'Business Clearance')
+        return (
+            <div className="certificate-preview-frame">
+                <style>
+                    {
+                        ".certificate-preview-frame{--certificate-scale:min(.55,var(--certificate-fit-scale,.55));width:calc(210mm * var(--certificate-scale));height:calc(297mm * var(--certificate-scale));position:relative;margin:0 auto}.certificate-preview-frame .sicsican-sheet{position:absolute;top:0;left:0;width:210mm;height:297mm;transform:scale(var(--certificate-scale));transform-origin:top left;background:white;overflow:hidden}.sicsican-sheet img{position:absolute;inset:0;width:100%;height:100%}.sicsican-value{position:absolute;display:flex;align-items:center;justify-content:center;font:bold 13pt 'Times New Roman';text-align:center;overflow-wrap:anywhere;line-height:1.15;padding:2mm;box-sizing:border-box;background:white;color:black}@media print{.certificate-preview-frame .sicsican-sheet{transform:none}}"
+                    }
+                </style>
+                <article
+                    ref={sheetRef}
+                    id="certificate-print-sheet"
+                    className="certificate-print-sheet sicsican-sheet"
+                >
+                    {liveContent}
+                </article>
+            </div>
+        );
     const isTricycle = certificateType === 'Tricycle';
     const isStore = certificateType === 'Sari-sari Store';
     const isPermit = isTricycle || isStore;
@@ -242,57 +268,139 @@ export default function BrandedCertificatePreview({ body, onReady, liveContent, 
                 }
             `}</style>
 
-                <img src={isStore ? '/certificate-branding/sari-sari/header.svg' : isTricycle ? '/certificate-branding/tricycle/image1.png' : ARTWORK.top} alt="" aria-hidden="true" className="certificate-shell-art certificate-shell-top" />
-                <img src={isStore ? '/certificate-branding/sari-sari/footer.svg' : isTricycle ? '/certificate-branding/tricycle/image5.png' : ARTWORK.overlay} alt="" aria-hidden="true" className="certificate-shell-art certificate-shell-overlay" />
+                <img
+                    src={
+                        isStore
+                            ? '/certificate-branding/sari-sari/header.svg'
+                            : isTricycle
+                              ? '/certificate-branding/tricycle/image1.png'
+                              : ARTWORK.top
+                    }
+                    alt=""
+                    aria-hidden="true"
+                    className="certificate-shell-art certificate-shell-top"
+                />
+                <img
+                    src={
+                        isStore
+                            ? '/certificate-branding/sari-sari/footer.svg'
+                            : isTricycle
+                              ? '/certificate-branding/tricycle/image5.png'
+                              : ARTWORK.overlay
+                    }
+                    alt=""
+                    aria-hidden="true"
+                    className="certificate-shell-art certificate-shell-overlay"
+                />
 
-                {isPermit && <>
-                    <img src="/certificate-branding/tricycle/image2.png" alt="" aria-hidden="true" className="tricycle-watermark" />
-                    <img src="/certificate-branding/tricycle/image6.png" alt="" aria-hidden="true" className="tricycle-bagong-logo" />
-                </>}
+                {isPermit && (
+                    <>
+                        <img
+                            src="/certificate-branding/tricycle/image2.png"
+                            alt=""
+                            aria-hidden="true"
+                            className="tricycle-watermark"
+                        />
+                        <img
+                            src="/certificate-branding/tricycle/image6.png"
+                            alt=""
+                            aria-hidden="true"
+                            className="tricycle-bagong-logo"
+                        />
+                    </>
+                )}
                 <header className="certificate-shell-header">
-                    <Logo src={isPermit ? '/certificate-branding/tricycle/image3.png' : ARTWORK.barangayLogo} alt="Barangay San Jose seal" className="certificate-shell-logo certificate-shell-logo-left" />
+                    <Logo
+                        src={
+                            isPermit
+                                ? '/certificate-branding/tricycle/image3.png'
+                                : ARTWORK.barangayLogo
+                        }
+                        alt="Barangay San Jose seal"
+                        className="certificate-shell-logo certificate-shell-logo-left"
+                    />
                     <div className="certificate-shell-heading">
                         <div>Republic of the Philippines</div>
                         <div>City of Puerto Princesa</div>
                         <strong>BARANGAY SAN JOSE</strong>
                         <strong>Office of the Punong Barangay</strong>
                     </div>
-                    <Logo src={isPermit ? '/certificate-branding/tricycle/image4.png' : ARTWORK.cityLogo} alt="City of Puerto Princesa seal" className="certificate-shell-logo certificate-shell-logo-right" />
+                    <Logo
+                        src={
+                            isPermit
+                                ? '/certificate-branding/tricycle/image4.png'
+                                : ARTWORK.cityLogo
+                        }
+                        alt="City of Puerto Princesa seal"
+                        className="certificate-shell-logo certificate-shell-logo-right"
+                    />
                 </header>
 
-                <div className={`certificate-shell-content ${certificateType === 'Scholarship Certificate' ? 'certificate-scholarship' : certificateType === 'Residency' ? 'certificate-residency' : certificateType === 'Delayed PSA Registration' ? 'certificate-delayed-psa' : isPermit ? 'certificate-tricycle' : ''}`}>
+                <div
+                    className={`certificate-shell-content ${certificateType === 'Scholarship Certificate' ? 'certificate-scholarship' : certificateType === 'Residency' ? 'certificate-residency' : certificateType === 'Delayed PSA Registration' ? 'certificate-delayed-psa' : isPermit ? 'certificate-tricycle' : ''}`}
+                >
                     {liveContent ? (
-                        <div className={`certificate-live-copy ${punong_barangay?.title === 'Barangay Kagawad, OIC' ? 'certificate-oic' : ''}`}>
+                        <div
+                            className={`certificate-live-copy ${punong_barangay?.title === 'Barangay Kagawad, OIC' ? 'certificate-oic' : ''}`}
+                        >
                             <h1>CERTIFICATION</h1>
-                            {['Indigency', 'Scholarship Certificate'].includes(certificateType || '') && <p className="certificate-subtitle">{certificateType === 'Scholarship Certificate' ? 'INDIGENT CERTIFICATE' : '(Indigent Certificate)'}</p>}
-                            <CaptainContext.Provider value={punong_barangay}>{liveContent}</CaptainContext.Provider>
+                            {['Indigency', 'Scholarship Certificate'].includes(
+                                certificateType || '',
+                            ) && (
+                                <p className="certificate-subtitle">
+                                    {certificateType ===
+                                    'Scholarship Certificate'
+                                        ? 'INDIGENT CERTIFICATE'
+                                        : '(Indigent Certificate)'}
+                                </p>
+                            )}
+                            <CaptainContext.Provider value={punong_barangay}>
+                                {liveContent}
+                            </CaptainContext.Provider>
                         </div>
-                    ) : <CertificateDocumentPreview body={body} onReady={onReady} />}
+                    ) : (
+                        <CertificateDocumentPreview
+                            body={body}
+                            onReady={onReady}
+                        />
+                    )}
                 </div>
 
-                {liveContent && !['Sari-sari Store', 'Tricycle'].includes(certificateType || '') && (
-                    <div className={`certificate-control-box ${certificateType === 'Marriage Cohabitation' ? 'certificate-control-top' : ''}`}>
-                        CONTROL NO.: <u>{controlNumber || '____________'}</u>
-                    </div>
-                )}
-
+                {liveContent &&
+                    !['Sari-sari Store', 'Tricycle'].includes(
+                        certificateType || '',
+                    ) && (
+                        <div
+                            className={`certificate-control-box ${certificateType === 'Marriage Cohabitation' ? 'certificate-control-top' : ''}`}
+                        >
+                            CONTROL NO.:{' '}
+                            <u>{controlNumber || '____________'}</u>
+                        </div>
+                    )}
             </article>
         </div>
     );
 }
 
-function Logo({ src, alt, className = 'certificate-shell-logo' }: { src: string; alt: string; className?: string }) {
+function Logo({
+    src,
+    alt,
+    className = 'certificate-shell-logo',
+}: {
+    src: string;
+    alt: string;
+    className?: string;
+}) {
     return <img src={src} alt={alt} className={className} />;
 }
-
-
-
 
 export function CaptainSignature() {
     const official = useContext(CaptainContext);
     return (
         <div className="certificate-signature">
-            <p className="font-bold">{official?.name.toUpperCase() || '___________________'}</p>
+            <p className="font-bold">
+                {official?.name.toUpperCase() || '___________________'}
+            </p>
             <p>{official?.title || 'Punong Barangay'}</p>
         </div>
     );

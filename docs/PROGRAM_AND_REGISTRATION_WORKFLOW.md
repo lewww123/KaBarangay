@@ -51,15 +51,15 @@ new registration-invitation name.
 
 ## Verification
 
-| Check | Result |
-| --- | --- |
-| `php artisan migrate` | Applied program-status migration successfully |
-| `php artisan config:clear` | Passed |
-| `php artisan route:clear` | Passed |
-| `npm run types:check` | Passed |
-| `npm run build` | Passed |
-| `php artisan test --compact` | 1,245 passed, 1 skipped; 11,661 assertions; zero failures/errors |
-| New PHP infrastructure formatting / `git diff --check` | Passed |
+| Check                                                  | Result                                                           |
+| ------------------------------------------------------ | ---------------------------------------------------------------- |
+| `php artisan migrate`                                  | Applied program-status migration successfully                    |
+| `php artisan config:clear`                             | Passed                                                           |
+| `php artisan route:clear`                              | Passed                                                           |
+| `npm run types:check`                                  | Passed                                                           |
+| `npm run build`                                        | Passed                                                           |
+| `php artisan test --compact`                           | 1,245 passed, 1 skipped; 11,661 assertions; zero failures/errors |
+| New PHP infrastructure formatting / `git diff --check` | Passed                                                           |
 
 Coverage includes each staff portal's draft/publication/completion flow, rejected
 approval-status input, blocked Admin program review, removed claim endpoints,

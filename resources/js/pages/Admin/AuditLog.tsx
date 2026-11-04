@@ -115,9 +115,7 @@ function formatDuration(seconds: number): string {
 }
 
 function formatLabel(value: string): string {
-    return value
-        .replace(/[_.]/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase());
+    return value.replace(/[_.]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function formatEventLabel(event: string): string {
@@ -130,7 +128,24 @@ function formatEventLabel(event: string): string {
 }
 
 export default function AuditLog(props: Props) {
-    return <Deferred data={['logs', 'loginAttempts', 'loginAttemptsAvailable', 'alerts', 'alertsAvailable']} fallback={<AdminLayout active="audit-log"><AdminPageSkeleton showTabs /></AdminLayout>}><AuditLogContent {...props} /></Deferred>;
+    return (
+        <Deferred
+            data={[
+                'logs',
+                'loginAttempts',
+                'loginAttemptsAvailable',
+                'alerts',
+                'alertsAvailable',
+            ]}
+            fallback={
+                <AdminLayout active="audit-log">
+                    <AdminPageSkeleton showTabs />
+                </AdminLayout>
+            }
+        >
+            <AuditLogContent {...props} />
+        </Deferred>
+    );
 }
 
 function AuditLogContent({
@@ -148,7 +163,8 @@ function AuditLogContent({
     const activeFilter = filters?.event ?? '';
     const [selectedEvent, setSelectedEvent] = useState(activeFilter);
 
-    const attemptsPaginator = loginAttempts ?? emptyPaginator<LoginAttemptEntry>();
+    const attemptsPaginator =
+        loginAttempts ?? emptyPaginator<LoginAttemptEntry>();
     const attempts = Array.isArray(attemptsPaginator.data)
         ? attemptsPaginator.data
         : [];
@@ -308,9 +324,7 @@ function AuditLogContent({
                     aria-live="polite"
                 >
                     {isLoading && (
-                        <span className="text-xs text-gray-500">
-                            Loading…
-                        </span>
+                        <span className="text-xs text-gray-500">Loading…</span>
                     )}
                 </div>
 
@@ -440,128 +454,149 @@ function ActivityLogSection({
     navigateToPage,
 }: ActivityLogSectionProps) {
     return (
-                <section>
-                    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-base font-semibold text-gray-800">
-                                Audit Logs
-                            </h2>
-                            <p className="text-xs text-gray-500" aria-live="polite">
-                                {paginator.total === 0
-                                    ? hasFilters
-                                        ? 'No records match the current filter.'
-                                        : 'No audit records yet.'
-                                    : `Showing ${paginator.from ?? 0}–${paginator.to ?? 0} of ${paginator.total} ${
-                                          hasFilters
-                                              ? 'matching records'
-                                              : 'records'
-                                      }`}
-                            </p>
-                        </div>
+        <section>
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                    <h2 className="text-base font-semibold text-gray-800">
+                        Audit Logs
+                    </h2>
+                    <p className="text-xs text-gray-500" aria-live="polite">
+                        {paginator.total === 0
+                            ? hasFilters
+                                ? 'No records match the current filter.'
+                                : 'No audit records yet.'
+                            : `Showing ${paginator.from ?? 0}–${paginator.to ?? 0} of ${paginator.total} ${
+                                  hasFilters ? 'matching records' : 'records'
+                              }`}
+                    </p>
+                </div>
 
-                        <div className="flex items-center gap-2">
-                            <label
-                                htmlFor="event-filter"
-                                className="text-sm text-gray-600"
-                            >
-                                Event
-                            </label>
-                            <select
-                                id="event-filter"
-                                value={selectedEvent}
-                                disabled={isLoading}
-                                onChange={(e) => applyFilter(e.target.value)}
-                                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                <option value="">All events</option>
-                                {eventOptions.map((event) => (
-                                    <option key={event} value={event}>
-                                        {formatEventLabel(event)}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div
-                        className="overflow-hidden rounded-lg border border-gray-200 bg-white"
-                        aria-busy={isLoading}
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="event-filter"
+                        className="text-sm text-gray-600"
                     >
-                        <div className="overflow-x-auto">
-                            <table className="w-full min-w-[700px]">
-                                <thead className="bg-[#f0ebe1]">
-                                    <tr className="border-b border-[#e6ddcd]">
-                                        <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
-                                            DATE/TIME
-                                        </th>
-                                        <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
-                                            SECTOR
-                                        </th>
-                                        <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
-                                            STAFF NAME
-                                        </th>
-                                        <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
-                                            ACTION
-                                        </th>
-                                    </tr>
-                                </thead>
+                        Event
+                    </label>
+                    <select
+                        id="event-filter"
+                        value={selectedEvent}
+                        disabled={isLoading}
+                        onChange={(e) => applyFilter(e.target.value)}
+                        className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <option value="">All events</option>
+                        {eventOptions.map((event) => (
+                            <option key={event} value={event}>
+                                {formatEventLabel(event)}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
 
-                                <tbody>
-                                    {rows.length === 0 ? (
-                                        <tr>
-                                            <td
-                                                colSpan={4}
-                                                className="px-5 py-10 text-center text-sm text-gray-500"
-                                            >
-                                                {hasFilters
-                                                    ? 'No audit records match the selected event filter.'
-                                                    : 'No audit records found yet. Activity will appear here as staff actions are recorded.'}
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        rows.map((log) => (
-                                            <tr
-                                                key={log.id}
-                                                className="border-b border-gray-100 last:border-0"
-                                            >
-                                                <td className="px-5 py-3 text-sm whitespace-nowrap text-gray-600">
-                                                    {log.created_at ?? '—'}
-                                                </td>
+            <div
+                className="overflow-hidden rounded-lg border border-gray-200 bg-white"
+                aria-busy={isLoading}
+            >
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[700px]">
+                        <thead className="bg-[#f0ebe1]">
+                            <tr className="border-b border-[#e6ddcd]">
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
+                                    DATE/TIME
+                                </th>
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
+                                    SECTOR
+                                </th>
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
+                                    STAFF NAME
+                                </th>
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
+                                    ACTION
+                                </th>
+                            </tr>
+                        </thead>
 
-                                                <td className="px-5 py-3 text-sm text-gray-600">
-                                                    {sectorForEvent(log.event)}
-                                                </td>
+                        <tbody>
+                            {rows.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan={4}
+                                        className="px-5 py-10 text-center text-sm text-gray-500"
+                                    >
+                                        {hasFilters
+                                            ? 'No audit records match the selected event filter.'
+                                            : 'No audit records found yet. Activity will appear here as staff actions are recorded.'}
+                                    </td>
+                                </tr>
+                            ) : (
+                                rows.map((log) => (
+                                    <tr
+                                        key={log.id}
+                                        className="border-b border-gray-100 last:border-0"
+                                    >
+                                        <td className="px-5 py-3 text-sm whitespace-nowrap text-gray-600">
+                                            {log.created_at ?? '—'}
+                                        </td>
 
-                                                <td className="px-5 py-3 text-sm text-gray-700">
-                                                    {log.actor ? (
-                                                        <div><span className="font-medium">{log.actor.name}</span>{log.actor.position && <p className="mt-1 text-xs text-gray-500">{log.actor.position}{log.actor.department_label ? ` · ${log.actor.department_label}` : ''}</p>}</div>
-                                                    ) : (
-                                                        <span className="text-gray-400">
-                                                            System
-                                                        </span>
-                                                    )}
-                                                </td>
+                                        <td className="px-5 py-3 text-sm text-gray-600">
+                                            {sectorForEvent(log.event)}
+                                        </td>
 
-                                                <td className="px-5 py-3">
-                                                    <span className="rounded-full bg-[#e2f0fc] px-3 py-1 text-xs whitespace-nowrap text-[#21679d]">
-                                                        {formatEventLabel(
-                                                            log.event,
-                                                        )}
+                                        <td className="px-5 py-3 text-sm text-gray-700">
+                                            {log.actor ? (
+                                                <div>
+                                                    <span className="font-medium">
+                                                        {log.actor.name}
                                                     </span>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                                    {log.actor.position && (
+                                                        <p className="mt-1 text-xs text-gray-500">
+                                                            {log.actor.position}
+                                                            {log.actor
+                                                                .department_label
+                                                                ? ` · ${log.actor.department_label}`
+                                                                : ''}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">
+                                                    System
+                                                </span>
+                                            )}
+                                        </td>
 
-                        <PaginationControls
-                            paginator={paginator}
-                            navigateToPage={navigateToPage}
-                        />
-                    </div>
-                </section>
+                                        <td className="px-5 py-3">
+                                            <span className="rounded-full bg-[#e2f0fc] px-3 py-1 text-xs whitespace-nowrap text-[#21679d]">
+                                                {formatEventLabel(log.event)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <PaginationControls
+                    paginator={paginator}
+                    navigateToPage={navigateToPage}
+                />
+            </div>
+        </section>
     );
 }
 
@@ -603,16 +638,28 @@ function LoginAttemptsSection({
                     <table className="w-full min-w-[420px]">
                         <thead className="bg-[#f0ebe1]">
                             <tr className="border-b border-[#e6ddcd]">
-                                <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
                                     ACTOR
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
                                     CHANNEL
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
                                     TIME
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
                                     STATUS
                                 </th>
                             </tr>
@@ -625,7 +672,8 @@ function LoginAttemptsSection({
                                         colSpan={4}
                                         className="px-5 py-10 text-center text-sm text-gray-500"
                                     >
-                                        Login attempt data is temporarily unavailable. Please try again later.
+                                        Login attempt data is temporarily
+                                        unavailable. Please try again later.
                                     </td>
                                 </tr>
                             ) : rows.length === 0 ? (
@@ -634,7 +682,9 @@ function LoginAttemptsSection({
                                         colSpan={4}
                                         className="px-5 py-10 text-center text-sm text-gray-500"
                                     >
-                                        No login attempts found. Attempts will appear here as login activity is recorded.
+                                        No login attempts found. Attempts will
+                                        appear here as login activity is
+                                        recorded.
                                     </td>
                                 </tr>
                             ) : (
@@ -644,7 +694,8 @@ function LoginAttemptsSection({
                                         className="border-b border-gray-100 last:border-0"
                                     >
                                         <td className="px-5 py-3 text-sm text-gray-700">
-                                            {attempt.actor_label || formatLabel(attempt.actor_type)}
+                                            {attempt.actor_label ||
+                                                formatLabel(attempt.actor_type)}
                                         </td>
 
                                         <td className="px-5 py-3 text-sm text-gray-600">
@@ -656,7 +707,9 @@ function LoginAttemptsSection({
                                         </td>
 
                                         <td className="px-5 py-3">
-                                            <StatusBadge status={attempt.status} />
+                                            <StatusBadge
+                                                status={attempt.status}
+                                            />
                                         </td>
                                     </tr>
                                 ))
@@ -730,16 +783,28 @@ function SuspiciousActivitySection({
                     <table className="w-full min-w-[520px]">
                         <thead className="bg-[#f0ebe1]">
                             <tr className="border-b border-[#e6ddcd]">
-                                <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
                                     DETECTED
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
                                     ALERT
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
                                     ATTEMPTS
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]">
+                                <th
+                                    scope="col"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                >
                                     WINDOW
                                 </th>
                             </tr>
@@ -752,7 +817,8 @@ function SuspiciousActivitySection({
                                         colSpan={4}
                                         className="px-5 py-10 text-center text-sm text-gray-500"
                                     >
-                                        Suspicious activity data is temporarily unavailable. Please try again later.
+                                        Suspicious activity data is temporarily
+                                        unavailable. Please try again later.
                                     </td>
                                 </tr>
                             ) : rows.length === 0 ? (
@@ -761,7 +827,8 @@ function SuspiciousActivitySection({
                                         colSpan={4}
                                         className="px-5 py-10 text-center text-sm text-gray-500"
                                     >
-                                        No suspicious activity found. Repeated failed logins will appear here.
+                                        No suspicious activity found. Repeated
+                                        failed logins will appear here.
                                     </td>
                                 </tr>
                             ) : (
@@ -785,7 +852,9 @@ function SuspiciousActivitySection({
                                         </td>
 
                                         <td className="px-5 py-3 text-sm text-gray-600">
-                                            {formatDuration(alert.window_seconds)}
+                                            {formatDuration(
+                                                alert.window_seconds,
+                                            )}
                                         </td>
                                     </tr>
                                 ))

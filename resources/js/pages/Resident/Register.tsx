@@ -1,7 +1,10 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import LegalLinks from '@/components/LegalLinks';
 import EmailVerificationSection from '@/components/registration/EmailVerificationSection';
-import useRegistrationEmailOtp, { type RegistrationEmailVerification, type RegistrationEmailOtpControls } from '@/hooks/useRegistrationEmailOtp';
+import useRegistrationEmailOtp, {
+    type RegistrationEmailVerification,
+    type RegistrationEmailOtpControls,
+} from '@/hooks/useRegistrationEmailOtp';
 import {
     ChangeEvent,
     FormEvent,
@@ -63,10 +66,17 @@ export default function Register(props: Props) {
     return <RegistrationContent {...props} />;
 }
 
-function RegistrationContent({ barangays, sectors, emailVerification, emailVerificationRequired = false }: Props) {
+function RegistrationContent({
+    barangays,
+    sectors,
+    emailVerification,
+    emailVerificationRequired = false,
+}: Props) {
     const safeBarangays = Array.isArray(barangays) ? barangays : [];
     const safeSectors = Array.isArray(sectors) ? sectors : [];
-    const regularSector = safeSectors.find((sector) => sector.slug === 'regular');
+    const regularSector = safeSectors.find(
+        (sector) => sector.slug === 'regular',
+    );
     const membershipSectors = safeSectors.filter(
         (sector) => sector.slug !== 'regular',
     );
@@ -80,39 +90,35 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
     const [showPasswordConfirmation, setShowPasswordConfirmation] =
         useState(false);
 
-    const {
-        data,
-        setData,
-        post,
-        processing,
-        errors,
-        clearErrors,
-        progress,
-    } = useForm({
-        barangay_id: '',
-        purok_id: '',
-        first_name: '',
-        middle_name: '',
-        last_name: '',
-        suffix: '',
-        birthdate: '',
-        sex: '' as Sex,
-        civil_status: '' as CivilStatus,
-        address_line: '',
-        sectors: [] as string[],
-        mobile: '',
-        email: emailVerification?.email ?? '',
-        email_verified: emailVerification?.status === 'verified',
-        qr_token: '',
-        password: '',
-        password_confirmation: '',
-        valid_id: null as File | null,
-        live_identity_photo: null as File | null,
-        senior_proof: null as File | null,
-        pwd_proof: null as File | null,
-    });
+    const { data, setData, post, processing, errors, clearErrors, progress } =
+        useForm({
+            barangay_id: '',
+            purok_id: '',
+            first_name: '',
+            middle_name: '',
+            last_name: '',
+            suffix: '',
+            birthdate: '',
+            sex: '' as Sex,
+            civil_status: '' as CivilStatus,
+            address_line: '',
+            sectors: [] as string[],
+            mobile: '',
+            email: emailVerification?.email ?? '',
+            email_verified: emailVerification?.status === 'verified',
+            qr_token: '',
+            password: '',
+            password_confirmation: '',
+            valid_id: null as File | null,
+            live_identity_photo: null as File | null,
+            senior_proof: null as File | null,
+            pwd_proof: null as File | null,
+        });
 
-    const emailOtp = useRegistrationEmailOtp(data.email, emailVerificationRequired ? emailVerification : undefined);
+    const emailOtp = useRegistrationEmailOtp(
+        data.email,
+        emailVerificationRequired ? emailVerification : undefined,
+    );
 
     const selectedBarangay = useMemo(
         () =>
@@ -240,7 +246,10 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
         if (targetStep === 1) {
             if (!data.barangay_id) {
                 nextErrors.barangay_id = 'Please select your barangay.';
-            } else if (selectedBarangay && selectedBarangay.puroks.length === 0) {
+            } else if (
+                selectedBarangay &&
+                selectedBarangay.puroks.length === 0
+            ) {
                 nextErrors.barangay_id =
                     'Registration for this barangay is not available yet because its puroks have not been configured.';
             }
@@ -321,7 +330,8 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                 nextErrors.email = 'Enter a valid email address.';
             }
             if (emailVerificationRequired && !emailOtp.verified) {
-                nextErrors.email_verification = 'Verify your email with an OTP before continuing.';
+                nextErrors.email_verification =
+                    'Verify your email with an OTP before continuing.';
             }
 
             if (!data.password) {
@@ -343,8 +353,7 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                 nextErrors.password_confirmation =
                     'Please confirm your password.';
             } else if (data.password !== data.password_confirmation) {
-                nextErrors.password_confirmation =
-                    'Passwords do not match.';
+                nextErrors.password_confirmation = 'Passwords do not match.';
             }
         }
 
@@ -377,7 +386,10 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
         event.preventDefault();
 
         if (emailVerificationRequired && !emailOtp.verified) {
-            setClientErrors({ email_verification: 'Verify your email with an OTP before submitting registration.' });
+            setClientErrors({
+                email_verification:
+                    'Verify your email with an OTP before submitting registration.',
+            });
             setStep(5);
             scrollTop();
             return;
@@ -399,11 +411,7 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                 }
                 const keys = Object.keys(serverErrors);
 
-                if (
-                    keys.some((key) =>
-                        ['barangay_id'].includes(key),
-                    )
-                ) {
+                if (keys.some((key) => ['barangay_id'].includes(key))) {
                     setStep(1);
                 } else if (
                     keys.some((key) =>
@@ -456,9 +464,11 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                 const messages = Object.values(serverErrors).filter(
                     (value): value is string => typeof value === 'string',
                 );
-                emailOtp.showError(messages.length > 0
-                    ? messages.join('\n')
-                    : 'Please correct the highlighted fields and try again.');
+                emailOtp.showError(
+                    messages.length > 0
+                        ? messages.join('\n')
+                        : 'Please correct the highlighted fields and try again.',
+                );
             },
             onFinish: () => setData('qr_token', ''),
         });
@@ -489,10 +499,30 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
 
             <div className="min-h-screen bg-[#f7f6f0]">
                 {emailOtp.feedback && (
-                    <div role={emailOtp.feedback.kind === 'error' ? 'alert' : 'status'} aria-live={emailOtp.feedback.kind === 'error' ? 'assertive' : 'polite'}
-                        className={`fixed top-4 right-4 z-[100] flex max-w-[calc(100vw-2rem)] items-start gap-3 rounded-xl border p-4 text-sm shadow-lg sm:max-w-md ${emailOtp.feedback.kind === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-900'}`}>
-                        <span className="whitespace-pre-line">{emailOtp.feedback.message}</span>
-                        <button type="button" aria-label="Dismiss notification" onClick={emailOtp.dismissFeedback} className="font-bold">×</button>
+                    <div
+                        role={
+                            emailOtp.feedback.kind === 'error'
+                                ? 'alert'
+                                : 'status'
+                        }
+                        aria-live={
+                            emailOtp.feedback.kind === 'error'
+                                ? 'assertive'
+                                : 'polite'
+                        }
+                        className={`fixed top-4 right-4 z-[100] flex max-w-[calc(100vw-2rem)] items-start gap-3 rounded-xl border p-4 text-sm shadow-lg sm:max-w-md ${emailOtp.feedback.kind === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-900'}`}
+                    >
+                        <span className="whitespace-pre-line">
+                            {emailOtp.feedback.message}
+                        </span>
+                        <button
+                            type="button"
+                            aria-label="Dismiss notification"
+                            onClick={emailOtp.dismissFeedback}
+                            className="font-bold"
+                        >
+                            ×
+                        </button>
                     </div>
                 )}
                 <PublicHeader />
@@ -505,9 +535,10 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                             </h1>
 
                             <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                                Your resident record must first be added by your barangay Admin.
-                                Submit this application so staff can verify your identity and
-                                link your online account to that existing record.
+                                Your resident record must first be added by your
+                                barangay Admin. Submit this application so staff
+                                can verify your identity and link your online
+                                account to that existing record.
                             </p>
                         </div>
 
@@ -520,7 +551,7 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                                         <MapPinIcon />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-[11px] font-bold uppercase tracking-wider text-[#3f6f3d]">
+                                        <p className="text-[11px] font-bold tracking-wider text-[#3f6f3d] uppercase">
                                             Registering under
                                         </p>
                                         <p className="mt-0.5 truncate text-sm font-bold text-gray-800">
@@ -552,10 +583,26 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                         )}
 
                         {Object.keys(errors).length > 0 && (
-                            <div role="alert" aria-live="polite" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                                <p className="font-semibold">Your application has not been submitted yet.</p>
-                                <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(errors).map(([field, message]) => <li key={field}>{message}</li>)}</ul>
-                                <p className="mt-2">Your information and selected documents are still in this form. Correct the issue below and submit again.</p>
+                            <div
+                                role="alert"
+                                aria-live="polite"
+                                className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+                            >
+                                <p className="font-semibold">
+                                    Your application has not been submitted yet.
+                                </p>
+                                <ul className="mt-2 list-disc space-y-1 pl-5">
+                                    {Object.entries(errors).map(
+                                        ([field, message]) => (
+                                            <li key={field}>{message}</li>
+                                        ),
+                                    )}
+                                </ul>
+                                <p className="mt-2">
+                                    Your information and selected documents are
+                                    still in this form. Correct the issue below
+                                    and submit again.
+                                </p>
                             </div>
                         )}
 
@@ -564,7 +611,7 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                             className="mt-5 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:mt-6"
                         >
                             <div className="border-b border-gray-100 px-5 py-5 sm:px-7">
-                                <p className="text-xs font-bold uppercase tracking-wider text-[#3f6f3d]">
+                                <p className="text-xs font-bold tracking-wider text-[#3f6f3d] uppercase">
                                     Step {step} of {TOTAL_STEPS}
                                 </p>
 
@@ -604,7 +651,9 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                                         regularSector={regularSector}
                                         membershipSectors={membershipSectors}
                                         selectedSlugs={data.sectors}
-                                        regularSelected={regularResidentSelected}
+                                        regularSelected={
+                                            regularResidentSelected
+                                        }
                                         error={
                                             fieldError(
                                                 'resident_classification',
@@ -620,7 +669,9 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                                         isSenior={isSenior}
                                         isPwd={isPwd}
                                         qrToken={data.qr_token}
-                                        onQrTokenChange={(value) => setData('qr_token', value)}
+                                        onQrTokenChange={(value) =>
+                                            setData('qr_token', value)
+                                        }
                                         validId={data.valid_id}
                                         liveIdentityPhoto={
                                             data.live_identity_photo
@@ -639,7 +690,9 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                                     <AccountSecurityStep
                                         data={data}
                                         emailOtp={emailOtp}
-                                        emailVerificationRequired={emailVerificationRequired}
+                                        emailVerificationRequired={
+                                            emailVerificationRequired
+                                        }
                                         errors={fieldError}
                                         setData={setData}
                                         clearFieldError={clearFieldError}
@@ -668,7 +721,12 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                                         sex={data.sex}
                                         civilStatus={data.civil_status}
                                         mobile={data.mobile}
-                                        email={emailVerificationRequired && emailOtp.verified ? `${data.email} · OTP verified` : data.email}
+                                        email={
+                                            emailVerificationRequired &&
+                                            emailOtp.verified
+                                                ? `${data.email} · OTP verified`
+                                                : data.email
+                                        }
                                         sectorNames={selectedSectorNames}
                                         validId={data.valid_id}
                                         livePhoto={data.live_identity_photo}
@@ -676,9 +734,7 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                                         pwdProof={data.pwd_proof}
                                         isSenior={isSenior}
                                         isPwd={isPwd}
-                                        declarationChecked={
-                                            acceptedDeclaration
-                                        }
+                                        declarationChecked={acceptedDeclaration}
                                         declarationError={fieldError(
                                             'declaration',
                                         )}
@@ -739,7 +795,12 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                                     <button
                                         type="button"
                                         onClick={nextStep}
-                                        disabled={step === 5 && emailVerificationRequired && (!emailOtp.verified || emailOtp.busy !== null)}
+                                        disabled={
+                                            step === 5 &&
+                                            emailVerificationRequired &&
+                                            (!emailOtp.verified ||
+                                                emailOtp.busy !== null)
+                                        }
                                         className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         Continue
@@ -748,7 +809,11 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                                 ) : (
                                     <button
                                         type="submit"
-                                        disabled={processing || (emailVerificationRequired && !emailOtp.verified)}
+                                        disabled={
+                                            processing ||
+                                            (emailVerificationRequired &&
+                                                !emailOtp.verified)
+                                        }
                                         className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {processing ? (
@@ -823,10 +888,7 @@ function BarangayStep({
                     },
                     ...barangays.map((barangay) => ({
                         value: String(barangay.id),
-                        label: [
-                            barangay.name,
-                            barangay.city_municipality,
-                        ]
+                        label: [barangay.name, barangay.city_municipality]
                             .filter(Boolean)
                             .join(' — '),
                     })),
@@ -839,7 +901,9 @@ function BarangayStep({
                         No barangays are available.
                     </p>
                     <p className="mt-1 text-xs leading-5 text-amber-800">
-                        Make sure the resident registration route uses RegistrationController::create and that your barangay records are active.
+                        Make sure the resident registration route uses
+                        RegistrationController::create and that your barangay
+                        records are active.
                     </p>
                 </div>
             )}
@@ -1134,8 +1198,9 @@ function SectorInformationStep({
                         Senior Citizen and PWD options are not available.
                     </p>
                     <p className="mt-1 text-xs leading-5 text-amber-800">
-                        Regular Resident is still available. Run the SectorSeeder
-                        to restore the Senior Citizen and PWD options.
+                        Regular Resident is still available. Run the
+                        SectorSeeder to restore the Senior Citizen and PWD
+                        options.
                     </p>
                 </div>
             )}
@@ -1296,11 +1361,20 @@ function IdentityVerificationStep({
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-white p-4">
-                <label htmlFor="registration-qr-token" className="block text-sm font-semibold text-gray-800">
-                    Existing Resident QR token <span className="font-normal text-gray-500">(optional)</span>
+                <label
+                    htmlFor="registration-qr-token"
+                    className="block text-sm font-semibold text-gray-800"
+                >
+                    Existing Resident QR token{' '}
+                    <span className="font-normal text-gray-500">
+                        (optional)
+                    </span>
                 </label>
                 <p className="mt-1 text-xs leading-5 text-gray-500">
-                    Enter the raw token from your existing KaBarangay Resident QR. It may help staff find a matching record, but it does not prove identity or link an account. You can continue without it.
+                    Enter the raw token from your existing KaBarangay Resident
+                    QR. It may help staff find a matching record, but it does
+                    not prove identity or link an account. You can continue
+                    without it.
                 </p>
                 <input
                     id="registration-qr-token"
@@ -1311,7 +1385,7 @@ function IdentityVerificationStep({
                     autoComplete="off"
                     autoCapitalize="off"
                     spellCheck={false}
-                    className="mt-3 min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-[#3f6f3d] focus:outline-none focus:ring-2 focus:ring-[#3f6f3d]/20"
+                    className="mt-3 min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20 focus:outline-none"
                     placeholder="KBQR-…"
                 />
             </div>
@@ -1363,9 +1437,7 @@ function IdentityVerificationStep({
                                 accept="image/jpeg,image/png,application/pdf"
                                 value={pwdProof}
                                 error={errors('pwd_proof')}
-                                onChange={(file) =>
-                                    setFile('pwd_proof', file)
-                                }
+                                onChange={(file) => setFile('pwd_proof', file)}
                                 icon={<DocumentIcon />}
                             />
                         )}
@@ -1444,18 +1516,39 @@ function AccountSecurityStep({
                     />
 
                     {emailVerificationRequired ? (
-                    <EmailVerificationSection
-                        email={data.email}
-                        controls={emailOtp}
-                        error={errors('email') || errors('email_verification')}
-                        onEmailChange={(value) => {
-                            setData('email', value);
-                            clearFieldError('email');
-                            clearFieldError('email_verification');
-                        }}
-                    />
-                    ) : (<InputField label="Email address" required type="email" value={data.email} placeholder="you@gmail.com" error={errors('email')} onChange={(value) => { setData('email',value); clearFieldError('email'); }} />)}
-                    {!emailVerificationRequired && <p className="text-xs text-gray-500 sm:col-span-2">Dito ipapadala ang approval, correction request, o ibang desisyon ng admin. Siguraduhing tama at aktibo ang email address.</p>}
+                        <EmailVerificationSection
+                            email={data.email}
+                            controls={emailOtp}
+                            error={
+                                errors('email') || errors('email_verification')
+                            }
+                            onEmailChange={(value) => {
+                                setData('email', value);
+                                clearFieldError('email');
+                                clearFieldError('email_verification');
+                            }}
+                        />
+                    ) : (
+                        <InputField
+                            label="Email address"
+                            required
+                            type="email"
+                            value={data.email}
+                            placeholder="you@gmail.com"
+                            error={errors('email')}
+                            onChange={(value) => {
+                                setData('email', value);
+                                clearFieldError('email');
+                            }}
+                        />
+                    )}
+                    {!emailVerificationRequired && (
+                        <p className="text-xs text-gray-500 sm:col-span-2">
+                            Dito ipapadala ang approval, correction request, o
+                            ibang desisyon ng admin. Siguraduhing tama at aktibo
+                            ang email address.
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -1564,10 +1657,7 @@ function ReviewStep({
                 />
             </ReviewCard>
 
-            <ReviewCard
-                title="Personal Information"
-                onEdit={() => goToStep(2)}
-            >
+            <ReviewCard title="Personal Information" onEdit={() => goToStep(2)}>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <ReviewItem label="Full Name" value={fullName} />
                     <ReviewItem label="Birthdate" value={birthdate} />
@@ -1581,10 +1671,7 @@ function ReviewStep({
                 </div>
             </ReviewCard>
 
-            <ReviewCard
-                title="Sector Information"
-                onEdit={() => goToStep(3)}
-            >
+            <ReviewCard title="Sector Information" onEdit={() => goToStep(3)}>
                 {sectorNames.length === 0 ? (
                     <p className="text-sm font-semibold text-gray-700">
                         Regular Resident
@@ -1620,18 +1707,12 @@ function ReviewStep({
                         />
                     )}
                     {isPwd && (
-                        <DocumentStatus
-                            label="PWD Proof"
-                            file={pwdProof}
-                        />
+                        <DocumentStatus label="PWD Proof" file={pwdProof} />
                     )}
                 </div>
             </ReviewCard>
 
-            <ReviewCard
-                title="Account Information"
-                onEdit={() => goToStep(5)}
-            >
+            <ReviewCard title="Account Information" onEdit={() => goToStep(5)}>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <ReviewItem label="Mobile Number" value={mobile} />
                     <ReviewItem
@@ -1648,7 +1729,10 @@ function ReviewStep({
                             <InfoIcon />
                         </div>
                         <p className="text-xs leading-5 text-amber-800 sm:text-sm">
-                            This application will be submitted to <strong>{barangay.name}</strong> for review. Make sure this is the barangay where you currently reside.
+                            This application will be submitted to{' '}
+                            <strong>{barangay.name}</strong> for review. Make
+                            sure this is the barangay where you currently
+                            reside.
                         </p>
                     </div>
                 </div>
@@ -1801,7 +1885,10 @@ function LiveCameraCapture({
             return;
         }
 
-        if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+        if (
+            !window.isSecureContext &&
+            window.location.hostname !== 'localhost'
+        ) {
             setCameraError(
                 'Camera access requires HTTPS. Please open KaBarangay using a secure connection.',
             );
@@ -1899,7 +1986,9 @@ function LiveCameraCapture({
         canvas.toBlob(
             (blob) => {
                 if (!blob) {
-                    setCameraError('Unable to capture the photo. Please try again.');
+                    setCameraError(
+                        'Unable to capture the photo. Please try again.',
+                    );
                     setCapturing(false);
                     return;
                 }
@@ -1947,7 +2036,7 @@ function LiveCameraCapture({
                                     <div className="h-[72%] w-[58%] max-w-[260px] rounded-[50%] border-2 border-dashed border-white/80 shadow-[0_0_0_999px_rgba(0,0,0,0.18)]" />
                                 </div>
 
-                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/55 px-3 py-1 text-xs font-semibold text-white">
+                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs font-semibold whitespace-nowrap text-white">
                                     Position your face inside the guide
                                 </div>
                             </>
@@ -2002,7 +2091,8 @@ function LiveCameraCapture({
                             </div>
 
                             <p className="mt-2 text-xs leading-5 text-gray-500">
-                                This photo was captured directly from this device camera.
+                                This photo was captured directly from this
+                                device camera.
                             </p>
 
                             <button
@@ -2011,7 +2101,9 @@ function LiveCameraCapture({
                                 disabled={startingCamera}
                                 className="mt-4 min-h-10 rounded-lg border border-gray-300 bg-white px-4 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {startingCamera ? 'Opening Camera...' : 'Retake Photo'}
+                                {startingCamera
+                                    ? 'Opening Camera...'
+                                    : 'Retake Photo'}
                             </button>
                         </div>
                     </div>
@@ -2034,8 +2126,9 @@ function LiveCameraCapture({
                     </p>
 
                     <p className="mt-1 max-w-md text-xs leading-5 text-gray-500">
-                        Open your device camera and take a current photo of yourself.
-                        Gallery upload is not available for this verification step.
+                        Open your device camera and take a current photo of
+                        yourself. Gallery upload is not available for this
+                        verification step.
                     </p>
 
                     <button
@@ -2068,8 +2161,8 @@ function LiveCameraCapture({
             )}
 
             <p className="mt-2 text-xs leading-5 text-gray-400">
-                Works with laptop webcams and phone front cameras. Camera permission
-                is required; deployed sites must use HTTPS.
+                Works with laptop webcams and phone front cameras. Camera
+                permission is required; deployed sites must use HTTPS.
             </p>
         </div>
     );
@@ -2120,11 +2213,7 @@ function FileUpload({
             return;
         }
 
-        const allowed = [
-            'image/jpeg',
-            'image/png',
-            'application/pdf',
-        ];
+        const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
 
         if (!allowed.includes(file.type)) {
             setLocalError('Only JPG, PNG, and PDF files are allowed.');
@@ -2270,11 +2359,7 @@ function RegistrationProgress({ step }: { step: number }) {
                                                 : 'border-gray-200 bg-white text-gray-400',
                                         ].join(' ')}
                                     >
-                                        {complete ? (
-                                            <SmallCheckIcon />
-                                        ) : (
-                                            number
-                                        )}
+                                        {complete ? <SmallCheckIcon /> : number}
                                     </div>
                                     <p
                                         className={[
@@ -2321,12 +2406,10 @@ function PublicHeader() {
                         KB
                     </div>
                     <div className="min-w-0">
-                        <p className="text-base font-bold leading-tight sm:text-lg">
+                        <p className="text-base leading-tight font-bold sm:text-lg">
                             KaBarangay
                         </p>
-                        <p className="text-xs text-white/80">
-                            Resident Portal
-                        </p>
+                        <p className="text-xs text-white/80">Resident Portal</p>
                     </div>
                 </Link>
 
@@ -2614,10 +2697,7 @@ function PasswordRequirements({ password }: { password: string }) {
                 Password requirements
             </p>
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                <Requirement
-                    met={password.length >= 8}
-                    text="8+ characters"
-                />
+                <Requirement met={password.length >= 8} text="8+ characters" />
                 <Requirement
                     met={/[A-Za-z]/.test(password)}
                     text="Contains a letter"
@@ -2647,9 +2727,7 @@ function Requirement({ met, text }: { met: boolean; text: string }) {
             <span
                 className={[
                     'text-xs',
-                    met
-                        ? 'font-medium text-[#3f6f3d]'
-                        : 'text-gray-500',
+                    met ? 'font-medium text-[#3f6f3d]' : 'text-gray-500',
                 ].join(' ')}
             >
                 {text}
@@ -2688,20 +2766,14 @@ function ReviewItem({ label, value }: { label: string; value: string }) {
     return (
         <div>
             <p className="text-xs text-gray-400">{label}</p>
-            <p className="mt-1 break-words text-sm font-semibold text-gray-700">
+            <p className="mt-1 text-sm font-semibold break-words text-gray-700">
                 {value || '—'}
             </p>
         </div>
     );
 }
 
-function DocumentStatus({
-    label,
-    file,
-}: {
-    label: string;
-    file: File | null;
-}) {
+function DocumentStatus({ label, file }: { label: string; file: File | null }) {
     return (
         <div className="flex min-w-0 items-center gap-3 rounded-xl bg-gray-50 p-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e8f1e4] text-[#3f6f3d]">
@@ -2793,11 +2865,7 @@ function SendIcon() {
 
 function SpinnerIcon() {
     return (
-        <svg
-            className="h-4 w-4 animate-spin"
-            viewBox="0 0 24 24"
-            fill="none"
-        >
+        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
             <circle
                 cx="12"
                 cy="12"

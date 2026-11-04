@@ -12,12 +12,29 @@ import SeniorLayout from '@/layouts/SeniorLayout';
 interface Props {
     announcement: AnnouncementDetailsRecord;
     kind?: 'auto' | 'update' | 'program';
-    auth?: { user?: { name?: string }; staffAssignments?: { department: string; position: string }[] };
+    auth?: {
+        user?: { name?: string };
+        staffAssignments?: { department: string; position: string }[];
+    };
 }
 
-export default function SeniorAnnouncementShow({ announcement, auth, kind = 'auto' }: Props) {
-    const activeTab = kind === 'update' ? 'updates' : kind === 'program' ? 'programs' : 'announcements';
-    const backHref = kind === 'update' ? '/senior/updates' : kind === 'program' ? '/senior/programs' : '/senior/announcements';
+export default function SeniorAnnouncementShow({
+    announcement,
+    auth,
+    kind = 'auto',
+}: Props) {
+    const activeTab =
+        kind === 'update'
+            ? 'updates'
+            : kind === 'program'
+              ? 'programs'
+              : 'announcements';
+    const backHref =
+        kind === 'update'
+            ? '/senior/updates'
+            : kind === 'program'
+              ? '/senior/programs'
+              : '/senior/announcements';
     const attendanceHref = isAttendanceAvailable(announcement)
         ? attendanceUrl('senior', announcement.id)
         : null;

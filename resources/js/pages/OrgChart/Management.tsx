@@ -35,19 +35,22 @@ type FormState = {
     photo: File | null;
 };
 
-export default withDeferredPage(OrgChartManagement, ['tree', 'positions', 'stats'], (props) => (
-    props.portal === 'admin'
-        ? <AdminLayout active="org-chart"><PortalPageSkeleton metrics={4} list /></AdminLayout>
-        : <ClerkLayout active="org-chart" user={props.user}><PortalPageSkeleton metrics={4} list /></ClerkLayout>
-));
+export default withDeferredPage(
+    OrgChartManagement,
+    ['tree', 'positions', 'stats'],
+    (props) =>
+        props.portal === 'admin' ? (
+            <AdminLayout active="org-chart">
+                <PortalPageSkeleton metrics={4} list />
+            </AdminLayout>
+        ) : (
+            <ClerkLayout active="org-chart" user={props.user}>
+                <PortalPageSkeleton metrics={4} list />
+            </ClerkLayout>
+        ),
+);
 
-function OrgChartManagement({
-    tree,
-    positions,
-    stats,
-    portal,
-    user,
-}: Props) {
+function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
     const page = usePage<{ flash?: { success?: string; error?: string } }>();
     const flash = page.props.flash;
 
@@ -128,7 +131,9 @@ function OrgChartManagement({
 
         // PHP does not reliably parse multipart PUT bodies. POST the form and
         // let Laravel route edits through its PUT method override instead.
-        form.transform((data) => editing ? { ...data, _method: 'put' } : data);
+        form.transform((data) =>
+            editing ? { ...data, _method: 'put' } : data,
+        );
         form.post(editing ? `${base}/${editing.id}` : base, options);
     };
 
@@ -233,7 +238,13 @@ function OrgChartManagement({
                     />
                 </div>
 
-                {tree.length > 0 && <BarangayOrgChart tree={tree} onSelect={openEdit} showStatus />}
+                {tree.length > 0 && (
+                    <BarangayOrgChart
+                        tree={tree}
+                        onSelect={openEdit}
+                        showStatus
+                    />
+                )}
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="mb-4 flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -343,7 +354,8 @@ function OrgChartManagement({
                                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
                                 />
                                 <p className="mt-1 text-[11px] text-gray-400">
-                                    Leave empty if the position is currently vacant.
+                                    Leave empty if the position is currently
+                                    vacant.
                                 </p>
                                 {form.errors.assigned_person && (
                                     <p className="mt-1 text-xs text-red-600">
@@ -550,7 +562,9 @@ function PositionNode({
                                 {node.assigned_person ? (
                                     <span>{node.assigned_person}</span>
                                 ) : (
-                                    <span className="italic text-gray-400">Vacant</span>
+                                    <span className="text-gray-400 italic">
+                                        Vacant
+                                    </span>
                                 )}
                             </p>
 

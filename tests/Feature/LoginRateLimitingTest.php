@@ -7,6 +7,7 @@ use App\Support\LoginIdentifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Testing\TestResponse;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
 
@@ -23,7 +24,7 @@ class LoginRateLimitingTest extends TestCase
         $this->barangay = $this->createBarangay('Barangay One', 'BRGY-ONE');
     }
 
-    private function attempt(string $name = 'Admin User', string $password = 'wrong-password'): \Illuminate\Testing\TestResponse
+    private function attempt(string $name = 'Admin User', string $password = 'wrong-password'): TestResponse
     {
         return $this->from('/')->post('/login', [
             'barangay_id' => $this->barangay->id,

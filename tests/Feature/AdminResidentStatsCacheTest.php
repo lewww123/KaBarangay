@@ -12,7 +12,7 @@ class AdminResidentStatsCacheTest extends TestCase
 {
     use CreatesBarangayFixtures, RefreshDatabase;
 
-    public function test_stats_cache_is_scoped_by_barangay_and_filters_and_expires_after_thirty_seconds(): void
+    public function test_live_stats_are_scoped_by_barangay_and_filters_without_stale_counts(): void
     {
         $this->withoutVite();
         $barangay = $this->createBarangay('Stats Cache', 'STATS-CACHE');
@@ -27,8 +27,8 @@ class AdminResidentStatsCacheTest extends TestCase
             }
         });
 
-        // Exercise the real production cache path; the shared helper otherwise
-        // bypasses aggregate caching for mutable test fixtures.
+        // Exercise the production path; pending queues must use current counts.
+        // Do not cache a zero count that could hide a newly submitted account.
         $this->app['env'] = 'local';
         try {
             $headers = [
@@ -39,21 +39,23 @@ class AdminResidentStatsCacheTest extends TestCase
             ];
             $this->actingAs($user)->get('/admin/residents', $headers)
                 ->assertOk()->assertJsonPath('props.stats.totalResidents', 2);
-            $this->get('/admin/residents', $headers)->assertOk();
-            $this->assertSame(1, $aggregateQueries);
+            $this->createResident($barangay, $purok, ['mobile' => '09179990001']);
+            $this->get('/admin/residents', $headers)->assertOk()
+                ->assertJsonPath('props.stats.totalResidents', 3);
+            $this->assertSame(2, $aggregateQueries);
 
             $this->get('/admin/residents?resident_search=Juan', $headers)->assertOk();
             $this->get('/admin/residents?registration_search=Pending', $headers)->assertOk();
             $this->get('/admin/residents?purok='.$purok->id, $headers)->assertOk();
-            $this->assertSame(4, $aggregateQueries);
+            $this->assertSame(5, $aggregateQueries);
 
             $this->actingAs($otherUser)->get('/admin/residents', $headers)
                 ->assertOk()->assertJsonPath('props.stats.totalResidents', 1);
-            $this->assertSame(5, $aggregateQueries);
+            $this->assertSame(6, $aggregateQueries);
 
             $this->travel(31)->seconds();
             $this->actingAs($user)->get('/admin/residents', $headers)->assertOk();
-            $this->assertSame(6, $aggregateQueries);
+            $this->assertSame(7, $aggregateQueries);
         } finally {
             $this->app['env'] = 'testing';
         }

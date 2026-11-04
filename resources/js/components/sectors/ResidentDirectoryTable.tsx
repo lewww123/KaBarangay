@@ -18,13 +18,17 @@ export default function ResidentDirectoryTable({
     const [search, setSearch] = useState('');
     const [selectedPurok, setSelectedPurok] = useState('all');
 
-    const sectorLabel = sector === 'senior' ? 'Senior Citizens' : 'Persons with Disability (PWD)';
-    const themeColor = sector === 'senior' ? 'amber' : 'emerald';
+    const sectorLabel =
+        sector === 'senior'
+            ? 'Senior Citizens'
+            : 'Persons with Disability (PWD)';
+    const _themeColor = sector === 'senior' ? 'amber' : 'emerald';
 
     const filteredResidents = useMemo(() => {
         return residents.filter((item) => {
             const matchesPurok =
-                selectedPurok === 'all' || item.purok.toLowerCase() === selectedPurok.toLowerCase();
+                selectedPurok === 'all' ||
+                item.purok.toLowerCase() === selectedPurok.toLowerCase();
             const term = search.toLowerCase().trim();
             const matchesSearch =
                 !term ||
@@ -40,11 +44,12 @@ export default function ResidentDirectoryTable({
             {/* TOP BAR / ACTIONS */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+                    <h1 className="text-2xl font-black tracking-tight text-gray-900">
                         {sectorLabel} Members
                     </h1>
                     <p className="mt-1 text-sm text-gray-600">
-                        Authorized roster of {sectorLabel.toLowerCase()} sector members within the barangay.
+                        Authorized roster of {sectorLabel.toLowerCase()} sector
+                        members within the barangay.
                     </p>
                 </div>
 
@@ -62,11 +67,16 @@ export default function ResidentDirectoryTable({
             </div>
 
             {/* PRIVACY & ACCESS CONTROL NOTICE */}
-            <div className="rounded-xl border border-gray-200 bg-white/80 p-4 text-xs text-gray-600 shadow-sm flex items-start gap-3">
+            <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white/80 p-4 text-xs text-gray-600 shadow-sm">
                 <span className="text-base">🔒</span>
                 <div>
-                    <span className="font-bold text-gray-800">Authorized Identifying Information:</span>{' '}
-                    This directory surfaces essential resident identity data for sector verification and service delivery. Sensitive personal credentials and private contact records are protected under barangay tenant isolation.
+                    <span className="font-bold text-gray-800">
+                        Authorized Identifying Information:
+                    </span>{' '}
+                    This directory surfaces essential resident identity data for
+                    sector verification and service delivery. Sensitive personal
+                    credentials and private contact records are protected under
+                    barangay tenant isolation.
                 </div>
             </div>
 
@@ -79,13 +89,13 @@ export default function ResidentDirectoryTable({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Search by full name or resident number (e.g. BSJ-RES-000001)..."
-                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 transition focus:border-[#3f6f3d] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#3f6f3d]"
+                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 transition focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
                         />
                         {search && (
                             <button
                                 type="button"
                                 onClick={() => setSearch('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-gray-600"
+                                className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-gray-600"
                             >
                                 Clear
                             </button>
@@ -96,8 +106,10 @@ export default function ResidentDirectoryTable({
                         <div className="w-full sm:w-56">
                             <select
                                 value={selectedPurok}
-                                onChange={(e) => setSelectedPurok(e.target.value)}
-                                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#3f6f3d]"
+                                onChange={(e) =>
+                                    setSelectedPurok(e.target.value)
+                                }
+                                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
                             >
                                 <option value="all">All Puroks</option>
                                 {puroks.map((p) => (
@@ -113,26 +125,36 @@ export default function ResidentDirectoryTable({
                 {/* TABLE */}
                 <div className="mt-5 overflow-x-auto rounded-xl border border-gray-100">
                     <table className="w-full text-left text-sm text-gray-600">
-                        <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200">
+                        <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold tracking-wider text-gray-500 uppercase">
                             <tr>
                                 <th className="px-4 py-3.5">Resident ID</th>
                                 <th className="px-4 py-3.5">Full Name</th>
                                 <th className="px-4 py-3.5">Sex</th>
                                 <th className="px-4 py-3.5">Purok</th>
-                                <th className="px-4 py-3.5">Sector Classifications</th>
+                                <th className="px-4 py-3.5">
+                                    Sector Classifications
+                                </th>
                                 <th className="px-4 py-3.5">Status</th>
-                                <th className="px-4 py-3.5 text-center">QR Card</th>
+                                <th className="px-4 py-3.5 text-center">
+                                    QR Card
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
                             {filteredResidents.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">
+                                    <td
+                                        colSpan={7}
+                                        className="px-4 py-12 text-center text-sm text-gray-500"
+                                    >
                                         <div className="flex flex-col items-center justify-center space-y-2">
                                             <span className="text-3xl">📋</span>
-                                            <p className="font-semibold text-gray-700">No {sectorLabel} records found</p>
+                                            <p className="font-semibold text-gray-700">
+                                                No {sectorLabel} records found
+                                            </p>
                                             <p className="text-xs text-gray-400">
-                                                {search || selectedPurok !== 'all'
+                                                {search ||
+                                                selectedPurok !== 'all'
                                                     ? 'Try adjusting your search criteria or purok filter.'
                                                     : 'No residents currently hold active membership in this sector.'}
                                             </p>
@@ -141,7 +163,10 @@ export default function ResidentDirectoryTable({
                                 </tr>
                             ) : (
                                 filteredResidents.map((res) => (
-                                    <tr key={res.id} className="hover:bg-gray-50/80 transition">
+                                    <tr
+                                        key={res.id}
+                                        className="transition hover:bg-gray-50/80"
+                                    >
                                         <td className="px-4 py-3.5 font-mono text-xs font-bold text-gray-900">
                                             {res.resident_number}
                                         </td>
@@ -158,23 +183,28 @@ export default function ResidentDirectoryTable({
                                         </td>
                                         <td className="px-4 py-3.5">
                                             <div className="flex flex-wrap gap-1.5">
-                                                {res.sectors && res.sectors.length > 0 ? (
+                                                {res.sectors &&
+                                                res.sectors.length > 0 ? (
                                                     res.sectors.map((s) => (
                                                         <span
                                                             key={s.id}
-                                                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                                                                s.slug === 'senior'
+                                                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${
+                                                                s.slug ===
+                                                                'senior'
                                                                     ? 'bg-amber-100 text-amber-800'
-                                                                    : s.slug === 'pwd'
-                                                                    ? 'bg-indigo-100 text-indigo-800'
-                                                                    : 'bg-gray-100 text-gray-700'
+                                                                    : s.slug ===
+                                                                        'pwd'
+                                                                      ? 'bg-indigo-100 text-indigo-800'
+                                                                      : 'bg-gray-100 text-gray-700'
                                                             }`}
                                                         >
                                                             {s.name}
                                                         </span>
                                                     ))
                                                 ) : (
-                                                    <span className="text-xs text-gray-400">Regular</span>
+                                                    <span className="text-xs text-gray-400">
+                                                        Regular
+                                                    </span>
                                                 )}
                                             </div>
                                         </td>
@@ -191,11 +221,13 @@ export default function ResidentDirectoryTable({
                                         </td>
                                         <td className="px-4 py-3.5 text-center">
                                             {res.has_qr ? (
-                                                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
+                                                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
                                                     <span>✓</span> Active
                                                 </span>
                                             ) : (
-                                                <span className="text-xs text-gray-400">—</span>
+                                                <span className="text-xs text-gray-400">
+                                                    —
+                                                </span>
                                             )}
                                         </td>
                                     </tr>
@@ -207,8 +239,15 @@ export default function ResidentDirectoryTable({
 
                 <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
                     <span>
-                        Showing <strong className="text-gray-700">{filteredResidents.length}</strong> of{' '}
-                        <strong className="text-gray-700">{residents.length}</strong> registered residents
+                        Showing{' '}
+                        <strong className="text-gray-700">
+                            {filteredResidents.length}
+                        </strong>{' '}
+                        of{' '}
+                        <strong className="text-gray-700">
+                            {residents.length}
+                        </strong>{' '}
+                        registered residents
                     </span>
                 </div>
             </div>

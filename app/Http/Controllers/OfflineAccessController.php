@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\OfflineCertificateContext;
 use App\Support\OfflineIdentity;
+use App\Support\ResidentContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,7 +14,7 @@ class OfflineAccessController extends Controller
     {
         return response()->json([
             'scope' => OfflineIdentity::scope($request),
-            'owner' => ($resident = \App\Support\ResidentContext::find()) ? \App\Support\OfflineCertificateContext::owner($resident) : null,
+            'owner' => ($resident = ResidentContext::find()) ? OfflineCertificateContext::owner($resident) : null,
             // Fresh token for logout completion or queued certificate submission.
             // Offline storage never persists this token.
             'csrfToken' => $request->session()->token(),

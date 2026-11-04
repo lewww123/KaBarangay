@@ -51,16 +51,17 @@ const STATUS_TABS: {
     { value: 'archived', label: 'Archived', countKey: 'archived' },
 ];
 
-export default withDeferredPage(ClerkDisbursementsIndex, ['documents', 'stats'], (props) => (
-    <ClerkLayout active="disbursements" user={props.user}><PortalPageSkeleton metrics={4} /></ClerkLayout>
-));
+export default withDeferredPage(
+    ClerkDisbursementsIndex,
+    ['documents', 'stats'],
+    (props) => (
+        <ClerkLayout active="disbursements" user={props.user}>
+            <PortalPageSkeleton metrics={4} />
+        </ClerkLayout>
+    ),
+);
 
-function ClerkDisbursementsIndex({
-    documents,
-    filters,
-    stats,
-    user,
-}: Props) {
+function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
     const [search, setSearch] = useState(filters.search);
     const [showUpload, setShowUpload] = useState(false);
     const [actionId, setActionId] = useState<number | null>(null);
@@ -72,10 +73,7 @@ function ClerkDisbursementsIndex({
         document: null,
     });
 
-    const visit = (
-        next: Partial<Props['filters']>,
-        preserveState = true,
-    ) => {
+    const visit = (next: Partial<Props['filters']>, preserveState = true) => {
         router.get(
             '/clerk/disbursements',
             {
@@ -137,9 +135,7 @@ function ClerkDisbursementsIndex({
         action: 'publish' | 'archive',
     ) => {
         const url =
-            action === 'publish'
-                ? document.publish_url
-                : document.archive_url;
+            action === 'publish' ? document.publish_url : document.archive_url;
 
         if (!url) {
             return;
@@ -177,7 +173,7 @@ function ClerkDisbursementsIndex({
             <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[#3f6f3d]">
+                        <p className="text-xs font-semibold tracking-wide text-[#3f6f3d] uppercase">
                             Financial transparency
                         </p>
 
@@ -207,11 +203,7 @@ function ClerkDisbursementsIndex({
                         value={stats.total}
                         tone="slate"
                     />
-                    <StatCard
-                        label="Drafts"
-                        value={stats.draft}
-                        tone="amber"
-                    />
+                    <StatCard label="Drafts" value={stats.draft} tone="amber" />
                     <StatCard
                         label="Published"
                         value={stats.published}
@@ -232,10 +224,7 @@ function ClerkDisbursementsIndex({
                                     key={tab.value}
                                     type="button"
                                     onClick={() =>
-                                        visit(
-                                            { status: tab.value },
-                                            false,
-                                        )
+                                        visit({ status: tab.value }, false)
                                     }
                                     className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                                         filters.status === tab.value
@@ -266,7 +255,7 @@ function ClerkDisbursementsIndex({
                                         setSearch(event.target.value)
                                     }
                                     placeholder="Search by title or file name"
-                                    className="min-h-10 w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-sm outline-none transition focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                    className="min-h-10 w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-sm transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
                                 />
                             </label>
 
@@ -362,7 +351,10 @@ function ClerkDisbursementsIndex({
                                                 {
                                                     preserveScroll: true,
                                                     preserveState: true,
-                                                    only: ['documents', 'filters'],
+                                                    only: [
+                                                        'documents',
+                                                        'filters',
+                                                    ],
                                                 },
                                             );
                                         }}
@@ -431,7 +423,7 @@ function ClerkDisbursementsIndex({
                                     required
                                     autoFocus
                                     placeholder="e.g. 2026 Educational Assistance Payout"
-                                    className="mt-1.5 min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                    className="mt-1.5 min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
                                 />
 
                                 {form.errors.title && (
@@ -460,7 +452,7 @@ function ClerkDisbursementsIndex({
                                     rows={3}
                                     maxLength={2000}
                                     placeholder="Add context for staff reviewing this document."
-                                    className="mt-1.5 w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                    className="mt-1.5 w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
                                 />
 
                                 {form.errors.description && (
@@ -483,8 +475,7 @@ function ClerkDisbursementsIndex({
                                     onChange={(event) =>
                                         form.setData(
                                             'document',
-                                            event.target.files?.[0] ??
-                                                null,
+                                            event.target.files?.[0] ?? null,
                                         )
                                     }
                                     className="mt-1.5 block w-full cursor-pointer rounded-lg border border-gray-300 text-sm text-gray-600 file:mr-3 file:border-0 file:bg-gray-50 file:px-3 file:py-2.5 file:text-xs file:font-semibold file:text-gray-700"
@@ -492,8 +483,7 @@ function ClerkDisbursementsIndex({
 
                                 {form.data.document && (
                                     <p className="mt-1 text-xs text-gray-500">
-                                        Selected:{' '}
-                                        {form.data.document.name} (
+                                        Selected: {form.data.document.name} (
                                         {formatFileSize(
                                             form.data.document.size,
                                         )}
@@ -568,8 +558,7 @@ function DocumentRow({
         action: 'publish' | 'archive',
     ) => void;
 }) {
-    const status =
-        document.status as DisbursementDocumentStatus;
+    const status = document.status as DisbursementDocumentStatus;
 
     return (
         <article className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
@@ -606,8 +595,7 @@ function DocumentRow({
                     </span>
 
                     <span>
-                        Uploaded{' '}
-                        {formatDisbursementDate(document.created_at)}
+                        Uploaded {formatDisbursementDate(document.created_at)}
                     </span>
 
                     {document.uploader_name && (
@@ -617,18 +605,14 @@ function DocumentRow({
                     {document.published_at && (
                         <span>
                             Published{' '}
-                            {formatDisbursementDate(
-                                document.published_at,
-                            )}
+                            {formatDisbursementDate(document.published_at)}
                         </span>
                     )}
 
                     {document.archived_at && (
                         <span>
                             Archived{' '}
-                            {formatDisbursementDate(
-                                document.archived_at,
-                            )}
+                            {formatDisbursementDate(document.archived_at)}
                         </span>
                     )}
                 </div>
@@ -763,10 +747,7 @@ function CloseIcon() {
             strokeWidth="2"
             aria-hidden="true"
         >
-            <path
-                strokeLinecap="round"
-                d="M6 6l12 12M18 6 6 18"
-            />
+            <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
         </svg>
     );
 }

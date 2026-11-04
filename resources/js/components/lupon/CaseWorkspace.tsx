@@ -90,7 +90,12 @@ export default function CaseWorkspace({
                         hidden={section !== item.id}
                         className="space-y-4"
                     >
-                        <HearingPanels.Provider value={{ resolution: panels.resolution, documents: panels.documents }}>
+                        <HearingPanels.Provider
+                            value={{
+                                resolution: panels.resolution,
+                                documents: panels.documents,
+                            }}
+                        >
                             {panels[item.id as keyof typeof panels]}
                         </HearingPanels.Provider>
                     </section>

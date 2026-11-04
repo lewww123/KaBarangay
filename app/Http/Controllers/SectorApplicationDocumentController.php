@@ -75,7 +75,7 @@ class SectorApplicationDocumentController extends Controller
             $asDownload ? $document->original_name : null,
             [
                 'Content-Type' => $document->mime_type,
-                'Content-Disposition' => ($asDownload ? 'attachment' : 'inline') . '; filename="' . addslashes($document->original_name) . '"',
+                'Content-Disposition' => ($asDownload ? 'attachment' : 'inline').'; filename="'.addslashes($document->original_name).'"',
             ]
         );
     }

@@ -3,7 +3,10 @@ import PwdLayout from '@/layouts/PwdLayout';
 import SectorApplicationWizard from '@/components/sectors/SectorApplicationWizard';
 
 interface Props {
-    auth?: { user?: { name?: string }; staffAssignments?: { department: string; position: string }[] };
+    auth?: {
+        user?: { name?: string };
+        staffAssignments?: { department: string; position: string }[];
+    };
 }
 
 export default function PwdApplicationCreate({ auth }: Props) {

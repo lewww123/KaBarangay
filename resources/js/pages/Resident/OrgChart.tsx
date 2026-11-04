@@ -19,7 +19,11 @@ export default function ResidentOrgChart(props: Props) {
     return (
         <Deferred
             data="tree"
-            fallback={<ResidentLayout active="org-chart"><PortalPageSkeleton list /></ResidentLayout>}
+            fallback={
+                <ResidentLayout active="org-chart">
+                    <PortalPageSkeleton list />
+                </ResidentLayout>
+            }
         >
             <OrgChartContent {...props} />
         </Deferred>
@@ -75,7 +79,13 @@ function OrgChartContent({ tree, resident }: Props) {
                                 </span>
                             </div>
 
-                            <BarangayOrgChart tree={tree} selectedId={selectedId} onSelect={(position) => setSelectedId(position.id)} />
+                            <BarangayOrgChart
+                                tree={tree}
+                                selectedId={selectedId}
+                                onSelect={(position) =>
+                                    setSelectedId(position.id)
+                                }
+                            />
                         </div>
 
                         <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -97,9 +107,13 @@ function OrgChartContent({ tree, resident }: Props) {
                                         </h2>
                                         <p className="mt-1 text-sm font-medium text-gray-800">
                                             {selected.assigned_person ? (
-                                                <span>{selected.assigned_person}</span>
+                                                <span>
+                                                    {selected.assigned_person}
+                                                </span>
                                             ) : (
-                                                <span className="italic text-gray-400">Vacant</span>
+                                                <span className="text-gray-400 italic">
+                                                    Vacant
+                                                </span>
                                             )}
                                         </p>
                                         <p className="mt-2 text-xs text-gray-500">
@@ -123,12 +137,22 @@ function OrgChartContent({ tree, resident }: Props) {
                                                         >
                                                             <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3f6f3d]" />
                                                             <span>
-                                                                <span className="font-medium text-gray-900">{child.title}</span>
+                                                                <span className="font-medium text-gray-900">
+                                                                    {
+                                                                        child.title
+                                                                    }
+                                                                </span>
                                                                 {' — '}
                                                                 {child.assigned_person ? (
-                                                                    <span>{child.assigned_person}</span>
+                                                                    <span>
+                                                                        {
+                                                                            child.assigned_person
+                                                                        }
+                                                                    </span>
                                                                 ) : (
-                                                                    <span className="italic text-gray-400">Vacant</span>
+                                                                    <span className="text-gray-400 italic">
+                                                                        Vacant
+                                                                    </span>
                                                                 )}
                                                             </span>
                                                         </li>

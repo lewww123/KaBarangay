@@ -49,7 +49,7 @@ class ScholarshipCertificateIntegrationTest extends TestCase
             ->post('/clerk/generate-certificate', $this->validPayload());
 
         $response->assertOk();
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             'attachment',
             (string) $response->headers->get('content-disposition')
         );
@@ -96,7 +96,7 @@ class ScholarshipCertificateIntegrationTest extends TestCase
                     $xml,
                     "Unresolved merge field [{$key}] remains in the generated document."
                 );
-                $this->assertStringContainsString($value, $xml);
+                $this->assertSourceContainsString($value, $xml);
             }
         } finally {
             @unlink($output);
@@ -193,7 +193,7 @@ class ScholarshipCertificateIntegrationTest extends TestCase
         );
 
         // Fields only appear for Scholarship.
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             "data.certificate_type === 'Scholarship Certificate'",
             $source
         );
@@ -207,18 +207,18 @@ class ScholarshipCertificateIntegrationTest extends TestCase
             'mother_occupation',
             'mother_monthly_income',
         ] as $field) {
-            $this->assertStringContainsString($field, $source, "Field [{$field}] is missing from the form.");
+            $this->assertSourceContainsString($field, $source, "Field [{$field}] is missing from the form.");
         }
 
         // Responsive two-column layout.
-        $this->assertStringContainsString('grid-cols-1', $source);
-        $this->assertStringContainsString('sm:grid-cols-2', $source);
+        $this->assertSourceContainsString('grid-cols-1', $source);
+        $this->assertSourceContainsString('sm:grid-cols-2', $source);
 
         // Numeric-only income inputs.
-        $this->assertStringContainsString('type="number"', $source);
+        $this->assertSourceContainsString('type="number"', $source);
 
         // Tricycle gating is preserved.
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString(
             "data.certificate_type === 'Tricycle' || data.certificate_type === 'Sari-sari Store'",
             $source
         );
@@ -234,13 +234,13 @@ class ScholarshipCertificateIntegrationTest extends TestCase
 
         // The Scholarship preview branch reflects the DOCX wording.
         $shell = (string) file_get_contents(base_path('resources/js/components/certificates/BrandedCertificatePreview.tsx'));
-        $this->assertStringContainsString('(Indigent Certificate)', $shell);
-        $this->assertStringContainsString(
+        $this->assertSourceContainsString('(Indigent Certificate)', $shell);
+        $this->assertSourceContainsString(
             'THIS FURTHER CERTIFIES THAT THEY BELONG TO THE INDIGENT FAMILY.',
             $source
         );
-        $this->assertStringContainsString('Three (3) Months', $source);
-        $this->assertStringContainsString('Certified true Copy', $source);
+        $this->assertSourceContainsString('Three (3) Months', $source);
+        $this->assertSourceContainsString('Certified true Copy', $source);
     }
 
     public function test_scholarship_template_placeholder_integrity(): void
@@ -271,7 +271,7 @@ class ScholarshipCertificateIntegrationTest extends TestCase
         // The current template uses the slash key and omits mother's monthly income.
         $xml = $this->archiveDocumentXml(CertificateTemplates::path('Scholarship Certificate'));
         $this->assertNotFalse($xml);
-        $this->assertStringContainsString('${school/institution}', $xml);
+        $this->assertSourceContainsString('${school/institution}', $xml);
         $this->assertStringNotContainsString('${school_institution}', $xml);
         $this->assertStringNotContainsString('${mother’s_monthly_income}', $xml);
     }

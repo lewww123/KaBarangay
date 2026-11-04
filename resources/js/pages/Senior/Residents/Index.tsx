@@ -5,12 +5,19 @@ import ResidentDirectoryTable from '@/components/sectors/ResidentDirectoryTable'
 import type { ResidentDirectoryItem } from '@/components/sectors/types';
 
 interface Props {
-    auth?: { user?: { name?: string }; staffAssignments?: { department: string; position: string }[] };
+    auth?: {
+        user?: { name?: string };
+        staffAssignments?: { department: string; position: string }[];
+    };
     residents: ResidentDirectoryItem[];
     puroks?: { id: number; name: string }[];
 }
 
-export default function SeniorResidentsIndex({ auth, residents = [], puroks = [] }: Props) {
+export default function SeniorResidentsIndex({
+    auth,
+    residents,
+    puroks = [],
+}: Props) {
     return (
         <SeniorLayout active="residents" user={auth?.user}>
             <Head title="Senior Citizens Members" />

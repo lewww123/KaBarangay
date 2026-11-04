@@ -2,7 +2,10 @@ import { Deferred, Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import ResidentLayout from '@/layouts/ResidentLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
-import type { SectorApplicationItem, SectorType } from '@/components/sectors/types';
+import type {
+    SectorApplicationItem,
+    SectorType,
+} from '@/components/sectors/types';
 
 interface Props {
     resident: {
@@ -23,14 +26,18 @@ export default function ResidentSectorApplicationsIndex(props: Props) {
     return (
         <Deferred
             data="applications"
-            fallback={<ResidentLayout active="sectors"><PortalPageSkeleton list /></ResidentLayout>}
+            fallback={
+                <ResidentLayout active="sectors">
+                    <PortalPageSkeleton list />
+                </ResidentLayout>
+            }
         >
             <SectorApplicationsContent {...props} />
         </Deferred>
     );
 }
 
-function SectorApplicationsContent({ resident, applications = [] }: Props) {
+function SectorApplicationsContent({ resident, applications }: Props) {
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [selectedSector, setSelectedSector] = useState<SectorType>('senior');
     const [selfServiceNotes, setSelfServiceNotes] = useState('');
@@ -75,15 +82,16 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
         <ResidentLayout active="sectors">
             <Head title="Sector Memberships & Applications" />
 
-            <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6 font-sans">
+            <div className="mx-auto max-w-4xl space-y-6 p-4 font-sans sm:p-6">
                 {/* HEADER */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+                        <h1 className="text-2xl font-black tracking-tight text-gray-900">
                             Sector Memberships & Services
                         </h1>
                         <p className="mt-1 text-sm text-gray-600">
-                            View accredited sector privileges, access welfare programs, or submit an application.
+                            View accredited sector privileges, access welfare
+                            programs, or submit an application.
                         </p>
                     </div>
 
@@ -98,39 +106,46 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
                 </div>
 
                 {/* CURRENT SECTOR MEMBERSHIPS CARD */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
-                    <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
+                <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <h2 className="border-b border-gray-100 pb-3 text-base font-bold text-gray-900">
                         Your Active Accreditations
                     </h2>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         {/* GENERAL RESIDENT (ALWAYS ACTIVE) */}
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 space-y-1">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                        <div className="space-y-1 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+                            <span className="text-[10px] font-bold tracking-wider text-emerald-800 uppercase">
                                 Primary Status
                             </span>
-                            <h3 className="text-base font-extrabold text-emerald-950">General Resident</h3>
+                            <h3 className="text-base font-extrabold text-emerald-950">
+                                General Resident
+                            </h3>
                             <p className="text-xs text-emerald-800">
-                                Active citizen in Barangay San Jose ({resident.resident_number})
+                                Active citizen in Barangay San Jose (
+                                {resident.resident_number})
                             </p>
                         </div>
 
                         {/* SENIOR CITIZEN */}
                         <div
-                            className={`rounded-xl border p-4 space-y-1 ${
+                            className={`space-y-1 rounded-xl border p-4 ${
                                 hasSenior
                                     ? 'border-amber-200 bg-amber-50/50 text-amber-950'
                                     : 'border-gray-200 bg-gray-50/50 text-gray-400'
                             }`}
                         >
                             <span
-                                className={`text-[10px] font-bold uppercase tracking-wider ${
-                                    hasSenior ? 'text-amber-800' : 'text-gray-400'
+                                className={`text-[10px] font-bold tracking-wider uppercase ${
+                                    hasSenior
+                                        ? 'text-amber-800'
+                                        : 'text-gray-400'
                                 }`}
                             >
                                 Senior Desk
                             </span>
-                            <h3 className="text-base font-extrabold">Senior Citizen</h3>
+                            <h3 className="text-base font-extrabold">
+                                Senior Citizen
+                            </h3>
                             <p className="text-xs">
                                 {hasSenior
                                     ? 'Accredited member • Eligible for social pension and senior benefits.'
@@ -140,20 +155,22 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
 
                         {/* PWD */}
                         <div
-                            className={`rounded-xl border p-4 space-y-1 ${
+                            className={`space-y-1 rounded-xl border p-4 ${
                                 hasPwd
                                     ? 'border-indigo-200 bg-indigo-50/50 text-indigo-950'
                                     : 'border-gray-200 bg-gray-50/50 text-gray-400'
                             }`}
                         >
                             <span
-                                className={`text-[10px] font-bold uppercase tracking-wider ${
+                                className={`text-[10px] font-bold tracking-wider uppercase ${
                                     hasPwd ? 'text-indigo-800' : 'text-gray-400'
                                 }`}
                             >
                                 PWD Desk
                             </span>
-                            <h3 className="text-base font-extrabold">Person with Disability</h3>
+                            <h3 className="text-base font-extrabold">
+                                Person with Disability
+                            </h3>
                             <p className="text-xs">
                                 {hasPwd
                                     ? 'Accredited member • Eligible for assistive welfare and PWD programs.'
@@ -163,21 +180,27 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
                     </div>
 
                     <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 text-xs text-gray-500">
-                        🛡️ <strong>Baseline Access Safeguard:</strong> Applying for or awaiting approval for sector accreditation never alters or restricts your active General Resident portal privileges or document request services.
+                        🛡️ <strong>Baseline Access Safeguard:</strong> Applying
+                        for or awaiting approval for sector accreditation never
+                        alters or restricts your active General Resident portal
+                        privileges or document request services.
                     </div>
                 </div>
 
                 {/* MY SECTOR APPLICATIONS QUEUE */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
-                    <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
+                <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <h2 className="border-b border-gray-100 pb-3 text-base font-bold text-gray-900">
                         My Sector Applications & Review Status
                     </h2>
 
                     {applications.length === 0 ? (
-                        <div className="py-8 text-center text-sm text-gray-500 space-y-1">
-                            <p className="font-semibold text-gray-700">No pending sector applications</p>
+                        <div className="space-y-1 py-8 text-center text-sm text-gray-500">
+                            <p className="font-semibold text-gray-700">
+                                No pending sector applications
+                            </p>
                             <p className="text-xs text-gray-400">
-                                You do not currently have any active or pending sector membership applications.
+                                You do not currently have any active or pending
+                                sector membership applications.
                             </p>
                         </div>
                     ) : (
@@ -185,15 +208,16 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
                             {applications.map((app) => (
                                 <div
                                     key={app.id}
-                                    className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 text-xs space-y-2"
+                                    className="space-y-2 rounded-xl border border-gray-200 bg-gray-50/50 p-4 text-xs"
                                 >
                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                         <div>
-                                            <span className="font-mono text-[10px] font-bold text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">
+                                            <span className="rounded border border-gray-200 bg-white px-2 py-0.5 font-mono text-[10px] font-bold text-gray-500">
                                                 {app.tracking_number}
                                             </span>
                                             <h3 className="mt-1 text-sm font-bold text-gray-900">
-                                                Application for {app.sector_name}
+                                                Application for{' '}
+                                                {app.sector_name}
                                             </h3>
                                         </div>
 
@@ -202,11 +226,13 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
                                                 className={`rounded-md px-2.5 py-1 text-xs font-bold uppercase ${
                                                     app.status === 'approved'
                                                         ? 'bg-emerald-100 text-emerald-800'
-                                                        : app.status === 'under_admin_review'
-                                                        ? 'bg-blue-100 text-blue-800'
-                                                        : app.status === 'rejected'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-amber-100 text-amber-800'
+                                                        : app.status ===
+                                                            'under_admin_review'
+                                                          ? 'bg-blue-100 text-blue-800'
+                                                          : app.status ===
+                                                              'rejected'
+                                                            ? 'bg-red-100 text-red-800'
+                                                            : 'bg-amber-100 text-amber-800'
                                                 }`}
                                             >
                                                 {app.status.replace(/_/g, ' ')}
@@ -214,12 +240,16 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
                                         </div>
                                     </div>
 
-                                    <div className="text-[11px] text-gray-500 flex flex-wrap gap-4 pt-1">
-                                        <span>Submitted: <strong>{app.submitted_at}</strong></span>
+                                    <div className="flex flex-wrap gap-4 pt-1 text-[11px] text-gray-500">
+                                        <span>
+                                            Submitted:{' '}
+                                            <strong>{app.submitted_at}</strong>
+                                        </span>
                                         <span>
                                             Mode:{' '}
                                             <strong>
-                                                {app.submission_type === 'staff_assisted'
+                                                {app.submission_type ===
+                                                'staff_assisted'
                                                     ? 'Staff-Assisted'
                                                     : 'Self-Service'}
                                             </strong>
@@ -227,8 +257,9 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
                                     </div>
 
                                     {app.staff_review_notes && (
-                                        <p className="text-[11px] text-gray-600 bg-white p-2.5 rounded-lg border border-gray-200">
-                                            <strong>Staff Review Note:</strong> {app.staff_review_notes}
+                                        <p className="rounded-lg border border-gray-200 bg-white p-2.5 text-[11px] text-gray-600">
+                                            <strong>Staff Review Note:</strong>{' '}
+                                            {app.staff_review_notes}
                                         </p>
                                     )}
 
@@ -252,7 +283,7 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
             {/* APPLICATION MODAL */}
             {isApplyModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-5">
+                    <div className="w-full max-w-lg space-y-5 rounded-2xl bg-white p-6 shadow-xl">
                         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                             <h3 className="text-base font-bold text-gray-900">
                                 Self-Service Sector Membership Application
@@ -260,65 +291,83 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
                             <button
                                 type="button"
                                 onClick={() => setIsApplyModalOpen(false)}
-                                className="text-gray-400 hover:text-gray-600 font-bold"
+                                className="font-bold text-gray-400 hover:text-gray-600"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <form onSubmit={handleApply} className="space-y-4 text-xs">
+                        <form
+                            onSubmit={handleApply}
+                            className="space-y-4 text-xs"
+                        >
                             {submitError && (
                                 <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-900">
                                     ⚠️ {submitError}
                                 </div>
                             )}
                             <div>
-                                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1">
+                                <label className="mb-1 block text-[11px] font-bold tracking-wider text-gray-600 uppercase">
                                     Select Sector Classification
                                 </label>
                                 <select
                                     value={selectedSector}
-                                    onChange={(e) => setSelectedSector(e.target.value as SectorType)}
-                                    className="w-full rounded-xl border border-gray-300 p-2.5 text-xs text-gray-800 focus:border-[#3f6f3d] focus:outline-none focus:ring-1 focus:ring-[#3f6f3d]"
+                                    onChange={(e) =>
+                                        setSelectedSector(
+                                            e.target.value as SectorType,
+                                        )
+                                    }
+                                    className="w-full rounded-xl border border-gray-300 p-2.5 text-xs text-gray-800 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
                                 >
                                     <option value="senior" disabled={hasSenior}>
-                                        Senior Citizen {hasSenior ? '(Already Accredited)' : ''}
+                                        Senior Citizen{' '}
+                                        {hasSenior
+                                            ? '(Already Accredited)'
+                                            : ''}
                                     </option>
                                     <option value="pwd" disabled={hasPwd}>
-                                        Person with Disability (PWD) {hasPwd ? '(Already Accredited)' : ''}
+                                        Person with Disability (PWD){' '}
+                                        {hasPwd ? '(Already Accredited)' : ''}
                                     </option>
                                 </select>
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1">
+                                <label className="mb-1 block text-[11px] font-bold tracking-wider text-gray-600 uppercase">
                                     Upload Supporting Proof (Photo / PDF)
                                 </label>
                                 <input
                                     type="file"
                                     accept="image/*,.pdf"
-                                    onChange={(e) => setFileUploaded(e.target.files?.[0] || null)}
+                                    onChange={(e) =>
+                                        setFileUploaded(
+                                            e.target.files?.[0] || null,
+                                        )
+                                    }
                                     className="block w-full text-xs text-gray-500 file:mr-2 file:rounded-lg file:border-0 file:bg-gray-100 file:px-2.5 file:py-1.5 file:text-xs file:font-semibold file:text-gray-700 hover:file:bg-gray-200"
                                 />
-                                <span className="text-[10px] text-gray-400 mt-1 block">
-                                    Accepts birth certificate, government ID, or medical evaluation certificate.
+                                <span className="mt-1 block text-[10px] text-gray-400">
+                                    Accepts birth certificate, government ID, or
+                                    medical evaluation certificate.
                                 </span>
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1">
+                                <label className="mb-1 block text-[11px] font-bold tracking-wider text-gray-600 uppercase">
                                     Applicant Remarks / Special Accommodations
                                 </label>
                                 <textarea
                                     rows={3}
                                     value={selfServiceNotes}
-                                    onChange={(e) => setSelfServiceNotes(e.target.value)}
+                                    onChange={(e) =>
+                                        setSelfServiceNotes(e.target.value)
+                                    }
                                     placeholder="Provide any additional details for the desk staff..."
-                                    className="w-full rounded-xl border border-gray-300 p-2.5 text-xs text-gray-800 focus:border-[#3f6f3d] focus:outline-none focus:ring-1 focus:ring-[#3f6f3d]"
+                                    className="w-full rounded-xl border border-gray-300 p-2.5 text-xs text-gray-800 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
                                 />
                             </div>
 
-                            <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                            <div className="flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
                                 <button
                                     type="button"
                                     onClick={() => setIsApplyModalOpen(false)}
@@ -331,7 +380,9 @@ function SectorApplicationsContent({ resident, applications = [] }: Props) {
                                     disabled={applicationSent}
                                     className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-xs font-bold text-white hover:bg-[#315b30]"
                                 >
-                                    {applicationSent ? 'Submitting...' : 'Submit Application'}
+                                    {applicationSent
+                                        ? 'Submitting...'
+                                        : 'Submit Application'}
                                 </button>
                             </div>
                         </form>

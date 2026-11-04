@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\AuditLog;
 use App\Models\Barangay;
 use App\Models\CitizenCharterService;
 use App\Models\CitizenCharterVersion;
@@ -45,7 +44,7 @@ class CitizenCharterManagementTest extends TestCase
     {
         return UploadedFile::fake()->createWithContent(
             $name,
-            $this->validPdfBytes() . str_repeat('A', $kilobytes * 1024)
+            $this->validPdfBytes().str_repeat('A', $kilobytes * 1024)
         );
     }
 
@@ -54,7 +53,7 @@ class CitizenCharterManagementTest extends TestCase
         array $serviceAttributes = [],
         array $versionAttributes = []
     ): CitizenCharterService {
-        $path = 'citizen-charter/' . $barangay->id . '/' . Str::uuid() . '.pdf';
+        $path = 'citizen-charter/'.$barangay->id.'/'.Str::uuid().'.pdf';
         Storage::disk('local')->put($path, $this->validPdfBytes());
 
         $service = CitizenCharterService::create([
@@ -143,7 +142,7 @@ class CitizenCharterManagementTest extends TestCase
             ->where('title', 'Certificate of Indigency')
             ->firstOrFail();
 
-        $response->assertRedirect('/clerk/citizen-charter/' . $service->id);
+        $response->assertRedirect('/clerk/citizen-charter/'.$service->id);
 
         $this->assertSame((int) $this->barangay->id, (int) $service->barangay_id);
         $this->assertSame('draft', $service->status);
@@ -185,7 +184,7 @@ class CitizenCharterManagementTest extends TestCase
     {
         $file = UploadedFile::fake()->createWithContent(
             'spoofed.pdf',
-            "NOT A REAL PDF FILE HEADER"
+            'NOT A REAL PDF FILE HEADER'
         );
 
         $response = $this->actingAs($this->clerk)
@@ -220,7 +219,7 @@ class CitizenCharterManagementTest extends TestCase
         $service = $this->createServiceWithVersion($this->barangay);
 
         $response = $this->actingAs($this->clerk)
-            ->put('/clerk/citizen-charter/' . $service->id, [
+            ->put('/clerk/citizen-charter/'.$service->id, [
                 'title' => 'Updated Clearance Title',
                 'category' => 'Legal & Clearances',
                 'description' => 'Updated service description.',
@@ -256,7 +255,7 @@ class CitizenCharterManagementTest extends TestCase
         $newFile = $this->fakePdf('clearance_v2.pdf', 80);
 
         $response = $this->actingAs($this->clerk)
-            ->post('/clerk/citizen-charter/' . $service->id . '/versions', [
+            ->post('/clerk/citizen-charter/'.$service->id.'/versions', [
                 'document' => $newFile,
             ]);
 
@@ -290,7 +289,7 @@ class CitizenCharterManagementTest extends TestCase
         $this->assertFalse($service->is_published);
 
         $response = $this->actingAs($this->clerk)
-            ->post('/clerk/citizen-charter/' . $service->id . '/publish');
+            ->post('/clerk/citizen-charter/'.$service->id.'/publish');
 
         $response->assertRedirect();
         $service->refresh();
@@ -323,7 +322,7 @@ class CitizenCharterManagementTest extends TestCase
         // Upload revision v2
         $newFile = $this->fakePdf('clearance_v2.pdf', 60);
         $this->actingAs($this->clerk)
-            ->post('/clerk/citizen-charter/' . $service->id . '/versions', [
+            ->post('/clerk/citizen-charter/'.$service->id.'/versions', [
                 'document' => $newFile,
             ]);
 
@@ -332,7 +331,7 @@ class CitizenCharterManagementTest extends TestCase
 
         // Publish
         $this->actingAs($this->clerk)
-            ->post('/clerk/citizen-charter/' . $service->id . '/publish');
+            ->post('/clerk/citizen-charter/'.$service->id.'/publish');
 
         $service->refresh();
         $v1->refresh();
@@ -361,7 +360,7 @@ class CitizenCharterManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->clerk)
-            ->post('/clerk/citizen-charter/' . $service->id . '/archive');
+            ->post('/clerk/citizen-charter/'.$service->id.'/archive');
 
         $response->assertRedirect();
         $service->refresh();
@@ -383,29 +382,29 @@ class CitizenCharterManagementTest extends TestCase
 
         // View foreign service -> 404
         $this->actingAs($this->clerk)
-            ->get('/clerk/citizen-charter/' . $foreignService->id)
+            ->get('/clerk/citizen-charter/'.$foreignService->id)
             ->assertNotFound();
 
         // Update foreign service -> 404
         $this->actingAs($this->clerk)
-            ->put('/clerk/citizen-charter/' . $foreignService->id, [
+            ->put('/clerk/citizen-charter/'.$foreignService->id, [
                 'title' => 'Hacked Title',
             ])
             ->assertNotFound();
 
         // Publish foreign service -> 404
         $this->actingAs($this->clerk)
-            ->post('/clerk/citizen-charter/' . $foreignService->id . '/publish')
+            ->post('/clerk/citizen-charter/'.$foreignService->id.'/publish')
             ->assertNotFound();
 
         // Archive foreign service -> 404
         $this->actingAs($this->clerk)
-            ->post('/clerk/citizen-charter/' . $foreignService->id . '/archive')
+            ->post('/clerk/citizen-charter/'.$foreignService->id.'/archive')
             ->assertNotFound();
 
         // Stream foreign file -> 404
         $this->actingAs($this->clerk)
-            ->get('/clerk/citizen-charter/' . $foreignService->id . '/versions/' . $foreignService->current_version_id . '/file')
+            ->get('/clerk/citizen-charter/'.$foreignService->id.'/versions/'.$foreignService->current_version_id.'/file')
             ->assertNotFound();
     }
 }

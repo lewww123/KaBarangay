@@ -26,7 +26,18 @@ type Props = {
 };
 
 export default function EmergencyNumbersIndex(props: Props) {
-    return <Deferred data={['barangayHotlines', 'sharedEmergencyContacts']} fallback={<AdminLayout active="emergency-numbers"><AdminPageSkeleton rows={3} /></AdminLayout>}><EmergencyNumbersContent {...props} /></Deferred>;
+    return (
+        <Deferred
+            data={['barangayHotlines', 'sharedEmergencyContacts']}
+            fallback={
+                <AdminLayout active="emergency-numbers">
+                    <AdminPageSkeleton rows={3} />
+                </AdminLayout>
+            }
+        >
+            <EmergencyNumbersContent {...props} />
+        </Deferred>
+    );
 }
 
 function EmergencyNumbersContent({
@@ -383,7 +394,10 @@ function EmergencyNumbersContent({
                                         }
                                         className="h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
                                     />
-                                    <span>Allow Call (confirm this number accepts calls)</span>
+                                    <span>
+                                        Allow Call (confirm this number accepts
+                                        calls)
+                                    </span>
                                 </label>
 
                                 <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-700">
@@ -395,7 +409,10 @@ function EmergencyNumbersContent({
                                         }
                                         className="h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
                                     />
-                                    <span>Allow Text/SMS (enable only after confirming SMS support)</span>
+                                    <span>
+                                        Allow Text/SMS (enable only after
+                                        confirming SMS support)
+                                    </span>
                                 </label>
 
                                 <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-700">

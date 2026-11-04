@@ -56,8 +56,17 @@ type DashboardProps = {
 export default function Dashboard(props: DashboardProps) {
     return (
         <Deferred
-            data={['resident', 'latestAnnouncement', 'sharedEmergencyContacts', 'barangayHotlines']}
-            fallback={<ResidentLayout active="home"><PortalPageSkeleton list metrics={4} /></ResidentLayout>}
+            data={[
+                'resident',
+                'latestAnnouncement',
+                'sharedEmergencyContacts',
+                'barangayHotlines',
+            ]}
+            fallback={
+                <ResidentLayout active="home">
+                    <PortalPageSkeleton list metrics={4} />
+                </ResidentLayout>
+            }
         >
             <DashboardContent {...props} />
         </Deferred>
@@ -395,7 +404,8 @@ function ContactActionButtons({
             </button>
             {copyError && (
                 <span role="status" className="w-full text-xs text-red-700">
-                    Could not copy. Dial or enter {contact.phone_number} manually.
+                    Could not copy. Dial or enter {contact.phone_number}{' '}
+                    manually.
                 </span>
             )}
         </div>

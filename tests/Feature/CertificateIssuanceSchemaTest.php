@@ -8,7 +8,7 @@ use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
 use App\Models\Purok;
 use App\Models\Resident;
-use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -226,7 +226,7 @@ class CertificateIssuanceSchemaTest extends TestCase
         ]);
 
         $this->assertSame('125.50', $issuance->fee);
-        $this->assertInstanceOf(\Carbon\CarbonImmutable::class, $issuance->issued_at);
+        $this->assertInstanceOf(CarbonImmutable::class, $issuance->issued_at);
     }
 
     public function test_model_relationships_resolve(): void

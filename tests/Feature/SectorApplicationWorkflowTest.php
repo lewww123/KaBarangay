@@ -99,12 +99,12 @@ class SectorApplicationWorkflowTest extends TestCase
     {
         $source = file_get_contents(base_path('resources/js/components/sectors/SectorApplicationWizard.tsx'));
 
-        $this->assertStringContainsString('lookupInputRef.current?.focus({ preventScroll: true })', $source);
-        $this->assertStringContainsString("e.key === 'Enter'", $source);
-        $this->assertStringContainsString('e.preventDefault()', $source);
-        $this->assertStringContainsString('handleResidentLookup()', $source);
-        $this->assertStringContainsString('value={lookupQuery}', $source);
-        $this->assertStringContainsString('onChange={(e) => setLookupQuery(e.target.value)}', $source);
+        $this->assertSourceContainsString('lookupInputRef.current?.focus({ preventScroll: true })', $source);
+        $this->assertSourceContainsString("e.key === 'Enter'", $source);
+        $this->assertSourceContainsString('e.preventDefault()', $source);
+        $this->assertSourceContainsString('handleResidentLookup()', $source);
+        $this->assertSourceContainsString('value={lookupQuery}', $source);
+        $this->assertSourceContainsString('onChange={(e) => setLookupQuery(e.target.value)}', $source);
     }
 
     public function test_senior_staff_can_submit_senior_application(): void

@@ -81,6 +81,7 @@ class ChatbotTest extends TestCase
     {
         Http::fake(function (Request $request, array $options) {
             $this->assertTrue($options['verify']);
+
             return Http::response(['choices' => [['message' => ['content' => 'Hello']]]]);
         });
         $this->postJson('/chatbot/send', ['message' => 'Hello'])->assertOk();
@@ -93,6 +94,7 @@ class ChatbotTest extends TestCase
             config(['services.groq.ca_bundle' => $path]);
             Http::fake(function (Request $request, array $options) use ($path) {
                 $this->assertSame($path, $options['verify']);
+
                 return Http::response(['choices' => [['message' => ['content' => 'Hello']]]]);
             });
             $this->postJson('/chatbot/send', ['message' => 'Hello'])->assertOk();

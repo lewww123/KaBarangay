@@ -6,13 +6,21 @@ export function resolveCertificateOfficials(
     members: CertificateOfficial[],
     actingCaptainId = '',
 ) {
-    const selected = members.find((member) => String(member.id) === actingCaptainId);
-    const captain = selected ? { ...selected, title: 'Barangay Kagawad, OIC' } : incumbent;
-    const nameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
+    const selected = members.find(
+        (member) => String(member.id) === actingCaptainId,
+    );
+    const captain = selected
+        ? { ...selected, title: 'Barangay Kagawad, OIC' }
+        : incumbent;
+    const nameKey = (name: string) =>
+        name.trim().replace(/\s+/g, ' ').toLowerCase();
 
     return {
         captain,
-        kagawads: members.filter((member) => member.id !== captain?.id
-            && (!captain || nameKey(member.name) !== nameKey(captain.name))),
+        kagawads: members.filter(
+            (member) =>
+                member.id !== captain?.id &&
+                (!captain || nameKey(member.name) !== nameKey(captain.name)),
+        ),
     };
 }

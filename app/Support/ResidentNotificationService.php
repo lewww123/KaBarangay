@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Mail\ResidentApprovalMail;
 use App\Mail\LuponSummonsIssuedMail;
+use App\Mail\ResidentApprovalMail;
 use App\Mail\ResidentRegistrationInvitationMail;
 use App\Models\LuponCase;
 use App\Models\Resident;
@@ -99,21 +99,18 @@ final class ResidentNotificationService
     private function mailableFor(ResidentNotification $notification): object
     {
         return match ($notification->type) {
-            ResidentNotification::TYPE_APPROVAL_CONFIRMATION =>
-                new ResidentApprovalMail(
-                    residentName: $notification->recipient_name,
-                    loginUrl: route('resident.login'),
-                ),
-            ResidentNotification::TYPE_REGISTRATION_INVITATION =>
-                new ResidentRegistrationInvitationMail(
-                    residentName: $notification->recipient_name,
-                    registrationUrl: route('resident.register'),
-                ),
-            ResidentNotification::TYPE_LUPON_SUMMONS_ISSUED =>
-                new LuponSummonsIssuedMail(
-                    residentName: $notification->recipient_name,
-                    caseNumber: (string) ($notification->context['case_number'] ?? 'KP case'),
-                ),
+            ResidentNotification::TYPE_APPROVAL_CONFIRMATION => new ResidentApprovalMail(
+                residentName: $notification->recipient_name,
+                loginUrl: route('resident.login'),
+            ),
+            ResidentNotification::TYPE_REGISTRATION_INVITATION => new ResidentRegistrationInvitationMail(
+                residentName: $notification->recipient_name,
+                registrationUrl: route('resident.register'),
+            ),
+            ResidentNotification::TYPE_LUPON_SUMMONS_ISSUED => new LuponSummonsIssuedMail(
+                residentName: $notification->recipient_name,
+                caseNumber: (string) ($notification->context['case_number'] ?? 'KP case'),
+            ),
             default => throw new LogicException(
                 'Unsupported resident notification type.'
             ),

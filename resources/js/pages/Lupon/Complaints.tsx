@@ -10,7 +10,12 @@ import LuponLayout from '@/layouts/LuponLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import withDeferredPage from '@/components/withDeferredPage';
 
-type ComplaintStatus = 'Submitted' | 'Under Review' | 'For Payment' | 'Accepted' | 'Rejected';
+type ComplaintStatus =
+    | 'Submitted'
+    | 'Under Review'
+    | 'For Payment'
+    | 'Accepted'
+    | 'Rejected';
 
 type Complaint = {
     id: number;
@@ -96,28 +101,43 @@ function LuponComplaints({
     const [pendingAction, setPendingAction] = useState(false);
     const [assessedFee, setAssessedFee] = useState('');
     useEffect(() => {
-        setSelected((current) => current ? complaints.data.find((item) => item.id === current.id) ?? null : null);
+        setSelected((current) =>
+            current
+                ? (complaints.data.find((item) => item.id === current.id) ??
+                  null)
+                : null,
+        );
     }, [complaints]);
 
     const requestPayment = (complaint: Complaint) => {
         if (!assessedFee || Number(assessedFee) <= 0) {
-            setActionError('Enter the actual assessed filing fee before requesting payment.');
+            setActionError(
+                'Enter the actual assessed filing fee before requesting payment.',
+            );
             return;
         }
         setActionError(null);
         setPendingAction(true);
-        router.post(`/lupon/complaints/${complaint.id}/request-payment`, {
-            assessed_fee: assessedFee,
-            lupon_note: note.trim() || null,
-        }, {
-            only: ['complaints', 'stats', 'flash', 'errors'],
-            preserveScroll: true,
-            preserveState: true,
-            showProgress: false,
-            onSuccess: () => { setNote(''); setAssessedFee(''); },
-            onError: (errors) => setActionError(Object.values(errors).join(' ')),
-            onFinish: () => setPendingAction(false),
-        });
+        router.post(
+            `/lupon/complaints/${complaint.id}/request-payment`,
+            {
+                assessed_fee: assessedFee,
+                lupon_note: note.trim() || null,
+            },
+            {
+                only: ['complaints', 'stats', 'flash', 'errors'],
+                preserveScroll: true,
+                preserveState: true,
+                showProgress: false,
+                onSuccess: () => {
+                    setNote('');
+                    setAssessedFee('');
+                },
+                onError: (errors) =>
+                    setActionError(Object.values(errors).join(' ')),
+                onFinish: () => setPendingAction(false),
+            },
+        );
     };
 
     const applyFilter = (status: ComplaintStatus | null) => {
@@ -156,8 +176,12 @@ function LuponComplaints({
                 preserveState: true,
                 showProgress: false,
                 only: ['complaints', 'stats', 'flash', 'errors'],
-                onError: (errors) => setActionError(Object.values(errors).join(' ')),
-                onSuccess: () => { setNote(''); setSelected(null); },
+                onError: (errors) =>
+                    setActionError(Object.values(errors).join(' ')),
+                onSuccess: () => {
+                    setNote('');
+                    setSelected(null);
+                },
                 onFinish: () => {
                     setPendingAction(false);
                 },
@@ -179,7 +203,8 @@ function LuponComplaints({
                         Complaints
                     </h1>
                     <p className="mt-1 text-sm text-gray-500">
-                        Review complaints, request payment, and record the OR before creating a case
+                        Review complaints, request payment, and record the OR
+                        before creating a case
                         {userName ? ` — signed in as ${userName}` : ''}.
                     </p>
 
@@ -200,12 +225,24 @@ function LuponComplaints({
                 </div>
 
                 {flash?.success && (
-                    <div role="status" aria-live="polite" className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                    <div
+                        role="status"
+                        aria-live="polite"
+                        className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"
+                    >
                         {flash.success}
                     </div>
                 )}
 
-                {pendingAction && <p role="status" aria-live="polite" className="text-sm text-gray-600">Saving complaint action…</p>}
+                {pendingAction && (
+                    <p
+                        role="status"
+                        aria-live="polite"
+                        className="text-sm text-gray-600"
+                    >
+                        Saving complaint action…
+                    </p>
+                )}
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex flex-wrap items-center gap-2">
@@ -416,39 +453,98 @@ function LuponComplaints({
                                 </p>
                             )}
 
-                            {!selected.case && ['Submitted', 'Under Review', 'Accepted'].includes(selected.status) && (
-                                <div className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                                    <label className="block text-sm font-semibold text-gray-800">
-                                        Assessed filing fee (₱)
-                                        <input type="number" min="0.01" max="999999.99" step="0.01" value={assessedFee}
-                                            onChange={(event) => setAssessedFee(event.target.value)}
-                                            className="mt-1 block w-full rounded-lg border bg-white p-2" />
-                                    </label>
-                                    <p className="text-xs text-gray-600">Complete the review and enter the assessed fee. The resident will be asked to pay at the barangay office. This does not create a case.</p>
-                                    <ActionButton label={pendingAction ? 'Saving review…' : 'Review completed — request payment'}
-                                        disabled={pendingAction} onClick={() => requestPayment(selected)} tone="amber" />
-                                </div>
-                            )}
-                            {selected.status === 'For Payment' && !selected.case && (
-                                <div className="mt-4">
-                                    <PromoteComplaint key={selected.id} complaintId={selected.id} officials={officials} assessedFee={selected.assessedFee ?? 0} />
-                                </div>
-                            )}
-                            <div className="mt-4 flex flex-wrap gap-3">
-                                {!selected.case && ['Submitted', 'Under Review', 'For Payment'].includes(selected.status) && (
-                                    <ActionButton label={pendingAction ? 'Saving…' : 'Reject complaint'} disabled={pendingAction}
-                                        onClick={() => submitStatus(selected, 'Rejected')} tone="red" />
+                            {!selected.case &&
+                                [
+                                    'Submitted',
+                                    'Under Review',
+                                    'Accepted',
+                                ].includes(selected.status) && (
+                                    <div className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                        <label className="block text-sm font-semibold text-gray-800">
+                                            Assessed filing fee (₱)
+                                            <input
+                                                type="number"
+                                                min="0.01"
+                                                max="999999.99"
+                                                step="0.01"
+                                                value={assessedFee}
+                                                onChange={(event) =>
+                                                    setAssessedFee(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                className="mt-1 block w-full rounded-lg border bg-white p-2"
+                                            />
+                                        </label>
+                                        <p className="text-xs text-gray-600">
+                                            Complete the review and enter the
+                                            assessed fee. The resident will be
+                                            asked to pay at the barangay office.
+                                            This does not create a case.
+                                        </p>
+                                        <ActionButton
+                                            label={
+                                                pendingAction
+                                                    ? 'Saving review…'
+                                                    : 'Review completed — request payment'
+                                            }
+                                            disabled={pendingAction}
+                                            onClick={() =>
+                                                requestPayment(selected)
+                                            }
+                                            tone="amber"
+                                        />
+                                    </div>
                                 )}
+                            {selected.status === 'For Payment' &&
+                                !selected.case && (
+                                    <div className="mt-4">
+                                        <PromoteComplaint
+                                            key={selected.id}
+                                            complaintId={selected.id}
+                                            officials={officials}
+                                            assessedFee={
+                                                selected.assessedFee ?? 0
+                                            }
+                                        />
+                                    </div>
+                                )}
+                            <div className="mt-4 flex flex-wrap gap-3">
+                                {!selected.case &&
+                                    [
+                                        'Submitted',
+                                        'Under Review',
+                                        'For Payment',
+                                    ].includes(selected.status) && (
+                                        <ActionButton
+                                            label={
+                                                pendingAction
+                                                    ? 'Saving…'
+                                                    : 'Reject complaint'
+                                            }
+                                            disabled={pendingAction}
+                                            onClick={() =>
+                                                submitStatus(
+                                                    selected,
+                                                    'Rejected',
+                                                )
+                                            }
+                                            tone="red"
+                                        />
+                                    )}
                                 {selected.case && (
-                                    <a href={`/lupon/cases/${selected.case.id}`} className="inline-flex min-h-11 items-center rounded-xl border border-[#3f6f3d] bg-[#f0f6ee] px-5 py-2.5 text-sm font-semibold text-[#3f6f3d] hover:bg-[#e4efe1]">
+                                    <a
+                                        href={`/lupon/cases/${selected.case.id}`}
+                                        className="inline-flex min-h-11 items-center rounded-xl border border-[#3f6f3d] bg-[#f0f6ee] px-5 py-2.5 text-sm font-semibold text-[#3f6f3d] hover:bg-[#e4efe1]"
+                                    >
                                         View Case {selected.case.caseNumber} →
                                     </a>
                                 )}
                             </div>
                             <p className="mt-3 text-xs leading-5 text-gray-400">
-                                Statuses follow recorded review and payment actions. Open
-                                the docketed case to manage hearings, outcomes,
-                                evidence and documents.
+                                Statuses follow recorded review and payment
+                                actions. Open the docketed case to manage
+                                hearings, outcomes, evidence and documents.
                             </p>
                         </div>
                     </div>

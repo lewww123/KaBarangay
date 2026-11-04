@@ -114,24 +114,26 @@ export default function AnnouncementDetails({
                     )}
                 </div>
 
-                {showApprovalStatus && !isEvent && announcement.rejection_reason && (
-                    <div
-                        className={`mt-5 rounded border p-3 text-xs ${
-                            announcement.approval_status === 'rejected'
-                                ? 'border-red-200 bg-red-50 text-red-700'
-                                : 'border-amber-200 bg-amber-50 text-amber-700'
-                        }`}
-                    >
-                        <p className="font-semibold">
-                            {announcement.approval_status === 'rejected'
-                                ? 'Returned for revision'
-                                : 'Previous review note'}
-                        </p>
-                        <p className="mt-1 whitespace-pre-line">
-                            {announcement.rejection_reason}
-                        </p>
-                    </div>
-                )}
+                {showApprovalStatus &&
+                    !isEvent &&
+                    announcement.rejection_reason && (
+                        <div
+                            className={`mt-5 rounded border p-3 text-xs ${
+                                announcement.approval_status === 'rejected'
+                                    ? 'border-red-200 bg-red-50 text-red-700'
+                                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                            }`}
+                        >
+                            <p className="font-semibold">
+                                {announcement.approval_status === 'rejected'
+                                    ? 'Returned for revision'
+                                    : 'Previous review note'}
+                            </p>
+                            <p className="mt-1 whitespace-pre-line">
+                                {announcement.rejection_reason}
+                            </p>
+                        </div>
+                    )}
 
                 <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
                     <div>

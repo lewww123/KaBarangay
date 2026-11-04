@@ -287,8 +287,8 @@ class ResidentRegistrationCorrectionController extends Controller
     }
 
     /** @param array<string, mixed> $fields
-     *  @param list<string> $targets
-     *  @return array<string, mixed>
+     * @param  list<string>  $targets
+     * @return array<string, mixed>
      */
     private function normalizeFields(array $fields): array
     {
@@ -316,7 +316,7 @@ class ResidentRegistrationCorrectionController extends Controller
     }
 
     /** @param array<string, mixed> $fields
-     *  @param list<string> $targets
+     * @param  list<string>  $targets
      */
     private function validateRegistrationUniqueness(
         ResidentRegistration $registration,

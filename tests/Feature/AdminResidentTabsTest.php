@@ -8,6 +8,7 @@ use App\Models\RegistrationDocument;
 use App\Models\Resident;
 use App\Models\ResidentRegistration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -83,7 +84,7 @@ class AdminResidentTabsTest extends TestCase
         ]);
         $resident->registration()->update(['status' => 'pending']);
         $resident->forceFill(['email_verified_at' => null])->save();
-        \Illuminate\Support\Facades\DB::table('resident_claims')->insert([
+        DB::table('resident_claims')->insert([
             'resident_id' => $resident->id,
             'public_id' => (string) Str::uuid(),
             'barangay_id' => $this->barangay->id,

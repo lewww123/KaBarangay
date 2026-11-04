@@ -21,14 +21,18 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
             <Head title={`${service.title} | Citizen's Charter`} />
 
             <div className="mx-auto w-full max-w-5xl space-y-6">
-
                 {/* BREADCRUMB */}
                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Link href="/resident/citizen-charter" className="hover:text-[#3f6f3d]">
+                    <Link
+                        href="/resident/citizen-charter"
+                        className="hover:text-[#3f6f3d]"
+                    >
                         Citizen&apos;s Charter
                     </Link>
                     <span>/</span>
-                    <span className="font-semibold text-gray-800 line-clamp-1">{service.title}</span>
+                    <span className="line-clamp-1 font-semibold text-gray-800">
+                        {service.title}
+                    </span>
                 </div>
 
                 {/* SERVICE HEADER CARD */}
@@ -36,12 +40,13 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200">
+                                <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
                                     {service.category || 'Barangay Service'}
                                 </span>
                                 {version && (
                                     <span className="text-xs text-gray-400">
-                                        Official Document ({formatFileSize(version.file_size)})
+                                        Official Document (
+                                        {formatFileSize(version.file_size)})
                                     </span>
                                 )}
                             </div>
@@ -51,18 +56,19 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
                             </h1>
 
                             {service.description && (
-                                <p className="text-sm leading-relaxed text-gray-600 max-w-3xl">
+                                <p className="max-w-3xl text-sm leading-relaxed text-gray-600">
                                     {service.description}
                                 </p>
                             )}
 
                             <div className="pt-1 text-xs text-gray-400">
-                                Published standard as of {formatCharterDate(service.published_at)}
+                                Published standard as of{' '}
+                                {formatCharterDate(service.published_at)}
                             </div>
                         </div>
 
                         {/* ACTIONS */}
-                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
                             {service.file_url && (
                                 <a
                                     href={service.file_url}
@@ -113,18 +119,29 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
 
                     {/* MOBILE FALLBACK NOTE */}
                     <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 text-xs text-gray-500">
-                        <span className="font-semibold text-gray-700">Mobile notice:</span> If your device or browser cannot display embedded PDF previews, use the{' '}
-                        <a href={service.download_url || '#'} className="font-semibold text-[#3f6f3d] underline">
+                        <span className="font-semibold text-gray-700">
+                            Mobile notice:
+                        </span>{' '}
+                        If your device or browser cannot display embedded PDF
+                        previews, use the{' '}
+                        <a
+                            href={service.download_url || '#'}
+                            className="font-semibold text-[#3f6f3d] underline"
+                        >
                             Download PDF
                         </a>{' '}
                         or{' '}
-                        <a href={service.file_url || '#'} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#3f6f3d] underline">
+                        <a
+                            href={service.file_url || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-semibold text-[#3f6f3d] underline"
+                        >
                             Open in New Tab
                         </a>{' '}
                         button above to view the complete official document.
                     </div>
                 </div>
-
             </div>
         </ResidentLayout>
     );

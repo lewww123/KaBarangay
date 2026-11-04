@@ -4,7 +4,6 @@ import type { FormEvent } from 'react';
 import {
     charterStatusBadge,
     formatCharterDate,
-    formatFileSize,
     type CitizenCharterServiceData,
     type Paginator,
 } from '@/components/citizen-charter/charter';
@@ -50,16 +49,17 @@ const STATUS_TABS: {
     { value: 'archived', label: 'Archived', countKey: 'archived' },
 ];
 
-export default withDeferredPage(ClerkCitizenCharterIndex, ['services', 'stats'], (props) => (
-    <ClerkLayout active="citizen-charter" user={props.user}><PortalPageSkeleton metrics={4} /></ClerkLayout>
-));
+export default withDeferredPage(
+    ClerkCitizenCharterIndex,
+    ['services', 'stats'],
+    (props) => (
+        <ClerkLayout active="citizen-charter" user={props.user}>
+            <PortalPageSkeleton metrics={4} />
+        </ClerkLayout>
+    ),
+);
 
-function ClerkCitizenCharterIndex({
-    services,
-    filters,
-    stats,
-    user,
-}: Props) {
+function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
     const page = usePage<{ flash?: { success?: string; error?: string } }>();
     const flash = page.props.flash;
 
@@ -86,7 +86,7 @@ function ClerkCitizenCharterIndex({
                 preserveScroll: true,
                 preserveState,
                 only: ['services', 'filters'],
-            }
+            },
         );
     };
 
@@ -115,7 +115,6 @@ function ClerkCitizenCharterIndex({
             <Head title="Citizen's Charter Management | Clerk Portal" />
 
             <div className="mx-auto max-w-6xl space-y-6">
-
                 {/* HEADER */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -123,7 +122,8 @@ function ClerkCitizenCharterIndex({
                             Citizen&apos;s Charter Directory
                         </h1>
                         <p className="mt-1 text-sm text-gray-500">
-                            Upload, publish, and manage official barangay service standards and procedures.
+                            Upload, publish, and manage official barangay
+                            service standards and procedures.
                         </p>
                     </div>
 
@@ -152,26 +152,41 @@ function ClerkCitizenCharterIndex({
                 {/* STATS TILES */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                        <div className="text-xs font-medium uppercase tracking-wider text-gray-400">Total Services</div>
-                        <div className="mt-2 text-2xl font-bold text-gray-900">{stats.total}</div>
+                        <div className="text-xs font-medium tracking-wider text-gray-400 uppercase">
+                            Total Services
+                        </div>
+                        <div className="mt-2 text-2xl font-bold text-gray-900">
+                            {stats.total}
+                        </div>
                     </div>
                     <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 shadow-sm">
-                        <div className="text-xs font-medium uppercase tracking-wider text-blue-600">Draft Revisions</div>
-                        <div className="mt-2 text-2xl font-bold text-blue-900">{stats.draft}</div>
+                        <div className="text-xs font-medium tracking-wider text-blue-600 uppercase">
+                            Draft Revisions
+                        </div>
+                        <div className="mt-2 text-2xl font-bold text-blue-900">
+                            {stats.draft}
+                        </div>
                     </div>
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm">
-                        <div className="text-xs font-medium uppercase tracking-wider text-emerald-600">Published Live</div>
-                        <div className="mt-2 text-2xl font-bold text-emerald-900">{stats.published}</div>
+                        <div className="text-xs font-medium tracking-wider text-emerald-600 uppercase">
+                            Published Live
+                        </div>
+                        <div className="mt-2 text-2xl font-bold text-emerald-900">
+                            {stats.published}
+                        </div>
                     </div>
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
-                        <div className="text-xs font-medium uppercase tracking-wider text-gray-500">Archived</div>
-                        <div className="mt-2 text-2xl font-bold text-gray-700">{stats.archived}</div>
+                        <div className="text-xs font-medium tracking-wider text-gray-500 uppercase">
+                            Archived
+                        </div>
+                        <div className="mt-2 text-2xl font-bold text-gray-700">
+                            {stats.archived}
+                        </div>
                     </div>
                 </div>
 
                 {/* CONTROLS (TABS & SEARCH) */}
                 <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-
                     {/* STATUS TABS */}
                     <div className="flex flex-wrap gap-1 border-b border-gray-100 pb-2 sm:border-b-0 sm:pb-0">
                         {STATUS_TABS.map((tab) => {
@@ -189,7 +204,7 @@ function ClerkCitizenCharterIndex({
                                 >
                                     <span>{tab.label}</span>
                                     <span
-                                        className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                                        className={`py-0.2 rounded-full px-1.5 text-[10px] ${
                                             isCurrent
                                                 ? 'bg-white/25 text-white'
                                                 : 'bg-gray-100 text-gray-600'
@@ -203,7 +218,10 @@ function ClerkCitizenCharterIndex({
                     </div>
 
                     {/* SEARCH INPUT */}
-                    <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 sm:w-72">
+                    <form
+                        onSubmit={handleSearchSubmit}
+                        className="flex items-center gap-2 sm:w-72"
+                    >
                         <input
                             type="text"
                             placeholder="Search service title, category..."
@@ -237,39 +255,61 @@ function ClerkCitizenCharterIndex({
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
-                                <thead className="border-b border-gray-200 bg-gray-50 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                                <thead className="border-b border-gray-200 bg-gray-50 text-[11px] font-semibold tracking-wider text-gray-500 uppercase">
                                     <tr>
-                                        <th className="px-4 py-3">Service Title</th>
+                                        <th className="px-4 py-3">
+                                            Service Title
+                                        </th>
                                         <th className="px-4 py-3">Category</th>
                                         <th className="px-4 py-3">Version</th>
                                         <th className="px-4 py-3">Status</th>
-                                        <th className="px-4 py-3">Published Date</th>
-                                        <th className="px-4 py-3 text-right">Actions</th>
+                                        <th className="px-4 py-3">
+                                            Published Date
+                                        </th>
+                                        <th className="px-4 py-3 text-right">
+                                            Actions
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 text-gray-700">
                                     {services.data.map((service) => {
-                                        const badge = charterStatusBadge(service.status);
-                                        const versionNum = service.current_version?.version_number ?? 1;
+                                        const badge = charterStatusBadge(
+                                            service.status,
+                                        );
+                                        const versionNum =
+                                            service.current_version
+                                                ?.version_number ?? 1;
 
                                         return (
-                                            <tr key={service.id} className="transition hover:bg-gray-50/70">
+                                            <tr
+                                                key={service.id}
+                                                className="transition hover:bg-gray-50/70"
+                                            >
                                                 <td className="px-4 py-3.5">
                                                     <Link
-                                                        href={service.show_url || `/clerk/citizen-charter/${service.id}`}
+                                                        href={
+                                                            service.show_url ||
+                                                            `/clerk/citizen-charter/${service.id}`
+                                                        }
                                                         className="font-bold text-gray-900 hover:text-[#3f6f3d]"
                                                     >
                                                         {service.title}
                                                     </Link>
                                                     {service.description && (
                                                         <p className="mt-0.5 line-clamp-1 max-w-md text-[11px] text-gray-400">
-                                                            {service.description}
+                                                            {
+                                                                service.description
+                                                            }
                                                         </p>
                                                     )}
                                                 </td>
 
                                                 <td className="px-4 py-3.5 text-gray-600">
-                                                    {service.category || <span className="text-gray-400">Uncategorized</span>}
+                                                    {service.category || (
+                                                        <span className="text-gray-400">
+                                                            Uncategorized
+                                                        </span>
+                                                    )}
                                                 </td>
 
                                                 <td className="px-4 py-3.5">
@@ -279,18 +319,25 @@ function ClerkCitizenCharterIndex({
                                                 </td>
 
                                                 <td className="px-4 py-3.5">
-                                                    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${badge.classes}`}>
+                                                    <span
+                                                        className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${badge.classes}`}
+                                                    >
                                                         {badge.label}
                                                     </span>
                                                 </td>
 
                                                 <td className="px-4 py-3.5 text-gray-500">
-                                                    {formatCharterDate(service.published_at)}
+                                                    {formatCharterDate(
+                                                        service.published_at,
+                                                    )}
                                                 </td>
 
                                                 <td className="px-4 py-3.5 text-right">
                                                     <Link
-                                                        href={service.show_url || `/clerk/citizen-charter/${service.id}`}
+                                                        href={
+                                                            service.show_url ||
+                                                            `/clerk/citizen-charter/${service.id}`
+                                                        }
                                                         className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-2.5 py-1 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
                                                     >
                                                         <span>Manage</span>
@@ -309,9 +356,19 @@ function ClerkCitizenCharterIndex({
                     {services.last_page > 1 && (
                         <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50/50 px-4 py-3 text-xs text-gray-600">
                             <div>
-                                Showing <span className="font-semibold">{services.from}</span> to{' '}
-                                <span className="font-semibold">{services.to}</span> of{' '}
-                                <span className="font-semibold">{services.total}</span> services
+                                Showing{' '}
+                                <span className="font-semibold">
+                                    {services.from}
+                                </span>{' '}
+                                to{' '}
+                                <span className="font-semibold">
+                                    {services.to}
+                                </span>{' '}
+                                of{' '}
+                                <span className="font-semibold">
+                                    {services.total}
+                                </span>{' '}
+                                services
                             </div>
                             <div className="flex gap-1">
                                 {services.links.map((link, idx) => (
@@ -319,8 +376,23 @@ function ClerkCitizenCharterIndex({
                                         key={idx}
                                         type="button"
                                         disabled={!link.url}
-                                        onClick={() => link.url && router.get(link.url, {}, { preserveScroll: true, only: ['services', 'filters'] })}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                        onClick={() =>
+                                            link.url &&
+                                            router.get(
+                                                link.url,
+                                                {},
+                                                {
+                                                    preserveScroll: true,
+                                                    only: [
+                                                        'services',
+                                                        'filters',
+                                                    ],
+                                                },
+                                            )
+                                        }
+                                        dangerouslySetInnerHTML={{
+                                            __html: link.label,
+                                        }}
                                         className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                             link.active
                                                 ? 'bg-[#3f6f3d] text-white'
@@ -334,7 +406,6 @@ function ClerkCitizenCharterIndex({
                         </div>
                     )}
                 </div>
-
             </div>
 
             {/* CREATE SERVICE MODAL */}
@@ -354,21 +425,29 @@ function ClerkCitizenCharterIndex({
                             </button>
                         </div>
 
-                        <form onSubmit={handleCreateSubmit} className="mt-4 space-y-4">
+                        <form
+                            onSubmit={handleCreateSubmit}
+                            className="mt-4 space-y-4"
+                        >
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700">
-                                    Service Title <span className="text-red-500">*</span>
+                                    Service Title{' '}
+                                    <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
                                     required
                                     placeholder="e.g. Issuance of Barangay Clearance"
                                     value={form.data.title}
-                                    onChange={(e) => form.setData('title', e.target.value)}
+                                    onChange={(e) =>
+                                        form.setData('title', e.target.value)
+                                    }
                                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
                                 />
                                 {form.errors.title && (
-                                    <p className="mt-1 text-xs text-red-600">{form.errors.title}</p>
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {form.errors.title}
+                                    </p>
                                 )}
                             </div>
 
@@ -381,11 +460,18 @@ function ClerkCitizenCharterIndex({
                                         type="text"
                                         placeholder="e.g. Certificates, Social Services"
                                         value={form.data.category}
-                                        onChange={(e) => form.setData('category', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'category',
+                                                e.target.value,
+                                            )
+                                        }
                                         className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
                                     />
                                     {form.errors.category && (
-                                        <p className="mt-1 text-xs text-red-600">{form.errors.category}</p>
+                                        <p className="mt-1 text-xs text-red-600">
+                                            {form.errors.category}
+                                        </p>
                                     )}
                                 </div>
 
@@ -397,11 +483,18 @@ function ClerkCitizenCharterIndex({
                                         type="number"
                                         min="0"
                                         value={form.data.display_order}
-                                        onChange={(e) => form.setData('display_order', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'display_order',
+                                                e.target.value,
+                                            )
+                                        }
                                         className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
                                     />
                                     {form.errors.display_order && (
-                                        <p className="mt-1 text-xs text-red-600">{form.errors.display_order}</p>
+                                        <p className="mt-1 text-xs text-red-600">
+                                            {form.errors.display_order}
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -414,17 +507,25 @@ function ClerkCitizenCharterIndex({
                                     rows={2}
                                     placeholder="Short summary of who may avail and what this service covers..."
                                     value={form.data.description}
-                                    onChange={(e) => form.setData('description', e.target.value)}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'description',
+                                            e.target.value,
+                                        )
+                                    }
                                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
                                 />
                                 {form.errors.description && (
-                                    <p className="mt-1 text-xs text-red-600">{form.errors.description}</p>
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {form.errors.description}
+                                    </p>
                                 )}
                             </div>
 
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700">
-                                    Official Service Document (PDF only) <span className="text-red-500">*</span>
+                                    Official Service Document (PDF only){' '}
+                                    <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     ref={fileInputRef}
@@ -432,15 +533,21 @@ function ClerkCitizenCharterIndex({
                                     required
                                     accept=".pdf,application/pdf"
                                     onChange={(e) =>
-                                        form.setData('document', e.target.files?.[0] || null)
+                                        form.setData(
+                                            'document',
+                                            e.target.files?.[0] || null,
+                                        )
                                     }
                                     className="mt-1 block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f1e4] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#3f6f3d] hover:file:bg-[#d6e7ce]"
                                 />
                                 <p className="mt-1 text-[11px] text-gray-400">
-                                    PDF file only. Max 2 MB per runtime upload limit. Scanned PDFs supported.
+                                    PDF file only. Max 2 MB per runtime upload
+                                    limit. Scanned PDFs supported.
                                 </p>
                                 {form.errors.document && (
-                                    <p className="mt-1 text-xs text-red-600">{form.errors.document}</p>
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {form.errors.document}
+                                    </p>
                                 )}
                             </div>
 
@@ -457,7 +564,9 @@ function ClerkCitizenCharterIndex({
                                     disabled={form.processing}
                                     className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-50"
                                 >
-                                    {form.processing ? 'Saving...' : 'Save Service as Draft'}
+                                    {form.processing
+                                        ? 'Saving...'
+                                        : 'Save Service as Draft'}
                                 </button>
                             </div>
                         </form>

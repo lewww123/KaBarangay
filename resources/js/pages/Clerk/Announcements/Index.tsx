@@ -63,9 +63,15 @@ interface Props {
     };
 }
 
-export default withDeferredPage(ClerkAnnouncementsIndex, ['announcements', 'tabCounts'], (props) => (
-    <ClerkLayout active="announcements" user={props.user}><PortalPageSkeleton list showTabs /></ClerkLayout>
-));
+export default withDeferredPage(
+    ClerkAnnouncementsIndex,
+    ['announcements', 'tabCounts'],
+    (props) => (
+        <ClerkLayout active="announcements" user={props.user}>
+            <PortalPageSkeleton list showTabs />
+        </ClerkLayout>
+    ),
+);
 
 function ClerkAnnouncementsIndex({
     announcements,
@@ -76,13 +82,23 @@ function ClerkAnnouncementsIndex({
 }: Props) {
     const isUpdate = kind === 'update';
     const isProgram = kind === 'program';
-    const basePath = isUpdate ? '/clerk/updates' : isProgram ? '/clerk/programs' : '/clerk/announcements';
-    const forcedFormType = isUpdate ? 'informational' : isProgram ? 'event' : null;
+    const basePath = isUpdate
+        ? '/clerk/updates'
+        : isProgram
+          ? '/clerk/programs'
+          : '/clerk/announcements';
+    const forcedFormType = isUpdate
+        ? 'informational'
+        : isProgram
+          ? 'event'
+          : null;
 
     const [showModal, setShowModal] = useState(false);
     const [editingItem, setEditingItem] = useState<Announcement | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
-    const [formType, setFormType] = useState<'event' | 'informational'>(forcedFormType ?? 'informational');
+    const [formType, setFormType] = useState<'event' | 'informational'>(
+        forcedFormType ?? 'informational',
+    );
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedType, setSelectedType] = useState('ALL');
     const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -121,12 +137,19 @@ function ClerkAnnouncementsIndex({
         setFormType(forcedFormType ?? type);
         setData({
             title: item.title,
-            program_status: item.program_status === 'draft' ? 'draft' : 'ongoing',
+            program_status:
+                item.program_status === 'draft' ? 'draft' : 'ongoing',
             content: item.content,
-            category: isProgram ? 'Event' : isUpdate && item.category === 'Event' ? 'General' : item.category || 'General',
+            category: isProgram
+                ? 'Event'
+                : isUpdate && item.category === 'Event'
+                  ? 'General'
+                  : item.category || 'General',
             importance: item.importance || 'normal',
             target_audience: item.target_audience || 'all',
-            requires_attendance: isProgram ? toBoolean(item.requires_attendance) : false,
+            requires_attendance: isProgram
+                ? toBoolean(item.requires_attendance)
+                : false,
             event_start_at: toDateTimeLocalValue(item.event_start_at),
             location: item.location || '',
         });
@@ -137,7 +160,12 @@ function ClerkAnnouncementsIndex({
         router.get(
             basePath,
             { tab },
-            { preserveScroll: true, preserveState: true, replace: true, only: ['announcements', 'tabCounts', 'activeTab', 'kind'] },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                only: ['announcements', 'tabCounts', 'activeTab', 'kind'],
+            },
         );
     };
 
@@ -149,7 +177,10 @@ function ClerkAnnouncementsIndex({
             return;
         }
 
-        setData('category', data.category === 'Event' ? 'General' : data.category);
+        setData(
+            'category',
+            data.category === 'Event' ? 'General' : data.category,
+        );
         setData('requires_attendance', false);
         setData('event_start_at', '');
         setData('location', '');
@@ -188,32 +219,49 @@ function ClerkAnnouncementsIndex({
     const reviewType = isEventAnnouncement(data) ? 'event' : 'informational';
 
     const filteredAnnouncements = announcements.filter((item) => {
-        const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesSearch =
+            item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.content.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = selectedCategory === 'ALL' || item.category === selectedCategory;
+        const matchesCategory =
+            selectedCategory === 'ALL' || item.category === selectedCategory;
         const matchesImportance =
             selectedImportance === 'ALL' ||
             (item.importance || 'normal') === selectedImportance;
         const matchesType =
             selectedType === 'ALL' ||
-            (isEventAnnouncement(item) ? 'event' : 'informational') === selectedType;
+            (isEventAnnouncement(item) ? 'event' : 'informational') ===
+                selectedType;
         return (
-            matchesSearch &&
-            matchesCategory &&
-            matchesImportance &&
-            matchesType
+            matchesSearch && matchesCategory && matchesImportance && matchesType
         );
     });
 
     return (
-        <ClerkLayout active={isUpdate ? 'updates' : isProgram ? 'programs' : 'announcements'} user={user}>
-            <Head title={isUpdate ? 'Barangay Updates' : isProgram ? 'Barangay Programs' : 'Barangay Announcements'} />
+        <ClerkLayout
+            active={
+                isUpdate ? 'updates' : isProgram ? 'programs' : 'announcements'
+            }
+            user={user}
+        >
+            <Head
+                title={
+                    isUpdate
+                        ? 'Barangay Updates'
+                        : isProgram
+                          ? 'Barangay Programs'
+                          : 'Barangay Announcements'
+                }
+            />
 
             <div className="space-y-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 bg-white p-4 sm:p-5 rounded-lg shadow-sm">
+                <div className="flex flex-col gap-3 rounded-lg border-b border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
                     <div>
                         <h1 className="text-xl font-bold text-gray-900">
-                            {isUpdate ? 'Barangay Updates' : isProgram ? 'Barangay Programs' : 'Barangay Announcements'}
+                            {isUpdate
+                                ? 'Barangay Updates'
+                                : isProgram
+                                  ? 'Barangay Programs'
+                                  : 'Barangay Announcements'}
                         </h1>
                         <p className="text-xs text-gray-500">
                             {isUpdate
@@ -229,7 +277,11 @@ function ClerkAnnouncementsIndex({
                         onClick={openCreateModal}
                         className="inline-flex items-center justify-center gap-2 rounded-md bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-[#315b30]"
                     >
-                        {isUpdate ? '+ Publish Update' : isProgram ? '+ Create Program' : '+ New Announcement'}
+                        {isUpdate
+                            ? '+ Publish Update'
+                            : isProgram
+                              ? '+ Create Program'
+                              : '+ New Announcement'}
                     </button>
                 </div>
 
@@ -243,49 +295,69 @@ function ClerkAnnouncementsIndex({
                     </div>
                 )}
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white p-3.5 rounded-lg border border-gray-200 shadow-sm">
+                <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={isUpdate ? 'Search updates by title or content...' : 'Search announcements by title or content...'}
-                        className="w-full sm:w-72 rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                        placeholder={
+                            isUpdate
+                                ? 'Search updates by title or content...'
+                                : 'Search announcements by title or content...'
+                        }
+                        className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d] sm:w-72"
                     />
 
                     <div className="flex flex-wrap items-center gap-2">
                         {!isUpdate && (
                             <>
-                                <label className="text-xs font-medium text-gray-500">Type:</label>
+                                <label className="text-xs font-medium text-gray-500">
+                                    Type:
+                                </label>
                                 <select
                                     value={selectedType}
-                                    onChange={(e) => setSelectedType(e.target.value)}
+                                    onChange={(e) =>
+                                        setSelectedType(e.target.value)
+                                    }
                                     className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
                                 >
                                     <option value="ALL">All Types</option>
                                     <option value="event">Events</option>
-                                    <option value="informational">Informational Updates</option>
+                                    <option value="informational">
+                                        Informational Updates
+                                    </option>
                                 </select>
                             </>
                         )}
 
-                        <label className="ml-2 text-xs font-medium text-gray-500">Category:</label>
+                        <label className="ml-2 text-xs font-medium text-gray-500">
+                            Category:
+                        </label>
                         <select
                             value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            onChange={(e) =>
+                                setSelectedCategory(e.target.value)
+                            }
                             className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
                         >
                             <option value="ALL">All Categories</option>
                             <option value="General">General</option>
                             {!isUpdate && <option value="Event">Event</option>}
                             <option value="Relief Goods">Relief Goods</option>
-                            <option value="Cash Assistance">Cash Assistance</option>
+                            <option value="Cash Assistance">
+                                Cash Assistance
+                            </option>
                             <option value="Meeting">Meeting</option>
                         </select>
 
-                        <label className="ml-2 text-xs font-medium text-gray-500">Importance:</label>
+                        <label className="ml-2 text-xs font-medium text-gray-500">
+                            Importance:
+                        </label>
                         <select
                             value={selectedImportance}
-                            onChange={(e) => setSelectedImportance(e.target.value)}
+                            onChange={(e) =>
+                                setSelectedImportance(e.target.value)
+                            }
                             className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
                         >
                             <option value="ALL">All Importance</option>
@@ -301,54 +373,78 @@ function ClerkAnnouncementsIndex({
                 <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm text-gray-600">
-                            <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 border-b border-gray-200">
+                            <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
                                 <tr>
                                     <th className="px-5 py-3">Title</th>
-                                    {isUpdate && <th className="px-5 py-3">Posted</th>}
+                                    {isUpdate && (
+                                        <th className="px-5 py-3">Posted</th>
+                                    )}
                                     <th className="px-5 py-3">Type</th>
                                     <th className="px-5 py-3">Audience</th>
                                     <th className="px-5 py-3">Category</th>
                                     <th className="px-5 py-3">Importance</th>
                                     <th className="px-5 py-3">Status</th>
-                                    <th className="px-5 py-3 text-right">Actions</th>
+                                    <th className="px-5 py-3 text-right">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {filteredAnnouncements.length === 0 ? (
                                     <tr>
-                                        <td colSpan={isUpdate ? 8 : 7} className="p-8 text-center text-sm text-gray-500">
+                                        <td
+                                            colSpan={isUpdate ? 8 : 7}
+                                            className="p-8 text-center text-sm text-gray-500"
+                                        >
                                             No announcements found in this tab.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredAnnouncements.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50/80">
+                                        <tr
+                                            key={item.id}
+                                            className="hover:bg-gray-50/80"
+                                        >
                                             <td className="px-5 py-3.5 font-semibold text-gray-900">
                                                 {item.title}
-                                                {!isEventAnnouncement(item) && item.rejection_reason && (
-                                                    <p className={`mt-1 text-xs font-normal ${item.approval_status === 'rejected' ? 'text-red-600' : 'text-amber-600'}`}>
-                                                        {item.approval_status === 'rejected'
-                                                            ? `Returned for revision: ${item.rejection_reason}`
-                                                            : `Previously returned for revision (resubmitted, awaiting approval): ${item.rejection_reason}`}
-                                                    </p>
-                                                )}
+                                                {!isEventAnnouncement(item) &&
+                                                    item.rejection_reason && (
+                                                        <p
+                                                            className={`mt-1 text-xs font-normal ${item.approval_status === 'rejected' ? 'text-red-600' : 'text-amber-600'}`}
+                                                        >
+                                                            {item.approval_status ===
+                                                            'rejected'
+                                                                ? `Returned for revision: ${item.rejection_reason}`
+                                                                : `Previously returned for revision (resubmitted, awaiting approval): ${item.rejection_reason}`}
+                                                        </p>
+                                                    )}
                                             </td>
                                             {isUpdate && (
                                                 <td className="px-5 py-3.5 text-xs text-gray-500">
-                                                    {formatAnnouncementPostedAt(item.created_at)}
+                                                    {formatAnnouncementPostedAt(
+                                                        item.created_at,
+                                                    )}
                                                 </td>
                                             )}
                                             <td className="px-5 py-3.5">
-                                                <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
-                                                    isEventAnnouncement(item)
-                                                        ? 'bg-purple-100 text-purple-800'
-                                                        : 'bg-slate-100 text-slate-600'
-                                                }`}>
-                                                    {formatAnnouncementType(item)}
+                                                <span
+                                                    className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                                        isEventAnnouncement(
+                                                            item,
+                                                        )
+                                                            ? 'bg-purple-100 text-purple-800'
+                                                            : 'bg-slate-100 text-slate-600'
+                                                    }`}
+                                                >
+                                                    {formatAnnouncementType(
+                                                        item,
+                                                    )}
                                                 </span>
                                             </td>
                                             <td className="px-5 py-3.5 text-xs text-gray-500">
-                                                {formatAudienceLabel(item.target_audience)}
+                                                {formatAudienceLabel(
+                                                    item.target_audience,
+                                                )}
                                             </td>
                                             <td className="px-5 py-3.5">
                                                 <span className="rounded bg-[#e8f1e4] px-2 py-0.5 text-xs font-bold text-[#3f6f3d] uppercase">
@@ -364,42 +460,61 @@ function ClerkAnnouncementsIndex({
                                                 {item.completed_at ? (
                                                     <div className="flex flex-col items-start gap-1">
                                                         <span className="rounded bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800 uppercase">
-                                                            {isUpdate ? 'Completed' : 'Done'}
+                                                            {isUpdate
+                                                                ? 'Completed'
+                                                                : 'Done'}
                                                         </span>
                                                         {isUpdate && (
                                                             <span className="text-[10px] text-gray-500">
-                                                                {formatApprovalStatusLabel(item.approval_status)}
+                                                                {formatApprovalStatusLabel(
+                                                                    item.approval_status,
+                                                                )}
                                                             </span>
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <span className={`rounded px-2.5 py-1 text-xs font-bold uppercase ${
-                                                        item.approval_status === 'approved'
-                                                            ? 'bg-emerald-100 text-emerald-800'
-                                                            : item.approval_status === 'rejected'
-                                                            ? 'bg-red-100 text-red-800'
-                                                            : 'bg-amber-100 text-amber-800'
-                                                    }`}>
-                                                        {formatAnnouncementStatusLabel(item)}
+                                                    <span
+                                                        className={`rounded px-2.5 py-1 text-xs font-bold uppercase ${
+                                                            item.approval_status ===
+                                                            'approved'
+                                                                ? 'bg-emerald-100 text-emerald-800'
+                                                                : item.approval_status ===
+                                                                    'rejected'
+                                                                  ? 'bg-red-100 text-red-800'
+                                                                  : 'bg-amber-100 text-amber-800'
+                                                        }`}
+                                                    >
+                                                        {formatAnnouncementStatusLabel(
+                                                            item,
+                                                        )}
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-5 py-3.5 text-right space-x-2">
+                                            <td className="space-x-2 px-5 py-3.5 text-right">
                                                 <Link
                                                     href={`${basePath}/${item.id}`}
                                                     className="inline-flex rounded border border-[#cbdcc6] bg-[#f4f8f2] px-2.5 py-1 text-xs font-medium text-[#3f6f3d] hover:bg-[#e8f1e4]"
                                                 >
                                                     Details
                                                 </Link>
-                                                {isAttendanceAvailable(item) && (
+                                                {isAttendanceAvailable(
+                                                    item,
+                                                ) && (
                                                     <Link
-                                                        href={attendanceUrl('clerk', item.id)}
+                                                        href={attendanceUrl(
+                                                            'clerk',
+                                                            item.id,
+                                                        )}
                                                         className="inline-flex rounded bg-[#3f6f3d] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#315b30]"
                                                     >
                                                         Attendance
                                                     </Link>
                                                 )}
-                                                {isUpdate && item.approval_status === 'approved' && item.is_published && !item.completed_at ? (
+                                                {isUpdate &&
+                                                item.approval_status ===
+                                                    'approved' &&
+                                                item.is_published &&
+                                                !item.completed_at ? (
                                                     <MarkAnnouncementDoneButton
                                                         portal="clerk"
                                                         announcementId={item.id}
@@ -407,7 +522,10 @@ function ClerkAnnouncementsIndex({
                                                         kind="update"
                                                         className="rounded border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
                                                     />
-                                                ) : !isUpdate && canMarkAnnouncementDone(item) ? (
+                                                ) : !isUpdate &&
+                                                  canMarkAnnouncementDone(
+                                                      item,
+                                                  ) ? (
                                                     <MarkAnnouncementDoneButton
                                                         portal="clerk"
                                                         announcementId={item.id}
@@ -417,15 +535,21 @@ function ClerkAnnouncementsIndex({
                                                 ) : null}
                                                 <button
                                                     type="button"
-                                                    onClick={() => openEditModal(item)}
-                                                    disabled={Boolean(item.completed_at)}
+                                                    onClick={() =>
+                                                        openEditModal(item)
+                                                    }
+                                                    disabled={Boolean(
+                                                        item.completed_at,
+                                                    )}
                                                     className="inline-flex rounded border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     Edit
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setDeletingId(item.id)}
+                                                    onClick={() =>
+                                                        setDeletingId(item.id)
+                                                    }
                                                     className="inline-flex rounded border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100"
                                                 >
                                                     Delete
@@ -441,117 +565,205 @@ function ClerkAnnouncementsIndex({
 
                 {showModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                        <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl space-y-4">
+                        <div className="w-full max-w-lg space-y-4 rounded-lg bg-white p-6 shadow-xl">
                             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                                 <h2 className="text-base font-bold text-gray-900">
                                     {editingItem
-                                        ? isUpdate ? 'Edit Update' : isProgram ? 'Edit Program' : 'Edit Announcement'
-                                        : isUpdate ? 'New Update' : isProgram ? 'New Program' : 'New Announcement'}
+                                        ? isUpdate
+                                            ? 'Edit Update'
+                                            : isProgram
+                                              ? 'Edit Program'
+                                              : 'Edit Announcement'
+                                        : isUpdate
+                                          ? 'New Update'
+                                          : isProgram
+                                            ? 'New Program'
+                                            : 'New Announcement'}
                                 </h2>
-                                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    ✕
+                                </button>
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700">Title</label>
+                                    <label className="block text-xs font-bold text-gray-700">
+                                        Title
+                                    </label>
                                     <input
                                         type="text"
                                         value={data.title}
-                                        onChange={(e) => setData('title', e.target.value)}
+                                        onChange={(e) =>
+                                            setData('title', e.target.value)
+                                        }
                                         className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
                                         required
                                     />
-                                    {errors.title && <p className="mt-1 text-xs text-red-500">{errors.title}</p>}
+                                    {errors.title && (
+                                        <p className="mt-1 text-xs text-red-500">
+                                            {errors.title}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700">Content</label>
+                                    <label className="block text-xs font-bold text-gray-700">
+                                        Content
+                                    </label>
                                     <textarea
                                         rows={3}
                                         value={data.content}
-                                        onChange={(e) => setData('content', e.target.value)}
+                                        onChange={(e) =>
+                                            setData('content', e.target.value)
+                                        }
                                         className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
                                         required
                                     />
-                                    {errors.content && <p className="mt-1 text-xs text-red-500">{errors.content}</p>}
+                                    {errors.content && (
+                                        <p className="mt-1 text-xs text-red-500">
+                                            {errors.content}
+                                        </p>
+                                    )}
                                 </div>
 
-                                {!forcedFormType && <div>
-                                    <label className="block text-xs font-bold text-gray-700">Announcement Type</label>
-                                    <div className="mt-1 grid grid-cols-2 gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleTypeChange('informational')}
-                                            className={`rounded-md border px-3 py-2 text-left text-xs font-semibold transition ${
-                                                formType === 'informational'
-                                                    ? 'border-[#3f6f3d] bg-[#e8f1e4] text-[#315b30]'
-                                                    : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            Informational Update
-                                            <span className="mt-0.5 block text-[10px] font-normal text-gray-500">
-                                                Advisory or notice without an event schedule.
-                                            </span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleTypeChange('event')}
-                                            className={`rounded-md border px-3 py-2 text-left text-xs font-semibold transition ${
-                                                formType === 'event'
-                                                    ? 'border-[#3f6f3d] bg-[#e8f1e4] text-[#315b30]'
-                                                    : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            Event
-                                            <span className="mt-0.5 block text-[10px] font-normal text-gray-500">
-                                                Activity with a schedule and venue.
-                                            </span>
-                                        </button>
+                                {!forcedFormType && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700">
+                                            Announcement Type
+                                        </label>
+                                        <div className="mt-1 grid grid-cols-2 gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleTypeChange(
+                                                        'informational',
+                                                    )
+                                                }
+                                                className={`rounded-md border px-3 py-2 text-left text-xs font-semibold transition ${
+                                                    formType === 'informational'
+                                                        ? 'border-[#3f6f3d] bg-[#e8f1e4] text-[#315b30]'
+                                                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                Informational Update
+                                                <span className="mt-0.5 block text-[10px] font-normal text-gray-500">
+                                                    Advisory or notice without
+                                                    an event schedule.
+                                                </span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleTypeChange('event')
+                                                }
+                                                className={`rounded-md border px-3 py-2 text-left text-xs font-semibold transition ${
+                                                    formType === 'event'
+                                                        ? 'border-[#3f6f3d] bg-[#e8f1e4] text-[#315b30]'
+                                                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                Event
+                                                <span className="mt-0.5 block text-[10px] font-normal text-gray-500">
+                                                    Activity with a schedule and
+                                                    venue.
+                                                </span>
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>}
+                                )}
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    {!isProgram && <div>
-                                        <label className="block text-xs font-bold text-gray-700">Category</label>
-                                        <select
-                                            value={data.category}
-                                            onChange={(e) => handleCategoryChange(e.target.value)}
-                                            className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
-                                        >
-                                            <option value="General">General</option>
-                                            {formType === 'event' && <option value="Event">Event</option>}
-                                            <option value="Relief Goods">Relief Goods</option>
-                                            <option value="Cash Assistance">Cash Assistance</option>
-                                            <option value="Meeting">Meeting</option>
-                                        </select>
-                                    </div>}
+                                    {!isProgram && (
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700">
+                                                Category
+                                            </label>
+                                            <select
+                                                value={data.category}
+                                                onChange={(e) =>
+                                                    handleCategoryChange(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                            >
+                                                <option value="General">
+                                                    General
+                                                </option>
+                                                {formType === 'event' && (
+                                                    <option value="Event">
+                                                        Event
+                                                    </option>
+                                                )}
+                                                <option value="Relief Goods">
+                                                    Relief Goods
+                                                </option>
+                                                <option value="Cash Assistance">
+                                                    Cash Assistance
+                                                </option>
+                                                <option value="Meeting">
+                                                    Meeting
+                                                </option>
+                                            </select>
+                                        </div>
+                                    )}
 
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700">Importance</label>
+                                        <label className="block text-xs font-bold text-gray-700">
+                                            Importance
+                                        </label>
                                         <select
                                             value={data.importance}
-                                            onChange={(e) => setData('importance', e.target.value)}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'importance',
+                                                    e.target.value,
+                                                )
+                                            }
                                             className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
                                         >
-                                            {ANNOUNCEMENT_IMPORTANCE_OPTIONS.map((option) => (
-                                                <option key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </option>
-                                            ))}
+                                            {ANNOUNCEMENT_IMPORTANCE_OPTIONS.map(
+                                                (option) => (
+                                                    <option
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </option>
+                                                ),
+                                            )}
                                         </select>
-                                        {errors.importance && <p className="mt-1 text-xs text-red-500">{errors.importance}</p>}
+                                        {errors.importance && (
+                                            <p className="mt-1 text-xs text-red-500">
+                                                {errors.importance}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700">Target Audience</label>
+                                    <label className="block text-xs font-bold text-gray-700">
+                                        Target Audience
+                                    </label>
                                     <select
                                         value={data.target_audience}
-                                        onChange={(e) => setData('target_audience', e.target.value)}
+                                        onChange={(e) =>
+                                            setData(
+                                                'target_audience',
+                                                e.target.value,
+                                            )
+                                        }
                                         className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
                                     >
-                                        <option value="all">All Residents</option>
-                                        <option value="senior_citizens">Senior Citizens</option>
+                                        <option value="all">
+                                            All Residents
+                                        </option>
+                                        <option value="senior_citizens">
+                                            Senior Citizens
+                                        </option>
                                         <option value="pwd">PWD</option>
                                     </select>
                                 </div>
@@ -560,27 +772,49 @@ function ClerkAnnouncementsIndex({
                                     <>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-700">Event Date</label>
+                                                <label className="block text-xs font-bold text-gray-700">
+                                                    Event Date
+                                                </label>
                                                 <input
                                                     type="datetime-local"
                                                     value={data.event_start_at}
-                                                    onChange={(e) => setData('event_start_at', e.target.value)}
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'event_start_at',
+                                                            e.target.value,
+                                                        )
+                                                    }
                                                     className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
                                                     required
                                                 />
-                                                {errors.event_start_at && <p className="mt-1 text-xs text-red-500">{errors.event_start_at}</p>}
+                                                {errors.event_start_at && (
+                                                    <p className="mt-1 text-xs text-red-500">
+                                                        {errors.event_start_at}
+                                                    </p>
+                                                )}
                                             </div>
 
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-700">Location</label>
+                                                <label className="block text-xs font-bold text-gray-700">
+                                                    Location
+                                                </label>
                                                 <input
                                                     type="text"
                                                     value={data.location}
-                                                    onChange={(e) => setData('location', e.target.value)}
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'location',
+                                                            e.target.value,
+                                                        )
+                                                    }
                                                     className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
                                                     required
                                                 />
-                                                {errors.location && <p className="mt-1 text-xs text-red-500">{errors.location}</p>}
+                                                {errors.location && (
+                                                    <p className="mt-1 text-xs text-red-500">
+                                                        {errors.location}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
 
@@ -588,19 +822,37 @@ function ClerkAnnouncementsIndex({
                                             id="req_att_clerk"
                                             checked={data.requires_attendance}
                                             onChange={(checked) =>
-                                                setData('requires_attendance', checked)
+                                                setData(
+                                                    'requires_attendance',
+                                                    checked,
+                                                )
                                             }
                                         />
                                     </>
                                 )}
 
-                                {reviewType === 'event' && <ProgramStatusSelect value={data.program_status} onChange={(value) => setData('program_status', value)} />}
+                                {reviewType === 'event' && (
+                                    <ProgramStatusSelect
+                                        value={data.program_status}
+                                        onChange={(value) =>
+                                            setData('program_status', value)
+                                        }
+                                    />
+                                )}
                                 <AnnouncementReviewSummary
                                     type={reviewType}
                                     audience={data.target_audience}
-                                    requiresAttendance={data.requires_attendance}
-                                    willResubmit={Boolean(editingItem) && !isUpdate && reviewType !== 'event'}
-                                    directPublish={isUpdate || reviewType === 'event'}
+                                    requiresAttendance={
+                                        data.requires_attendance
+                                    }
+                                    willResubmit={
+                                        Boolean(editingItem) &&
+                                        !isUpdate &&
+                                        reviewType !== 'event'
+                                    }
+                                    directPublish={
+                                        isUpdate || reviewType === 'event'
+                                    }
                                 />
 
                                 <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
@@ -620,9 +872,14 @@ function ClerkAnnouncementsIndex({
                                         {processing
                                             ? 'Submitting...'
                                             : isUpdate
-                                              ? editingItem ? 'Republish Update' : 'Publish Update'
+                                              ? editingItem
+                                                  ? 'Republish Update'
+                                                  : 'Publish Update'
                                               : isProgram
-                                                ? data.program_status === 'draft' ? 'Save Draft' : 'Publish Program'
+                                                ? data.program_status ===
+                                                  'draft'
+                                                    ? 'Save Draft'
+                                                    : 'Publish Program'
                                                 : editingItem
                                                   ? 'Update Announcement'
                                                   : 'Submit for Approval'}
@@ -635,10 +892,13 @@ function ClerkAnnouncementsIndex({
 
                 {deletingId && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                        <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl space-y-3">
-                            <h3 className="text-sm font-bold text-gray-900">Delete Announcement?</h3>
+                        <div className="w-full max-w-sm space-y-3 rounded-lg bg-white p-5 shadow-xl">
+                            <h3 className="text-sm font-bold text-gray-900">
+                                Delete Announcement?
+                            </h3>
                             <p className="text-xs text-gray-500">
-                                Are you sure you want to delete this announcement? This action cannot be undone.
+                                Are you sure you want to delete this
+                                announcement? This action cannot be undone.
                             </p>
                             <div className="flex justify-end gap-2 pt-2">
                                 <button

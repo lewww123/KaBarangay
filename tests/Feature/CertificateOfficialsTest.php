@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CertificateIssuance;
 use App\Models\OrgChartPosition;
+use App\Support\CertificateOfficialDocument;
 use App\Support\CertificateOfficials;
 use App\Support\CertificateTemplates;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -150,7 +151,7 @@ class CertificateOfficialsTest extends TestCase
                 $this->assertTrue($zip->open($path, \ZipArchive::OVERWRITE));
                 $zip->addFromString('word/document.xml', $xml.'</w:body></w:document>');
                 $zip->close();
-                \App\Support\CertificateOfficialDocument::apply($path, CertificateOfficials::resolve($barangay->id, $selection), false);
+                CertificateOfficialDocument::apply($path, CertificateOfficials::resolve($barangay->id, $selection), false);
                 $zip->open($path);
                 $result = $zip->getFromName('word/document.xml');
                 $zip->close();
@@ -194,4 +195,3 @@ class CertificateOfficialsTest extends TestCase
         return $xpath;
     }
 }
-

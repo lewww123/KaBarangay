@@ -8,15 +8,61 @@ use App\Models\AnnouncementAttendance;
 use App\Models\CertificateRequest;
 use App\Models\ResidentInboxNotification;
 use App\Observers\ResidentUpdateObserver;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
 
 class ResidentNotificationTest extends TestCase
 {
     use CreatesBarangayFixtures, RefreshDatabase;
+
+    public function test_migration_preserves_an_existing_notification_table_and_its_records(): void
+    {
+        $barangay = $this->createBarangay('Migration', 'MIGRATION');
+        $resident = $this->createResident($barangay, $this->createPurok($barangay));
+        $notification = ResidentInboxNotification::create([
+            'resident_id' => $resident->id, 'barangay_id' => $barangay->id,
+            'event_key' => 'existing:1', 'title' => 'Existing update',
+            'message' => 'Preserve this message', 'url' => '/resident',
+        ]);
+        $migration = require database_path('migrations/2026_11_04_000003_create_resident_notifications_table.php');
+        $migration->up();
+        $migration->up();
+        $migration->down();
+
+        $this->assertDatabaseHas('resident_notifications', [
+            'id' => $notification->id, 'message' => 'Preserve this message',
+        ]);
+        $this->assertDatabaseCount('resident_notifications', 1);
+    }
+
+    public function test_conflicting_notification_schema_stops_without_deleting_records(): void
+    {
+        $barangay = $this->createBarangay('Conflict', 'CONFLICT');
+        $resident = $this->createResident($barangay, $this->createPurok($barangay));
+        $notification = ResidentInboxNotification::create([
+            'resident_id' => $resident->id, 'barangay_id' => $barangay->id,
+            'event_key' => 'conflict:1', 'title' => 'Keep update',
+            'message' => 'Keep existing data', 'url' => '/resident',
+        ]);
+        Schema::table('resident_notifications', function (Blueprint $table) {
+            $table->renameColumn('url', 'legacy_url');
+        });
+        $migration = require database_path('migrations/2026_11_04_000003_create_resident_notifications_table.php');
+        try {
+            $migration->up();
+            $this->fail('A conflicting schema must require review.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('No records were changed', $exception->getMessage());
+        }
+        $this->assertDatabaseHas('resident_notifications', [
+            'id' => $notification->id, 'message' => 'Keep existing data', 'legacy_url' => '/resident',
+        ]);
+    }
 
     public function test_attendance_generates_one_notification_and_queues_email(): void
     {

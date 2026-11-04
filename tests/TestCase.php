@@ -10,6 +10,19 @@ abstract class TestCase extends BaseTestCase
 {
     private const STAFF_HOST = 'https://staff.kabarangay.com';
 
+    protected function assertSourceContainsString(string $needle, string $source, string $message = ''): void
+    {
+        $this->assertStringContainsString($this->compactSource($needle), $this->compactSource($source), $message);
+    }
+
+    protected function compactSource(string $source): string
+    {
+        // Source contract checks must tolerate line wrapping and trailing commas.
+        $source = str_replace(["{' '}", '{" "}'], ' ', $source);
+
+        return preg_replace('/,([)\]}])/', '$1', preg_replace('/\s+/', '', $source));
+    }
+
     private const ISOLATED_TEST_ENVIRONMENT = [
         'APP_CONFIG_CACHE' => 'bootstrap/cache/phpunit-config-cache-disabled.php',
         'APP_ENV' => 'testing',

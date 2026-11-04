@@ -19,7 +19,10 @@ export default function Pagination({ paginator, label }: Props) {
     }
 
     return (
-        <nav aria-label={`${label} pages`} className="flex flex-wrap justify-center gap-1.5 pt-5">
+        <nav
+            aria-label={`${label} pages`}
+            className="flex flex-wrap justify-center gap-1.5 pt-5"
+        >
             {paginator.links.map((link, index) =>
                 link.url === null ? (
                     <span

@@ -1,9 +1,137 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"><title>Offline Attendance · KaBarangay</title>
-<style>body{font:16px/1.5 system-ui;background:#f7f6f0;color:#1f3023;max-width:850px;margin:auto;padding:24px}section{background:white;border:1px solid #ddd;border-radius:12px;padding:20px;margin:16px 0}label{display:block;margin-top:12px}input,select,button{font:inherit;padding:10px;max-width:100%;box-sizing:border-box}input,select{width:100%}button{background:#315b30;color:white;border:0;border-radius:6px;margin:8px 8px 0 0;cursor:pointer}button:disabled{opacity:.5}li{margin:12px 0}#notice{background:#fff1c4;padding:16px}a{color:#315b30}video{width:100%;max-width:400px}</style>
-</head><body><h1>Offline attendance</h1><p id="notice" role="status">Preparing local attendance…</p><a href="/offline.html">Saved pages</a> · <a href="/staff/login">Sign in online</a><button id="logout" type="button">Log out / lock device</button>
-<section><label>Prepared program or update<select id="event"></select></label><p id="prepared"></p><label>Record as<select id="status"><option value="present">Present</option><option value="claimed">Claimed (aid received)</option></select></label><p>Entries are pending until the server confirms them. Existing attendance will never be overwritten.</p></section>
-<section><h2>Manual attendance</h2><label>Search prepared roster<input id="search" type="search" placeholder="Name or resident number"></label><label>Resident<select id="resident"></select></label><button id="manual" type="button">Save manual attendance locally</button></section>
-<section><h2>QR attendance</h2><label>Scan using a USB/Bluetooth QR scanner, or enter the QR token<input id="qr" autocomplete="off" spellcheck="false"></label><button id="scan" type="button">Save QR attendance locally</button><button id="camera" type="button">Use camera if supported</button><video id="video" hidden autoplay muted playsinline></video><p id="camera-note">Keyboard scanners work without internet. Camera scanning depends on browser support.</p></section>
-<section><h2>Local records</h2><button id="sync" type="button">Sync now</button><button id="clear-results" type="button">Clear finished local results</button><p>Clearing finished results removes only local synced/rejected entries; pending entries and server records stay. Keep this browser's site data until all entries have a confirmed result. Offline preparation is valid for 24 hours.</p><ul id="entries"></ul></section>
-<script src="/offline-attendance-store.js" defer></script><script src="/offline-attendance.js" defer></script></body></html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+        />
+        <title>Offline Attendance · KaBarangay</title>
+        <style>
+            body {
+                font: 16px/1.5 system-ui;
+                background: #f7f6f0;
+                color: #1f3023;
+                max-width: 850px;
+                margin: auto;
+                padding: 24px;
+            }
+            section {
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 12px;
+                padding: 20px;
+                margin: 16px 0;
+            }
+            label {
+                display: block;
+                margin-top: 12px;
+            }
+            input,
+            select,
+            button {
+                font: inherit;
+                padding: 10px;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            input,
+            select {
+                width: 100%;
+            }
+            button {
+                background: #315b30;
+                color: white;
+                border: 0;
+                border-radius: 6px;
+                margin: 8px 8px 0 0;
+                cursor: pointer;
+            }
+            button:disabled {
+                opacity: 0.5;
+            }
+            li {
+                margin: 12px 0;
+            }
+            #notice {
+                background: #fff1c4;
+                padding: 16px;
+            }
+            a {
+                color: #315b30;
+            }
+            video {
+                width: 100%;
+                max-width: 400px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Offline attendance</h1>
+        <p id="notice" role="status">Preparing local attendance…</p>
+        <a href="/offline.html">Saved pages</a> ·
+        <a href="/staff/login">Sign in online</a
+        ><button id="logout" type="button">Log out / lock device</button>
+        <section>
+            <label
+                >Prepared program or update<select id="event"></select
+            ></label>
+            <p id="prepared"></p>
+            <label
+                >Record as<select id="status">
+                    <option value="present">Present</option>
+                    <option value="claimed">Claimed (aid received)</option>
+                </select></label
+            >
+            <p>
+                Entries are pending until the server confirms them. Existing
+                attendance will never be overwritten.
+            </p>
+        </section>
+        <section>
+            <h2>Manual attendance</h2>
+            <label
+                >Search prepared roster<input
+                    id="search"
+                    type="search"
+                    placeholder="Name or resident number" /></label
+            ><label>Resident<select id="resident"></select></label
+            ><button id="manual" type="button">
+                Save manual attendance locally
+            </button>
+        </section>
+        <section>
+            <h2>QR attendance</h2>
+            <label
+                >Scan using a USB/Bluetooth QR scanner, or enter the QR
+                token<input
+                    id="qr"
+                    autocomplete="off"
+                    spellcheck="false" /></label
+            ><button id="scan" type="button">Save QR attendance locally</button
+            ><button id="camera" type="button">Use camera if supported</button
+            ><video id="video" hidden autoplay muted playsinline></video>
+            <p id="camera-note">
+                Keyboard scanners work without internet. Camera scanning depends
+                on browser support.
+            </p>
+        </section>
+        <section>
+            <h2>Local records</h2>
+            <button id="sync" type="button">Sync now</button
+            ><button id="clear-results" type="button">
+                Clear finished local results
+            </button>
+            <p>
+                Clearing finished results removes only local synced/rejected
+                entries; pending entries and server records stay. Keep this
+                browser's site data until all entries have a confirmed result.
+                Offline preparation is valid for 24 hours.
+            </p>
+            <ul id="entries"></ul>
+        </section>
+        <script src="/offline-attendance-store.js" defer></script>
+        <script src="/offline-attendance.js" defer></script>
+    </body>
+</html>

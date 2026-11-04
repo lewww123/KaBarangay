@@ -41,12 +41,12 @@ export default function MarkAnnouncementDoneButton({
                 onSuccess: () => setOpen(false),
                 onError: (errors) => {
                     setError(
-                        errors.completion ??
+                        (errors.completion ??
                             errors.announcement ??
                             errors.approval ??
-                            kind === 'update'
-                                ? 'Unable to mark this update as completed.'
-                                : 'Unable to mark this announcement as done.',
+                            kind === 'update')
+                            ? 'Unable to mark this update as completed.'
+                            : 'Unable to mark this announcement as done.',
                     );
                 },
                 onFinish: () => setProcessing(false),
@@ -77,16 +77,32 @@ export default function MarkAnnouncementDoneButton({
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
                     role="dialog"
                     aria-modal="true"
-                    aria-label={kind === 'update' ? 'Mark update as completed' : 'Mark announcement as done'}
+                    aria-label={
+                        kind === 'update'
+                            ? 'Mark update as completed'
+                            : 'Mark announcement as done'
+                    }
                 >
                     <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
                         <h2 className="text-lg font-semibold text-gray-900">
-                            {kind === 'update' ? 'Mark Update Completed' : 'Mark as Done'}
+                            {kind === 'update'
+                                ? 'Mark Update Completed'
+                                : 'Mark as Done'}
                         </h2>
                         <p className="mt-2 text-sm text-gray-600">
-                            {kind === 'update'
-                                ? <>Mark &ldquo;{title}&rdquo; as completed? It will move to Past Updates and be locked from editing.</>
-                                : <>Mark &ldquo;{title}&rdquo; as done? This records completion and locks the announcement from further editing.</>}
+                            {kind === 'update' ? (
+                                <>
+                                    Mark &ldquo;{title}&rdquo; as completed? It
+                                    will move to Past Updates and be locked from
+                                    editing.
+                                </>
+                            ) : (
+                                <>
+                                    Mark &ldquo;{title}&rdquo; as done? This
+                                    records completion and locks the
+                                    announcement from further editing.
+                                </>
+                            )}
                         </p>
 
                         {error && (

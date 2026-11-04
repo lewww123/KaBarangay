@@ -28,20 +28,20 @@ verification source have been confirmed by the responsible reviewer.
 
 The input is a JSON array. Every row requires:
 
-| Field | Meaning |
-| --- | --- |
-| `source_key` | Stable unique identifier used to prevent duplicate imports |
-| `service_type` | One of `City Emergency`, `Ambulance`, `Fire`, `Police`, `Hospital`, `Disaster` |
-| `name` | Service or agency name |
-| `label` | Optional short label |
-| `phone_number` | Dialable number; normalized to 3-15 digits with an optional leading `+` |
-| `coverage_area` | Area served by the contact |
-| `can_call` | Whether the Call action is allowed |
-| `can_sms` | Whether the SMS action is allowed |
-| `display_order` | Non-negative display ordering value |
-| `is_active` | Whether the record is available to residents |
-| `verified_at` | ISO-8601 verification timestamp |
-| `verification_source` | Human-readable description of the review source |
+| Field                 | Meaning                                                                        |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `source_key`          | Stable unique identifier used to prevent duplicate imports                     |
+| `service_type`        | One of `City Emergency`, `Ambulance`, `Fire`, `Police`, `Hospital`, `Disaster` |
+| `name`                | Service or agency name                                                         |
+| `label`               | Optional short label                                                           |
+| `phone_number`        | Dialable number; normalized to 3-15 digits with an optional leading `+`        |
+| `coverage_area`       | Area served by the contact                                                     |
+| `can_call`            | Whether the Call action is allowed                                             |
+| `can_sms`             | Whether the SMS action is allowed                                              |
+| `display_order`       | Non-negative display ordering value                                            |
+| `is_active`           | Whether the record is available to residents                                   |
+| `verified_at`         | ISO-8601 verification timestamp                                                |
+| `verification_source` | Human-readable description of the review source                                |
 
 The importer rejects invalid rows, invalid phone numbers, unsupported service
 types, and duplicate `source_key` values in the same file.

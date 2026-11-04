@@ -18,6 +18,14 @@ creating duplicate inbox records or dispatching extra email jobs.
 ## Enable on deployment
 
 1. Back up the production database before deployment. The production Docker startup runs `php artisan migrate --force` before starting the web server and worker. On other hosts, run that command before serving this release. Never use `migrate:fresh`, `migrate:reset`, `db:wipe`, or production seeders. The new migrations add an inbox table and insert a missing catalog row while preserving existing fees and settings.
+
+    If the inbox table already exists, the migration checks the required columns
+    and unique event key before accepting it. An incompatible table stops the
+    migration with an explicit error; it is never dropped or recreated. Review
+    the live schema and take a snapshot before making an additive repair.
+    Rolling this migration back intentionally retains the inbox table and its
+    records. Restore application code rather than deleting resident history.
+
 2. Configure a working mail transport and sender. The `log` mailer does not
    deliver email. Email updates go only to approved residents with a verified
    email address.

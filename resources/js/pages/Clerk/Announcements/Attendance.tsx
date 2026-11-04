@@ -8,7 +8,11 @@ import OfflineAttendance from '@/components/announcements/OfflineAttendance';
 type AttendanceStatus = 'present' | 'claimed' | 'absent';
 type AttendanceTab = 'present' | 'claimed';
 type FeedbackTone = 'success' | 'warning' | 'error' | 'info';
-type AttendanceOutcome = 'recorded' | 'already_present' | 'already_claimed' | 'existing_record_conflict';
+type AttendanceOutcome =
+    | 'recorded'
+    | 'already_present'
+    | 'already_claimed'
+    | 'existing_record_conflict';
 
 interface Resident {
     id: number;
@@ -89,13 +93,16 @@ function normalizeQrToken(rawToken: string): string {
     return parts[parts.length - 1] ?? '';
 }
 
-function attendanceFeedbackFromPage(page: { props: Record<string, unknown> }): { text: string; type: Exclude<FeedbackTone, 'info'> } | null {
+function attendanceFeedbackFromPage(page: {
+    props: Record<string, unknown>;
+}): { text: string; type: Exclude<FeedbackTone, 'info'> } | null {
     const props = page.props as InertiaPageProps & Record<string, unknown>;
     const flash = props.flash;
     const outcome = flash?.attendance_outcome;
-    const message = outcome === 'recorded'
-        ? flash?.success
-        : (flash?.warning ?? flash?.info ?? flash?.error);
+    const message =
+        outcome === 'recorded'
+            ? flash?.success
+            : (flash?.warning ?? flash?.info ?? flash?.error);
 
     if (!message?.trim()) {
         return null;
@@ -105,24 +112,35 @@ function attendanceFeedbackFromPage(page: { props: Record<string, unknown> }): {
         return { text: message, type: 'success' };
     }
 
-    if (outcome === 'already_present' || outcome === 'already_claimed' || outcome === 'existing_record_conflict') {
+    if (
+        outcome === 'already_present' ||
+        outcome === 'already_claimed' ||
+        outcome === 'existing_record_conflict'
+    ) {
         return { text: message, type: 'warning' };
     }
 
     return null;
 }
 
-function extractServerMessage(data: string | Record<string, unknown>): string | undefined {
+function extractServerMessage(
+    data: string | Record<string, unknown>,
+): string | undefined {
     if (typeof data !== 'object' || data === null) {
         return undefined;
     }
 
     const message = data.message;
 
-    return typeof message === 'string' && message.trim() !== '' ? message : undefined;
+    return typeof message === 'string' && message.trim() !== ''
+        ? message
+        : undefined;
 }
 
-function verificationErrorMessage(status: number, serverMessage?: string): string {
+function verificationErrorMessage(
+    status: number,
+    serverMessage?: string,
+): string {
     if (serverMessage?.trim()) {
         return serverMessage;
     }
@@ -178,7 +196,9 @@ function recordingErrorMessage(status: number, serverMessage?: string): string {
     return 'May problema sa server. Subukang muli.';
 }
 
-function firstValidationError(errors: Record<string, string | string[]>): string | undefined {
+function firstValidationError(
+    errors: Record<string, string | string[]>,
+): string | undefined {
     for (const value of Object.values(errors)) {
         if (Array.isArray(value) && value.length > 0) {
             return value[0];
@@ -192,13 +212,27 @@ function firstValidationError(errors: Record<string, string | string[]>): string
     return undefined;
 }
 
-export default withDeferredPage(ClerkAttendanceSheet, ['attendances', 'residents'], (props) => (
-    <ClerkLayout active="announcements" user={props.user}><PortalPageSkeleton metrics={3} /></ClerkLayout>
-));
+export default withDeferredPage(
+    ClerkAttendanceSheet,
+    ['attendances', 'residents'],
+    (props) => (
+        <ClerkLayout active="announcements" user={props.user}>
+            <PortalPageSkeleton metrics={3} />
+        </ClerkLayout>
+    ),
+);
 
-function ClerkAttendanceSheet({ announcement, attendances, residents = [], user }: Props) {
+function ClerkAttendanceSheet({
+    announcement,
+    attendances,
+    residents = [],
+    user,
+}: Props) {
     const [qrInput, setQrInput] = useState('');
-    const [feedback, setFeedback] = useState<{ text: string; type: Exclude<FeedbackTone, 'info'> } | null>(null);
+    const [feedback, setFeedback] = useState<{
+        text: string;
+        type: Exclude<FeedbackTone, 'info'>;
+    } | null>(null);
     const [activeTab, setActiveTab] = useState<AttendanceTab>('present');
     const [manualResidentId, setManualResidentId] = useState('');
     const [isProcessingScan, setIsProcessingScan] = useState(false);
@@ -230,7 +264,9 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
         : manualProcessing
           ? 'Itinatala ang manual attendance...'
           : null;
-    const statusTone: FeedbackTone | undefined = processingLabel ? 'info' : feedback?.type;
+    const statusTone: FeedbackTone | undefined = processingLabel
+        ? 'info'
+        : feedback?.type;
     const statusText = processingLabel ?? feedback?.text;
 
     const resetScanState = () => {
@@ -247,7 +283,10 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
         const token = normalizeQrToken(qrInput);
 
         if (!token) {
-            setFeedback({ text: 'Walang QR token na na-scan. Subukang muli.', type: 'warning' });
+            setFeedback({
+                text: 'Walang QR token na na-scan. Subukang muli.',
+                type: 'warning',
+            });
             setScanEvent((event) => event + 1);
             return;
         }
@@ -268,7 +307,10 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
                 { headers: { Accept: 'application/json' } },
             );
         } catch {
-            setFeedback({ text: 'Nabigong i-verify ang QR code dahil sa network. Subukang muli.', type: 'error' });
+            setFeedback({
+                text: 'Nabigong i-verify ang QR code dahil sa network. Subukang muli.',
+                type: 'error',
+            });
             resetScanState();
             return;
         }
@@ -284,7 +326,12 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
         const residentId = payload?.resident?.id;
         const qrProof = payload?.qr_proof;
 
-        if (!response.ok || typeof residentId !== 'number' || typeof qrProof !== 'string' || qrProof === '') {
+        if (
+            !response.ok ||
+            typeof residentId !== 'number' ||
+            typeof qrProof !== 'string' ||
+            qrProof === ''
+        ) {
             setFeedback({
                 text: `Hindi na-verify ang QR code. ${verificationErrorMessage(response.status, payload?.message)}`,
                 type: 'error',
@@ -296,70 +343,83 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
         let outcomeSettled = false;
 
         try {
-            router.post(markUrl, {
-                resident_id: residentId,
-                status: targetStatus,
-                method: 'qr_scanner',
-                qr_proof: qrProof,
-            }, {
-                preserveScroll: true,
-                onSuccess: (page) => {
-                    if (outcomeSettled) return;
-
-                    outcomeSettled = true;
-                    const serverFeedback = attendanceFeedbackFromPage(page);
-
-                    if (serverFeedback) {
-                        setFeedback(serverFeedback);
-                    }
-
-                    setQrInput('');
-                    router.reload({ only: ['attendances'] });
+            router.post(
+                markUrl,
+                {
+                    resident_id: residentId,
+                    status: targetStatus,
+                    method: 'qr_scanner',
+                    qr_proof: qrProof,
                 },
-                onError: (errors) => {
-                    if (outcomeSettled) return;
+                {
+                    preserveScroll: true,
+                    onSuccess: (page) => {
+                        if (outcomeSettled) return;
 
-                    outcomeSettled = true;
-                    const message = firstValidationError(errors);
-                    setFeedback({
-                        text: `Hindi naitala ang attendance.${message ? ` ${message}` : ' Subukang muli.'}`,
-                        type: 'error',
-                    });
-                },
-                onHttpException: (error) => {
-                    if (outcomeSettled) return false;
+                        outcomeSettled = true;
+                        const serverFeedback = attendanceFeedbackFromPage(page);
 
-                    outcomeSettled = true;
-                    const message = recordingErrorMessage(error.status, extractServerMessage(error.data));
-                    setFeedback({ text: `Hindi naitala ang attendance. ${message}`, type: 'error' });
+                        if (serverFeedback) {
+                            setFeedback(serverFeedback);
+                        }
 
-                    return false;
-                },
-                onNetworkError: () => {
-                    if (outcomeSettled) return false;
+                        setQrInput('');
+                        router.reload({ only: ['attendances'] });
+                    },
+                    onError: (errors) => {
+                        if (outcomeSettled) return;
 
-                    outcomeSettled = true;
-                    setFeedback({
-                        text: 'Hindi matiyak kung naitala ang attendance dahil sa network. I-check ang listahan bago mag-scan muli.',
-                        type: 'warning',
-                    });
+                        outcomeSettled = true;
+                        const message = firstValidationError(errors);
+                        setFeedback({
+                            text: `Hindi naitala ang attendance.${message ? ` ${message}` : ' Subukang muli.'}`,
+                            type: 'error',
+                        });
+                    },
+                    onHttpException: (error) => {
+                        if (outcomeSettled) return false;
 
-                    return false;
-                },
-                onFinish: () => {
-                    if (!outcomeSettled) {
+                        outcomeSettled = true;
+                        const message = recordingErrorMessage(
+                            error.status,
+                            extractServerMessage(error.data),
+                        );
+                        setFeedback({
+                            text: `Hindi naitala ang attendance. ${message}`,
+                            type: 'error',
+                        });
+
+                        return false;
+                    },
+                    onNetworkError: () => {
+                        if (outcomeSettled) return false;
+
                         outcomeSettled = true;
                         setFeedback({
-                            text: 'Hindi matiyak kung naitala ang attendance. I-check ang listahan bago mag-scan muli.',
+                            text: 'Hindi matiyak kung naitala ang attendance dahil sa network. I-check ang listahan bago mag-scan muli.',
                             type: 'warning',
                         });
-                    }
 
-                    resetScanState();
+                        return false;
+                    },
+                    onFinish: () => {
+                        if (!outcomeSettled) {
+                            outcomeSettled = true;
+                            setFeedback({
+                                text: 'Hindi matiyak kung naitala ang attendance. I-check ang listahan bago mag-scan muli.',
+                                type: 'warning',
+                            });
+                        }
+
+                        resetScanState();
+                    },
                 },
-            });
+            );
         } catch {
-            setFeedback({ text: 'Hindi naipadala ang attendance. Subukang muli.', type: 'error' });
+            setFeedback({
+                text: 'Hindi naipadala ang attendance. Subukang muli.',
+                type: 'error',
+            });
             resetScanState();
         }
     };
@@ -372,7 +432,10 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
         const residentId = Number(manualResidentId);
 
         if (!Number.isInteger(residentId) || residentId <= 0) {
-            setFeedback({ text: 'Pumili muna ng residente bago itala ang manual attendance.', type: 'warning' });
+            setFeedback({
+                text: 'Pumili muna ng residente bago itala ang manual attendance.',
+                type: 'warning',
+            });
             return;
         }
 
@@ -386,77 +449,90 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
         let outcomeSettled = false;
 
         try {
-            router.post(markUrl, {
-                resident_id: residentId,
-                status: targetStatus,
-                method: 'manual',
-            }, {
-                preserveScroll: true,
-                onSuccess: (page) => {
-                    if (outcomeSettled) return;
-
-                    outcomeSettled = true;
-                    const serverFeedback = attendanceFeedbackFromPage(page);
-
-                    if (serverFeedback) {
-                        setFeedback(serverFeedback);
-                    }
-
-                    setManualResidentId('');
-                    setScanEvent((event) => event + 1);
-                    router.reload({ only: ['attendances'] });
+            router.post(
+                markUrl,
+                {
+                    resident_id: residentId,
+                    status: targetStatus,
+                    method: 'manual',
                 },
-                onError: (errors) => {
-                    if (outcomeSettled) return;
+                {
+                    preserveScroll: true,
+                    onSuccess: (page) => {
+                        if (outcomeSettled) return;
 
-                    outcomeSettled = true;
-                    const message = firstValidationError(errors);
-                    setFeedback({
-                        text: `Hindi naitala ang attendance.${message ? ` ${message}` : ' Subukang muli.'}`,
-                        type: 'error',
-                    });
-                },
-                onHttpException: (error) => {
-                    if (outcomeSettled) return false;
+                        outcomeSettled = true;
+                        const serverFeedback = attendanceFeedbackFromPage(page);
 
-                    outcomeSettled = true;
-                    const message = recordingErrorMessage(error.status, extractServerMessage(error.data));
-                    setFeedback({ text: `Hindi naitala ang attendance. ${message}`, type: 'error' });
+                        if (serverFeedback) {
+                            setFeedback(serverFeedback);
+                        }
 
-                    return false;
-                },
-                onNetworkError: () => {
-                    if (outcomeSettled) return false;
+                        setManualResidentId('');
+                        setScanEvent((event) => event + 1);
+                        router.reload({ only: ['attendances'] });
+                    },
+                    onError: (errors) => {
+                        if (outcomeSettled) return;
 
-                    outcomeSettled = true;
-                    setFeedback({
-                        text: 'Hindi matiyak kung naitala ang attendance dahil sa network. I-check ang listahan bago subukan muli.',
-                        type: 'warning',
-                    });
+                        outcomeSettled = true;
+                        const message = firstValidationError(errors);
+                        setFeedback({
+                            text: `Hindi naitala ang attendance.${message ? ` ${message}` : ' Subukang muli.'}`,
+                            type: 'error',
+                        });
+                    },
+                    onHttpException: (error) => {
+                        if (outcomeSettled) return false;
 
-                    return false;
-                },
-                onFinish: () => {
-                    if (!outcomeSettled) {
+                        outcomeSettled = true;
+                        const message = recordingErrorMessage(
+                            error.status,
+                            extractServerMessage(error.data),
+                        );
+                        setFeedback({
+                            text: `Hindi naitala ang attendance. ${message}`,
+                            type: 'error',
+                        });
+
+                        return false;
+                    },
+                    onNetworkError: () => {
+                        if (outcomeSettled) return false;
+
                         outcomeSettled = true;
                         setFeedback({
-                            text: 'Hindi matiyak kung naitala ang attendance. I-check ang listahan bago subukan muli.',
+                            text: 'Hindi matiyak kung naitala ang attendance dahil sa network. I-check ang listahan bago subukan muli.',
                             type: 'warning',
                         });
-                    }
 
-                    setManualProcessing(false);
-                    operationInFlightRef.current = false;
+                        return false;
+                    },
+                    onFinish: () => {
+                        if (!outcomeSettled) {
+                            outcomeSettled = true;
+                            setFeedback({
+                                text: 'Hindi matiyak kung naitala ang attendance. I-check ang listahan bago subukan muli.',
+                                type: 'warning',
+                            });
+                        }
+
+                        setManualProcessing(false);
+                        operationInFlightRef.current = false;
+                    },
                 },
-            });
+            );
         } catch {
-            setFeedback({ text: 'Hindi naipadala ang attendance. Subukang muli.', type: 'error' });
+            setFeedback({
+                text: 'Hindi naipadala ang attendance. Subukang muli.',
+                type: 'error',
+            });
             setManualProcessing(false);
             operationInFlightRef.current = false;
         }
     };
 
-    const filteredAttendances = attendances.filter(item => {
+    const filteredAttendances = attendances.filter((item) => {
         if (activeTab === 'claimed') return item.status === 'claimed';
         if (activeTab === 'present') return item.status === 'present';
         return true;
@@ -465,21 +541,28 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
     return (
         <ClerkLayout active="announcements" user={user}>
             <Head title={`Attendance - ${announcement.title}`} />
-            <OfflineAttendance announcementId={announcement.id} department="clerk" />
+            <OfflineAttendance
+                announcementId={announcement.id}
+                department="clerk"
+            />
 
-            <div className="space-y-6 max-w-7xl mx-auto pb-10">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-5 rounded-xl border border-gray-200/80 shadow-sm">
+            <div className="mx-auto max-w-7xl space-y-6 pb-10">
+                <div className="flex flex-col gap-4 rounded-xl border border-gray-200/80 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                            <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-[#3f6f3d] uppercase tracking-wide border border-emerald-200">
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-[#3f6f3d] uppercase">
                                 {announcement.category}
                             </span>
                             <span className="text-xs text-gray-400">•</span>
                             <span className="text-xs font-medium text-gray-500">
-                                {announcement.location ? `📍 ${announcement.location}` : '📍 Walang nakasaad na lokasyon'}
+                                {announcement.location
+                                    ? `📍 ${announcement.location}`
+                                    : '📍 Walang nakasaad na lokasyon'}
                             </span>
                         </div>
-                        <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">{announcement.title}</h1>
+                        <h1 className="text-xl font-extrabold tracking-tight text-gray-900">
+                            {announcement.title}
+                        </h1>
                     </div>
 
                     <a
@@ -506,16 +589,23 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
                 )}
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-                    <div className="lg:col-span-7 rounded-xl border border-gray-200/80 bg-white p-6 shadow-sm flex flex-col justify-between space-y-4">
+                    <div className="flex flex-col justify-between space-y-4 rounded-xl border border-gray-200/80 bg-white p-6 shadow-sm lg:col-span-7">
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                                 <div className="flex items-center gap-2.5">
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-[#3f6f3d] text-sm">
+                                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-sm text-[#3f6f3d]">
                                         📷
                                     </span>
                                     <div>
-                                        <h3 className="text-sm font-bold text-gray-900">QR Code / Barcode Scanner</h3>
-                                        <p className="text-xs text-gray-500">Kasalukuyang mode: <strong className="uppercase text-[#3f6f3d]">{activeTab}</strong></p>
+                                        <h3 className="text-sm font-bold text-gray-900">
+                                            QR Code / Barcode Scanner
+                                        </h3>
+                                        <p className="text-xs text-gray-500">
+                                            Kasalukuyang mode:{' '}
+                                            <strong className="text-[#3f6f3d] uppercase">
+                                                {activeTab}
+                                            </strong>
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -528,48 +618,71 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
                                 className="space-y-3 pt-1"
                             >
                                 <div className="space-y-1.5">
-                                    <label htmlFor="qr-token-input" className="block text-xs font-bold text-gray-700">QR Token Input</label>
+                                    <label
+                                        htmlFor="qr-token-input"
+                                        className="block text-xs font-bold text-gray-700"
+                                    >
+                                        QR Token Input
+                                    </label>
                                     <input
                                         id="qr-token-input"
                                         ref={qrInputRef}
                                         type="text"
                                         value={qrInput}
-                                        onChange={(event) => setQrInput(event.target.value)}
+                                        onChange={(event) =>
+                                            setQrInput(event.target.value)
+                                        }
                                         onKeyDown={(event) => {
                                             if (event.key === 'Enter') {
                                                 event.preventDefault();
                                                 void submitScan();
                                             }
                                         }}
-                                        readOnly={isProcessingScan || manualProcessing}
+                                        readOnly={
+                                            isProcessingScan || manualProcessing
+                                        }
                                         placeholder={`I-scan para itala bilang ${activeTab}...`}
-                                        className="w-full rounded-lg border border-gray-300 p-3 text-xs outline-none focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] bg-gray-50/50 font-mono read-only:cursor-wait read-only:bg-gray-100"
+                                        className="w-full rounded-lg border border-gray-300 bg-gray-50/50 p-3 font-mono text-xs outline-none read-only:cursor-wait read-only:bg-gray-100 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d]"
                                         autoFocus
                                     />
                                     <p className="text-[11px] text-gray-500">
-                                        I-scan lang ang QR code. Awtomatikong vine-verify at itinatala kapag nakumpleto ng scanner ang entry.
+                                        I-scan lang ang QR code. Awtomatikong
+                                        vine-verify at itinatala kapag
+                                        nakumpleto ng scanner ang entry.
                                     </p>
                                 </div>
                                 <button
                                     type="submit"
-                                    disabled={isProcessingScan || manualProcessing}
+                                    disabled={
+                                        isProcessingScan || manualProcessing
+                                    }
                                     className="w-full rounded-lg bg-[#3f6f3d] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-wait disabled:opacity-70"
                                 >
-                                    {isProcessingScan ? 'Vine-verify at itinatala...' : `Prosesuhin ang QR Scan (${activeTab.toUpperCase()})`}
+                                    {isProcessingScan
+                                        ? 'Vine-verify at itinatala...'
+                                        : `Prosesuhin ang QR Scan (${activeTab.toUpperCase()})`}
                                 </button>
                             </form>
                         </div>
                     </div>
 
-                    <div className="lg:col-span-5 rounded-xl border border-gray-200/80 bg-white p-6 shadow-sm flex flex-col justify-between space-y-4">
+                    <div className="flex flex-col justify-between space-y-4 rounded-xl border border-gray-200/80 bg-white p-6 shadow-sm lg:col-span-5">
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2.5 pb-3 border-b border-gray-100">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-800 text-sm">
+                            <div className="flex items-center gap-2.5 border-b border-gray-100 pb-3">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-sm text-amber-800">
                                     ✍️
                                 </span>
                                 <div>
-                                    <h3 className="text-sm font-bold text-gray-900">Manual Entry</h3>
-                                    <p className="text-xs text-gray-500">Mag-record para sa <strong className="uppercase text-[#3f6f3d]">{activeTab}</strong> nang walang QR.</p>
+                                    <h3 className="text-sm font-bold text-gray-900">
+                                        Manual Entry
+                                    </h3>
+                                    <p className="text-xs text-gray-500">
+                                        Mag-record para sa{' '}
+                                        <strong className="text-[#3f6f3d] uppercase">
+                                            {activeTab}
+                                        </strong>{' '}
+                                        nang walang QR.
+                                    </p>
                                 </div>
                             </div>
 
@@ -581,33 +694,53 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
                                 className="space-y-3 pt-1"
                             >
                                 <div className="space-y-1.5">
-                                    <label htmlFor="manual-resident" className="block text-xs font-bold text-gray-700">Piliin ang Residente</label>
+                                    <label
+                                        htmlFor="manual-resident"
+                                        className="block text-xs font-bold text-gray-700"
+                                    >
+                                        Piliin ang Residente
+                                    </label>
                                     <select
                                         id="manual-resident"
                                         value={manualResidentId}
-                                        onChange={(event) => setManualResidentId(event.target.value)}
-                                        disabled={isProcessingScan || manualProcessing}
-                                        className="w-full rounded-lg border border-gray-300 p-2.5 text-xs outline-none focus:border-[#3f6f3d] bg-white disabled:cursor-wait disabled:bg-gray-100"
+                                        onChange={(event) =>
+                                            setManualResidentId(
+                                                event.target.value,
+                                            )
+                                        }
+                                        disabled={
+                                            isProcessingScan || manualProcessing
+                                        }
+                                        className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-xs outline-none focus:border-[#3f6f3d] disabled:cursor-wait disabled:bg-gray-100"
                                         required
                                     >
-                                        <option value="">-- Pumili ng Residente --</option>
+                                        <option value="">
+                                            -- Pumili ng Residente --
+                                        </option>
                                         {residents.map((res) => (
                                             <option key={res.id} value={res.id}>
-                                                {res.last_name}, {res.first_name} ({res.resident_number})
+                                                {res.last_name},{' '}
+                                                {res.first_name} (
+                                                {res.resident_number})
                                             </option>
                                         ))}
                                     </select>
                                     <p className="text-[11px] text-gray-500">
-                                        Para sa rehistradong residente na walang ma-scan na QR code.
+                                        Para sa rehistradong residente na walang
+                                        ma-scan na QR code.
                                     </p>
                                 </div>
 
                                 <button
                                     type="submit"
-                                    disabled={isProcessingScan || manualProcessing}
+                                    disabled={
+                                        isProcessingScan || manualProcessing
+                                    }
                                     className="w-full rounded-lg bg-[#3f6f3d] py-3 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-wait disabled:opacity-70"
                                 >
-                                    {manualProcessing ? 'Itinatala...' : `Itala bilang ${activeTab.toUpperCase()} Manually`}
+                                    {manualProcessing
+                                        ? 'Itinatala...'
+                                        : `Itala bilang ${activeTab.toUpperCase()} Manually`}
                                 </button>
                             </form>
                         </div>
@@ -615,20 +748,26 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-gray-200/80 bg-gray-50/70 px-6 py-3 gap-3">
+                    <div className="flex flex-col items-start justify-between gap-3 border-b border-gray-200/80 bg-gray-50/70 px-6 py-3 sm:flex-row sm:items-center">
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('present')}
                                 disabled={isProcessingScan || manualProcessing}
                                 aria-pressed={activeTab === 'present'}
-                                className={`px-4 py-2 rounded-lg text-xs font-bold transition disabled:cursor-wait disabled:opacity-60 ${
+                                className={`rounded-lg px-4 py-2 text-xs font-bold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'present'
                                         ? 'bg-[#3f6f3d] text-white shadow-sm'
-                                        : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+                                        : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-100'
                                 }`}
                             >
-                                📋 Event Present / Dumalo ({attendances.filter(i => i.status === 'present').length})
+                                📋 Event Present / Dumalo (
+                                {
+                                    attendances.filter(
+                                        (i) => i.status === 'present',
+                                    ).length
+                                }
+                                )
                             </button>
 
                             <button
@@ -636,55 +775,83 @@ function ClerkAttendanceSheet({ announcement, attendances, residents = [], user 
                                 onClick={() => setActiveTab('claimed')}
                                 disabled={isProcessingScan || manualProcessing}
                                 aria-pressed={activeTab === 'claimed'}
-                                className={`px-4 py-2 rounded-lg text-xs font-bold transition disabled:cursor-wait disabled:opacity-60 ${
+                                className={`rounded-lg px-4 py-2 text-xs font-bold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'claimed'
                                         ? 'bg-[#3f6f3d] text-white shadow-sm'
-                                        : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+                                        : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-100'
                                 }`}
                             >
-                                🎁 Aid Claimed / Naka-receive ({attendances.filter(i => i.status === 'claimed').length})
+                                🎁 Aid Claimed / Naka-receive (
+                                {
+                                    attendances.filter(
+                                        (i) => i.status === 'claimed',
+                                    ).length
+                                }
+                                )
                             </button>
                         </div>
                     </div>
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm text-gray-600">
-                            <thead className="bg-white text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100">
+                            <thead className="border-b border-gray-100 bg-white text-[11px] font-bold tracking-wider text-gray-400 uppercase">
                                 <tr>
-                                    <th className="px-6 py-3.5">Pangalan ng Residente</th>
+                                    <th className="px-6 py-3.5">
+                                        Pangalan ng Residente
+                                    </th>
                                     <th className="px-6 py-3.5">ID Number</th>
                                     <th className="px-6 py-3.5">Status</th>
                                     <th className="px-6 py-3.5">Paraan</th>
-                                    <th className="px-6 py-3.5 text-right">Oras ng Pagtala</th>
+                                    <th className="px-6 py-3.5 text-right">
+                                        Oras ng Pagtala
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 text-xs">
                                 {filteredAttendances.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="p-10 text-center text-gray-400 italic">
-                                            Wala pang nakatalang rekord para sa tab na ito ({activeTab}).
+                                        <td
+                                            colSpan={5}
+                                            className="p-10 text-center text-gray-400 italic"
+                                        >
+                                            Wala pang nakatalang rekord para sa
+                                            tab na ito ({activeTab}).
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredAttendances.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50/80">
+                                        <tr
+                                            key={item.id}
+                                            className="hover:bg-gray-50/80"
+                                        >
                                             <td className="px-6 py-3.5 font-semibold text-gray-900">
-                                                {item.resident?.last_name}, {item.resident?.first_name}
+                                                {item.resident?.last_name},{' '}
+                                                {item.resident?.first_name}
                                             </td>
-                                            <td className="px-6 py-3.5 font-mono text-gray-500">{item.resident?.resident_number}</td>
+                                            <td className="px-6 py-3.5 font-mono text-gray-500">
+                                                {item.resident?.resident_number}
+                                            </td>
                                             <td className="px-6 py-3.5">
-                                                <span className={`rounded px-2.5 py-1 text-xs font-bold uppercase ${
-                                                    item.status === 'claimed'
-                                                        ? 'bg-emerald-100 text-emerald-800'
-                                                        : item.status === 'present'
-                                                        ? 'bg-[#edf4ea] text-[#3f6f3d]'
-                                                        : 'bg-red-100 text-red-800'
-                                                }`}>
+                                                <span
+                                                    className={`rounded px-2.5 py-1 text-xs font-bold uppercase ${
+                                                        item.status ===
+                                                        'claimed'
+                                                            ? 'bg-emerald-100 text-emerald-800'
+                                                            : item.status ===
+                                                                'present'
+                                                              ? 'bg-[#edf4ea] text-[#3f6f3d]'
+                                                              : 'bg-red-100 text-red-800'
+                                                    }`}
+                                                >
                                                     {item.status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-3.5 text-xs uppercase text-gray-500">{item.method}</td>
-                                            <td className="px-6 py-3.5 text-right text-xs text-gray-500">{item.attended_at}</td>
+                                            <td className="px-6 py-3.5 text-xs text-gray-500 uppercase">
+                                                {item.method}
+                                            </td>
+                                            <td className="px-6 py-3.5 text-right text-xs text-gray-500">
+                                                {item.attended_at}
+                                            </td>
                                         </tr>
                                     ))
                                 )}

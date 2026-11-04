@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Support;
 
 use App\Models\Certificate;
@@ -19,11 +20,14 @@ final class AssistantSystemKnowledge
             'catalog_note' => 'Database catalog at published descriptions lamang ang facts. Kapag wala ang isang dokumento sa active catalog, huwag sabihing available ito. Huwag mag-imbento ng fees, processing time, eligibility o downloadable documents. Hindi pa kinukuha ang buong nilalaman ng charter PDF; gamitin ang published description at ibigay ang link kung kailangan ang buong official document.',
             'certificates' => [], 'published_services' => [],
         ];
-        if (! $resident) return $knowledge;
+        if (! $resident) {
+            return $knowledge;
+        }
         $knowledge['certificates'] = Certificate::query()->where('barangay_id', $resident->barangay_id)->where('is_active', true)->orderBy('name')->limit(100)->get()->map(fn ($certificate) => [
             'name' => $certificate->name, 'description' => $certificate->description, 'fee_php' => $certificate->fee, 'requirements' => $certificate->requirements ?? [], 'additional_fields' => CertificateRequestDetails::fieldsForCertificate($certificate), 'url' => '/resident/certificates',
         ])->all();
         $knowledge['published_services'] = CitizenCharterService::query()->where('barangay_id', $resident->barangay_id)->visibleToResidents()->orderBy('display_order')->limit(30)->get(['id', 'title', 'category', 'description'])->map(fn ($service) => ['title' => $service->title, 'category' => $service->category, 'description' => $service->description, 'url' => '/resident/citizen-charter/'.$service->id])->all();
+
         return $knowledge;
     }
 }

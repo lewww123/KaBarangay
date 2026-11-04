@@ -52,7 +52,7 @@ class ResidentCitizenCharterTest extends TestCase
         array $serviceAttributes = [],
         array $versionAttributes = []
     ): CitizenCharterService {
-        $path = 'citizen-charter/' . $barangay->id . '/' . Str::uuid() . '.pdf';
+        $path = 'citizen-charter/'.$barangay->id.'/'.Str::uuid().'.pdf';
         Storage::disk('local')->put($path, $this->validPdfBytes());
 
         $service = CitizenCharterService::create([
@@ -172,7 +172,7 @@ class ResidentCitizenCharterTest extends TestCase
         ]);
 
         $response = $this->withSession(['resident_id' => $this->resident->id])
-            ->get('/resident/citizen-charter/' . $service->id);
+            ->get('/resident/citizen-charter/'.$service->id);
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
@@ -198,11 +198,11 @@ class ResidentCitizenCharterTest extends TestCase
         ]);
 
         $this->withSession(['resident_id' => $this->resident->id])
-            ->get('/resident/citizen-charter/' . $draft->id)
+            ->get('/resident/citizen-charter/'.$draft->id)
             ->assertNotFound();
 
         $this->withSession(['resident_id' => $this->resident->id])
-            ->get('/resident/citizen-charter/' . $archived->id)
+            ->get('/resident/citizen-charter/'.$archived->id)
             ->assertNotFound();
     }
 
@@ -211,7 +211,7 @@ class ResidentCitizenCharterTest extends TestCase
         $foreignService = $this->createServiceWithVersion($this->otherBarangay);
 
         $this->withSession(['resident_id' => $this->resident->id])
-            ->get('/resident/citizen-charter/' . $foreignService->id)
+            ->get('/resident/citizen-charter/'.$foreignService->id)
             ->assertNotFound();
     }
 
@@ -220,7 +220,7 @@ class ResidentCitizenCharterTest extends TestCase
         $service = $this->createServiceWithVersion($this->barangay);
 
         $response = $this->withSession(['resident_id' => $this->resident->id])
-            ->get('/resident/citizen-charter/' . $service->id . '/file');
+            ->get('/resident/citizen-charter/'.$service->id.'/file');
 
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/pdf');
@@ -234,7 +234,7 @@ class ResidentCitizenCharterTest extends TestCase
         $service = $this->createServiceWithVersion($this->barangay);
 
         $response = $this->withSession(['resident_id' => $this->resident->id])
-            ->get('/resident/citizen-charter/' . $service->id . '/download');
+            ->get('/resident/citizen-charter/'.$service->id.'/download');
 
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/pdf');
@@ -246,11 +246,11 @@ class ResidentCitizenCharterTest extends TestCase
         $foreignService = $this->createServiceWithVersion($this->otherBarangay);
 
         $this->withSession(['resident_id' => $this->resident->id])
-            ->get('/resident/citizen-charter/' . $foreignService->id . '/file')
+            ->get('/resident/citizen-charter/'.$foreignService->id.'/file')
             ->assertNotFound();
 
         $this->withSession(['resident_id' => $this->resident->id])
-            ->get('/resident/citizen-charter/' . $foreignService->id . '/download')
+            ->get('/resident/citizen-charter/'.$foreignService->id.'/download')
             ->assertNotFound();
     }
 
@@ -264,7 +264,7 @@ class ResidentCitizenCharterTest extends TestCase
         $v1Path = $service->currentVersion->path;
 
         // Create replacement revision v2 (stored as draft)
-        $v2Path = 'citizen-charter/' . $this->barangay->id . '/' . Str::uuid() . '.pdf';
+        $v2Path = 'citizen-charter/'.$this->barangay->id.'/'.Str::uuid().'.pdf';
         Storage::disk('local')->put($v2Path, "%PDF-1.4\n%REVISED VERSION 2\n%%EOF\n");
 
         $v2 = CitizenCharterVersion::create([
@@ -283,16 +283,16 @@ class ResidentCitizenCharterTest extends TestCase
 
         // Prior to Clerk publishing v2, resident STILL downloads v1
         $this->withSession(['resident_id' => $this->resident->id])
-            ->get('/resident/citizen-charter/' . $service->id . '/download')
+            ->get('/resident/citizen-charter/'.$service->id.'/download')
             ->assertHeader('Content-Disposition', 'attachment; filename=v1_charter.pdf');
 
         // Clerk publishes v2
         $this->actingAs($this->clerk)
-            ->post('/clerk/citizen-charter/' . $service->id . '/publish');
+            ->post('/clerk/citizen-charter/'.$service->id.'/publish');
 
         // Resident now downloads v2
         $this->withSession(['resident_id' => $this->resident->id])
-            ->get('/resident/citizen-charter/' . $service->id . '/download')
+            ->get('/resident/citizen-charter/'.$service->id.'/download')
             ->assertHeader('Content-Disposition', 'attachment; filename=v2_charter.pdf');
 
         // Historical v1 is STILL preserved on disk

@@ -96,30 +96,68 @@ export function formatOrgChartDate(value: string | null): string {
 }
 
 /** Arrange published chart roles without changing the saved parent relationships. */
-export function groupOrgChart(tree: OrgChartNode[], actingCaptain?: OrgChartPosition | null) {
-    const positions = [...new Map(flattenOrgChart(tree).map((node) => [node.id, node])).values()];
-    const isLeader = (position: OrgChartPosition) => /punong\s+barangay|barangay\s+captain|barangay\s+chair(?:man|person)/i.test(position.title);
-    const isActing = (position: OrgChartPosition) => /\bacting\b|\boic\b|officer.in.charge/i.test(position.title);
+export function groupOrgChart(
+    tree: OrgChartNode[],
+    actingCaptain?: OrgChartPosition | null,
+) {
+    const positions = [
+        ...new Map(
+            flattenOrgChart(tree).map((node) => [node.id, node]),
+        ).values(),
+    ];
+    const isLeader = (position: OrgChartPosition) =>
+        /punong\s+barangay|barangay\s+captain|barangay\s+chair(?:man|person)/i.test(
+            position.title,
+        );
+    const isActing = (position: OrgChartPosition) =>
+        /\bacting\b|\boic\b|officer.in.charge/i.test(position.title);
     const leaders = positions.filter(isLeader);
-    const captain = actingCaptain
-        ?? leaders.find((node) => node.status === 'published' && isActing(node) && Boolean(node.assigned_person?.trim()))
-        ?? leaders.find((node) => node.status === 'published' && !isActing(node))
-        ?? leaders.find((node) => node.status === 'published')
-        ?? leaders.find((node) => node.status !== 'archived')
-        ?? leaders[0]
-        ?? null;
-    const nameKey = (name: string | null) => name?.trim().replace(/\s+/g, ' ').toLowerCase() || '';
-    const remaining = positions.filter((node) => !isLeader(node) && node.id !== captain?.id
-        && (!captain?.assigned_person || nameKey(node.assigned_person) !== nameKey(captain.assigned_person)));
-    const kagawads = remaining.filter((node) => /kagawad|councilor|sangguniang\s+barangay/i.test(node.title));
+    const captain =
+        actingCaptain ??
+        leaders.find(
+            (node) =>
+                node.status === 'published' &&
+                isActing(node) &&
+                Boolean(node.assigned_person?.trim()),
+        ) ??
+        leaders.find(
+            (node) => node.status === 'published' && !isActing(node),
+        ) ??
+        leaders.find((node) => node.status === 'published') ??
+        leaders.find((node) => node.status !== 'archived') ??
+        leaders[0] ??
+        null;
+    const nameKey = (name: string | null) =>
+        name?.trim().replace(/\s+/g, ' ').toLowerCase() || '';
+    const remaining = positions.filter(
+        (node) =>
+            !isLeader(node) &&
+            node.id !== captain?.id &&
+            (!captain?.assigned_person ||
+                nameKey(node.assigned_person) !==
+                    nameKey(captain.assigned_person)),
+    );
+    const kagawads = remaining.filter((node) =>
+        /kagawad|councilor|sangguniang\s+barangay/i.test(node.title),
+    );
     const legislativeIds = new Set(kagawads.map((node) => node.id));
-    const appointed = remaining.filter((node) => !legislativeIds.has(node.id) && /secretary|treasurer|kalihim|ingat.?yaman/i.test(node.title));
+    const appointed = remaining.filter(
+        (node) =>
+            !legislativeIds.has(node.id) &&
+            /secretary|treasurer|kalihim|ingat.?yaman/i.test(node.title),
+    );
     const appointedIds = new Set(appointed.map((node) => node.id));
     return {
         captain,
-        isActing: Boolean(captain?.assigned_person?.trim() && (actingCaptain || isActing(captain))),
+        isActing: Boolean(
+            captain?.assigned_person?.trim() &&
+            (actingCaptain || isActing(captain)),
+        ),
         kagawads,
         appointed,
-        others: remaining.filter((node) => !legislativeIds.has(node.id) && !appointedIds.has(node.id)),
+        others: remaining.filter(
+            (node) =>
+                !legislativeIds.has(node.id) && !appointedIds.has(node.id),
+        ),
     };
 }

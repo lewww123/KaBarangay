@@ -1,4 +1,5 @@
 <?php
+
 namespace Tests\Feature;
 
 use App\Models\Certificate;
@@ -15,8 +16,11 @@ use Tests\TestCase;
 class ChatbotTrackingTest extends TestCase
 {
     use CreatesBarangayFixtures, RefreshDatabase;
+
     private Resident $resident;
+
     private Resident $other;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -27,11 +31,14 @@ class ChatbotTrackingTest extends TestCase
         Http::preventStrayRequests();
         $this->withSession(['resident_id' => $this->resident->id]);
     }
+
     private function certificateRequest(Resident $resident, string $reference, ?int $barangay = null): CertificateRequest
     {
         $certificate = Certificate::create(['barangay_id' => $resident->barangay_id, 'code' => $reference, 'name' => 'Indigency Certificate', 'fee' => 0, 'is_active' => true]);
+
         return CertificateRequest::create(['barangay_id' => $barangay ?? $resident->barangay_id, 'resident_id' => $resident->id, 'certificate_id' => $certificate->id, 'reference' => $reference, 'purpose' => 'Private medical purpose', 'status' => 'Pending', 'admin_note' => 'Private internal note', 'submitted_at' => now()]);
     }
+
     public function test_tracking_reads_current_database_status_without_provider_and_hides_other_residents(): void
     {
         config(['services.groq.key' => null]);
@@ -42,6 +49,7 @@ class ChatbotTrackingTest extends TestCase
         $this->postJson('/chatbot/send', ['message' => 'Track status ko'])->assertOk()->assertJsonPath('records.0.status', 'Ready for Claim');
         Http::assertNothingSent();
     }
+
     public function test_foreign_reference_and_cross_barangay_record_are_not_exposed(): void
     {
         $foreign = $this->createBarangay('Other Barangay', 'OTHER-TRACK');
@@ -51,12 +59,16 @@ class ChatbotTrackingTest extends TestCase
         $this->postJson('/chatbot/send', ['message' => 'Track status ko'])->assertOk()->assertJsonCount(0, 'records');
         Http::assertNothingSent();
     }
+
     public function test_specific_older_reference_is_found_outside_recent_five(): void
     {
         $this->certificateRequest($this->resident, 'CERT-2026-001')->update(['updated_at' => now()->subMonth()]);
-        for ($i=2; $i<=7; $i++) $this->certificateRequest($this->resident, 'CERT-2026-00'.$i);
+        for ($i = 2; $i <= 7; $i++) {
+            $this->certificateRequest($this->resident, 'CERT-2026-00'.$i);
+        }
         $this->postJson('/chatbot/send', ['message' => 'Track CERT-2026-001'])->assertOk()->assertJsonCount(1, 'records')->assertJsonPath('records.0.reference', 'CERT-2026-001');
     }
+
     public function test_lupon_cases_require_complainant_or_verified_respondent_membership(): void
     {
         $complaint = LuponComplaint::create(['barangay_id' => $this->resident->barangay_id, 'resident_id' => $this->other->id, 'reference' => 'LUP-2026-001', 'respondent_name' => 'Respondent', 'respondent_resident_status' => 'Yes', 'complaint_type' => 'Debt / Money Dispute', 'incident_date' => now(), 'incident_location' => 'Barangay', 'narrative' => 'Private narrative', 'requested_action' => 'Mediation', 'status' => 'Submitted']);
@@ -79,7 +91,8 @@ class ChatbotTrackingTest extends TestCase
         $this->postJson('/chatbot/send', ['message' => 'Paano mag-track ng certificate online?'])->assertOk()->assertJsonPath('reply', '1. Buksan ang Request Certificate.');
         Http::assertSent(function ($request) {
             $messages = json_encode($request['messages']);
-            return str_contains($messages, 'My Requests') && str_contains($messages, 'Submit Request') && str_contains($messages, 'Proof of residence') && str_contains($messages, '25.00') && !str_contains($messages, 'Hidden Inactive Certificate') && !str_contains($messages, 'Hidden Foreign Certificate');
+
+            return str_contains($messages, 'My Requests') && str_contains($messages, 'Submit Request') && str_contains($messages, 'Proof of residence') && str_contains($messages, '25.00') && ! str_contains($messages, 'Hidden Inactive Certificate') && ! str_contains($messages, 'Hidden Foreign Certificate');
         });
     }
 }

@@ -1,8 +1,5 @@
 import { Head } from '@inertiajs/react';
-import {
-    Html5Qrcode,
-    Html5QrcodeSupportedFormats,
-} from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 
@@ -15,9 +12,7 @@ export default function QrScanner() {
 
     useEffect(() => {
         const scanner = new Html5Qrcode('resident-qr-reader', {
-            formatsToSupport: [
-                Html5QrcodeSupportedFormats.QR_CODE,
-            ],
+            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
             verbose: false,
         });
 
@@ -86,10 +81,9 @@ export default function QrScanner() {
                                 !verificationPath &&
                                 decodedText.startsWith('KBQR-')
                             ) {
-                                verificationPath =
-                                    `/verify/resident/${encodeURIComponent(
-                                        decodedText,
-                                    )}`;
+                                verificationPath = `/verify/resident/${encodeURIComponent(
+                                    decodedText,
+                                )}`;
                             }
 
                             /*
@@ -128,15 +122,11 @@ export default function QrScanner() {
                             |--------------------------------------------------------------------------
                             */
 
-                            window.location.assign(
-                                verificationPath,
-                            );
+                            window.location.assign(verificationPath);
                         } catch {
                             hasScannedRef.current = false;
 
-                            setError(
-                                'Unable to process the scanned QR code.',
-                            );
+                            setError('Unable to process the scanned QR code.');
                         }
                     },
                     () => {
@@ -146,10 +136,7 @@ export default function QrScanner() {
 
                 setIsScanning(true);
             } catch (scanError) {
-                console.error(
-                    'QR scanner error:',
-                    scanError,
-                );
+                console.error('QR scanner error:', scanError);
 
                 setIsScanning(false);
 
@@ -159,7 +146,7 @@ export default function QrScanner() {
             }
         };
 
-        startScanner();
+        void startScanner();
 
         return () => {
             const stopScanner = async () => {
@@ -178,7 +165,7 @@ export default function QrScanner() {
                 }
             };
 
-            stopScanner();
+            void stopScanner();
         };
     }, []);
 
@@ -187,7 +174,6 @@ export default function QrScanner() {
             <Head title="Resident QR Scanner" />
 
             <AdminLayout active="qr-scanner">
-
                 {/* PAGE HEADER */}
                 <div className="mb-6">
                     <h1 className="text-2xl font-semibold text-gray-800">
@@ -195,16 +181,14 @@ export default function QrScanner() {
                     </h1>
 
                     <p className="mt-1 text-sm text-gray-500">
-                        Scan a KaBarangay resident QR code to verify
-                        the resident.
+                        Scan a KaBarangay resident QR code to verify the
+                        resident.
                     </p>
                 </div>
 
                 {/* SCANNER CARD */}
                 <div className="mx-auto max-w-2xl">
-
                     <div className="overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-gray-200">
-
                         {/* Scanner */}
                         <div className="p-4 sm:p-6">
                             <div
@@ -215,7 +199,6 @@ export default function QrScanner() {
 
                         {/* Status */}
                         <div className="border-t border-gray-100 px-5 py-5 text-center">
-
                             {isScanning && !error && (
                                 <>
                                     <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
@@ -227,8 +210,8 @@ export default function QrScanner() {
                                     </p>
 
                                     <p className="mt-1 text-sm text-gray-500">
-                                        Point the camera at the resident's
-                                        QR code.
+                                        Point the camera at the resident's QR
+                                        code.
                                     </p>
                                 </>
                             )}
@@ -246,7 +229,6 @@ export default function QrScanner() {
                                     </p>
                                 </div>
                             )}
-
                         </div>
                     </div>
 
@@ -268,9 +250,7 @@ export default function QrScanner() {
                         unnecessarily. Use resident verification only for
                         authorized barangay purposes.
                     </p>
-
                 </div>
-
             </AdminLayout>
         </>
     );
