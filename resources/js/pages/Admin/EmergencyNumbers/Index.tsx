@@ -52,7 +52,7 @@ function EmergencyNumbersContent({
     const [label, setLabel] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [canCall, setCanCall] = useState(true);
-    const [canSms, setCanSms] = useState(true);
+    const [canSms, setCanSms] = useState(false);
     const [displayOrder, setDisplayOrder] = useState<number>(0);
     const [isActive, setIsActive] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,7 +64,7 @@ function EmergencyNumbersContent({
         setLabel('');
         setPhoneNumber('');
         setCanCall(true);
-        setCanSms(true);
+        setCanSms(false);
         setDisplayOrder(0);
         setIsActive(true);
         setIsFormOpen(true);
@@ -383,7 +383,7 @@ function EmergencyNumbersContent({
                                         }
                                         className="h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
                                     />
-                                    <span>Allow Call (tel:)</span>
+                                    <span>Allow Call (confirm this number accepts calls)</span>
                                 </label>
 
                                 <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-700">
@@ -395,7 +395,7 @@ function EmergencyNumbersContent({
                                         }
                                         className="h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
                                     />
-                                    <span>Allow Text/SMS (sms:)</span>
+                                    <span>Allow Text/SMS (enable only after confirming SMS support)</span>
                                 </label>
 
                                 <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-700">

@@ -26,7 +26,7 @@
             <span class="eyebrow">KaBarangay · Impormasyon sa paggamit</span>
             <h1>@yield('title')</h1>
             <p class="intro">@yield('intro')</p>
-            <p class="date">Huling na-update: <time datetime="2026-11-03">3 Nobyembre 2026</time></p>
+            <p class="date">Huling na-update: @yield('updated', '3 Nobyembre 2026')</p>
             @yield('content')
             <div class="related">@yield('related')</div>
         </main>

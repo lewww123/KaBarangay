@@ -1,4 +1,5 @@
 import KaBarangayAssistant from '@/components/resident/KaBarangayAssistant';
+import NotificationBell from '@/components/resident/NotificationBell';
 import {
     applyResidentSettings,
     readResidentSettings,
@@ -177,21 +178,23 @@ export default function ResidentLayout({
                 </div>
 
                 {/* RIGHT SIDE */}
+                <div className="flex items-center gap-2">
+                    <NotificationBell />
+                    <Link
+                        href="/resident/profile"
+                        className="flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1.5 transition hover:bg-white/10 sm:gap-3 sm:px-2"
+                    >
+                        <div className="hidden text-right sm:block">
+                            <p className="text-sm font-medium">My Account</p>
 
-                <Link
-                    href="/resident/profile"
-                    className="flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1.5 transition hover:bg-white/10 sm:gap-3 sm:px-2"
-                >
-                    <div className="hidden text-right sm:block">
-                        <p className="text-sm font-medium">My Account</p>
+                            <p className="text-xs text-white/75">Resident</p>
+                        </div>
 
-                        <p className="text-xs text-white/75">Resident</p>
-                    </div>
-
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#315b30]">
-                        <ProfileIcon />
-                    </div>
-                </Link>
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#315b30]">
+                            <ProfileIcon />
+                        </div>
+                    </Link>
+                </div>
             </header>
 
             {/* ============================================================
@@ -310,7 +313,9 @@ export default function ResidentLayout({
                         href="/resident/announcements"
                         icon={<AnnouncementIcon />}
                         label="Announcements"
-                        active={active === 'announcements' || active === 'updates'}
+                        active={
+                            active === 'announcements' || active === 'updates'
+                        }
                     />
 
                     {/* MORE */}
@@ -763,7 +768,15 @@ function AnnouncementIcon() {
 
 function ProgramsIcon() {
     return (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-5 w-5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
             <rect x="3" y="5" width="18" height="16" rx="2" />
             <path d="M8 3v4M16 3v4M7 11h10M8 15h3M8 18h5" />
         </svg>

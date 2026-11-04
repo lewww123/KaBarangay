@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\LoginAttempt;
 use App\Models\SuspiciousLoginAlert;
+use App\Models\User;
+use App\Support\StaffDepartments;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
@@ -154,8 +156,9 @@ class AuditLogController extends Controller
             ->with(['actor' => function ($actorQuery) use ($barangayId) {
                 $actorQuery->select(['id', 'name'])->with([
                     'staffAssignments' => fn ($query) => $query
-                        ->select(['id', 'user_id', 'department', 'is_active'])
-                        ->where('is_active', true),
+                        ->select(['id', 'user_id', 'department', 'position', 'is_active'])
+                        ->where('barangay_id', $barangayId)
+                        ->where('is_active', true)->orderBy('id'),
                 ]);
 
                 if ($barangayId === null) {
@@ -178,6 +181,10 @@ class AuditLogController extends Controller
                             'id' => $auditLog->actor->id,
                             'name' => $auditLog->actor->name,
                             'department' => $auditLog->actor->staffAssignments->first()?->department,
+                            'position' => $this->actorPosition($auditLog->actor),
+                            'department_label' => $auditLog->actor->staffAssignments
+                                ->map(fn ($assignment) => StaffDepartments::LABELS[$assignment->department] ?? $assignment->department)
+                                ->unique()->implode(', '),
                         ],
                     'created_at' => $auditLog->created_at === null
                         ? null
@@ -290,6 +297,10 @@ class AuditLogController extends Controller
 
         return LoginAttempt::query()
             ->where('barangay_id', $barangayId)
+            ->with(['user' => fn ($query) => $query->select('id')->where('barangay_id', $barangayId)
+                ->with(['staffAssignments' => fn ($query) => $query
+                    ->select(['id', 'user_id', 'department', 'position'])
+                    ->where('barangay_id', $barangayId)->where('is_active', true)->orderBy('id')])])
             ->orderByDesc('attempted_at')
             ->orderByDesc('id')
             ->paginate(self::PAGE_SIZE)
@@ -298,6 +309,9 @@ class AuditLogController extends Controller
                 return [
                     'id' => $attempt->id,
                     'actor_type' => $attempt->actor_type,
+                    'actor_label' => $attempt->actor_type === 'staff'
+                        ? ($this->actorPosition($attempt->user) ?: 'Unidentified staff')
+                        : 'Resident',
                     'channel' => $attempt->channel,
                     'status' => $attempt->status,
                     'attempted_at' => $attempt->attempted_at === null
@@ -308,6 +322,15 @@ class AuditLogController extends Controller
                             ->format('Y-m-d H:i:s').' '.self::DISPLAY_TIMEZONE_SUFFIX,
                 ];
             });
+    }
+
+    private function actorPosition(?User $user): string
+    {
+        return $user?->staffAssignments
+            ->map(fn ($assignment) => trim((string) $assignment->position) !== ''
+                ? $assignment->position
+                : (StaffDepartments::POSITIONS[$assignment->department] ?? $assignment->department))
+            ->unique()->implode(', ') ?? '';
     }
 
     /**

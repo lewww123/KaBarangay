@@ -19,6 +19,8 @@ RUN apt-get update && apt-get install -y \
     git \
     curl
 
+RUN apt-get update && apt-get install -y supervisor
+
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 RUN docker-php-ext-install pdo pdo_pgsql gd zip intl xml bcmath mbstring opcache
 COPY docker/php-production.ini /usr/local/etc/php/conf.d/production.ini
@@ -70,8 +72,9 @@ RUN node /usr/local/lib/node_modules/npm/bin/npm-cli.js run build
 
 FROM app AS production
 COPY --from=frontend /var/www/html/public/build /var/www/html/public/build
+COPY docker/resident-updates-supervisor.conf /etc/supervisor/conf.d/resident-updates.conf
 
 EXPOSE 80
 
 # Cache only at startup, after Render supplies the actual environment values.
-CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && php artisan view:cache && chown -R www-data:www-data bootstrap/cache storage/framework/views && exec apache2-foreground"]
+CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && php artisan view:cache && chown -R www-data:www-data bootstrap/cache storage/framework/views && exec supervisord -n -c /etc/supervisor/conf.d/resident-updates.conf"]

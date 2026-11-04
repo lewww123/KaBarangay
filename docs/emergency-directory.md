@@ -85,6 +85,38 @@ The importer:
 
 ## Tests
 
+### Real-device acceptance before release
+
+URI tests prove number formatting, not that a service answers calls or receives
+SMS. The website hands off to the device dialer or messaging application; it
+cannot observe call connection, dispatcher availability, or SMS delivery.
+
+1. Use a consenting staff member's test number in a test environment. Never
+   place unsolicited test calls or texts to emergency services.
+2. On physical Android and iPhone devices, open the resident dashboard in the
+   browser and installed app (if used). Tap Call on both a quick-call card and
+   a contact row. Check the exact recipient, then complete a call to the test
+   phone and confirm two-way audio.
+3. Tap Text, check the recipient, send a harmless test message, and confirm
+   receipt on the test phone. Opening the composer alone is not a delivery test.
+4. Check a contact with SMS disabled has no Text button. SMS support must be
+   confirmed by the contact owner; do not infer it from the number format.
+5. Test Copy, including clipboard permission denial. Confirm manual dialing is
+   possible from the displayed number, including on desktops without a dialer.
+6. Repeat with Wi-Fi disconnected and cellular service available, after loading
+   the page. Separately check whether contacts remain available after an offline
+   reload; do not claim offline availability without that check.
+7. For actual directory numbers, obtain owner confirmation through an approved
+   non-emergency channel: number, coverage, service hours, call/SMS capability,
+   and alternate contact. Arrange any live verification with that agency first.
+8. Record date, reviewer, device/browser, network, recipient, and outcome for
+   each call and SMS check. Record owner verification separately from device
+   testing. Recheck periodically and whenever a number or service changes.
+
+Release requires device handoff checks and reviewed directory records. Neither
+is a guarantee of future connectivity or emergency response; keep alternate
+contacts visible and update unreachable numbers promptly.
+
 Focused coverage lives in
 `tests/Feature/EmergencyContactManagementTest.php` and includes shared
 visibility, write denial, barangay isolation, normalized-phone deduplication,

@@ -101,7 +101,7 @@ class CertificateTemplates
     /** The Clerk's reviewed PDF layouts do not require a Word template. */
     public static function isPdfAvailable(string $type): bool
     {
-        return in_array($type, [...self::types(), 'Barangay Clearance', 'Retail', 'Hardware Store', 'Pool / Resort'], true);
+        return in_array($type, [...self::types(), 'Business Clearance', 'Barangay Clearance', 'Retail', 'Hardware Store', 'Pool / Resort'], true);
     }
 
     /**
@@ -170,14 +170,14 @@ class CertificateTemplates
      *
      * @return array<int, array{value: string, available: bool}>
      */
-    public static function options(): array
+    public static function options(?int $barangayId = null): array
     {
         return array_values(array_map(
             static fn (string $type): array => [
                 'value' => $type,
                 'available' => self::isPdfAvailable($type),
             ],
-            self::types(),
+            CertificateTenantAccess::types($barangayId),
         ));
     }
 }

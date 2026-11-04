@@ -18,6 +18,7 @@ return [
         'client_id' => env('GMAIL_CLIENT_ID'),
         'client_secret' => env('GMAIL_CLIENT_SECRET'),
         'refresh_token' => env('GMAIL_REFRESH_TOKEN'),
+        'ca_bundle' => env('GMAIL_CA_BUNDLE'),
     ],
 
     'groq' => [

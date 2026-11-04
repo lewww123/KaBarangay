@@ -115,8 +115,13 @@ class GmailApiTransport extends AbstractTransport
 
     private function request(): PendingRequest
     {
+        $caBundle = config('services.gmail.ca_bundle');
+
         return Http::acceptJson()->connectTimeout(5)->timeout(30)
-            ->withOptions(['allow_redirects' => false]);
+            ->withOptions([
+                'allow_redirects' => false,
+                'verify' => is_string($caBundle) && $caBundle !== '' ? $caBundle : true,
+            ]);
     }
 
     private function mimeMessage(SentMessage $message): string

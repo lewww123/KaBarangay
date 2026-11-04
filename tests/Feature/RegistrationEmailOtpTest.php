@@ -223,9 +223,71 @@ class RegistrationEmailOtpTest extends TestCase
         Mail::assertNothingSent();
     }
 
-    private function payload(): array
+    public function test_each_barangay_accepts_verified_registration_and_shows_pending_approval(): void
     {
-        $barangay = $this->createBarangay('OTP Registration', 'OTP-REG');
+        foreach (['San Jose', 'Sicicsican', 'Sta. Monica'] as $index => $name) {
+            $payload = $this->payload((string) $index);
+            $barangay = $this->createBarangay($name, 'FLOW-'.$index);
+            $payload['barangay_id'] = $barangay->id;
+            $payload['purok_id'] = $this->createPurok($barangay)->id;
+            $payload['first_name'] = 'Applicant'.$index;
+            $payload['email'] = 'applicant'.$index.'@example.test';
+            $payload['mobile'] = '0998000071'.$index;
+            $code = $this->sendCode($payload['email']);
+            $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
+            $this->post('/resident/register', $payload)
+                ->assertRedirect(route('resident.registration.submitted'))->assertSessionHasNoErrors();
+            $this->get(route('resident.registration.submitted'))->assertOk()
+                ->assertInertia(fn ($page) => $page->component('Resident/RegistrationPending'));
+            $this->assertDatabaseHas('resident_registrations', ['barangay_id' => $barangay->id, 'status' => 'pending']);
+            $admin = $this->createStaff($barangay, 'admin');
+            $this->actingAs($admin)->get('/admin/residents')->assertOk()
+                ->assertInertia(fn ($page) => $page
+                    ->where('pendingRegistrations.total', 1)
+                    ->where('pendingRegistrations.data.0.email', $payload['email'])
+                    ->where('stats.pendingRegistrations', 1));
+        }
+        // Only the three admin fixture accounts exist; applicants await review.
+        $this->assertDatabaseCount('resident_accounts', 3);
+    }
+
+    public function test_same_person_cannot_apply_in_another_barangay_with_new_contact_details(): void
+    {
+        $payload = $this->payload();
+        $original = $this->createBarangay('San Jose', 'DUP-SJ');
+        $existing = $this->createPendingRegistration($original, $this->createPurok($original), [
+            'first_name' => $payload['first_name'], 'last_name' => $payload['last_name'],
+            'middle_name' => null, 'suffix' => null, 'birthdate' => $payload['birthdate'],
+            'mobile' => '09989999999', 'email' => 'original@example.test',
+        ]);
+        $existing->update(['birthdate' => $payload['birthdate']]);
+        $code = $this->sendCode();
+        $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
+        $this->postJson('/resident/register', $payload)->assertUnprocessable()
+            ->assertJsonValidationErrors('registration')
+            ->assertJsonPath('errors.registration.0', 'You are already registered in San Jose. Multiple resident accounts across barangays are not allowed. If your application is pending, please wait for admin approval.');
+        $this->assertDatabaseCount('resident_registrations', 1);
+    }
+
+    public function test_existing_resident_account_blocks_registration_even_without_an_active_application(): void
+    {
+        $payload = $this->payload();
+        $original = $this->createBarangay('San Jose', 'ACCOUNT-SJ');
+        $resident = $this->createResident($original, $this->createPurok($original), [
+            'email' => $payload['email'], 'mobile' => '09989999999',
+        ]);
+        $resident->update(['email' => $payload['email']]);
+        $resident->registration->update(['status' => 'rejected']);
+        $code = $this->sendCode();
+        $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
+        $response = $this->postJson('/resident/register', $payload)->assertUnprocessable()->assertJsonValidationErrors('registration');
+        $this->assertStringContainsString('San Jose', $response->json('errors.registration.0'));
+        $this->assertDatabaseCount('resident_registrations', 1);
+    }
+
+    private function payload(string $codeSuffix = ''): array
+    {
+        $barangay = $this->createBarangay('OTP Registration', 'OTP-REG'.$codeSuffix);
         $purok = $this->createPurok($barangay);
 
         return [

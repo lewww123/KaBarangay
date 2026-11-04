@@ -2221,6 +2221,16 @@ function Dashboard({
     );
 
     const renderDocumentPreview = () => {
+        if (data.certificate_type === 'Business Clearance') return <>
+            <img src="/clerk/certificates/sicsican-artwork" alt="Barangay Sicsican Business Clearance" />
+            <div className="sicsican-value" style={{left:'13%',top:'33.5%',width:'74%',height:'3.4%'}}>{data.resident_name.toUpperCase()}</div>
+            <div className="sicsican-value" style={{left:'13.5%',top:'39.6%',width:'74%',height:'3.4%'}}>{data.business_address.toUpperCase()}</div>
+            <div className="sicsican-value" style={{left:'14%',top:'45.5%',width:'73.5%',height:'3.4%'}}>{data.business_name.toUpperCase()}</div>
+            <div className="sicsican-value" style={{left:'9%',top:'63.3%',width:'81%',height:'4.5%',fontWeight:'normal',textAlign:'justify'}}>Given this {formatIssueDate()} at the office of the Punong Barangay, National Highway, Purok Banaba, Barangay Sicsican, Puerto Princesa City.</div>
+            <div className="sicsican-value" style={{left:'12%',top:'75.5%',width:'23%',height:'1.8%',color:'#16944f',fontSize:'11pt'}}>{data.control_no}</div>
+            <div className="sicsican-value" style={{left:'58%',top:'75%',width:'30%',height:'2.1%'}}>{currentCaptain?.name.toUpperCase() || '___________________'}</div>
+        </>;
+
         if (data.certificate_type === DELAYED_PSA_TYPE) {
             const residentName = data.resident_name.trim().toUpperCase() || '___________________';
             const purok = data.purok.trim().replace(/^purok\s+/i, '') || '__________';
@@ -3836,7 +3846,7 @@ function Dashboard({
                                                     {(data.certificate_type ===
                                                         'Tricycle' ||
                                                         data.certificate_type ===
-                                                            'Sari-sari Store') && (
+                                                            'Sari-sari Store' || data.certificate_type === 'Business Clearance') && (
                                                         <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50 p-4">
                                                             <h4 className="text-xs font-bold text-orange-800 uppercase">
                                                                 Business &
@@ -4413,7 +4423,7 @@ function Dashboard({
                                                     {(data.certificate_type ===
                                                         'Tricycle' ||
                                                         data.certificate_type ===
-                                                            'Sari-sari Store') && (
+                                                            'Sari-sari Store' || data.certificate_type === 'Business Clearance') && (
                                                         <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50 p-4">
                                                             <h4 className="text-xs font-bold text-orange-800 uppercase">
                                                                 Business &

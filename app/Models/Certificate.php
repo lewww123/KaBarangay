@@ -8,6 +8,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Certificate extends Model
 {
+    protected static function booted(): void
+    {
+        static::addGlobalScope('approved_barangay_catalog', function ($query) {
+            $query->where(function ($q) {
+                $q->where(function ($q) {
+                    $q->whereHas('barangay', fn ($b) => $b->whereIn('name', ['San Jose', 'Barangay San Jose']))
+                        ->where('code', '!=', 'business-clearance');
+                })->orWhere(function ($q) {
+                    $q->whereHas('barangay', fn ($b) => $b->whereIn('name', ['Sicsican', 'Barangay Sicsican']))
+                        ->where('code', 'business-clearance');
+                });
+            });
+        });
+    }
+
     protected $fillable = [
         'barangay_id',
         'code',

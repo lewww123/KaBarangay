@@ -94,7 +94,7 @@ class CertificateRequestController extends Controller
                                 // when the Clerk has no generation template for them.
                                 'available' => true,
                                 'templateAvailable' => $type !== null
-                                    && CertificateTemplates::isAvailable($type),
+                                    && CertificateTemplates::isPdfAvailable($type),
                             ];
                     })
                     ->values()

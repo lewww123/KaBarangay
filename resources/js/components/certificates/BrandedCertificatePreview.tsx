@@ -46,6 +46,12 @@ export default function BrandedCertificatePreview({ body, onReady, liveContent, 
         }).catch(() => { if (active) onReady(false); });
         return () => { active = false; };
     }, [body, hasLiveContent, onReady]);
+    if (certificateType === 'Business Clearance') return (
+        <div className="certificate-preview-frame">
+            <style>{".certificate-preview-frame{--certificate-scale:min(.55,var(--certificate-fit-scale,.55));width:calc(210mm * var(--certificate-scale));height:calc(297mm * var(--certificate-scale));position:relative;margin:0 auto}.certificate-preview-frame .sicsican-sheet{position:absolute;top:0;left:0;width:210mm;height:297mm;transform:scale(var(--certificate-scale));transform-origin:top left;background:white;overflow:hidden}.sicsican-sheet img{position:absolute;inset:0;width:100%;height:100%}.sicsican-value{position:absolute;display:flex;align-items:center;justify-content:center;font:bold 13pt 'Times New Roman';text-align:center;overflow-wrap:anywhere;line-height:1.15;padding:2mm;box-sizing:border-box;background:white;color:black}@media print{.certificate-preview-frame .sicsican-sheet{transform:none}}"}</style>
+            <article ref={sheetRef} id="certificate-print-sheet" className="certificate-print-sheet sicsican-sheet">{liveContent}</article>
+        </div>
+    );
     const isTricycle = certificateType === 'Tricycle';
     const isStore = certificateType === 'Sari-sari Store';
     const isPermit = isTricycle || isStore;

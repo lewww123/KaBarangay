@@ -342,11 +342,17 @@ function ContactActionButtons({
 }) {
     const [copied, setCopied] = useState(false);
 
-    const handleCopy = () => {
-        if (navigator.clipboard) {
-            void navigator.clipboard.writeText(contact.phone_number);
+    const [copyError, setCopyError] = useState(false);
+
+    const handleCopy = async () => {
+        setCopied(false);
+        setCopyError(false);
+        try {
+            await navigator.clipboard.writeText(contact.phone_number);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
+        } catch {
+            setCopyError(true);
         }
     };
 
@@ -360,7 +366,8 @@ function ContactActionButtons({
                             ? 'bg-[#3f6f3d] hover:bg-[#315b30]'
                             : 'bg-red-700 hover:bg-red-800'
                     }`}
-                    title="Call contact number"
+                    aria-label={`Call ${contact.name} at ${contact.phone_number}`}
+                    title="Open your phone dialer"
                 >
                     <PhoneIcon />
                     Call
@@ -371,7 +378,8 @@ function ContactActionButtons({
                 <a
                     href={contact.sms_uri}
                     className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-                    title="Send SMS"
+                    aria-label={`Text ${contact.name} at ${contact.phone_number}`}
+                    title="Open your SMS app; send the message there"
                 >
                     💬 Text
                 </a>
@@ -385,6 +393,11 @@ function ContactActionButtons({
             >
                 {copied ? '✓ Copied' : '📋 Copy'}
             </button>
+            {copyError && (
+                <span role="status" className="w-full text-xs text-red-700">
+                    Could not copy. Dial or enter {contact.phone_number} manually.
+                </span>
+            )}
         </div>
     );
 }
@@ -716,7 +729,11 @@ function EmergencyPanel({
                     Need urgent help?
                 </p>
                 <p className="mt-1 text-sm leading-6 text-red-700">
-                    Tap a phone number below to call.
+                    Call opens your phone dialer. Text opens your SMS app.
+                    Complete the call or send the message there. This app cannot
+                    confirm an answer or message delivery. If nothing opens,
+                    copy the number and dial manually. If unreachable, try
+                    another listed contact.
                 </p>
             </div>
 

@@ -3,8 +3,8 @@
 namespace App\Http\Requests\Resident;
 
 use App\Models\Purok;
-use App\Models\ResidentRegistration;
 use App\Support\RegistrationEmailOtp;
+use App\Support\ResidentRegistrationDuplicateChecker;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -278,39 +278,10 @@ class StoreResidentRegistrationRequest extends FormRequest
             |--------------------------------------------------------------------------
             */
 
-            if ($this->mobile) {
-                $existingMobile = ResidentRegistration::query()
-                    ->where('mobile', $this->mobile)
-                    ->whereIn('status', [
-                        'pending',
-                        'needs_correction',
-                        'approved',
-                    ])
-                    ->exists();
-
-                if ($existingMobile) {
-                    $validator->errors()->add(
-                        'mobile',
-                        'A registration using this mobile number already exists.'
-                    );
-                }
-            }
-
-            if ($this->email) {
-                $existingEmail = ResidentRegistration::query()
-                    ->where('email', $this->email)
-                    ->whereIn('status', [
-                        'pending',
-                        'needs_correction',
-                        'approved',
-                    ])
-                    ->exists();
-
-                if ($existingEmail) {
-                    $validator->errors()->add(
-                        'email',
-                        'A registration using this email address already exists.'
-                    );
+            if (! $validator->errors()->hasAny(['email', 'mobile', 'first_name', 'last_name', 'birthdate'])) {
+                $duplicate = app(ResidentRegistrationDuplicateChecker::class)->find($this->all());
+                if ($duplicate !== null) {
+                    $validator->errors()->add('registration', $duplicate);
                 }
             }
         });

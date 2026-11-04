@@ -41,11 +41,18 @@ class CertificateController extends Controller
      */
     private const REFERENCE_ATTEMPTS = 5;
 
+    public function sicsicanArtwork(Request $request)
+    {
+        abort_unless(\App\Support\CertificateTenantAccess::allows($request->user()->barangay_id, 'Business Clearance'), 403);
+        return response()->file(resource_path('certificates/sicsican/business-clearance.jpg'), ['Cache-Control' => 'private, no-store']);
+    }
+
     public function nextControlNumber(Request $request)
     {
         $type = $request->validate(['certificate_type' => ['required', 'string', 'max:100']])['certificate_type'];
         $type = CertificateRequestDetails::typeForCertificate(new Certificate(['name' => trim($type), 'code' => trim($type)])) ?? $type;
         abort_unless($request->user()->barangay_id !== null, 403);
+        abort_unless(\App\Support\CertificateTenantAccess::allows($request->user()->barangay_id, $type), 403);
         abort_unless(CertificateTemplates::isPdfAvailable($type), 422);
         return response()->json(['control_no' => CertificateControlNumbers::next($request->user()->barangay_id, $type)])
             ->header('Cache-Control', 'private, no-store');
@@ -75,6 +82,7 @@ class CertificateController extends Controller
             $request->merge(['certificate_type' => $canonicalType]);
         }
 
+        abort_unless(\App\Support\CertificateTenantAccess::allows($request->user()->barangay_id, $submittedType), 403);
         $pdfOutput = $request->input('output_format') === 'pdf';
         $rules = $this->rulesFor($submittedType);
         if ($pdfOutput) {
@@ -87,6 +95,10 @@ class CertificateController extends Controller
         }
         if ($preview) {
             unset($rules['details_confirmed']);
+        }
+        if ($submittedType === 'Business Clearance') {
+            $rules['business_name'] = ['required', 'string', 'max:255'];
+            $rules['business_address'] = ['required', 'string', 'max:255'];
         }
         $validated = $request->validate($rules);
         $pdfBytes = null;

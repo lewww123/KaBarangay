@@ -145,7 +145,8 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
     }, [initialPage]);
 
     if (!privatePage) return null;
-    return <aside data-kb-offline-control role="status" aria-live="polite" className={`fixed bottom-3 left-3 z-[80] max-w-[calc(100vw-6rem)] rounded-xl border px-3 py-2 text-xs shadow-lg ${state.online ? 'border-stone-200 bg-white text-stone-700' : 'border-amber-300 bg-amber-50 text-amber-950'}`}>
+    // Temporarily hide the shared panel for every module while background offline support remains active.
+    return <aside hidden data-kb-offline-control role="status" aria-live="polite" className={`fixed bottom-3 left-3 z-[80] max-w-[calc(100vw-6rem)] rounded-xl border px-3 py-2 text-xs shadow-lg ${state.online ? 'border-stone-200 bg-white text-stone-700' : 'border-amber-300 bg-amber-50 text-amber-950'}`}>
         <p className="font-semibold">{!state.online ? 'Offline · saved pages' : state.ready ? 'Saved for offline' : 'Preparing offline copy…'}</p>
         {state.savedAt && <p className="mt-1">Huling na-save: {new Date(state.savedAt).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' })}</p>}
         {state.message && <p className="mt-1">{state.message}</p>}

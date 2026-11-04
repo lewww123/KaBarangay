@@ -141,7 +141,7 @@ class CertificateSeeder extends Seeder
             ],
         ];
 
-        $barangays = Barangay::query()->get(['id']);
+        $barangays = Barangay::query()->get(['id', 'name']);
 
         if ($barangays->isEmpty()) {
             $this->command?->warn(
@@ -152,6 +152,16 @@ class CertificateSeeder extends Seeder
         }
 
         foreach ($barangays as $barangay) {
+            if (in_array(strtolower($barangay->name), ['sicsican', 'barangay sicsican'], true)) {
+                Certificate::updateOrCreate(['barangay_id' => $barangay->id, 'code' => 'business-clearance'], [
+                    'name' => 'Business Clearance', 'fee' => 0,
+                    'description' => 'Business clearance for a Mayor’s Permit application.',
+                    'requirements' => ['Operator/owner name', 'Business address', 'Name/type of establishment'],
+                    'requires_business_details' => true, 'is_active' => true,
+                ]);
+                continue;
+            }
+            if (! in_array(strtolower($barangay->name), ['san jose', 'barangay san jose'], true)) { continue; }
             foreach ($certificates as $certificate) {
                 Certificate::updateOrCreate(
                     [

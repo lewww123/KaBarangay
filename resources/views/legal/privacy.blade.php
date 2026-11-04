@@ -1,5 +1,6 @@
 @extends('legal.layout')
 @section('title', 'Privacy Policy')
+@section('updated', '4 Nobyembre 2026')
 @section('description', 'Alamin kung paano ginagamit ang personal na impormasyon sa KaBarangay at paano makikipag-ugnayan tungkol sa iyong privacy.')
 @section('intro', 'Ipinapaliwanag ng abisong ito ang pagproseso ng personal na impormasyon kapag ginagamit mo ang KaBarangay para sa mga serbisyo ng napili mong barangay.')
 @section('contents')
@@ -52,6 +53,9 @@
 <section id="storage">
     <h2>6. Cookies at browser storage</h2>
     <p>Gumagamit ang system ng session at security cookies para sa pag-login at proteksiyon ng requests. Ang chat history ay naka-save rin sa local storage ng browser, na hiwalay ayon sa account, upang maibalik ang usapan pagkatapos ng reload.</p>
+    <p>Sa production site, nagse-save rin ang browser ng read-only offline copies ng mga page na nabuksan mo habang naka-login, kabilang ang personal na impormasyong nakikita sa mga page na iyon. Hanggang 20 page ang maaaring itabi, na available nang hanggang 24 oras mula sa pag-save. Nakatali ang mga kopya sa kasalukuyang login session at inaalis kapag nag-log out o nagpalit ng account. Maaaring alisin din ng browser ang storage. Hindi isinasama ang password fields, form values, private document downloads, at AI chat panel sa mga offline copy.</p>
+    <p>Sa shared device, mag-log out bago umalis. Kapag offline ang logout, inaalis muna ang lokal na copies at tinatapos ang server logout kapag bumalik ang internet. Maaaring i-clear ang site data sa browser upang alisin ang lokal na copies.</p>
+    <p>Ang offline certificate editor ay gumagamit ng IndexedDB para sa encrypted drafts, pending requests, at resulta ng sync. Ang unsent draft ay nananatili sa device hanggang i-delete o i-clear ang site data; hindi pa ito opisyal na submission. Kapag nag-log out o nagpalit ng account, inaalis ang lokal na unlock key. Kailangan muling mag-sign in online sa parehong resident account upang ma-unlock ang natitirang encrypted drafts. Ang certificate request lamang ang maaaring i-queue; hiwalay pa rin ang online validation, payment at approval.</p>
     <p>Gamitin ang “Bagong usapan” upang i-clear ang naka-save na usapan sa browser na iyon. Maaari mo ring i-clear ang site data sa browser settings. Hindi nito awtomatikong binubura ang opisyal na barangay records o data na naipadala na sa mga provider. Sa shared computer, mag-log out at linisin ang chat o site data bago umalis.</p>
 </section>
 <section id="retention">

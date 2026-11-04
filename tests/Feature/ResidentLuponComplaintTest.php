@@ -178,7 +178,7 @@ class ResidentLuponComplaintTest extends TestCase
     {
         $this->withSession(['resident_id' => $this->resident->id])
             ->post('/resident/lupon/complaints', $this->validPayload([
-                'incidentDate' => now()->addDay()->toDateString(),
+                'incidentDate' => now('Asia/Manila')->addDay()->toDateString(),
             ]))
             ->assertSessionHasErrors('incidentDate');
     }

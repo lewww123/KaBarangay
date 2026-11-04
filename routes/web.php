@@ -120,7 +120,8 @@ Route::prefix('resident')->name('resident.')->group(function () {
 
     Route::get('/register', [RegistrationController::class, 'create'])->name('register');
     Route::post('/register', [RegistrationController::class, 'store'])->middleware('throttle:5,1')->name('register.store');
-    Route::get('/register/submitted/{publicId}', [RegistrationController::class, 'submitted'])->name('registration.submitted');
+    Route::get('/register/submitted', [RegistrationController::class, 'submitted'])->name('registration.submitted');
+    Route::get('/register/submitted/{publicId}', fn () => redirect()->route('resident.registration.submitted'))->name('registration.submitted.legacy');
     Route::get('/application/access', [ResidentRegistrationAccessController::class, 'create'])
         ->name('registration.access');
     Route::post('/application/access', [ResidentRegistrationAccessController::class, 'authenticate'])
@@ -154,6 +155,9 @@ Route::prefix('resident')->name('resident.')->group(function () {
     Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:6,1')->name('password.update');
 
     Route::middleware('resident.auth')->group(function () {
+        Route::get('/notifications', [\App\Http\Controllers\Resident\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all', [\App\Http\Controllers\Resident\NotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::post('/notifications/{id}/read', [\App\Http\Controllers\Resident\NotificationController::class, 'read'])->name('notifications.read');
 
         /*
         |--------------------------------------------------------------------------
@@ -321,9 +325,9 @@ Route::prefix('resident')->name('resident.')->group(function () {
         })->name('dashboard');
 
         Route::get('/certificates', [CertificateRequestController::class, 'index'])->name('certificates');
+        Route::post('/certificates', [CertificateRequestController::class, 'store'])->middleware('throttle:10,1')->name('certificates.store');
         Route::get('/certificates/offline-context', [\App\Http\Controllers\Resident\OfflineCertificateController::class, 'context'])->name('certificates.offline-context');
         Route::post('/certificates/sync', [\App\Http\Controllers\Resident\OfflineCertificateController::class, 'sync'])->middleware('throttle:10,1')->name('certificates.sync');
-        Route::post('/certificates', [CertificateRequestController::class, 'store'])->middleware('throttle:10,1')->name('certificates.store');
 
         Route::get('/lupon', [ResidentLuponComplaintController::class, 'index'])->name('lupon');
         Route::post('/lupon/complaints', [ResidentLuponComplaintController::class, 'store'])->name('lupon.complaints.store');
@@ -652,6 +656,7 @@ Route::middleware('auth')->group(function () {
 
         // Resident Registrations
         Route::get('/residents', [ResidentRegistrationController::class, 'index'])->name('residents');
+        Route::get('/resident-registrations/pending', [ResidentRegistrationController::class, 'pendingAccounts'])->name('residents.registrations.pending');
         Route::get('/residents/{resident}/details', [ResidentRegistrationController::class, 'showResidentDetails'])->name('residents.details');
         Route::get('/resident-registrations/{registration}/details', [ResidentRegistrationController::class, 'showRegistrationDetails'])->name('residents.registrations.details');
         Route::get('/resident-registrations/{registration}/candidates', [ResidentRegistrationController::class, 'matchingCandidates'])->name('residents.registrations.candidates');
@@ -732,6 +737,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/certificates/requests/{certificateRequest}/status', [ClerkCertificateRequestController::class, 'updateStatus'])->name('certificates.requests.status');
         Route::post('/certificates/requests/{certificateRequest}/confirm-payment', [ClerkCertificateRequestController::class, 'confirmPayment'])->name('certificates.requests.confirm-payment');
         Route::post('/certificates/requests/{certificateRequest}/release', [ClerkCertificateRequestController::class, 'confirmRelease'])->name('certificates.requests.release');
+        Route::get('/certificates/sicsican-artwork', [CertificateController::class, 'sicsicanArtwork']);
         Route::get('/certificates/control-number', [CertificateController::class, 'nextControlNumber'])->name('certificates.control-number');
         Route::post('/generate-certificate', [CertificateController::class, 'generate'])->name('certificates.generate');
         Route::post('/certificates/preview', [CertificateController::class, 'preview'])->name('certificates.preview');

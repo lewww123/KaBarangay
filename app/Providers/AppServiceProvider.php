@@ -61,6 +61,8 @@ class AppServiceProvider extends ServiceProvider
             $config['model'],
         ));
         User::observe(UserAuthCacheObserver::class);
+        \App\Models\CertificateRequest::observe(\App\Observers\ResidentUpdateObserver::class);
+        \App\Models\AnnouncementAttendance::observe(\App\Observers\ResidentUpdateObserver::class);
         foreach ([Certificate::class, OrgChartPosition::class, CitizenCharterService::class, CitizenCharterVersion::class] as $referenceModel) {
             $referenceModel::observe(ReferenceDataObserver::class);
         }

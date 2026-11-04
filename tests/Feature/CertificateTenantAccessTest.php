@@ -1,0 +1,39 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Certificate;
+use App\Support\CertificateTemplates;
+use App\Support\CertificateTenantAccess;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesBarangayFixtures;
+use Tests\TestCase;
+
+class CertificateTenantAccessTest extends TestCase
+{
+    use CreatesBarangayFixtures, RefreshDatabase;
+
+    public function test_layouts_and_catalogs_stay_with_their_barangay(): void
+    {
+        $sicsican = $this->createBarangay('Sicsican', 'SIC');
+        $sanJose = $this->createBarangay('San Jose', 'SJ');
+        $other = $this->createBarangay('Other', 'OTH');
+        foreach ([$sicsican, $sanJose, $other] as $barangay) {
+            foreach (['business-clearance', 'residency'] as $code) {
+                Certificate::withoutGlobalScopes()->create(['barangay_id' => $barangay->id, 'code' => $code, 'name' => $code, 'fee' => 0, 'is_active' => true]);
+            }
+        }
+        $this->assertSame(['Business Clearance'], array_column(CertificateTemplates::options($sicsican->id), 'value'));
+        $this->assertFalse(CertificateTenantAccess::allows($sanJose->id, 'Business Clearance'));
+        $this->assertFalse(CertificateTenantAccess::allows($sicsican->id, 'Residency'));
+        $this->assertSame(['business-clearance'], Certificate::where('barangay_id', $sicsican->id)->pluck('code')->all());
+        $this->assertSame(['residency'], Certificate::where('barangay_id', $sanJose->id)->pluck('code')->all());
+        $this->assertSame(0, Certificate::where('barangay_id', $other->id)->count());
+        $this->actingAs($this->createStaff($sanJose, 'clerk'));
+        $this->get('/clerk/certificates/sicsican-artwork')->assertForbidden();
+        $this->postJson('/clerk/generate-certificate', ['certificate_type' => 'Business Clearance'])->assertForbidden();
+        $this->actingAs($this->createStaff($sicsican, 'clerk'));
+        $this->get('/clerk/certificates/sicsican-artwork')->assertOk();
+        $this->postJson('/clerk/generate-certificate', ['certificate_type' => 'Residency'])->assertForbidden();
+    }
+}

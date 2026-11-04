@@ -14,3 +14,5 @@ storage/framework/cache/data/*
 storage/app/private
 storage/app/certificates
 !**/.gitignore
+
+.deploy-registration
