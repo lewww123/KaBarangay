@@ -1,4 +1,4 @@
-import { Deferred, Head, Link, router, useForm, usePoll } from '@inertiajs/react';
+import { Deferred, Head, Link, router, useForm } from '@inertiajs/react';
 import {
     FormEvent,
     ReactNode,
@@ -9,6 +9,7 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import AdminLayout from '@/layouts/AdminLayout';
+import useLivePendingAccounts from '@/hooks/useLivePendingAccounts';
 
 type Sector = {
     id: number;
@@ -287,6 +288,13 @@ export default function Residents({
     const selectedPurokId =
         typeof filters?.purok_id === 'number' ? filters.purok_id : null;
 
+    const queueQuery = new URLSearchParams({
+        pending_page: String(pendingRegistrations?.current_page ?? 1),
+        registration_search: filters?.registration_search ?? '',
+        ...(selectedPurokId !== null ? { purok: String(selectedPurokId) } : {}),
+    }).toString();
+    const livePending = useLivePendingAccounts(pendingRegistrations, queueQuery);
+
     const addedByAdminPaginator: ResidentPaginator =
         addedByAdmin ?? emptyPaginator<Resident>();
 
@@ -294,7 +302,7 @@ export default function Residents({
         allResidents ?? emptyPaginator<AllResidentRow>();
 
     const pendingPaginator: RegistrationPaginator =
-        pendingRegistrations ?? emptyPaginator<PendingRegistration>();
+        livePending.data ?? emptyPaginator<PendingRegistration>();
 
     const needsCorrectionPaginator: RegistrationPaginator =
         needsCorrectionRegistrations ?? emptyPaginator<PendingRegistration>();
@@ -320,13 +328,11 @@ export default function Residents({
         : [];
 
     const [activeTab, setActiveTab] = useState<Tab>('all');
-    usePoll(15000, { only: ['pendingRegistrations', 'stats'] });
-
     useEffect(() => {
         if (activeTab === 'pending') {
-            router.reload({ only: ['pendingRegistrations', 'stats'] });
+            void livePending.refresh();
         }
-    }, [activeTab]);
+    }, [activeTab, livePending.refresh]);
     const [registrationSearch, setRegistrationSearch] = useState(
         filters?.registration_search ?? '',
     );
@@ -910,7 +916,7 @@ export default function Residents({
                             active={activeTab === 'added_by_admin'}
                             onClick={() => setActiveTab('added_by_admin')}
                         />
-                        <TabButton label={`Pending Accounts (${pendingPaginator.total})`} active={activeTab === 'pending'} onClick={() => setActiveTab('pending')} />
+                        <TabButton label={`Pending Accounts (${livePending.total ?? stats.pendingRegistrations})`} active={activeTab === 'pending'} onClick={() => setActiveTab('pending')} />
                         <TabButton label={`Needs Correction (${needsCorrectionPaginator.total})`} active={activeTab === 'needs_correction'} onClick={() => setActiveTab('needs_correction')} />
                         <TabButton label={`Rejected (${rejectedPaginator.total})`} active={activeTab === 'rejected'} onClick={() => setActiveTab('rejected')} />
                     </div>
@@ -991,6 +997,24 @@ export default function Residents({
                 )}
                 {activeTab === 'households' && (
                     <HouseholdsTable paginator={householdPaginator} onNavigate={navigateResidents} />
+                )}
+
+                {activeTab === 'pending' && (
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4">
+                        <div className="text-sm text-gray-700" role="status">
+                            {livePending.refreshing ? 'Checking for new applications…' : livePending.updatedAt ? `Last updated ${new Date(livePending.updatedAt).toLocaleTimeString()}. Checks every 5 seconds.` : 'Checking for new applications…'}
+                            {livePending.error && <p role="alert" className="mt-1 text-red-700">{livePending.error}</p>}
+                            {(selectedPurokId !== null || registrationSearch.trim() !== '') && <p className="mt-1">Filters are active: showing {pendingPaginator.total} of {livePending.total ?? stats.pendingRegistrations} pending applications in your barangay.</p>}
+                        </div>
+                        <div className="flex gap-3">
+                            {(selectedPurokId !== null || registrationSearch.trim() !== '' || pendingPaginator.current_page > 1) && <button type="button" className="text-sm font-semibold text-[#315b30] underline" onClick={() => {
+                                setRegistrationSearch('');
+                                lastQueriedRegistration.current = '';
+                                navigateResidentsWith({ purok: undefined, registration_search: undefined, pending_page: 1 });
+                            }}>View all pending accounts</button>}
+                            <button type="button" disabled={livePending.refreshing} onClick={() => void livePending.refresh()} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold disabled:opacity-50">Refresh</button>
+                        </div>
+                    </div>
                 )}
 
                 {activeTab === 'pending' && (

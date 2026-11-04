@@ -45,6 +45,29 @@ class ResidentRegistrationController extends Controller
         'inactive',
     ];
 
+    public function pendingAccounts(Request $request): JsonResponse
+    {
+        $barangayId = (int) $request->user()->barangay_id;
+        $puroks = Purok::query()->where('barangay_id', $barangayId)
+            ->get(['id', 'name'])->keyBy('id');
+        $purokId = $this->resolvePurokFilter($request, $puroks->keys()->map(fn ($id) => (int) $id)->all());
+        $search = trim((string) $request->query('registration_search', ''));
+        $totalPending = ResidentRegistration::query()->where('barangay_id', $barangayId)
+            ->where('status', 'pending')->count();
+        $total = $this->registrationQuery($barangayId, $purokId, $search)->where('status', 'pending')->count();
+        $page = max(1, min((int) $request->query('pending_page', 1), max(1, (int) ceil($total / 15))));
+        $request->query->set('pending_page', $page);
+        $pending = $this->registrationList($barangayId, $purokId, $search, 'pending', 'pending_page', $total, $puroks);
+        // Links must navigate the admin page, not this JSON endpoint.
+        $pending->withPath(route('admin.residents'));
+
+        return response()->json([
+            'pendingRegistrations' => $pending,
+            'totalPending' => $totalPending,
+            'updatedAt' => now()->toIso8601String(),
+        ])->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
     public function index(Request $request): Response
     {
         $user = $request->user();

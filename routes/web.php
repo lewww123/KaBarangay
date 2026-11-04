@@ -653,6 +653,7 @@ Route::middleware('auth')->group(function () {
 
         // Resident Registrations
         Route::get('/residents', [ResidentRegistrationController::class, 'index'])->name('residents');
+        Route::get('/resident-registrations/pending', [ResidentRegistrationController::class, 'pendingAccounts'])->name('residents.registrations.pending');
         Route::get('/residents/{resident}/details', [ResidentRegistrationController::class, 'showResidentDetails'])->name('residents.details');
         Route::get('/resident-registrations/{registration}/details', [ResidentRegistrationController::class, 'showRegistrationDetails'])->name('residents.registrations.details');
         Route::get('/resident-registrations/{registration}/candidates', [ResidentRegistrationController::class, 'matchingCandidates'])->name('residents.registrations.candidates');
