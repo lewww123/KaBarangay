@@ -101,7 +101,7 @@ class CertificateTemplates
     /** The Clerk's reviewed PDF layouts do not require a Word template. */
     public static function isPdfAvailable(string $type): bool
     {
-        return in_array($type, [...self::types(), 'Business Clearance', 'Barangay Clearance', 'Retail', 'Hardware Store', 'Pool / Resort'], true);
+        return in_array($type, [...self::types(), 'Business Clearance', 'Barangay Certification', 'Barangay Clearance', 'Retail', 'Hardware Store', 'Pool / Resort'], true);
     }
 
     /**

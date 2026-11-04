@@ -20,6 +20,7 @@ class CertificateRequestDetails
     /** @var array<string, string> */
     private const TYPE_BY_CODE = [
         'business-clearance' => 'Business Clearance',
+        'barangay-certification' => 'Barangay Certification',
         'residency' => 'Residency',
         'indigency' => 'Indigency',
         'delayed-psa-registration' => 'Delayed PSA Registration',
@@ -36,6 +37,7 @@ class CertificateRequestDetails
     /** @var array<string, string> */
     private const TYPE_BY_NAME = [
         'business clearance' => 'Business Clearance',
+        'barangay certification' => 'Barangay Certification',
         'certificate of residency' => 'Residency',
         'certificate of indigency' => 'Indigency',
         'delayed psa' => 'Delayed PSA Registration',
@@ -110,7 +112,7 @@ class CertificateRequestDetails
     public static function fieldsForType(?string $type): array
     {
         return match ($type) {
-            'Residency' => [
+            'Barangay Certification', 'Residency' => [
                 self::numberField('years_of_residency', 'Years of Residency', 0, 120, true),
             ],
             'Delayed PSA Registration' => [

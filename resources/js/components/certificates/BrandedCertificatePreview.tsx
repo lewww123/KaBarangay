@@ -60,8 +60,8 @@ export default function BrandedCertificatePreview({
         return () => {
             active = false;
         };
-    }, [body, hasLiveContent, onReady]);
-    if (certificateType === 'Business Clearance')
+    }, [body, certificateType, hasLiveContent, onReady]);
+    if (['Business Clearance', 'Barangay Certification'].includes(certificateType || ''))
         return (
             <div className="certificate-preview-frame">
                 <style>

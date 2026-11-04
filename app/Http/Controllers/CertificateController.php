@@ -49,6 +49,12 @@ class CertificateController extends Controller
         return response()->file(resource_path('certificates/sicsican/business-clearance.jpg'), ['Cache-Control' => 'private, no-store']);
     }
 
+    public function sicsicanCertificationArtwork(Request $request)
+    {
+        abort_unless(CertificateTenantAccess::allows($request->user()->barangay_id, 'Barangay Certification'), 403);
+        return response()->file(resource_path('certificates/sicsican/barangay-certification.jpg'), ['Cache-Control' => 'private, no-store']);
+    }
+
     public function nextControlNumber(Request $request)
     {
         $type = $request->validate(['certificate_type' => ['required', 'string', 'max:100']])['certificate_type'];
@@ -98,6 +104,10 @@ class CertificateController extends Controller
         }
         if ($preview) {
             unset($rules['details_confirmed']);
+        }
+        if ($submittedType === 'Barangay Certification') {
+            $rules['years_of_residency'] = ['required', 'integer', 'min:0', 'max:120'];
+            $rules['purok'] = ['required', 'string', 'max:255'];
         }
         if ($submittedType === 'Business Clearance') {
             $rules['business_name'] = ['required', 'string', 'max:255'];

@@ -2439,6 +2439,22 @@ function Dashboard({
     );
 
     const renderDocumentPreview = () => {
+        if (data.certificate_type === 'Barangay Certification') {
+            const issueDate = new Date();
+            const validDate = !Number.isNaN(issueDate.getTime());
+            return <>
+                <img src="/clerk/certificates/sicsican-certification-artwork" alt="Barangay Sicsican Certification" />
+                <div className="sicsican-value" style={{left:'39.1%',top:'34.8%',width:'30.3%',height:'1.65%',padding:0,fontSize:data.resident_name.length > 28 ? '9pt' : '12pt'}}>{data.resident_name.toUpperCase()}</div>
+                <div className="sicsican-value" style={{left:'9.1%',top:'36.7%',width:'28.1%',height:'1.6%',padding:0}}>{data.purok.replace(/^purok\s*/i, '')}</div>
+                <div className="sicsican-value" style={{left:'9.1%',top:'42%',width:'21.4%',height:'1.6%',padding:0}}>{data.years_of_residency}</div>
+                <div className="sicsican-value" style={{left:'24.8%',top:'47.3%',width:'38.1%',height:'1.6%',padding:0,fontSize:data.purpose.length > 42 ? '9pt' : '12pt'}}>{data.purpose}</div>
+                <div className="sicsican-value" style={{left:'25%',top:'52.7%',width:'18.4%',height:'1.6%',padding:0,background:'transparent'}}>{validDate ? issueDate.getDate() : ''}</div>
+                <div className="sicsican-value" style={{left:'50.4%',top:'52.7%',width:'24.9%',height:'1.6%',padding:0,background:'transparent'}}>{validDate ? issueDate.toLocaleDateString('en-US', {month:'long', year:'numeric'}) : ''}</div>
+                <div className="sicsican-value" style={{left:'55%',top:'65.9%',width:'29%',height:'2.1%',padding:0}}>{currentCaptain?.name.toUpperCase() || '___________________'}</div>
+                <div className="sicsican-value" style={{left:'12%',top:'76%',width:'24%',height:'1.5%',justifyContent:'flex-start',padding:'0 0 0 2.5mm',fontSize:'11pt',color:'#173650'}}>{data.control_no}</div>
+            </>;
+        }
+
         if (data.certificate_type === 'Business Clearance')
             return (
                 <>
@@ -2503,6 +2519,9 @@ function Dashboard({
                             height: '1.8%',
                             color: '#16944f',
                             fontSize: '11pt',
+                            justifyContent: 'flex-start',
+                            textAlign: 'left',
+                            paddingLeft: '3.8mm',
                         }}
                     >
                         {data.control_no}
@@ -4538,6 +4557,11 @@ function Dashboard({
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE &&
                                                                 renderResidencyFields()}
+                                                            {data.certificate_type === 'Barangay Certification' && (
+                                                                <label className="block text-sm font-semibold">Years of Residency
+                                                                    <input type="number" min="0" max="120" step="1" required value={data.years_of_residency} onChange={e => setData('years_of_residency', e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" />
+                                                                </label>
+                                                            )}
 
                                                             {data.certificate_type ===
                                                                 'Sari-sari Store' &&
@@ -5235,6 +5259,11 @@ function Dashboard({
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE &&
                                                                 renderResidencyFields()}
+                                                            {data.certificate_type === 'Barangay Certification' && (
+                                                                <label className="block text-sm font-semibold">Years of Residency
+                                                                    <input type="number" min="0" max="120" step="1" required value={data.years_of_residency} onChange={e => setData('years_of_residency', e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" />
+                                                                </label>
+                                                            )}
 
                                                             {data.certificate_type ===
                                                                 'Sari-sari Store' &&

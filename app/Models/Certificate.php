@@ -14,10 +14,10 @@ class Certificate extends Model
             $query->where(function ($q) {
                 $q->where(function ($q) {
                     $q->whereHas('barangay', fn ($b) => $b->whereIn('name', ['San Jose', 'Barangay San Jose']))
-                        ->where('code', '!=', 'business-clearance');
+                        ->whereNotIn('code', ['business-clearance', 'barangay-certification']);
                 })->orWhere(function ($q) {
                     $q->whereHas('barangay', fn ($b) => $b->whereIn('name', ['Sicsican', 'Barangay Sicsican']))
-                        ->where('code', 'business-clearance');
+                        ->whereIn('code', ['business-clearance', 'barangay-certification']);
                 })->orWhereDoesntHave('barangay', fn ($b) => $b->whereIn('name', [
                     'San Jose', 'Barangay San Jose', 'Sicsican', 'Barangay Sicsican',
                 ]));

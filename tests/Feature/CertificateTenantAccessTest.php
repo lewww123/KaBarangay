@@ -37,22 +37,26 @@ class CertificateTenantAccessTest extends TestCase
         $sanJose = $this->createBarangay('San Jose', 'SJ');
         $other = $this->createBarangay('Other', 'OTH');
         foreach ([$sicsican, $sanJose, $other] as $barangay) {
-            foreach (['business-clearance', 'residency'] as $code) {
+            foreach (['business-clearance', 'barangay-certification', 'residency'] as $code) {
                 Certificate::withoutGlobalScopes()->create(['barangay_id' => $barangay->id, 'code' => $code, 'name' => $code, 'fee' => 0, 'is_active' => true]);
             }
         }
-        $this->assertSame(['Business Clearance'], array_column(CertificateTemplates::options($sicsican->id), 'value'));
+        $this->assertSame(['Business Clearance', 'Barangay Certification'], array_column(CertificateTemplates::options($sicsican->id), 'value'));
         $this->assertFalse(CertificateTenantAccess::allows($sanJose->id, 'Business Clearance'));
         $this->assertFalse(CertificateTenantAccess::allows($sicsican->id, 'Residency'));
-        $this->assertSame(['business-clearance'], Certificate::where('barangay_id', $sicsican->id)->pluck('code')->all());
+        $this->assertSame(['business-clearance', 'barangay-certification'], Certificate::where('barangay_id', $sicsican->id)->pluck('code')->all());
         $this->assertSame(['residency'], Certificate::where('barangay_id', $sanJose->id)->pluck('code')->all());
-        $this->assertSame(2, Certificate::where('barangay_id', $other->id)->count());
+        $this->assertSame(3, Certificate::where('barangay_id', $other->id)->count());
         $this->assertNotEmpty(CertificateTemplates::options($other->id));
         $this->actingAs($this->createStaff($sanJose, 'clerk'));
         $this->get('/clerk/certificates/sicsican-artwork')->assertForbidden();
+        $this->get('/clerk/certificates/sicsican-certification-artwork')->assertForbidden();
+        $this->postJson('/clerk/generate-certificate', ['certificate_type' => 'Barangay Certification'])->assertForbidden();
         $this->postJson('/clerk/generate-certificate', ['certificate_type' => 'Business Clearance'])->assertForbidden();
         $this->actingAs($this->createStaff($sicsican, 'clerk'));
         $this->get('/clerk/certificates/sicsican-artwork')->assertOk();
+        $this->get('/clerk/certificates/sicsican-certification-artwork')->assertOk();
+        $this->postJson('/clerk/generate-certificate', ['certificate_type' => 'Barangay Certification', 'output_format' => 'pdf'])->assertUnprocessable()->assertJsonValidationErrors(['years_of_residency', 'purok', 'purpose']);
         $this->postJson('/clerk/generate-certificate', ['certificate_type' => 'Residency'])->assertForbidden();
     }
 }

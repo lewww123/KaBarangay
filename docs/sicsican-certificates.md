@@ -1,5 +1,17 @@
 # Sicsican Business Clearance
 
+## Barangay Certification
+
+The blue Barangay Certification artwork is also stored privately in
+`resources/certificates/sicsican/barangay-certification.jpg`. Its separate
+Sicsican-only catalog code is `barangay-certification`. Migration
+`2026_11_05_000001_add_sicsican_barangay_certification.php` adds the entry without
+overwriting existing configuration. Fresh catalogs are supported by the seeder.
+The form captures resident name, purok, years of residency (0–120), and purpose.
+The current issue date, published captain name, and per-type reference number
+are populated for preview and the saved PDF. The initial fee is 0 pending the
+barangay's actual rate. It requires no DOCX and does not use San Jose's layout.
+
 The initial Sicsican clearance uses the supplied JPEG as its page artwork; no
 DOCX is required. Preview, PDF download, and printing use the same filled page.
 Owner, business address, establishment name/type, issue date, reference, and
