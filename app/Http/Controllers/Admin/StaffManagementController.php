@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Resident;
 use App\Models\StaffAssignment;
+use App\Support\StaffDepartments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,22 +21,27 @@ class StaffManagementController extends Controller
         $barangayId = $request->user()->barangay_id;
 
         $assignments = StaffAssignment::query()
-            ->with(['resident:id,first_name,middle_name,last_name,suffix,resident_number', 'user:id,email'])
+            ->with(['resident:id,first_name,middle_name,last_name,suffix,resident_number', 'user:id,name,email'])
             ->where('barangay_id', $barangayId)
             ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('department', 'like', "%{$search}%")
-                        ->orWhere('position', 'like', "%{$search}%")
-                        ->orWhereHas('resident', function ($query) use ($search) {
-                            $query->where('first_name', 'like', "%{$search}%")
-                                ->orWhere('middle_name', 'like', "%{$search}%")
-                                ->orWhere('last_name', 'like', "%{$search}%")
-                                ->orWhere('resident_number', 'like', "%{$search}%");
-                        })
-                        ->orWhereHas('user', fn ($query) => $query->where('email', 'like', "%{$search}%"));
-                });
+                foreach (preg_split('/\s+/', mb_strtolower($search), -1, PREG_SPLIT_NO_EMPTY) as $word) {
+                    $departments = array_keys(array_filter(StaffDepartments::LABELS, fn ($label) => str_contains(mb_strtolower($label), $word)));
+                    $query->where(function ($query) use ($word, $departments) {
+                        $query->whereRaw('LOWER(department) LIKE ?', ["%{$word}%"])
+                            ->orWhereRaw('LOWER(position) LIKE ?', ["%{$word}%"])
+                            ->orWhereIn('department', $departments)
+                            ->orWhereHas('resident', function ($query) use ($word) {
+                                $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$word}%"])
+                                    ->orWhereRaw('LOWER(middle_name) LIKE ?', ["%{$word}%"])
+                                    ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$word}%"])
+                                    ->orWhereRaw('LOWER(resident_number) LIKE ?', ["%{$word}%"]);
+                            })
+                            ->orWhereHas('user', fn ($query) => $query->whereRaw('LOWER(email) LIKE ?', ["%{$word}%"]));
+                    });
+                }
             })
             ->latest()
+            ->orderByDesc('id')
             ->paginate(15)
             ->withQueryString()
             ->through(fn (StaffAssignment $assignment) => [
@@ -48,12 +54,16 @@ class StaffManagementController extends Controller
                 'user_email' => $assignment->user->email,
                 'department' => $assignment->department,
                 'position' => $assignment->position,
+                'department_label' => StaffDepartments::LABELS[$assignment->department] ?? $assignment->department,
                 'is_active' => $assignment->is_active,
             ]);
 
         return Inertia::render('Admin/Staff', [
             'assignments' => $assignments,
             'filters' => ['search' => $search],
+            'departments' => collect(StaffDepartments::LABELS)->map(fn ($label, $value) => [
+                'value' => $value, 'label' => $label, 'position' => StaffDepartments::POSITIONS[$value],
+            ])->values(),
         ]);
     }
 
@@ -61,7 +71,8 @@ class StaffManagementController extends Controller
     {
         $search = trim((string) $request->input('search', ''));
 
-        if ($search === '') {
+        $residentId = $request->validate(['resident_id' => ['nullable', 'integer', 'min:1']])['resident_id'] ?? null;
+        if ($search === '' && $residentId === null) {
             return response()->json(['residents' => []]);
         }
 
@@ -70,11 +81,16 @@ class StaffManagementController extends Controller
             ->where('status', 'active')
             ->whereHas('account', fn ($query) => $query->where('is_active', true))
             ->whereHas('user', fn ($query) => $query->where('barangay_id', $request->user()->barangay_id)->where('status', 'active'))
+            ->when($residentId !== null, fn ($query) => $query->whereKey($residentId))
             ->where(function ($query) use ($search) {
-                $query->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('middle_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhere('resident_number', 'like', "%{$search}%");
+                foreach (preg_split('/\s+/', mb_strtolower($search), -1, PREG_SPLIT_NO_EMPTY) as $word) {
+                    $query->where(function ($query) use ($word) {
+                        $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$word}%"])
+                            ->orWhereRaw('LOWER(middle_name) LIKE ?', ["%{$word}%"])
+                            ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$word}%"])
+                            ->orWhereRaw('LOWER(resident_number) LIKE ?', ["%{$word}%"]);
+                    });
+                }
             })
             ->orderBy('last_name')
             ->limit(10)
@@ -98,14 +114,16 @@ class StaffManagementController extends Controller
 
         $resident = $this->eligibleResident($request, $validated['resident_id']);
 
-        StaffAssignment::create([
+        $identity = [
             'user_id' => $resident->user->id,
             'resident_id' => $resident->id,
             'barangay_id' => $request->user()->barangay_id,
             'department' => $validated['department'],
             'position' => $validated['position'],
-            'is_active' => true,
-        ]);
+        ];
+        // Reassigning an existing position reactivates it instead of failing
+        // the database unique constraint or creating duplicate staff rows.
+        StaffAssignment::updateOrCreate($identity, ['is_active' => true]);
 
         return back()->with('success', 'Staff assignment created.');
     }
@@ -118,6 +136,13 @@ class StaffManagementController extends Controller
             'department' => ['required', 'string', 'max:50'],
             'position' => ['required', 'string', 'max:100'],
         ]);
+
+        if (StaffAssignment::query()->where('user_id', $staff_assignment->user_id)
+            ->where('resident_id', $staff_assignment->resident_id)->where('barangay_id', $staff_assignment->barangay_id)
+            ->where('department', $validated['department'])->where('position', $validated['position'])
+            ->whereKeyNot($staff_assignment->id)->exists()) {
+            throw ValidationException::withMessages(['position' => 'This staff member already has this position in the selected department.']);
+        }
 
         $staff_assignment->update($validated);
 

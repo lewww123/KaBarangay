@@ -7,6 +7,8 @@ interface Actor {
     id: number;
     name: string;
     department: string | null;
+    position?: string;
+    department_label?: string;
 }
 
 interface AuditLogEntry {
@@ -25,6 +27,7 @@ interface PaginatorLink {
 interface LoginAttemptEntry {
     id: number;
     actor_type: string;
+    actor_label?: string;
     channel: string;
     status: string;
     attempted_at: string | null;
@@ -531,7 +534,7 @@ function ActivityLogSection({
 
                                                 <td className="px-5 py-3 text-sm text-gray-700">
                                                     {log.actor ? (
-                                                        log.actor.name
+                                                        <div><span className="font-medium">{log.actor.name}</span>{log.actor.position && <p className="mt-1 text-xs text-gray-500">{log.actor.position}{log.actor.department_label ? ` · ${log.actor.department_label}` : ''}</p>}</div>
                                                     ) : (
                                                         <span className="text-gray-400">
                                                             System
@@ -641,7 +644,7 @@ function LoginAttemptsSection({
                                         className="border-b border-gray-100 last:border-0"
                                     >
                                         <td className="px-5 py-3 text-sm text-gray-700">
-                                            {formatLabel(attempt.actor_type)}
+                                            {attempt.actor_label || formatLabel(attempt.actor_type)}
                                         </td>
 
                                         <td className="px-5 py-3 text-sm text-gray-600">

@@ -15,6 +15,7 @@ class AdminStaffManagementTest extends TestCase
     use CreatesBarangayFixtures, RefreshDatabase;
 
     private Barangay $barangay;
+
     private Barangay $other;
 
     protected function setUp(): void
@@ -97,5 +98,58 @@ class AdminStaffManagementTest extends TestCase
         $this->actingAs($admin)->patch("/admin/staff/{$assignment->id}/deactivate")->assertRedirect();
 
         $this->assertDatabaseHas('staff_assignments', ['id' => $assignment->id, 'department' => 'Health', 'position' => 'Officer', 'is_active' => false]);
+    }
+
+    public function test_staff_listing_includes_position_department_and_navigation_for_all_assignments(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        foreach (range(1, 16) as $number) {
+            StaffAssignment::create(['user_id' => $admin->id, 'resident_id' => $admin->resident_id,
+                'barangay_id' => $this->barangay->id, 'department' => 'clerk', 'position' => 'Barangay Clerk '.$number]);
+        }
+        $this->createStaff($this->other, 'clerk');
+        $this->actingAs($admin)->get('/admin/staff')->assertOk()->assertInertia(fn ($page) => $page
+            ->where('assignments.total', 17)->has('assignments.data', 15)
+            ->has('assignments.data.0.position')->where('assignments.data.0.department_label', 'Records and Certificates')
+            ->where('departments.1.value', 'clerk'));
+        $this->get('/admin/staff?page=2')->assertOk()->assertInertia(fn ($page) => $page->has('assignments.data', 2));
+    }
+
+    public function test_full_name_autocomplete_and_scanned_resident_selection_are_scoped(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $resident = $this->createResident($this->barangay, $this->createPurok($this->barangay), ['first_name' => 'Maria', 'last_name' => 'Santos']);
+        User::factory()->create(['barangay_id' => $this->barangay->id, 'resident_id' => $resident->id]);
+        $foreign = $this->createStaff($this->other, 'clerk');
+        $this->actingAs($admin)->getJson('/admin/staff/residents?search=maria%20santos')
+            ->assertOk()->assertJsonCount(1, 'residents')->assertJsonPath('residents.0.id', $resident->id);
+        $this->getJson('/admin/staff/residents?resident_id='.$resident->id)
+            ->assertOk()->assertJsonPath('residents.0.id', $resident->id);
+        $this->getJson('/admin/staff/residents?resident_id='.$foreign->resident_id)
+            ->assertOk()->assertJsonCount(0, 'residents');
+    }
+
+    public function test_duplicate_assignment_reuses_and_reactivates_the_existing_record(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $payload = ['resident_id' => $admin->resident_id, 'department' => 'clerk', 'position' => 'Barangay Clerk'];
+        $this->actingAs($admin)->post('/admin/staff', $payload)->assertSessionHasNoErrors();
+        $assignment = StaffAssignment::where('department', 'clerk')->firstOrFail();
+        $assignment->update(['is_active' => false]);
+        $this->post('/admin/staff', $payload)->assertSessionHasNoErrors();
+        $this->post('/admin/staff', $payload)->assertSessionHasNoErrors();
+        $this->assertSame(1, StaffAssignment::where('department', 'clerk')->count());
+        $this->assertTrue($assignment->fresh()->is_active);
+    }
+
+    public function test_editing_to_an_existing_assignment_returns_a_validation_error(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $assignment = StaffAssignment::create(['user_id' => $admin->id, 'resident_id' => $admin->resident_id,
+            'barangay_id' => $this->barangay->id, 'department' => 'clerk', 'position' => 'Barangay Clerk']);
+        $this->actingAs($admin)->from('/admin/staff')->put('/admin/staff/'.$assignment->id, [
+            'department' => 'admin', 'position' => $admin->staffAssignments()->where('department', 'admin')->firstOrFail()->position,
+        ])->assertSessionHasErrors('position');
+        $this->assertSame('clerk', $assignment->fresh()->department);
     }
 }

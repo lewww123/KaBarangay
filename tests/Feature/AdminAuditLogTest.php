@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\Barangay;
+use App\Models\LoginAttempt;
+use App\Models\StaffAssignment;
 use App\Support\AuditLogger;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,6 +41,24 @@ class AdminAuditLogTest extends TestCase
             'barangay_id' => $barangay?->id,
             'event' => 'login.success',
         ], $attributes));
+    }
+
+    public function test_actor_position_is_specific_and_foreign_assignments_are_not_exposed(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $clerk->staffAssignments()->update(['position' => 'Barangay Clerk']);
+        StaffAssignment::create(['user_id' => $clerk->id, 'resident_id' => $clerk->resident_id,
+            'barangay_id' => $this->other->id, 'department' => 'lupon', 'position' => 'Foreign position']);
+        $this->insertLog($this->barangay, ['actor_id' => $clerk->id]);
+        LoginAttempt::create(['barangay_id' => $this->barangay->id, 'user_id' => $clerk->id,
+            'actor_type' => 'staff', 'channel' => 'staff', 'status' => 'success', 'attempted_at' => now()]);
+        $this->actingAs($admin)->get('/admin/audit-log')->assertOk()->assertInertia(fn ($page) => $page
+            ->where('logs.data.0.actor.position', 'Barangay Clerk')
+            ->where('logs.data.0.actor.department_label', 'Records and Certificates')
+            ->where('loginAttempts.data.0.actor_label', 'Barangay Clerk')
+            ->missing('loginAttempts.data.0.user')
+            ->missing('logs.data.0.actor.email'));
     }
 
     /*
