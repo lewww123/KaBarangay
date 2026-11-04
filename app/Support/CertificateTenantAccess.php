@@ -19,6 +19,17 @@ final class CertificateTenantAccess
 
     public static function allows(?int $barangayId, string $type): bool
     {
-        return in_array($type, self::types($barangayId), true);
+        $barangay = Barangay::find($barangayId);
+        if (! $barangay) {
+            return false;
+        }
+
+        $name = strtolower(trim($barangay->name));
+        if (in_array($name, ['sicsican', 'barangay sicsican'], true)) {
+            return $type === 'Business Clearance';
+        }
+
+        // Preserve existing validation and reviewed-PDF types for other tenants.
+        return $type !== 'Business Clearance';
     }
 }

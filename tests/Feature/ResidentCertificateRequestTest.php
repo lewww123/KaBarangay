@@ -196,7 +196,7 @@ class ResidentCertificateRequestTest extends TestCase
         $this->assertTrue($certificates[(string) $sariSari->id]['available']);
         $this->assertTrue($certificates[(string) $sariSari->id]['templateAvailable']);
         $this->assertTrue($certificates[(string) $clearance->id]['available']);
-        $this->assertFalse($certificates[(string) $clearance->id]['templateAvailable']);
+        $this->assertTrue($certificates[(string) $clearance->id]['templateAvailable']);
         $this->assertTrue($certificates[(string) $this->certificate->id]['available']);
         $this->assertSame(
             'Certificate of Indigency',

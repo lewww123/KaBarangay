@@ -70,7 +70,9 @@ class HandleInertiaRequests extends Middleware
             ],
             // Certificate types and whether an approved template is available.
             // Drives the "Coming Soon" state in the clerk certificate form.
-            'certificateTypes' => fn () => CertificateTemplates::options($request->user()?->barangay_id),
+            'certificateTypes' => fn () => $request->is('clerk/certificates')
+                ? CertificateTemplates::options($request->user()?->barangay_id)
+                : [],
         ];
     }
 }
