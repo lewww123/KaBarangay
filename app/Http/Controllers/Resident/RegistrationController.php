@@ -99,8 +99,10 @@ class RegistrationController extends Controller
         return Inertia::render('Resident/Register', [
             'emailVerificationRequired' => (bool) config('registration.email_verification_required', false),
             'emailVerification' => fn () => $otp->state($request),
-            'barangays' => $this->deferProp(fn () => $this->rememberReference('registration:barangay-purok-options:v2', 300, fn () => $loadBarangays()->toArray())),
-            'sectors' => $this->deferProp(fn () => $this->rememberReference('registration:sector-options', 300, fn () => $sectors()->toArray())),
+            // Include these cached options on validation redirects as well.
+            // Deferring them remounts the browser wizard and discards its files.
+            'barangays' => fn () => $this->rememberReference('registration:barangay-purok-options:v2', 300, fn () => $loadBarangays()->toArray()),
+            'sectors' => fn () => $this->rememberReference('registration:sector-options', 300, fn () => $sectors()->toArray()),
         ]);
     }
 

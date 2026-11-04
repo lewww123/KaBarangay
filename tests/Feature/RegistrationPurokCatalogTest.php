@@ -1,4 +1,5 @@
 <?php
+
 namespace Tests\Feature;
 
 use App\Http\Middleware\HandleInertiaRequests;
@@ -11,6 +12,22 @@ use Tests\TestCase;
 class RegistrationPurokCatalogTest extends TestCase
 {
     use CreatesBarangayFixtures;
+
+    public function test_registration_options_are_not_deferred_on_initial_load_or_validation_redirect(): void
+    {
+        $this->artisan('migrate:fresh');
+        $this->withoutVite();
+        config(['inertia.defer_heavy_props' => true]);
+        $barangay = $this->createBarangay('San Jose', 'WIZARD-STABLE');
+        $purok = $this->createPurok($barangay);
+        $this->get('/resident/register')->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('barangays.0.id', $barangay->id)->where('barangays.0.puroks.0.id', $purok->id)
+            ->has('sectors'));
+        $this->from('/resident/register')->post('/resident/register', [])->assertSessionHasErrors('first_name');
+        $this->get('/resident/register')->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('barangays.0.id', $barangay->id)->has('sectors'));
+        $this->assertDatabaseCount('resident_registrations', 0);
+    }
 
     public function test_puroks_remain_arrays_after_cache_serialization_and_on_other_browser_requests(): void
     {

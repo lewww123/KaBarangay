@@ -1,5 +1,4 @@
-import { Deferred, Head, Link, useForm } from '@inertiajs/react';
-import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import { Head, Link, useForm } from '@inertiajs/react';
 import LegalLinks from '@/components/LegalLinks';
 import EmailVerificationSection from '@/components/registration/EmailVerificationSection';
 import useRegistrationEmailOtp, { type RegistrationEmailVerification, type RegistrationEmailOtpControls } from '@/hooks/useRegistrationEmailOtp';
@@ -59,14 +58,9 @@ const STEP_TITLES = [
 ];
 
 export default function Register(props: Props) {
-    return (
-        <Deferred
-            data={['barangays', 'sectors']}
-            fallback={<main className="mx-auto max-w-3xl p-6"><Head title="Resident Registration" /><PortalPageSkeleton list rows={3} /></main>}
-        >
-            <RegistrationContent {...props} />
-        </Deferred>
-    );
+    // The wizard must stay mounted across failed submissions. A Deferred
+    // fallback unmounts it when a validation redirect omits reference data.
+    return <RegistrationContent {...props} />;
 }
 
 function RegistrationContent({ barangays, sectors, emailVerification, emailVerificationRequired = false }: Props) {
@@ -397,6 +391,7 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
 
         post('/resident/register', {
             forceFormData: true,
+            preserveState: true,
             preserveScroll: true,
             onError: (serverErrors) => {
                 if ('email_verification' in serverErrors) {
@@ -556,9 +551,11 @@ function RegistrationContent({ barangays, sectors, emailVerification, emailVerif
                             </div>
                         )}
 
-                        {(errors as Record<string, string>).registration && (
+                        {Object.keys(errors).length > 0 && (
                             <div role="alert" aria-live="polite" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                                {(errors as Record<string, string>).registration}
+                                <p className="font-semibold">Your application has not been submitted yet.</p>
+                                <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(errors).map(([field, message]) => <li key={field}>{message}</li>)}</ul>
+                                <p className="mt-2">Your information and selected documents are still in this form. Correct the issue below and submit again.</p>
                             </div>
                         )}
 
