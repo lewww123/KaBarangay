@@ -999,10 +999,9 @@ export default function Residents({
                     <HouseholdsTable paginator={householdPaginator} onNavigate={navigateResidents} />
                 )}
 
-                {activeTab === 'pending' && (
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4">
-                        <div className="text-sm text-gray-700" role="status">
-                            {livePending.refreshing ? 'Checking for new applications…' : livePending.updatedAt ? `Last updated ${new Date(livePending.updatedAt).toLocaleTimeString()}. Checks every 5 seconds.` : 'Checking for new applications…'}
+                {activeTab === 'pending' && (livePending.error || selectedPurokId !== null || registrationSearch.trim() !== '' || pendingPaginator.current_page > 1) && (
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-700">
+                        <div>
                             {livePending.error && <p role="alert" className="mt-1 text-red-700">{livePending.error}</p>}
                             {(selectedPurokId !== null || registrationSearch.trim() !== '') && <p className="mt-1">Filters are active: showing {pendingPaginator.total} of {livePending.total ?? stats.pendingRegistrations} pending applications in your barangay.</p>}
                         </div>
@@ -1012,7 +1011,6 @@ export default function Residents({
                                 lastQueriedRegistration.current = '';
                                 navigateResidentsWith({ purok: undefined, registration_search: undefined, pending_page: 1 });
                             }}>View all pending accounts</button>}
-                            <button type="button" disabled={livePending.refreshing} onClick={() => void livePending.refresh()} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold disabled:opacity-50">Refresh</button>
                         </div>
                     </div>
                 )}
