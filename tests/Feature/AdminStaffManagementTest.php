@@ -129,17 +129,21 @@ class AdminStaffManagementTest extends TestCase
             ->assertOk()->assertJsonCount(0, 'residents');
     }
 
-    public function test_duplicate_assignment_reuses_and_reactivates_the_existing_record(): void
+    public function test_duplicate_role_is_rejected_even_with_a_different_position_or_inactive_assignment(): void
     {
         $admin = $this->createStaff($this->barangay, 'admin');
         $payload = ['resident_id' => $admin->resident_id, 'department' => 'clerk', 'position' => 'Barangay Clerk'];
         $this->actingAs($admin)->post('/admin/staff', $payload)->assertSessionHasNoErrors();
         $assignment = StaffAssignment::where('department', 'clerk')->firstOrFail();
+        $this->post('/admin/staff', $payload)->assertSessionHasErrors('department');
+        $this->post('/admin/staff', [...$payload, 'department' => ' CLERK ', 'position' => 'Records Officer'])
+            ->assertSessionHasErrors('department');
         $assignment->update(['is_active' => false]);
-        $this->post('/admin/staff', $payload)->assertSessionHasNoErrors();
-        $this->post('/admin/staff', $payload)->assertSessionHasNoErrors();
+        $this->post('/admin/staff', $payload)->assertSessionHasErrors('department');
         $this->assertSame(1, StaffAssignment::where('department', 'clerk')->count());
-        $this->assertTrue($assignment->fresh()->is_active);
+        $this->assertFalse($assignment->fresh()->is_active);
+        $this->post('/admin/staff', [...$payload, 'department' => 'lupon', 'position' => 'Lupon Officer'])
+            ->assertSessionHasNoErrors();
     }
 
     public function test_editing_to_an_existing_assignment_returns_a_validation_error(): void
@@ -149,7 +153,7 @@ class AdminStaffManagementTest extends TestCase
             'barangay_id' => $this->barangay->id, 'department' => 'clerk', 'position' => 'Barangay Clerk']);
         $this->actingAs($admin)->from('/admin/staff')->put('/admin/staff/'.$assignment->id, [
             'department' => 'admin', 'position' => $admin->staffAssignments()->where('department', 'admin')->firstOrFail()->position,
-        ])->assertSessionHasErrors('position');
+        ])->assertSessionHasErrors('department');
         $this->assertSame('clerk', $assignment->fresh()->department);
     }
 }

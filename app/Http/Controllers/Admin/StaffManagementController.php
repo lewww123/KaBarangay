@@ -9,6 +9,7 @@ use App\Support\StaffDepartments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -112,18 +113,18 @@ class StaffManagementController extends Controller
             'position' => ['required', 'string', 'max:100'],
         ]);
 
-        $resident = $this->eligibleResident($request, $validated['resident_id']);
-
-        $identity = [
-            'user_id' => $resident->user->id,
-            'resident_id' => $resident->id,
-            'barangay_id' => $request->user()->barangay_id,
-            'department' => $validated['department'],
-            'position' => $validated['position'],
-        ];
-        // Reassigning an existing position reactivates it instead of failing
-        // the database unique constraint or creating duplicate staff rows.
-        StaffAssignment::updateOrCreate($identity, ['is_active' => true]);
+        DB::transaction(function () use ($request, $validated): void {
+            $resident = $this->eligibleResident($request, $validated['resident_id']);
+            $this->ensureRoleAvailable($resident->id, (int) $request->user()->barangay_id, $validated['department']);
+            StaffAssignment::create([
+                'user_id' => $resident->user->id,
+                'resident_id' => $resident->id,
+                'barangay_id' => $request->user()->barangay_id,
+                'department' => trim($validated['department']),
+                'position' => trim($validated['position']),
+                'is_active' => true,
+            ]);
+        });
 
         return back()->with('success', 'Staff assignment created.');
     }
@@ -137,14 +138,14 @@ class StaffManagementController extends Controller
             'position' => ['required', 'string', 'max:100'],
         ]);
 
-        if (StaffAssignment::query()->where('user_id', $staff_assignment->user_id)
-            ->where('resident_id', $staff_assignment->resident_id)->where('barangay_id', $staff_assignment->barangay_id)
-            ->where('department', $validated['department'])->where('position', $validated['position'])
-            ->whereKeyNot($staff_assignment->id)->exists()) {
-            throw ValidationException::withMessages(['position' => 'This staff member already has this position in the selected department.']);
-        }
-
-        $staff_assignment->update($validated);
+        DB::transaction(function () use ($staff_assignment, $validated): void {
+            Resident::query()->whereKey($staff_assignment->resident_id)->lockForUpdate()->firstOrFail();
+            $this->ensureRoleAvailable($staff_assignment->resident_id, $staff_assignment->barangay_id, $validated['department'], $staff_assignment->id);
+            $staff_assignment->update([
+                'department' => trim($validated['department']),
+                'position' => trim($validated['position']),
+            ]);
+        });
 
         return back()->with('success', 'Staff assignment updated.');
     }
@@ -164,6 +165,7 @@ class StaffManagementController extends Controller
             ->where('id', $residentId)
             ->where('barangay_id', $request->user()->barangay_id)
             ->where('status', 'active')
+            ->lockForUpdate()
             ->first();
 
         if (! $resident || ! $resident->account?->is_active || ! $resident->user || $resident->user->status !== 'active' || (int) $resident->user->barangay_id !== (int) $request->user()->barangay_id) {
@@ -173,6 +175,22 @@ class StaffManagementController extends Controller
         }
 
         return $resident;
+    }
+
+    private function ensureRoleAvailable(int $residentId, int $barangayId, string $department, ?int $exceptId = null): void
+    {
+        // Department is the login role. Renaming the position must not allow
+        // a second assignment to that same role, including inactive records.
+        $exists = StaffAssignment::query()->where('resident_id', $residentId)
+            ->where('barangay_id', $barangayId)
+            ->whereRaw('LOWER(TRIM(department)) = ?', [mb_strtolower(trim($department))])
+            ->when($exceptId !== null, fn ($query) => $query->whereKeyNot($exceptId))
+            ->exists();
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'department' => 'This resident is already assigned to this role. Edit the existing staff assignment instead.',
+            ]);
+        }
     }
 
     private function authorizeAssignment(Request $request, StaffAssignment $assignment): void
