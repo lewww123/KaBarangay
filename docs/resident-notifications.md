@@ -17,7 +17,7 @@ creating duplicate inbox records or dispatching extra email jobs.
 
 ## Enable on deployment
 
-1. Run `php artisan migrate` before deploying the updated application.
+1. Back up the production database before deployment. The production Docker startup runs `php artisan migrate --force` before starting the web server and worker. On other hosts, run that command before serving this release. Never use `migrate:fresh`, `migrate:reset`, `db:wipe`, or production seeders. The new migrations add an inbox table and insert a missing catalog row while preserving existing fees and settings.
 2. Configure a working mail transport and sender. The `log` mailer does not
    deliver email. Email updates go only to approved residents with a verified
    email address.

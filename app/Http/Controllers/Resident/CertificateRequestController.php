@@ -9,6 +9,7 @@ use App\Models\Resident;
 use App\Support\AuditLogger;
 use App\Support\CertificateRequestDetails;
 use App\Support\CertificateTemplates;
+use App\Support\CertificateTenantAccess;
 use App\Support\DelayedPsaCertificate;
 use App\Support\ResidentContext;
 use Illuminate\Http\RedirectResponse;
@@ -74,28 +75,29 @@ class CertificateRequestController extends Controller
                     ->where('is_active', true)
                     ->orderBy('name')
                     ->get()
-                    ->map(function (Certificate $certificate) {
-                            $type = CertificateRequestDetails::typeForCertificate($certificate);
+                    ->map(function (Certificate $certificate) use ($resident) {
+                        $type = CertificateRequestDetails::typeForCertificate($certificate);
 
-                            return [
-                                'id' => (string) $certificate->id,
-                                'name' => $certificate->name,
-                                'fee' => (float) $certificate->fee,
-                                'description' => $certificate->description ?? '',
-                                'requirements' => $certificate->requirements ?? [],
-                                'requiresBusinessDetails' => CertificateRequestDetails::requiresBusinessDetails(
-                                    $type,
-                                    (bool) $certificate->requires_business_details,
-                                ),
-                                'certificateType' => $type,
-                                'fixedPurpose' => CertificateRequestDetails::fixedPurpose($type),
-                                'detailsFields' => CertificateRequestDetails::fieldsForCertificate($certificate),
-                                // Active barangay catalog entries are requestable even
-                                // when the Clerk has no generation template for them.
-                                'available' => true,
-                                'templateAvailable' => $type !== null
-                                    && CertificateTemplates::isPdfAvailable($type),
-                            ];
+                        return [
+                            'id' => (string) $certificate->id,
+                            'name' => $certificate->name,
+                            'fee' => (float) $certificate->fee,
+                            'description' => $certificate->description ?? '',
+                            'requirements' => $certificate->requirements ?? [],
+                            'requiresBusinessDetails' => CertificateRequestDetails::requiresBusinessDetails(
+                                $type,
+                                (bool) $certificate->requires_business_details,
+                            ),
+                            'certificateType' => $type,
+                            'fixedPurpose' => CertificateRequestDetails::fixedPurpose($type),
+                            'detailsFields' => CertificateRequestDetails::fieldsForCertificate($certificate),
+                            // Active barangay catalog entries are requestable even
+                            // when the Clerk has no generation template for them.
+                            'available' => true,
+                            'templateAvailable' => $type !== null
+                                && CertificateTenantAccess::allows($resident->barangay_id, $type)
+                                && CertificateTemplates::isPdfAvailable($type),
+                        ];
                     })
                     ->values()
                     ->all()),

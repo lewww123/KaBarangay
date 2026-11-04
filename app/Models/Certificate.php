@@ -18,7 +18,9 @@ class Certificate extends Model
                 })->orWhere(function ($q) {
                     $q->whereHas('barangay', fn ($b) => $b->whereIn('name', ['Sicsican', 'Barangay Sicsican']))
                         ->where('code', 'business-clearance');
-                });
+                })->orWhereDoesntHave('barangay', fn ($b) => $b->whereIn('name', [
+                    'San Jose', 'Barangay San Jose', 'Sicsican', 'Barangay Sicsican',
+                ]));
             });
         });
     }

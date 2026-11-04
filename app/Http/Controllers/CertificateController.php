@@ -8,13 +8,14 @@ use App\Models\CertificateRequest;
 use App\Models\OrgChartPosition;
 use App\Models\Resident;
 use App\Support\AuditLogger;
+use App\Support\CertificateControlNumbers;
 use App\Support\CertificateOfficialDocument;
 use App\Support\CertificateOfficials;
-use App\Support\CertificateControlNumbers;
 use App\Support\CertificatePlaceholders;
 use App\Support\CertificateRequestDetails;
 use App\Support\CertificateRequestWorkflow;
 use App\Support\CertificateTemplates;
+use App\Support\CertificateTenantAccess;
 use App\Support\DelayedPsaCertificate;
 use App\Support\DynamicDocumentEngine;
 use App\Support\MarriageCohabitationCertificate;
@@ -43,7 +44,8 @@ class CertificateController extends Controller
 
     public function sicsicanArtwork(Request $request)
     {
-        abort_unless(\App\Support\CertificateTenantAccess::allows($request->user()->barangay_id, 'Business Clearance'), 403);
+        abort_unless(CertificateTenantAccess::allows($request->user()->barangay_id, 'Business Clearance'), 403);
+
         return response()->file(resource_path('certificates/sicsican/business-clearance.jpg'), ['Cache-Control' => 'private, no-store']);
     }
 
@@ -52,8 +54,9 @@ class CertificateController extends Controller
         $type = $request->validate(['certificate_type' => ['required', 'string', 'max:100']])['certificate_type'];
         $type = CertificateRequestDetails::typeForCertificate(new Certificate(['name' => trim($type), 'code' => trim($type)])) ?? $type;
         abort_unless($request->user()->barangay_id !== null, 403);
-        abort_unless(\App\Support\CertificateTenantAccess::allows($request->user()->barangay_id, $type), 403);
+        abort_unless(CertificateTenantAccess::allows($request->user()->barangay_id, $type), 403);
         abort_unless(CertificateTemplates::isPdfAvailable($type), 422);
+
         return response()->json(['control_no' => CertificateControlNumbers::next($request->user()->barangay_id, $type)])
             ->header('Cache-Control', 'private, no-store');
     }
@@ -82,7 +85,7 @@ class CertificateController extends Controller
             $request->merge(['certificate_type' => $canonicalType]);
         }
 
-        abort_unless(\App\Support\CertificateTenantAccess::allows($request->user()->barangay_id, $submittedType), 403);
+        abort_unless(CertificateTenantAccess::allows($request->user()->barangay_id, $submittedType), 403);
         $pdfOutput = $request->input('output_format') === 'pdf';
         $rules = $this->rulesFor($submittedType);
         if ($pdfOutput) {
@@ -143,83 +146,83 @@ class CertificateController extends Controller
         $templatePath = CertificateTemplates::path($certType);
 
         if (! $pdfOutput) {
-        if (! is_file($templatePath)) {
-            return $this->renderFailure(
-                $preview,
-                'certificate_type',
-                'This certificate template is not available yet. Please choose another certificate type.',
-            );
-        }
-
-        // The Delayed PSA template has a fixed merge-field contract. A
-        // mis-provisioned template would silently leave unresolved
-        // `${...}` placeholders in the issued document, so it is rejected
-        // before anything is rendered.
-        if (DelayedPsaCertificate::isType($certType)) {
-            try {
-                DelayedPsaCertificate::assertTemplateContract($templatePath);
-            } catch (Throwable $exception) {
-                report($exception);
-
+            if (! is_file($templatePath)) {
                 return $this->renderFailure(
                     $preview,
                     'certificate_type',
-                    'The Delayed PSA Registration template is not correctly provisioned. Please contact the administrator.',
+                    'This certificate template is not available yet. Please choose another certificate type.',
                 );
             }
-        }
 
-        // The Marriage Cohabitation template has a fixed merge-field contract
-        // as well, so a mis-provisioned template is rejected before anything
-        // is rendered.
-        if (MarriageCohabitationCertificate::isType($certType)) {
-            try {
-                MarriageCohabitationCertificate::assertTemplateContract($templatePath);
-            } catch (Throwable $exception) {
-                report($exception);
+            // The Delayed PSA template has a fixed merge-field contract. A
+            // mis-provisioned template would silently leave unresolved
+            // `${...}` placeholders in the issued document, so it is rejected
+            // before anything is rendered.
+            if (DelayedPsaCertificate::isType($certType)) {
+                try {
+                    DelayedPsaCertificate::assertTemplateContract($templatePath);
+                } catch (Throwable $exception) {
+                    report($exception);
 
-                return $this->renderFailure(
-                    $preview,
-                    'certificate_type',
-                    'The Marriage Cohabitation template is not correctly provisioned. Please contact the administrator.',
-                );
+                    return $this->renderFailure(
+                        $preview,
+                        'certificate_type',
+                        'The Delayed PSA Registration template is not correctly provisioned. Please contact the administrator.',
+                    );
+                }
             }
-        }
 
-        // The Residency template has a fixed merge-field contract as well, so
-        // a mis-provisioned template is rejected before anything is rendered.
-        if (ResidencyCertificate::isType($certType)) {
-            try {
-                ResidencyCertificate::assertTemplateContract($templatePath);
-            } catch (Throwable $exception) {
-                report($exception);
+            // The Marriage Cohabitation template has a fixed merge-field contract
+            // as well, so a mis-provisioned template is rejected before anything
+            // is rendered.
+            if (MarriageCohabitationCertificate::isType($certType)) {
+                try {
+                    MarriageCohabitationCertificate::assertTemplateContract($templatePath);
+                } catch (Throwable $exception) {
+                    report($exception);
 
-                return $this->renderFailure(
-                    $preview,
-                    'certificate_type',
-                    'The Residency template is not correctly provisioned. Please contact the administrator.',
-                );
+                    return $this->renderFailure(
+                        $preview,
+                        'certificate_type',
+                        'The Marriage Cohabitation template is not correctly provisioned. Please contact the administrator.',
+                    );
+                }
             }
-        }
 
-        // The remaining templates use the generic renderer, so their approved
-        // merge-field contracts live in the template registry. Reject a
-        // mis-provisioned template before anything is rendered.
-        if (! DelayedPsaCertificate::isType($certType)
-            && ! MarriageCohabitationCertificate::isType($certType)
-            && ! ResidencyCertificate::isType($certType)) {
-            try {
-                CertificateTemplates::assertTemplateContract($certType, $templatePath);
-            } catch (Throwable $exception) {
-                report($exception);
+            // The Residency template has a fixed merge-field contract as well, so
+            // a mis-provisioned template is rejected before anything is rendered.
+            if (ResidencyCertificate::isType($certType)) {
+                try {
+                    ResidencyCertificate::assertTemplateContract($templatePath);
+                } catch (Throwable $exception) {
+                    report($exception);
 
-                return $this->renderFailure(
-                    $preview,
-                    'certificate_type',
-                    "The {$certType} template is not correctly provisioned. Please contact the administrator.",
-                );
+                    return $this->renderFailure(
+                        $preview,
+                        'certificate_type',
+                        'The Residency template is not correctly provisioned. Please contact the administrator.',
+                    );
+                }
             }
-        }
+
+            // The remaining templates use the generic renderer, so their approved
+            // merge-field contracts live in the template registry. Reject a
+            // mis-provisioned template before anything is rendered.
+            if (! DelayedPsaCertificate::isType($certType)
+                && ! MarriageCohabitationCertificate::isType($certType)
+                && ! ResidencyCertificate::isType($certType)) {
+                try {
+                    CertificateTemplates::assertTemplateContract($certType, $templatePath);
+                } catch (Throwable $exception) {
+                    report($exception);
+
+                    return $this->renderFailure(
+                        $preview,
+                        'certificate_type',
+                        "The {$certType} template is not correctly provisioned. Please contact the administrator.",
+                    );
+                }
+            }
 
         }
 
@@ -396,11 +399,11 @@ class CertificateController extends Controller
                     throw new \RuntimeException('The reviewed certificate could not be saved.');
                 }
             } else {
-            StagedDocument::write($outputPath, function ($stagingPath) use ($templatePath, $certType, $validated, $delayedPsaDetails, $marriageDetails, $residencyDetails, $officials, $purokSnapshot) {
-                $this->buildDocument($templatePath, $stagingPath, $certType, $validated, $delayedPsaDetails, $marriageDetails, $residencyDetails, $officials);
-                CertificateOfficialDocument::apply($stagingPath, $officials);
-                CertificatePlaceholders::fillDocx($stagingPath, mb_strtoupper($purokSnapshot ?? ''));
-            });
+                StagedDocument::write($outputPath, function ($stagingPath) use ($templatePath, $certType, $validated, $delayedPsaDetails, $marriageDetails, $residencyDetails, $officials, $purokSnapshot) {
+                    $this->buildDocument($templatePath, $stagingPath, $certType, $validated, $delayedPsaDetails, $marriageDetails, $residencyDetails, $officials);
+                    CertificateOfficialDocument::apply($stagingPath, $officials);
+                    CertificatePlaceholders::fillDocx($stagingPath, mb_strtoupper($purokSnapshot ?? ''));
+                });
             }
         } catch (Throwable $exception) {
             report($exception);
@@ -890,7 +893,6 @@ class CertificateController extends Controller
 
             $templateProcessor->saveAs($outputPath);
 
-
             return;
         }
 
@@ -909,7 +911,6 @@ class CertificateController extends Controller
                 mb_strtoupper((string) ($validated['signatory_name'] ?? '')),
             );
 
-
             return;
         }
 
@@ -922,7 +923,6 @@ class CertificateController extends Controller
             }
 
             $templateProcessor->saveAs($outputPath);
-
 
             return;
         }

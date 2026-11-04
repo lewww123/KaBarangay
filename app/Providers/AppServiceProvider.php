@@ -4,12 +4,15 @@ namespace App\Providers;
 
 use App\Auth\CachedEloquentUserProvider;
 use App\Mail\Transport\GmailApiTransport;
+use App\Models\AnnouncementAttendance;
 use App\Models\Certificate;
+use App\Models\CertificateRequest;
 use App\Models\CitizenCharterService;
 use App\Models\CitizenCharterVersion;
 use App\Models\OrgChartPosition;
 use App\Models\User;
 use App\Observers\ReferenceDataObserver;
+use App\Observers\ResidentUpdateObserver;
 use App\Observers\UserAuthCacheObserver;
 use App\Support\LoginAttemptRecorder;
 use App\Support\LoginIdentifier;
@@ -61,8 +64,8 @@ class AppServiceProvider extends ServiceProvider
             $config['model'],
         ));
         User::observe(UserAuthCacheObserver::class);
-        \App\Models\CertificateRequest::observe(\App\Observers\ResidentUpdateObserver::class);
-        \App\Models\AnnouncementAttendance::observe(\App\Observers\ResidentUpdateObserver::class);
+        CertificateRequest::observe(ResidentUpdateObserver::class);
+        AnnouncementAttendance::observe(ResidentUpdateObserver::class);
         foreach ([Certificate::class, OrgChartPosition::class, CitizenCharterService::class, CitizenCharterVersion::class] as $referenceModel) {
             $referenceModel::observe(ReferenceDataObserver::class);
         }

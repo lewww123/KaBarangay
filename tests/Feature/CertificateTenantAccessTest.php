@@ -13,6 +13,24 @@ class CertificateTenantAccessTest extends TestCase
 {
     use CreatesBarangayFixtures, RefreshDatabase;
 
+    public function test_catalog_migration_preserves_existing_certificate_settings(): void
+    {
+        $barangay = $this->createBarangay('Sicsican', 'SIC');
+        $certificate = Certificate::withoutGlobalScopes()->create([
+            'barangay_id' => $barangay->id, 'code' => 'business-clearance',
+            'name' => 'Existing clearance', 'fee' => 150, 'is_active' => false,
+        ]);
+        $migration = require database_path('migrations/2026_11_04_000004_add_sicsican_business_clearance.php');
+        $migration->up();
+        $migration->up();
+
+        $this->assertDatabaseHas('certificates', [
+            'id' => $certificate->id, 'name' => 'Existing clearance',
+            'fee' => 150, 'is_active' => false,
+        ]);
+        $this->assertSame(1, Certificate::withoutGlobalScopes()->where('barangay_id', $barangay->id)->count());
+    }
+
     public function test_layouts_and_catalogs_stay_with_their_barangay(): void
     {
         $sicsican = $this->createBarangay('Sicsican', 'SIC');
@@ -28,7 +46,8 @@ class CertificateTenantAccessTest extends TestCase
         $this->assertFalse(CertificateTenantAccess::allows($sicsican->id, 'Residency'));
         $this->assertSame(['business-clearance'], Certificate::where('barangay_id', $sicsican->id)->pluck('code')->all());
         $this->assertSame(['residency'], Certificate::where('barangay_id', $sanJose->id)->pluck('code')->all());
-        $this->assertSame(0, Certificate::where('barangay_id', $other->id)->count());
+        $this->assertSame(2, Certificate::where('barangay_id', $other->id)->count());
+        $this->assertNotEmpty(CertificateTemplates::options($other->id));
         $this->actingAs($this->createStaff($sanJose, 'clerk'));
         $this->get('/clerk/certificates/sicsican-artwork')->assertForbidden();
         $this->postJson('/clerk/generate-certificate', ['certificate_type' => 'Business Clearance'])->assertForbidden();

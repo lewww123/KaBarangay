@@ -159,9 +159,12 @@ class CertificateSeeder extends Seeder
                     'requirements' => ['Operator/owner name', 'Business address', 'Name/type of establishment'],
                     'requires_business_details' => true, 'is_active' => true,
                 ]);
+
                 continue;
             }
-            if (! in_array(strtolower($barangay->name), ['san jose', 'barangay san jose'], true)) { continue; }
+            if (! in_array(strtolower($barangay->name), ['san jose', 'barangay san jose'], true)) {
+                continue;
+            }
             foreach ($certificates as $certificate) {
                 Certificate::updateOrCreate(
                     [

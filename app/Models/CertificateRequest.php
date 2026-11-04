@@ -54,6 +54,6 @@ class CertificateRequest extends Model
 
     public function certificate(): BelongsTo
     {
-        return $this->belongsTo(Certificate::class);
+        return $this->belongsTo(Certificate::class)->withoutGlobalScope('approved_barangay_catalog');
     }
 }

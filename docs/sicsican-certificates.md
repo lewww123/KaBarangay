@@ -16,7 +16,7 @@ The sample provides no fee: the initial catalog fee is 0 and must be configured
 to the barangay's actual rate before operational use.
 
 Approved San Jose layouts are available only to San Jose; Sicsican sees only
-Business Clearance. Other barangays have no approved layouts yet. Legacy
+Business Clearance. Other barangays retain their existing catalog and layout behavior. Legacy
 catalog copies are hidden without deleting requests or issuance records.
 Historical issued PDFs retain their existing barangay ownership restrictions.
 

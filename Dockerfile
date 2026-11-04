@@ -77,4 +77,4 @@ COPY docker/resident-updates-supervisor.conf /etc/supervisor/conf.d/resident-upd
 EXPOSE 80
 
 # Cache only at startup, after Render supplies the actual environment values.
-CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && php artisan view:cache && chown -R www-data:www-data bootstrap/cache storage/framework/views && exec supervisord -n -c /etc/supervisor/conf.d/resident-updates.conf"]
+CMD ["sh", "-c", "php artisan config:cache && php artisan migrate --force && php artisan route:cache && php artisan view:cache && chown -R www-data:www-data bootstrap/cache storage/framework/views && exec supervisord -n -c /etc/supervisor/conf.d/resident-updates.conf"]

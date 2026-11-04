@@ -13,7 +13,7 @@ final class CertificateTenantAccess
         return match ($name) {
             'san jose', 'barangay san jose' => CertificateTemplates::types(),
             'sicsican', 'barangay sicsican' => ['Business Clearance'],
-            default => [],
+            default => CertificateTemplates::types(),
         };
     }
 
