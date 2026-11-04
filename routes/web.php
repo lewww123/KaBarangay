@@ -120,7 +120,8 @@ Route::prefix('resident')->name('resident.')->group(function () {
 
     Route::get('/register', [RegistrationController::class, 'create'])->name('register');
     Route::post('/register', [RegistrationController::class, 'store'])->middleware('throttle:5,1')->name('register.store');
-    Route::get('/register/submitted/{publicId}', [RegistrationController::class, 'submitted'])->name('registration.submitted');
+    Route::get('/register/submitted', [RegistrationController::class, 'submitted'])->name('registration.submitted');
+    Route::get('/register/submitted/{publicId}', fn () => redirect()->route('resident.registration.submitted'))->name('registration.submitted.legacy');
     Route::get('/application/access', [ResidentRegistrationAccessController::class, 'create'])
         ->name('registration.access');
     Route::post('/application/access', [ResidentRegistrationAccessController::class, 'authenticate'])

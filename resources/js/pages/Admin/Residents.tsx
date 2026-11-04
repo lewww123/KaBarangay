@@ -1,4 +1,4 @@
-import { Deferred, Head, Link, router, useForm } from '@inertiajs/react';
+import { Deferred, Head, Link, router, useForm, usePoll } from '@inertiajs/react';
 import {
     FormEvent,
     ReactNode,
@@ -320,6 +320,13 @@ export default function Residents({
         : [];
 
     const [activeTab, setActiveTab] = useState<Tab>('all');
+    usePoll(15000, { only: ['pendingRegistrations', 'stats'] });
+
+    useEffect(() => {
+        if (activeTab === 'pending') {
+            router.reload({ only: ['pendingRegistrations', 'stats'] });
+        }
+    }, [activeTab]);
     const [registrationSearch, setRegistrationSearch] = useState(
         filters?.registration_search ?? '',
     );

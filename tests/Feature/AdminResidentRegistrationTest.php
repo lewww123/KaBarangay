@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
 
@@ -76,6 +77,44 @@ class AdminResidentRegistrationTest extends TestCase
                 ->where('stats.totalResidents', 2)
                 ->where('stats.activeResidents', 2)
                 ->where('stats.pendingRegistrations', 1));
+    }
+
+    public function test_new_application_appears_immediately_after_admin_loaded_an_empty_queue(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        // Exercise production caching: testing normally bypasses aggregates.
+        $this->app['env'] = 'production';
+        try {
+            $this->actingAs($admin)->get('/admin/residents')->assertOk()
+                ->assertInertia(fn ($page) => $page->where('pendingRegistrations.total', 0));
+
+            $application = $this->createPendingRegistration($this->barangay, $this->purok);
+            $this->createPendingRegistration($this->other, $this->createPurok($this->other), [
+                'mobile' => '09980000002',
+            ]);
+
+            $this->get('/admin/residents')->assertOk()
+                ->assertInertia(fn ($page) => $page
+                    ->where('pendingRegistrations.total', 1)
+                    ->has('pendingRegistrations.data', 1)
+                    ->where('pendingRegistrations.data.0.id', $application->id)
+                    ->where('stats.pendingRegistrations', 1));
+
+            config(['inertia.defer_heavy_props' => true]);
+            $this->withHeaders([
+                'X-Inertia' => 'true',
+                'X-Inertia-Version' => Inertia::getVersion(),
+                'X-Inertia-Partial-Component' => 'Admin/Residents',
+                'X-Inertia-Partial-Data' => 'pendingRegistrations,stats',
+            ])->get('/admin/residents')->assertOk()
+                ->assertJsonPath('props.pendingRegistrations.total', 1)
+                ->assertJsonPath('props.pendingRegistrations.data.0.id', $application->id)
+                ->assertJsonPath('props.stats.pendingRegistrations', 1)
+                ->assertJsonMissingPath('props.allResidents');
+        } finally {
+            $this->app['env'] = 'testing';
+        }
     }
 
     public function test_all_residents_and_added_by_admin_use_separate_verified_account_and_source_rules(): void

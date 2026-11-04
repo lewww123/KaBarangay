@@ -11,10 +11,12 @@ use App\Models\ResidentRegistration;
 use App\Models\Sector;
 use App\Support\AuditLogger;
 use App\Support\RegistrationEmailOtp;
+use App\Support\ResidentRegistrationDuplicateChecker;
 use App\Support\ResidentRegistrationQrMatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -289,9 +291,18 @@ class RegistrationController extends Controller
                     return $registration;
                 });
             };
-            $registration = config('registration.email_verification_required', false)
-                ? $emailOtp->withVerifiedEmail($request, $validated['email'], $createRegistration)
-                : $createRegistration([]);
+            // Serialize submissions so simultaneous requests cannot both pass
+            // the duplicate check before either application has been saved.
+            $registration = Cache::lock('resident-registration:submit', 120)->block(10, function () use ($request, $validated, $emailOtp, $createRegistration) {
+                $duplicate = app(ResidentRegistrationDuplicateChecker::class)->find($validated);
+                if ($duplicate !== null) {
+                    throw ValidationException::withMessages(['registration' => $duplicate]);
+                }
+
+                return config('registration.email_verification_required', true)
+                    ? $emailOtp->withVerifiedEmail($request, $validated['email'], $createRegistration)
+                    : $createRegistration([]);
+            });
         } catch (Throwable $exception) {
             /*
             |--------------------------------------------------------------------------
@@ -349,11 +360,7 @@ class RegistrationController extends Controller
 
         // Admin review is still required; an unverified address is not marked verified.
 
-        return redirect()
-            ->route(
-                'resident.registration.submitted',
-                $registration->public_id
-            );
+        return redirect()->route('resident.registration.submitted');
     }
 
     /*
@@ -362,19 +369,9 @@ class RegistrationController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function submitted(
-        string $publicId
-    ): Response {
-        return Inertia::render(
-            'Resident/RegistrationPending',
-            [
-                'registration' => [
-                    // The public submission receipt echoes only the reference;
-                    // current application status is available after password access.
-                    'reference' => $publicId,
-                ],
-            ]
-        );
+    public function submitted(): Response
+    {
+        return Inertia::render('Resident/RegistrationPending');
     }
 
     /*

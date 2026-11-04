@@ -184,16 +184,10 @@ class ResidentRegistrationController extends Controller
                     'all_residents',
                 );
 
-            $statsKey = 'admin:residents:stats:v4:'.$user->barangay_id.':'.hash('sha256', json_encode([
-                'purok_id' => $selectedPurokId,
-                'resident_search' => $residentSearch,
-                'registration_search' => $registrationSearch,
-            ], JSON_THROW_ON_ERROR));
-            $stats = (object) $this->rememberAggregate(
-                $statsKey,
-                30,
-                fn () => (array) ($statsQuery->first() ?? []),
-            );
+            // Pagination skips fetching rows when its supplied total is zero.
+            // Read current counts so a previously empty queue cannot hide new
+            // applications or retain applications after an admin reviews them.
+            $stats = (object) (array) ($statsQuery->first() ?? []);
 
             $totalResidents = (int) ($stats->total_residents ?? 0);
             $activeResidents = $totalResidents;

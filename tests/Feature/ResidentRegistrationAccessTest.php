@@ -41,11 +41,14 @@ class ResidentRegistrationAccessTest extends TestCase
             ->assertDontSee('Private Applicant');
 
         $this->get('/resident/register/submitted/'.$registration->public_id)
+            ->assertRedirect(route('resident.registration.submitted'));
+
+        $this->get('/resident/register/submitted')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Resident/RegistrationPending')
-                ->where('registration.reference', $registration->public_id)
-                ->missing('registration.status'))
+                ->missing('registration'))
+            ->assertDontSee($registration->public_id)
             ->assertDontSee('Private Applicant');
     }
 
