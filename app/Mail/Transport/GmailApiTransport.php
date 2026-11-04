@@ -6,7 +6,6 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
-use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
@@ -45,7 +44,7 @@ class GmailApiTransport extends AbstractTransport
                 $response = $this->sendRaw($raw, $this->token());
             }
         } catch (ConnectionException) {
-            throw new TransportException('Gmail API connection failed. Check HTTPS connectivity and try again.');
+            throw new GmailApiTransportException('Gmail API connection failed. Check HTTPS connectivity and try again.');
         }
 
         if (! $response->successful()) {
@@ -56,12 +55,12 @@ class GmailApiTransport extends AbstractTransport
                 default => 'The provider did not accept the email.',
             };
 
-            throw new TransportException('Gmail API send failed (HTTP '.$response->status().'). '.$reason);
+            throw new GmailApiTransportException('Gmail API send failed (HTTP '.$response->status().'). '.$reason);
         }
 
         $id = $response->json('id');
         if (! is_string($id) || $id === '') {
-            throw new TransportException('Gmail API returned an invalid delivery acknowledgement.');
+            throw new GmailApiTransportException('Gmail API returned an invalid delivery acknowledgement.');
         }
 
         $message->setMessageId($id);
@@ -74,7 +73,7 @@ class GmailApiTransport extends AbstractTransport
         }
 
         if (trim($this->clientId) === '' || trim($this->clientSecret) === '' || trim($this->refreshToken) === '') {
-            throw new TransportException('Gmail API credentials are missing. Configure GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET and GMAIL_REFRESH_TOKEN.');
+            throw new GmailApiTransportException('Gmail API credentials are missing. Configure GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET and GMAIL_REFRESH_TOKEN.');
         }
 
         $response = $this->request()->asForm()->post('https://oauth2.googleapis.com/token', [
@@ -93,12 +92,12 @@ class GmailApiTransport extends AbstractTransport
                 default => 'Check the sender OAuth configuration.',
             };
 
-            throw new TransportException('Gmail OAuth refresh failed (HTTP '.$response->status().'). '.$reason);
+            throw new GmailApiTransportException('Gmail OAuth refresh failed (HTTP '.$response->status().'). '.$reason);
         }
 
         $token = $response->json('access_token');
         if (! is_string($token) || $token === '') {
-            throw new TransportException('Gmail OAuth returned an invalid access token.');
+            throw new GmailApiTransportException('Gmail OAuth returned an invalid access token.');
         }
 
         $this->accessToken = $token;

@@ -1021,8 +1021,18 @@ class ResidentRegistrationController extends Controller
 
         return back()->with(
             'success',
-            'Registration approved and linked to '.$resident->resident_number.'.'
+            'Registration approved and linked to '.$resident->resident_number.'. '.$this->approvalEmailStatusMessage($notification->fresh())
         );
+    }
+
+    private function approvalEmailStatusMessage(ResidentNotification $notification): string
+    {
+        return match ($notification->status) {
+            ResidentNotification::STATUS_SENT => 'Approval email sent.',
+            ResidentNotification::STATUS_FAILED => 'Approval email could not be sent. Retry the email from the registration notification details.',
+            ResidentNotification::STATUS_DEFERRED => 'Approval email was not sent because the recipient is not eligible. Check the registration email verification.',
+            default => 'Approval email is pending delivery. Check the registration notification details.',
+        };
     }
 
     /*

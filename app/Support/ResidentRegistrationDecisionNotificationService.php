@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Mail\ResidentRegistrationApprovedMail;
 use App\Mail\ResidentRegistrationDecisionMail;
+use App\Mail\Transport\GmailApiTransportException;
 use App\Models\ResidentAccount;
 use App\Models\ResidentNotification;
 use App\Models\ResidentRegistration;
@@ -192,6 +193,9 @@ final class ResidentRegistrationDecisionNotificationService
                 'notification_id' => $notification->id,
                 'decision_type' => $notification->decision_type,
                 'exception' => $exception::class,
+                'delivery_error' => $exception instanceof GmailApiTransportException
+                    ? $exception->getMessage()
+                    : null,
             ]);
         }
 

@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Mail\RegistrationOtpMail;
+use App\Mail\ResidentRegistrationApprovedMail;
+use App\Models\Purok;
 use App\Models\ResidentRegistration;
 use App\Support\RegistrationEmailOtp;
 use App\Support\ResidentRegistrationEmailVerificationService;
@@ -225,7 +227,7 @@ class RegistrationEmailOtpTest extends TestCase
 
     public function test_each_barangay_accepts_verified_registration_and_shows_pending_approval(): void
     {
-        foreach (['San Jose', 'Sicicsican', 'Sta. Monica'] as $index => $name) {
+        foreach (['San Jose', 'Sicsican', 'Sta. Monica'] as $index => $name) {
             $payload = $this->payload((string) $index);
             $barangay = $this->createBarangay($name, 'FLOW-'.$index);
             $payload['barangay_id'] = $barangay->id;
@@ -246,9 +248,34 @@ class RegistrationEmailOtpTest extends TestCase
                     ->where('pendingRegistrations.total', 1)
                     ->where('pendingRegistrations.data.0.email', $payload['email'])
                     ->where('stats.pendingRegistrations', 1));
+
+            $registration = ResidentRegistration::query()
+                ->where('email', $payload['email'])->firstOrFail();
+            $resident = $this->createResident($barangay, Purok::findOrFail($payload['purok_id']), [
+                'mobile' => '0917000071'.$index,
+            ]);
+            $resident->update(['source' => 'admin']);
+            $resident->account()->delete();
+
+            // Admin review commonly happens long after the OTP has expired.
+            $this->travel(2)->days();
+            $this->post('/admin/residents/'.$registration->id.'/approve', [
+                'resident_id' => $resident->id,
+            ])->assertRedirect()->assertSessionHasNoErrors();
+
+            $this->assertSame('approved', $registration->fresh()->status);
+            $this->assertDatabaseHas('resident_notification_outbox', [
+                'resident_registration_id' => $registration->id,
+                'decision_type' => 'approved',
+                'status' => 'sent',
+                'recipient_email' => $payload['email'],
+            ]);
+            Mail::assertSent(ResidentRegistrationApprovedMail::class, fn ($mail) => $mail->hasTo($payload['email']) &&
+                $mail->residentNumber === $resident->resident_number &&
+                getimagesizefromstring($mail->qrCodePng)['mime'] === 'image/png'
+            );
         }
-        // Only the three admin fixture accounts exist; applicants await review.
-        $this->assertDatabaseCount('resident_accounts', 3);
+        $this->assertDatabaseCount('resident_accounts', 6);
     }
 
     public function test_same_person_cannot_apply_in_another_barangay_with_new_contact_details(): void

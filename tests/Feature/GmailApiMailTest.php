@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Mail\ResidentPasswordResetMail;
+use App\Mail\ResidentRegistrationApprovedMail;
 use App\Mail\Transport\GmailApiTransport;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
@@ -62,6 +63,33 @@ class GmailApiMailTest extends TestCase
             $this->assertStringContainsString('sender@example.test', $mime);
             $this->assertStringContainsString('Reset your KaBarangay password', $mime);
             $this->assertStringContainsString('example-token', quoted_printable_decode($mime));
+
+            return true;
+        });
+        Http::assertSentCount(2);
+    }
+
+    public function test_approval_email_with_inline_qr_is_sent_through_gmail(): void
+    {
+        $this->fakeDelivery();
+
+        Mail::to('resident@example.test')->send(new ResidentRegistrationApprovedMail(
+            residentName: 'Juan Dela Cruz',
+            residentNumber: 'BR-0001',
+            verificationUrl: 'https://example.test/resident/qr/example-token',
+            approvedAt: 'November 5, 2026',
+        ));
+
+        Http::assertSent(function (Request $request) {
+            if ($request->url() !== self::SEND_URL) {
+                return false;
+            }
+
+            $mime = base64_decode(strtr($request['raw'], '-_', '+/'));
+            $this->assertStringContainsString('Your KaBarangay registration was approved', $mime);
+            $this->assertStringContainsString('resident@example.test', $mime);
+            $this->assertStringContainsString('image/png', $mime);
+            $this->assertStringContainsString('Content-ID:', $mime);
 
             return true;
         });
