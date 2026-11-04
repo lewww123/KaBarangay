@@ -24,8 +24,9 @@ const writeMetadata = async (value) =>
 const clearPages = async () => {
     await self.KBCertificates.lock().catch(() => {});
     await self.KBAttendance.lock().catch(() => {});
+    const previousScope = (await metadata()).scope;
     for (const client of await self.clients.matchAll({ type: 'window' }))
-        client.postMessage({ type: 'KB_PRIVATE_LOCKED' });
+        if (previousScope) client.postMessage({ type: 'KB_PRIVATE_LOCKED', scope: previousScope });
     return Promise.all(
         (await caches.keys())
             .filter((key) => key.startsWith(PAGES))

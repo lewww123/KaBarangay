@@ -105,6 +105,18 @@
             'Account changed or logged out. Sign in online and prepare your own attendance sheet again.',
         );
     };
+    const signalKey = 'kabarangay.session-boundary.v1';
+    const readSignal = () => { try { return localStorage.getItem(signalKey); } catch { return null; } };
+    const initialSignal = readSignal();
+    const restorePrivatePage = () => {
+        if (readSignal() !== initialSignal) lockScreen();
+        document.documentElement.style.visibility = '';
+    };
+    window.addEventListener('storage', event => { if (event.key === signalKey && event.newValue) lockScreen(); });
+    window.addEventListener('pagehide', () => { document.documentElement.style.visibility = 'hidden'; });
+    window.addEventListener('pageshow', restorePrivatePage);
+    window.addEventListener('focus', restorePrivatePage);
+    document.addEventListener('visibilitychange', restorePrivatePage);
     navigator.serviceWorker?.addEventListener('message', (event) => {
         if (event.data?.type === 'KB_PRIVATE_LOCKED') lockScreen();
     });

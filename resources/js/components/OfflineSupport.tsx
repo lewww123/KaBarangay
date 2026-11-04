@@ -1,3 +1,4 @@
+import { protectSession } from '@/lib/protectedSession';
 import { router } from '@inertiajs/react';
 import type { Page } from '@inertiajs/core';
 import { useEffect, useState } from 'react';
@@ -22,6 +23,7 @@ const eligible = (page: Page) =>
     );
 
 export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
+    useEffect(() => protectSession(initialPage), [initialPage]);
     const [state, setState] = useState<OfflineState>({
         online: true,
         ready: false,

@@ -1,4 +1,37 @@
 (async () => {
+    let loggingOut = false;
+    let locked = false;
+    const signalKey = 'kabarangay.session-boundary.v1';
+    const readSignal = () => { try { return localStorage.getItem(signalKey); } catch { return null; } };
+    const initialSignal = readSignal();
+    const lock = () => {
+        if (loggingOut || locked || !document.getElementById('kb-offline-notice')) return;
+        locked = true;
+        document.documentElement.style.visibility = 'hidden';
+        location.replace('/offline.html?loggedout=1');
+    };
+    navigator.serviceWorker?.addEventListener('message', event => {
+        if (event.data?.type === 'KB_PRIVATE_LOCKED') lock();
+    });
+    window.addEventListener('storage', event => { if (event.key === signalKey && event.newValue) lock(); });
+    let leaving = false;
+    const restore = (event) => {
+        if (event?.type === 'pageshow' && event.persisted && loggingOut) {
+            loggingOut = false;
+            lock();
+        }
+        if (readSignal() !== initialSignal) lock();
+        if (!locked && leaving) { document.documentElement.style.visibility = ''; leaving = false; }
+    };
+    window.addEventListener('pagehide', () => {
+        if (document.getElementById('kb-offline-notice')) {
+            leaving = true;
+            document.documentElement.style.visibility = 'hidden';
+        }
+    });
+    window.addEventListener('pageshow', restore);
+    window.addEventListener('focus', restore);
+    document.addEventListener('visibilitychange', restore);
     const talk = async (message) => {
         const registration = await navigator.serviceWorker.ready;
         return new Promise((resolve, reject) => {
@@ -23,6 +56,8 @@
                 return;
             }
             if (button.dataset.offlineAction === 'logout') {
+                loggingOut = true;
+                try { localStorage.setItem(signalKey, JSON.stringify({ kind: 'logout', id: crypto.randomUUID() })); } catch {}
                 button.disabled = true;
                 await talk({
                     type: 'KB_LOGOUT',

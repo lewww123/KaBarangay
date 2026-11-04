@@ -367,7 +367,13 @@ try {
     await context.setOffline(true);
     await page.reload();
     await page.locator('#kb-offline-notice').waitFor();
+    const otherSnapshot = await context.newPage();
+    await otherSnapshot.goto(origin + '/resident/certificates');
+    await otherSnapshot.locator('#kb-offline-notice').waitFor();
     await page.getByRole('button', { name: 'Log out', exact: true }).click();
+    await otherSnapshot.waitForURL('**/offline.html?loggedout=1');
+    assert.equal(await otherSnapshot.locator('#kb-offline-notice').count(), 0);
+    await otherSnapshot.close();
     await page.waitForURL('**/offline.html?loggedout=1');
     await page.waitForFunction(() =>
         document

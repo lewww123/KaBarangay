@@ -211,6 +211,7 @@ try {
     await context.setOffline(false);
     await page.locator('#sync').click();
     await localStatus(page, 'needs-review');
+    await page.waitForFunction(() => !document.querySelector('#sync').disabled);
     assert.equal(creations, 0);
     await page
         .getByRole('button', { name: 'Review with current catalog' })

@@ -1,3 +1,4 @@
+import { readRegistrationDraft, saveRegistrationDraft, readRegistrationFiles, saveRegistrationFiles, clearRegistrationDraft, REGISTRATION_FILE_FIELDS } from '@/lib/registrationDraft';
 import { Head, Link, useForm } from '@inertiajs/react';
 import LegalLinks from '@/components/LegalLinks';
 import EmailVerificationSection from '@/components/registration/EmailVerificationSection';
@@ -81,11 +82,15 @@ function RegistrationContent({
         (sector) => sector.slug !== 'regular',
     );
 
-    const [step, setStep] = useState(1);
+    const [savedDraft] = useState(readRegistrationDraft);
+    const [step, setStep] = useState(savedDraft?.step ?? 1);
+    const [draftFilesReady, setDraftFilesReady] = useState(false);
+    const [draftStorageError, setDraftStorageError] = useState(false);
+    const submittedDraft = useRef(false);
     const [clientErrors, setClientErrors] = useState<ClientErrors>({});
     const [acceptedDeclaration, setAcceptedDeclaration] = useState(false);
     const [regularResidentSelected, setRegularResidentSelected] =
-        useState(false);
+        useState(savedDraft?.regularResidentSelected ?? false);
     const [showPassword, setShowPassword] = useState(false);
     const [showPasswordConfirmation, setShowPasswordConfirmation] =
         useState(false);
@@ -99,14 +104,15 @@ function RegistrationContent({
             last_name: '',
             suffix: '',
             birthdate: '',
-            sex: '' as Sex,
-            civil_status: '' as CivilStatus,
             address_line: '',
             sectors: [] as string[],
             mobile: '',
             email: emailVerification?.email ?? '',
             email_verified: emailVerification?.status === 'verified',
             qr_token: '',
+            ...savedDraft?.fields,
+            sex: (savedDraft?.fields.sex ?? '') as Sex,
+            civil_status: (savedDraft?.fields.civil_status ?? '') as CivilStatus,
             password: '',
             password_confirmation: '',
             valid_id: null as File | null,
@@ -114,6 +120,42 @@ function RegistrationContent({
             senior_proof: null as File | null,
             pwd_proof: null as File | null,
         });
+
+    useEffect(() => {
+        if (!savedDraft) {
+            setDraftFilesReady(true);
+            return;
+        }
+        let active = true;
+        void readRegistrationFiles().then(files => {
+            if (!active) return;
+            setData(current => {
+                const restored = { ...current };
+                for (const key of REGISTRATION_FILE_FIELDS) {
+                    const file = files[key];
+                    if (!restored[key] && file instanceof File) restored[key] = file;
+                }
+                return restored;
+            });
+        }).catch(() => { if (active) setDraftStorageError(true); })
+            .finally(() => { if (active) setDraftFilesReady(true); });
+        return () => { active = false; };
+    }, [savedDraft, setData]);
+
+    useEffect(() => {
+        const save = () => {
+            if (!submittedDraft.current && !saveRegistrationDraft(data, step, regularResidentSelected)) setDraftStorageError(true);
+        };
+        save();
+        window.addEventListener('pagehide', save);
+        return () => window.removeEventListener('pagehide', save);
+    }, [data, step, regularResidentSelected]);
+
+    useEffect(() => {
+        if (!draftFilesReady || submittedDraft.current) return;
+        const files = Object.fromEntries(REGISTRATION_FILE_FIELDS.map(key => [key, data[key]]));
+        void saveRegistrationFiles(files).catch(() => setDraftStorageError(true));
+    }, [draftFilesReady, data.valid_id, data.live_identity_photo, data.senior_proof, data.pwd_proof]);
 
     const emailOtp = useRegistrationEmailOtp(
         data.email,
@@ -405,6 +447,10 @@ function RegistrationContent({
             forceFormData: true,
             preserveState: true,
             preserveScroll: true,
+            onSuccess: () => {
+                submittedDraft.current = true;
+                void clearRegistrationDraft().catch(() => {});
+            },
             onError: (serverErrors) => {
                 if ('email_verification' in serverErrors) {
                     emailOtp.reset();
@@ -606,6 +652,9 @@ function RegistrationContent({
                             </div>
                         )}
 
+                        <p role="status" className="mt-4 text-sm text-gray-600">
+                            {draftStorageError ? 'Your browser could not save the complete draft. Keep this page open to avoid losing unsaved details.' : 'Your details and attachments are saved on this device until registration is submitted. Passwords must be entered again when you return.'}
+                        </p>
                         <form
                             onSubmit={handleSubmit}
                             className="mt-5 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:mt-6"

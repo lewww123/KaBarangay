@@ -170,6 +170,11 @@ try {
         await page
             .getByLabel('House No. / Street / Sitio', { exact: false })
             .fill('Test Street');
+        await page.reload();
+        await page.getByLabel('First Name', { exact: false }).waitFor();
+        assert.equal(await page.getByLabel('First Name', { exact: false }).inputValue(), 'Applicant' + index);
+        assert.equal(await page.getByLabel('House No. / Street / Sitio', { exact: false }).inputValue(), 'Test Street');
+        assert.equal(await page.getByLabel('Purok', { exact: false }).inputValue(), String(index + 1));
         await page
             .getByRole('button', { name: 'Continue', exact: true })
             .click();
@@ -207,6 +212,16 @@ try {
         await page
             .getByLabel('Confirm Password', { exact: false })
             .fill('ResidentPassword123');
+        await page.reload();
+        await page.getByLabel(/^Password/).waitFor();
+        assert.equal(await page.getByLabel('Mobile Number', { exact: false }).inputValue(), '0998000070' + index);
+        assert.equal(await page.getByLabel('Email address', { exact: false }).inputValue(), 'applicant' + index + '@example.test');
+        assert.equal(await page.getByLabel(/^Password/).inputValue(), '');
+        const stored = await page.evaluate(() => localStorage.getItem('kabarangay.resident-registration.v1'));
+        assert.ok(!stored.includes('ResidentPassword123'));
+        assert.ok(!stored.includes('email_verified'));
+        await page.getByLabel(/^Password/).fill('ResidentPassword123');
+        await page.getByLabel('Confirm Password', { exact: false }).fill('ResidentPassword123');
         await page
             .getByRole('button', { name: 'Continue', exact: true })
             .click();
@@ -239,6 +254,7 @@ try {
                 name: 'Account is waiting for admin approval',
             })
             .waitFor();
+        assert.equal(await page.evaluate(() => localStorage.getItem('kabarangay.resident-registration.v1')), null);
         for (const body of submissions.slice(-2)) {
             assert.ok(body.includes('Applicant' + index));
             assert.ok(body.includes('valid.pdf'));
@@ -248,7 +264,7 @@ try {
     assert.equal(attempts, 6);
     assert.deepEqual(errors, []);
     console.log(
-        'Registration browser checks passed for all three barangays: failed submit preserves review/data/files, retry reaches pending approval.',
+        'Registration browser checks passed for all three barangays: reload restores details and files without passwords, failed submit preserves draft, successful retry clears draft and reaches pending approval.',
     );
 } finally {
     await browser.close();

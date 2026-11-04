@@ -388,7 +388,33 @@
     $('refresh').onclick = () =>
         refresh().catch((error) => message(error.message, true));
     globalThis.addEventListener('kb-certificate-queue', () => void render());
+    const lockScreen = () => {
+        renderEpoch++;
+        context = null;
+        editing = reviewing = displayedCertificate = null;
+        $('editor').reset();
+        for (const id of ['fields', 'requests', 'certificate-info', 'review-details']) $(id).replaceChildren();
+        $('resident').textContent = '';
+        $('catalog-date').textContent = '';
+        $('review').hidden = true;
+        $('locked').hidden = false;
+        $('unlocked').hidden = true;
+        message('Account changed or logged out. Sign in online to unlock your own requests.', true);
+    };
+    const signalKey = 'kabarangay.session-boundary.v1';
+    const readSignal = () => { try { return localStorage.getItem(signalKey); } catch { return null; } };
+    const initialSignal = readSignal();
+    const restorePrivatePage = () => {
+        if (readSignal() !== initialSignal) lockScreen();
+        document.documentElement.style.visibility = '';
+    };
+    window.addEventListener('storage', event => { if (event.key === signalKey && event.newValue) lockScreen(); });
+    window.addEventListener('pagehide', () => { document.documentElement.style.visibility = 'hidden'; });
+    window.addEventListener('pageshow', restorePrivatePage);
+    window.addEventListener('focus', restorePrivatePage);
+    document.addEventListener('visibilitychange', restorePrivatePage);
     navigator.serviceWorker?.addEventListener('message', (event) => {
+        if (event.data?.type === 'KB_PRIVATE_LOCKED') lockScreen();
         if (event.data?.type === 'KB_CERT_QUEUE_CHANGED') void render();
     });
     globalThis.addEventListener(
