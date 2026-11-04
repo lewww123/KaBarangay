@@ -12,6 +12,8 @@ class CertificateRequest extends Model
         'resident_id',
         'certificate_id',
         'reference',
+        'client_request_id',
+        'client_payload_hash',
         'purpose',
         'fee',
         'status',

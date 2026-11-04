@@ -1,0 +1,34 @@
+export type OfflineCertificateForm = {
+    certificate_id: string; purpose: string; business_name?: string; business_address?: string;
+    additional_details?: string; details: Record<string, string>; catalog_revision?: string;
+};
+type LocalRequest = { id: string; status: string; data: { certificateName: string; result?: { reference: string }; error?: string } };
+type SyncResult = { ok?: boolean; busy?: boolean; offline?: boolean; retryLater?: boolean; loginRequired?: boolean };
+type CertificateStore = {
+    context(): Promise<{ owner: string; scope: string }>;
+    list(): Promise<LocalRequest[]>;
+    saveDraft(form: OfflineCertificateForm, id?: string): Promise<string>;
+    sync(): Promise<SyncResult>;
+};
+
+export async function offlineCertificateStore(): Promise<CertificateStore> {
+    const url = '/offline-certificate-store.js';
+    await import(/* @vite-ignore */ url);
+    return (globalThis as unknown as { KBCertificates: CertificateStore }).KBCertificates;
+}
+
+export async function prepareOfflineCertificates(): Promise<CertificateStore> {
+    const registration = await navigator.serviceWorker?.getRegistration('/');
+    const worker = navigator.serviceWorker?.controller || registration?.active;
+    if (!worker) throw new Error('Offline support is still preparing. Please try again on the production site.');
+    const response = await fetch('/resident/certificates/offline-context', { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
+    if (!response.ok || response.redirected || !response.headers.get('Content-Type')?.includes('application/json')) throw new Error('Sign in online as a resident to unlock your offline drafts.');
+    const context = await response.json();
+    const channel = new MessageChannel();
+    await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Offline certificate preparation timed out.')), 15000);
+        channel.port1.onmessage = event => { clearTimeout(timeout); if (event.data.ok) resolve(); else reject(new Error('Your session changed. Sign in again to prepare offline requests.')); };
+        worker.postMessage({ type: 'KB_CERT_ACTIVATE', context }, [channel.port2]);
+    });
+    return offlineCertificateStore();
+}

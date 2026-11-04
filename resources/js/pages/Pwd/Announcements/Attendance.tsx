@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import PwdLayout from '@/layouts/PwdLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import withDeferredPage from '@/components/withDeferredPage';
+import OfflineAttendance from '@/components/announcements/OfflineAttendance';
 
 type AttendanceStatus = 'present' | 'claimed' | 'absent';
 type AttendanceTab = 'present' | 'claimed';
@@ -464,6 +465,7 @@ function PwdAttendanceSheet({ announcement, attendances, residents = [], auth }:
     return (
         <PwdLayout active="announcements" user={auth?.user}>
             <Head title={`Attendance - ${announcement.title}`} />
+            <OfflineAttendance announcementId={announcement.id} department="pwd" />
 
             <div className="space-y-6 max-w-7xl mx-auto pb-10">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-5 rounded-xl border border-gray-200/80 shadow-sm">

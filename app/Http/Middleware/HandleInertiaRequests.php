@@ -3,7 +3,9 @@
 namespace App\Http\Middleware;
 
 use App\Support\CertificateTemplates;
+use App\Support\OfflineIdentity;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -39,13 +41,14 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => fn () => config('app.name'),
+            'offlineScope' => fn () => OfflineIdentity::scope($request),
             'chatbotStorageKey' => fn () => $request->session()->has('resident_id') ? 'kabarangay_assistant_state:'.hash_hmac('sha256', 'resident:'.$request->session()->get('resident_id'), (string) config('app.key')) : null,
             'auth' => function () use ($request): array {
                 $user = $request->user();
 
                 return [
                     'user' => $user,
-                    'staffAssignments' => \Inertia\Inertia::optional(fn () => $user?->staffAssignments()
+                    'staffAssignments' => Inertia::optional(fn () => $user?->staffAssignments()
                         ->where('is_active', true)
                         ->with('barangay:id,name')
                         ->select(['id', 'user_id', 'barangay_id', 'department', 'position'])

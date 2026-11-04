@@ -3,6 +3,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Pagination from '@/components/Pagination';
 import ResidentLayout from '@/layouts/ResidentLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
+import { offlineCertificateStore, prepareOfflineCertificates } from '@/lib/offlineCertificates';
 import type { PaginatedData } from '@/types';
 
 /*
@@ -137,6 +138,18 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
     const [selectedRequest, setSelectedRequest] = useState<CertificateRequest | null>(null);
     const [cameFromAssistant, setCameFromAssistant] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [draftMessage, setDraftMessage] = useState('');
+    const saveOfflineDraft = async () => {
+        if (!selectedCertificate || processing) return;
+        setProcessing(true);
+        try {
+            let store = await offlineCertificateStore();
+            try { await store.context(); } catch { store = await prepareOfflineCertificates(); }
+            await store.saveDraft({ certificate_id: selectedCertificate.id, purpose: effectivePurpose, business_name: businessName, business_address: businessAddress, additional_details: additionalDetails, details });
+            setDraftMessage('Draft saved on this device. Open Offline drafts & requests to review and queue it. It is not officially submitted yet.');
+        } catch (error) { setDraftMessage(error instanceof Error ? error.message : 'Unable to save this draft.'); }
+        finally { setProcessing(false); }
+    };
 
     /*
     |--------------------------------------------------------------------------
@@ -311,6 +324,8 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                     <p className="mt-2 text-sm leading-6 text-gray-500 sm:text-base">
                         Request a barangay certificate or track your submitted request.
                     </p>
+                    <a href="/offline-certificates.html" className="mt-2 inline-block text-sm font-semibold text-[#3f6f3d] underline">Offline drafts & pending requests</a>
+                    {draftMessage && <p role="status" className="mt-3 rounded-lg border bg-white p-3 text-sm">{draftMessage}</p>}
                 </section>
 
                 {/* ======================================================
@@ -670,6 +685,7 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                         >
                                             Continue
                                         </button>
+                                        <button type="button" onClick={() => void saveOfflineDraft()} disabled={processing || !selectedCertificate} className="mt-3 min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 font-semibold text-[#3f6f3d] disabled:opacity-50">Save draft on this device</button>
                                     </section>
                                 </form>
                             </div>
@@ -720,6 +736,7 @@ function CertificatesContent({ resident, certificates, requests, errors }: PageP
                                     </div>
 
                                     <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                        <button type="button" onClick={() => void saveOfflineDraft()} disabled={processing} className="min-h-12 rounded-lg border border-[#3f6f3d] px-4 font-semibold text-[#3f6f3d] disabled:opacity-50">Save draft on this device</button>
                                         <button
                                             type="button"
                                             onClick={() => setStep('form')}

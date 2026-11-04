@@ -69,6 +69,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
+require __DIR__.'/attendance-offline.php';
+
 /*
 |--------------------------------------------------------------------------
 | Barangay Selection
@@ -76,6 +78,7 @@ use Inertia\Inertia;
 */
 
 Route::get('/', fn () => redirect('/resident/login'))->name('home');
+Route::get('/offline/session', [\App\Http\Controllers\OfflineAccessController::class, 'session'])->name('offline.session');
 // Accept legacy logout links from either portal, including expired sessions.
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 Route::view('/privacy-policy', 'legal.privacy')->name('privacy-policy');
@@ -318,6 +321,8 @@ Route::prefix('resident')->name('resident.')->group(function () {
         })->name('dashboard');
 
         Route::get('/certificates', [CertificateRequestController::class, 'index'])->name('certificates');
+        Route::get('/certificates/offline-context', [\App\Http\Controllers\Resident\OfflineCertificateController::class, 'context'])->name('certificates.offline-context');
+        Route::post('/certificates/sync', [\App\Http\Controllers\Resident\OfflineCertificateController::class, 'sync'])->middleware('throttle:10,1')->name('certificates.sync');
         Route::post('/certificates', [CertificateRequestController::class, 'store'])->middleware('throttle:10,1')->name('certificates.store');
 
         Route::get('/lupon', [ResidentLuponComplaintController::class, 'index'])->name('lupon');

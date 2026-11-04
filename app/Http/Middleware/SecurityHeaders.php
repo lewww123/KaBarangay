@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\OfflineIdentity;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,6 +12,7 @@ class SecurityHeaders
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
+        $response->headers->set('X-KaBarangay-Offline-Scope', OfflineIdentity::scope($request) ?? '');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         // Reset links and private document URLs must not leak to other sites.

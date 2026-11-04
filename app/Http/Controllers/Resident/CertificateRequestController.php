@@ -147,11 +147,14 @@ class CertificateRequestController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $resident = Resident::query()
-            ->where('id', session('resident_id'))
-            ->where('status', 'active')
-            ->firstOrFail();
+        $this->createValidatedRequest($request);
 
+        return redirect()->route('resident.certificates')->with('success', 'Certificate request submitted successfully.');
+    }
+
+    public function createValidatedRequest(Request $request, array $submissionIdentity = []): CertificateRequest
+    {
+        $resident = ResidentContext::get();
         $certificateInput = $request->validate([
             'certificate_id' => [
                 'required',
@@ -241,7 +244,8 @@ class CertificateRequestController extends Controller
             $validated,
             $purpose,
             $additionalDetails,
-            $reference
+            $reference,
+            $submissionIdentity
         ) {
             return CertificateRequest::create([
                 'barangay_id' => $resident->barangay_id,
@@ -258,6 +262,7 @@ class CertificateRequestController extends Controller
                 'business_address' => $validated['business_address'] ?? null,
                 'additional_details' => $additionalDetails,
                 'submitted_at' => now(),
+                ...$submissionIdentity,
             ]);
         });
 
@@ -287,11 +292,6 @@ class CertificateRequestController extends Controller
             $request->ip(),
         );
 
-        return redirect()
-            ->route('resident.certificates')
-            ->with(
-                'success',
-                'Certificate request submitted successfully.'
-            );
+        return $certificateRequest;
     }
 }
