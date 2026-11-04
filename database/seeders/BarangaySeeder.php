@@ -13,8 +13,27 @@ class BarangaySeeder extends Seeder
         'Anonang', 'Avocado', 'Acacia', 'Banaba', 'Bakawan',
         'Fire Tree', 'Ilang-Ilang', 'Langka', 'Lanzones', 'Mabuhay',
         'Makopa', 'Mahogany', 'Mangga', 'Mulawin', 'Narra',
-        'Palawan', 'Cherry', 'Sampaloc', 'Star Apple', 'Talisay',
+        'Palawan Cherry', 'Sampaloc', 'Star Apple', 'Talisay',
     ];
+
+    public const STA_MONICA_PUROKS = [
+        'Purok Maunlad', 'Purok El Rancho', 'Purok Fisherman’s Village',
+        'Purok Villa Princesa', 'Purok Magalang', 'Purok Gumamela',
+        'Purok Pagkakaisa', 'Purok Maagap', 'Purok Mountain View (Mt. View)',
+        'Purok Sampaguita', 'Purok Pres. Paredes', 'Purok Pres. Buenaceda',
+        'Employees Village',
+    ];
+
+    public function syncStaMonica(Barangay $barangay): void
+    {
+        foreach (self::STA_MONICA_PUROKS as $index => $name) {
+            Purok::updateOrCreate(
+                ['barangay_id' => $barangay->id, 'name' => $name],
+                ['code' => sprintf('%s-P%02d', $barangay->code, $index + 1),
+                    'sort_order' => $index + 1, 'is_active' => true],
+            );
+        }
+    }
 
     public function run(): void
     {
@@ -51,11 +70,29 @@ class BarangaySeeder extends Seeder
                 'Purok Masagana',
             ]);
             $this->syncSicsican($barangays['BSC']);
+            $this->syncStaMonica($barangays['BSM']);
         });
     }
 
     public function syncSicsican(Barangay $barangay): void
     {
+        $existing = Purok::where('barangay_id', $barangay->id)->lockForUpdate()->get();
+        $palawan = $existing->firstWhere('name', 'Palawan');
+        $combined = $existing->firstWhere('name', 'Palawan Cherry');
+        if ($palawan && $combined) {
+            throw new \RuntimeException('Both Palawan and Palawan Cherry exist; reconcile before refreshing.');
+        }
+        $palawan ??= $combined;
+        if ($palawan) {
+            $palawan->update(['name' => 'Palawan Cherry']);
+            $cherry = $existing->firstWhere('name', 'Cherry');
+            if ($cherry) {
+                foreach (['resident_claims', 'resident_registrations', 'residents', 'households'] as $table) {
+                    DB::table($table)->where('purok_id', $cherry->id)->update(['purok_id' => $palawan->id]);
+                }
+                $cherry->delete();
+            }
+        }
         $this->syncPuroks($barangay, self::SICSICAN_PUROKS, true);
     }
 

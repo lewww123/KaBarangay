@@ -36,17 +36,17 @@ class BarangaySeederTest extends TestCase
         $this->assertSame([
             'Anonang', 'Avocado', 'Acacia', 'Banaba', 'Bakawan', 'Fire Tree', 'Ilang-Ilang',
             'Langka', 'Lanzones', 'Mabuhay', 'Makopa', 'Mahogany', 'Mangga', 'Mulawin',
-            'Narra', 'Palawan', 'Cherry', 'Sampaloc', 'Star Apple', 'Talisay',
+            'Narra', 'Palawan Cherry', 'Sampaloc', 'Star Apple', 'Talisay',
         ], $defaults->pluck('name')->all());
-        $this->assertSame(array_map(fn ($number) => sprintf('BSC-P%02d', $number), range(1, 20)), $defaults->pluck('code')->all());
-        $this->assertSame(range(1, 20), $defaults->pluck('sort_order')->all());
+        $this->assertSame(array_map(fn ($number) => sprintf('BSC-P%02d', $number), range(1, 19)), $defaults->pluck('code')->all());
+        $this->assertSame(range(1, 19), $defaults->pluck('sort_order')->all());
 
         $ids = Purok::orderBy('id')->pluck('id')->all();
         $this->seed(BarangaySeeder::class);
         $this->seed(PurokSeeder::class);
         $this->assertSame($ids, Purok::orderBy('id')->pluck('id')->all());
         $this->assertDatabaseCount('barangays', 3);
-        $this->assertDatabaseCount('puroks', 32);
+        $this->assertDatabaseCount('puroks', 44);
     }
 
     public function test_refresh_preserves_legacy_purok_links_and_other_barangay_puroks(): void
