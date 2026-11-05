@@ -10,11 +10,24 @@ Original background/seal assets are stored privately in the residency,
 clearance, indigency and business subdirectories. The authenticated reference
 artwork endpoint validates the variant/asset and checks barangay access.
 
-Names, puroks, purposes, residency years, business details and the published
-captain are populated at runtime. Sample dates, gender, age assertions and
-authority signatories are not copied into issued documents. Neutral wording
-avoids asserting a sample resident's sex or age. Residency has its fixed
-proof-of-residency purpose. Historical PDFs remain unchanged.
+The approved `approved-design.jpg` in each directory now supplies the full
+image design, including the three logos, colored frame/title, dry-seal area
+and footer. Existing certificate wording and published-captain fields are
+retained above masked sample text. The sample reference number, date and
+captain are replaced by the current issuance values.
+
+Body wording and authority signature blocks follow the supplied DOCX references.
+Names, puroks, purposes, residency years, business details, sex and the published
+captain are populated at runtime. A sex selector supplies the document's gender
+and pronouns. Signatories follow San Jose's shared official resolution: the
+published captain is the default, an explicitly selected Kagawad becomes OIC,
+and OIC output hides the separate authority block. The authority name comes only
+from the selected signatory. Names in the DOCX are not fixed in the output.
+Fonts and sizes remain unchanged.
+The complete footer text and tiny seal come from the DOCX. Its printed verse
+reference is retained verbatim, including 1:77 on residency and personal clearance.
+The control-number block is shifted right and replaces the entire sample block.
+Residency retains its fixed proof-of-residency purpose. Historical PDFs are unchanged.
 
 Run migration `2026_11_06_000001_add_sicsican_clearance.php` to provision the
 fourth catalog entry. The new entry starts at fee 0; existing settings and

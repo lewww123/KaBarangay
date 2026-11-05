@@ -1,5 +1,6 @@
+import withDeferredPage from '@/components/withDeferredPage';
 import { useState } from 'react';
-import { Deferred, Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import AnnouncementAttendanceOption from '@/components/announcements/AnnouncementAttendanceOption';
 import AnnouncementImportanceBadge from '@/components/announcements/AnnouncementImportanceBadge';
 import AnnouncementLifecycleTabs from '@/components/announcements/AnnouncementLifecycleTabs';
@@ -58,7 +59,17 @@ interface Props {
     };
 }
 
-export default function SeniorAnnouncementsIndex({
+export default withDeferredPage(
+    SeniorAnnouncementsIndex,
+    ['announcements', 'tabCounts'],
+    (props) => (
+        <SeniorLayout active={props.kind === 'update' ? 'updates' : props.kind === 'program' ? 'programs' : 'announcements'} user={props.auth?.user}>
+            <PortalPageSkeleton rows={5} />
+        </SeniorLayout>
+    ),
+);
+
+function SeniorAnnouncementsIndex({
     announcements,
     activeTab,
     tabCounts,
@@ -263,10 +274,7 @@ export default function SeniorAnnouncementsIndex({
                     </button>
                 </div>
 
-                <Deferred
-                    data={['announcements', 'tabCounts']}
-                    fallback={<PortalPageSkeleton rows={6} columns={7} />}
-                >
+
                     {!isUpdate && (
                         <div className="rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm">
                             <AnnouncementLifecycleTabs
@@ -559,7 +567,7 @@ export default function SeniorAnnouncementsIndex({
                             </table>
                         </div>
                     </div>
-                </Deferred>
+
 
                 {showModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

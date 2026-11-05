@@ -1,4 +1,5 @@
-import { Deferred, Head, Link } from '@inertiajs/react';
+import withDeferredPage from '@/components/withDeferredPage';
+import { Head, Link } from '@inertiajs/react';
 import PwdLayout from '@/layouts/PwdLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import {
@@ -28,7 +29,17 @@ interface Props {
     recentAnnouncements: Announcement[];
 }
 
-export default function PwdDashboard({
+export default withDeferredPage(
+    PwdDashboard,
+    ['stats', 'recentAnnouncements'],
+    () => (
+        <PwdLayout active={'dashboard'}>
+            <PortalPageSkeleton metrics={4} rows={5} />
+        </PwdLayout>
+    ),
+);
+
+function PwdDashboard({
     userName,
     stats,
     recentAnnouncements,
@@ -63,10 +74,7 @@ export default function PwdDashboard({
                     </div>
                 </div>
 
-                <Deferred
-                    data={['stats', 'recentAnnouncements']}
-                    fallback={<PortalPageSkeleton metrics={4} rows={5} />}
-                >
+
                     {/* STATS OVERVIEW */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -205,7 +213,7 @@ export default function PwdDashboard({
                             </table>
                         </div>
                     </div>
-                </Deferred>
+
             </div>
         </PwdLayout>
     );

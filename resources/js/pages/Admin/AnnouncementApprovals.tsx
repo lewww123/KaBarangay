@@ -1,5 +1,6 @@
+import withDeferredPage from '@/components/withDeferredPage';
 import { useState } from 'react';
-import { Deferred, Head } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import AdminPageSkeleton from '@/components/AdminPageSkeleton';
 import AdminLayout from '@/layouts/AdminLayout';
 import {
@@ -19,7 +20,17 @@ interface Program {
     author?: { name: string } | null;
 }
 
-export default function AnnouncementApprovals({
+export default withDeferredPage(
+    AnnouncementApprovals,
+    ['announcements'],
+    () => (
+        <AdminLayout active={'overview'}>
+            <AdminPageSkeleton rows={5} />
+        </AdminLayout>
+    ),
+);
+
+function AnnouncementApprovals({
     announcements,
 }: {
     announcements: Program[];
@@ -41,10 +52,7 @@ export default function AnnouncementApprovals({
     return (
         <AdminLayout active="overview">
             <Head title="Programs" />
-            <Deferred
-                data="announcements"
-                fallback={<AdminPageSkeleton rows={3} />}
-            >
+
                 <div className="space-y-5">
                     <div>
                         <h1 className="text-xl font-bold text-gray-900">
@@ -117,7 +125,7 @@ export default function AnnouncementApprovals({
                         </article>
                     ))}
                 </div>
-            </Deferred>
+
         </AdminLayout>
     );
 }

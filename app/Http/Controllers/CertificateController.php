@@ -66,9 +66,11 @@ class CertificateController extends Controller
         abort_unless(CertificateTenantAccess::allows($request->user()->barangay_id, 'Sicsican Clearance'), 403);
         $data = $request->validate([
             'variant' => ['required', Rule::in(['residency', 'clearance', 'indigency', 'business'])],
-            'asset' => ['required', Rule::in(['image1.png', 'image3.png', 'image4.png'])],
+            'asset' => ['required', Rule::in(['image1.png', 'image3.png', 'image4.png', 'approved-design.jpg', 'footer-logo.png'])],
         ]);
-        return response()->file(resource_path('certificates/sicsican/'.$data['variant'].'/'.$data['asset']), ['Cache-Control' => 'private, no-store']);
+        $path = resource_path('certificates/sicsican/'.$data['variant'].'/'.$data['asset']);
+        abort_unless(is_file($path), 404);
+        return response()->file($path, ['Cache-Control' => 'private, no-store']);
     }
 
     public function nextControlNumber(Request $request)

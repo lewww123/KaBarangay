@@ -1,4 +1,5 @@
-import { Deferred, Head, Link } from '@inertiajs/react';
+import withDeferredPage from '@/components/withDeferredPage';
+import { Head, Link } from '@inertiajs/react';
 import SeniorLayout from '@/layouts/SeniorLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import {
@@ -28,7 +29,17 @@ interface Props {
     recentAnnouncements: Announcement[];
 }
 
-export default function SeniorDashboard({
+export default withDeferredPage(
+    SeniorDashboard,
+    ['stats', 'recentAnnouncements'],
+    () => (
+        <SeniorLayout active={'dashboard'}>
+            <PortalPageSkeleton metrics={4} rows={5} />
+        </SeniorLayout>
+    ),
+);
+
+function SeniorDashboard({
     userName,
     stats,
     recentAnnouncements,
@@ -64,10 +75,7 @@ export default function SeniorDashboard({
                     </div>
                 </div>
 
-                <Deferred
-                    data={['stats', 'recentAnnouncements']}
-                    fallback={<PortalPageSkeleton metrics={4} rows={5} />}
-                >
+
                     {/* STATS OVERVIEW */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -206,7 +214,7 @@ export default function SeniorDashboard({
                             </table>
                         </div>
                     </div>
-                </Deferred>
+
             </div>
         </SeniorLayout>
     );

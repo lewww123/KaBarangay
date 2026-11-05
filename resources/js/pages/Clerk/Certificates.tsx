@@ -2440,7 +2440,7 @@ function Dashboard({
     );
 
     const renderDocumentPreview = () => {
-        if (['Business Clearance', 'Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'].includes(data.certificate_type)) return <SicsicanCertificatePreview type={data.certificate_type} name={data.resident_name} purok={data.purok} purpose={data.purpose} years={String(data.years_of_residency)} businessName={data.business_name} businessAddress={data.business_address} captain={currentCaptain} reference={data.control_no} />;
+        if (['Business Clearance', 'Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'].includes(data.certificate_type)) return <SicsicanCertificatePreview type={data.certificate_type} name={data.resident_name} purok={data.purok} purpose={data.purpose} years={String(data.years_of_residency)} businessName={data.business_name} businessAddress={data.business_address} captain={currentCaptain} reference={data.control_no} sex={data.sex} officerName={data.signatory_name} />;
         if (data.certificate_type === DELAYED_PSA_TYPE) {
             const residentName =
                 data.resident_name.trim().toUpperCase() ||
@@ -4457,6 +4457,13 @@ function Dashboard({
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE &&
                                                                 renderResidencyFields()}
+                                                            {['Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'].includes(data.certificate_type) && (
+                                                                <label className="block text-sm font-semibold">Sex
+                                                                    <select value={data.sex} onChange={e => setData('sex', e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2">
+                                                                        <option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option>
+                                                                    </select>
+                                                                </label>
+                                                            )}
                                                             {data.certificate_type === 'Barangay Certification' && (
                                                                 <label className="block text-sm font-semibold">Years of Residency
                                                                     <input type="number" min="0" max="120" step="1" required value={data.years_of_residency} onChange={e => setData('years_of_residency', e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" />
@@ -5159,6 +5166,13 @@ function Dashboard({
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE &&
                                                                 renderResidencyFields()}
+                                                            {['Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'].includes(data.certificate_type) && (
+                                                                <label className="block text-sm font-semibold">Sex
+                                                                    <select value={data.sex} onChange={e => setData('sex', e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2">
+                                                                        <option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option>
+                                                                    </select>
+                                                                </label>
+                                                            )}
                                                             {data.certificate_type === 'Barangay Certification' && (
                                                                 <label className="block text-sm font-semibold">Years of Residency
                                                                     <input type="number" min="0" max="120" step="1" required value={data.years_of_residency} onChange={e => setData('years_of_residency', e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" />
