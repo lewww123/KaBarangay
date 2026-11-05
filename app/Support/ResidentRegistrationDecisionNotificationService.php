@@ -36,11 +36,10 @@ final class ResidentRegistrationDecisionNotificationService
         ?ResidentRegistrationCorrectionCycle $cycle = null,
         ?string $emailSafeReason = null,
     ): ResidentNotification {
-        if (! config('registration.email_verification_required', false) && $decision === 'rejected' && trim((string) $emailSafeReason) === '') {
+        if ($decision === 'rejected' && trim((string) $emailSafeReason) === '') {
             $emailSafeReason = 'Hindi naaprubahan ang iyong application. Makipag-ugnayan sa barangay office para sa karagdagang detalye.';
         }
-        $verification = app(ResidentRegistrationEmailVerificationService::class);
-        $recipient = $verification->verifiedDecisionEmail($registration);
+        $recipient = $this->decisionEmail($registration);
         $normalizedAddress = Str::lower(trim((string) $registration->email));
         $recipientName = trim(implode(' ', array_filter([
             $registration->first_name,
@@ -222,8 +221,7 @@ final class ResidentRegistrationDecisionNotificationService
             return false;
         }
 
-        $verifiedEmail = app(ResidentRegistrationEmailVerificationService::class)
-            ->verifiedDecisionEmail($registration);
+        $verifiedEmail = $this->decisionEmail($registration);
         if ($verifiedEmail === null || $verifiedEmail !== $notification->recipient_email) {
             return false;
         }
@@ -300,6 +298,12 @@ final class ResidentRegistrationDecisionNotificationService
         );
     }
 
+    private function decisionEmail(ResidentRegistration $registration): ?string
+    {
+        $email = Str::lower(trim((string) $registration->email));
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false ? $email : null;
+    }
+
     private function ineligibilityClass(
         ?string $recipient,
         string $normalizedAddress,
@@ -307,7 +311,7 @@ final class ResidentRegistrationDecisionNotificationService
         ?string $emailSafeReason,
     ): string {
         if ($recipient === null || $normalizedAddress === '') {
-            return 'recipient_unverified';
+            return 'no_email_supplied';
         }
 
         if ($decision === 'rejected' && trim((string) $emailSafeReason) === '') {

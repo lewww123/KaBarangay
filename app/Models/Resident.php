@@ -29,6 +29,15 @@ class Resident extends Model
             });
     }
 
+    protected static function booted(): void
+    {
+        static::updating(function (self $resident): void {
+            if ($resident->isDirty('mobile') && \Illuminate\Support\Facades\Schema::hasColumn('residents', 'mobile_verified_at')) {
+                $resident->setAttribute('mobile_verified_at', null);
+            }
+        });
+    }
+
     protected $fillable = [
         'public_id',
         'resident_registration_id',
@@ -59,6 +68,7 @@ class Resident extends Model
         return [
             'birthdate' => 'date',
             'email_verified_at' => 'datetime',
+            'mobile_verified_at' => 'datetime',
             'approved_at' => 'datetime',
         ];
     }

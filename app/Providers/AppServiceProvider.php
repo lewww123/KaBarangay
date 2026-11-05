@@ -100,10 +100,6 @@ class AppServiceProvider extends ServiceProvider
             fn (Request $r) => null,
         ));
 
-        RateLimiter::for('registration-otp-send', fn (Request $request) => Limit::perMinute(5)
-            ->by('registration-otp-send:'.$request->ip()));
-        RateLimiter::for('registration-otp-verify', fn (Request $request) => Limit::perMinute(15)
-            ->by('registration-otp-verify:'.$request->ip()));
     }
 
     /**

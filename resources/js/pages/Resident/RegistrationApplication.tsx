@@ -30,10 +30,6 @@ type Application = {
     submitted_at: string | null;
     barangay: string | null;
     purok: string | null;
-    email_verification_available: boolean;
-    email_verification_required?: boolean;
-    email_verified: boolean;
-    email_verification_feedback: string | null;
     correction: Correction | null;
 };
 
@@ -50,7 +46,6 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function RegistrationApplication({ application }: Props) {
     const logout = useForm({});
-    const emailVerificationForm = useForm({ code: '' });
     const correction = application.correction;
     const correctionForm = useForm<{
         fields: Record<string, string>;
@@ -73,7 +68,6 @@ export default function RegistrationApplication({ application }: Props) {
     >;
     const terminal =
         application.status === 'approved' || application.status === 'rejected';
-    const emailVerificationError = emailVerificationForm.errors.code;
 
     function signOut() {
         logout.post(
@@ -92,16 +86,6 @@ export default function RegistrationApplication({ application }: Props) {
         );
     }
 
-    function submitEmailVerification(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        emailVerificationForm.post(
-            `/resident/application/${encodeURIComponent(application.reference)}/email-verification`,
-            {
-                preserveScroll: true,
-                onSuccess: () => emailVerificationForm.reset(),
-            },
-        );
-    }
 
     return (
         <div className="min-h-screen bg-[#f7f6f0]">
@@ -184,108 +168,13 @@ export default function RegistrationApplication({ application }: Props) {
                     </dl>
 
                     <section className="mt-6 rounded-xl border border-[#d7e5d2] bg-[#f8fbf6] p-4 sm:p-5">
-                        <h2 className="text-sm font-semibold text-gray-800">
-                            Email notifications
-                        </h2>
-                        {!application.email_verification_required ? (
-                            <p className="mt-2 text-sm text-gray-600">
-                                Ipapadala sa email na inilagay mo ang desisyon
-                                ng admin. Hindi kailangan ng email verification
-                                bago mag-submit.
-                            </p>
-                        ) : application.email_verified ? (
-                            <p className="mt-2 text-sm text-green-800">
-                                Your application email is verified. This
-                                confirms control of the address; it does not
-                                approve the application.
-                            </p>
-                        ) : application.email_verification_available ? (
-                            <>
-                                <p className="mt-2 text-sm text-gray-600">
-                                    Enter the six-digit code sent to the email
-                                    address on your application. The code
-                                    expires in 10 minutes. Email verification is
-                                    required to complete Resident registration.
-                                </p>
-                                {application.email_verification_feedback && (
-                                    <p
-                                        role="status"
-                                        className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800"
-                                    >
-                                        {
-                                            application.email_verification_feedback
-                                        }
-                                    </p>
-                                )}
-                                <form
-                                    onSubmit={submitEmailVerification}
-                                    className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
-                                >
-                                    <div className="w-full sm:max-w-xs">
-                                        <label
-                                            htmlFor="registration-email-verification-code"
-                                            className="mb-1 block text-sm font-medium text-gray-700"
-                                        >
-                                            Verification code
-                                        </label>
-                                        <input
-                                            id="registration-email-verification-code"
-                                            type="text"
-                                            inputMode="numeric"
-                                            autoComplete="one-time-code"
-                                            maxLength={6}
-                                            value={
-                                                emailVerificationForm.data.code
-                                            }
-                                            onChange={(event) =>
-                                                emailVerificationForm.setData(
-                                                    'code',
-                                                    event.target.value
-                                                        .replace(/\D/g, '')
-                                                        .slice(0, 6),
-                                                )
-                                            }
-                                            aria-invalid={Boolean(
-                                                emailVerificationError,
-                                            )}
-                                            aria-describedby={
-                                                emailVerificationError
-                                                    ? 'registration-email-verification-error'
-                                                    : undefined
-                                            }
-                                            className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm tracking-[0.3em] focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20 focus:outline-none"
-                                        />
-                                        {emailVerificationError && (
-                                            <p
-                                                id="registration-email-verification-error"
-                                                role="alert"
-                                                className="mt-1 text-xs text-red-700"
-                                            >
-                                                {emailVerificationError}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        disabled={
-                                            emailVerificationForm.processing ||
-                                            emailVerificationForm.data.code
-                                                .length !== 6
-                                        }
-                                        className="min-h-11 rounded-lg bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        {emailVerificationForm.processing
-                                            ? 'Verifying…'
-                                            : 'Verify email'}
-                                    </button>
-                                </form>
-                            </>
-                        ) : (
-                            <p className="mt-2 text-sm text-amber-800">
-                                Email verification is temporarily unavailable.
-                                Your application can still be reviewed.
-                            </p>
-                        )}
+                        <h2 className="text-sm font-semibold text-gray-800">Email notifications</h2>
+                        <p className="mt-2 text-sm text-gray-600">
+                            Email is optional. If supplied, it may receive the admin decision.
+                        </p>
+                        <p className="mt-2 text-sm text-gray-600">
+                            Mobile number – Unverified. Verification is not yet available.
+                        </p>
                     </section>
 
                     {application.status === 'needs_correction' &&

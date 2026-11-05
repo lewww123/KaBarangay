@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Mail\ResidentRegistrationEmailVerificationMail;
 use App\Models\Barangay;
 use App\Models\Purok;
 use App\Models\RegistrationDocument;
@@ -33,7 +32,6 @@ class ResidentRegistrationCorrectionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['registration.email_verification_required' => true]);
 
         $this->withoutVite();
         Storage::fake('local');
@@ -181,11 +179,10 @@ class ResidentRegistrationCorrectionTest extends TestCase
         $this->assertNotNull($cycle->resubmitted_at);
         $this->assertSame('Pending', $cycle->prior_field_snapshot['first_name']);
         $this->assertNull($registration->email_verified_at);
-        $this->assertDatabaseHas('resident_registration_email_verification_tokens', [
-            'resident_registration_id' => $registration->id,
-            'email_snapshot' => 'new-address@example.test',
-        ]);
-        Mail::assertSent(ResidentRegistrationEmailVerificationMail::class);
+        $this->assertDatabaseCount('resident_registration_email_verification_tokens', 0);
+        $this->assertNull($registration->fresh()->mobile_verified_at);
+        Mail::assertSent(\App\Mail\ResidentRegistrationDecisionMail::class);
+        Mail::assertSentCount(1);
         $this->assertSame(1, ResidentAccount::query()->count());
         $this->assertDatabaseMissing('residents', ['resident_registration_id' => $registration->id]);
         $this->assertDatabaseHas('audit_logs', [

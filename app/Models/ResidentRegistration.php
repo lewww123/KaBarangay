@@ -16,6 +16,9 @@ class ResidentRegistration extends Model
     protected static function booted(): void
     {
         static::updating(function (self $registration): void {
+            if ($registration->isDirty('mobile') && Schema::hasColumn('resident_registrations', 'mobile_verified_at')) {
+                $registration->setAttribute('mobile_verified_at', null);
+            }
             if (! $registration->isDirty('email')) {
                 return;
             }
@@ -24,15 +27,6 @@ class ResidentRegistration extends Model
                 $registration->setAttribute('email_verified_at', null);
             }
 
-            if (Schema::hasTable('resident_registration_email_verification_tokens')) {
-                ResidentRegistrationEmailVerificationToken::query()
-                    ->where('resident_registration_id', $registration->getKey())
-                    ->whereNull('consumed_at')
-                    ->update([
-                        'consumed_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-            }
 
             if (Schema::hasTable('resident_notification_outbox')) {
                 $notifications = ResidentNotification::query()
@@ -60,7 +54,7 @@ class ResidentRegistration extends Model
                         'status' => ResidentNotification::STATUS_DEFERRED,
                         'deferred_at' => now(),
                         'failure_class' => 'recipient_email_changed',
-                        'last_error' => 'The verified recipient address changed.',
+                        'last_error' => 'The recipient address changed.',
                         'lease_token' => null,
                         'lease_expires_at' => null,
                         'updated_at' => now(),
@@ -108,6 +102,7 @@ class ResidentRegistration extends Model
             'last_resubmitted_at' => 'datetime',
             'matched_at' => 'datetime',
             'email_verified_at' => 'datetime',
+            'mobile_verified_at' => 'datetime',
         ];
     }
 

@@ -10,7 +10,6 @@ use App\Models\RegistrationDocument;
 use App\Models\ResidentRegistration;
 use App\Models\Sector;
 use App\Support\AuditLogger;
-use App\Support\RegistrationEmailOtp;
 use App\Support\ResidentRegistrationDuplicateChecker;
 use App\Support\ResidentRegistrationQrMatcher;
 use Illuminate\Http\RedirectResponse;
@@ -35,7 +34,7 @@ class RegistrationController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function create(Request $request, RegistrationEmailOtp $otp): Response
+    public function create(Request $request): Response
     {
         $loadBarangays = function () {
             $barangays = Barangay::query()
@@ -97,8 +96,6 @@ class RegistrationController extends Controller
             ]);
 
         return Inertia::render('Resident/Register', [
-            'emailVerificationRequired' => (bool) config('registration.email_verification_required', false),
-            'emailVerification' => fn () => $otp->state($request),
             // Include these cached options on validation redirects as well.
             // Deferring them remounts the browser wizard and discards its files.
             'barangays' => fn () => $this->rememberReference('registration:barangay-purok-options:v2', 300, fn () => $loadBarangays()->toArray()),
@@ -114,7 +111,6 @@ class RegistrationController extends Controller
 
     public function store(
         StoreResidentRegistrationRequest $request,
-        RegistrationEmailOtp $emailOtp,
         ResidentRegistrationQrMatcher $qrMatcher,
     ): RedirectResponse {
         $validated = $request->validated();
@@ -136,13 +132,11 @@ class RegistrationController extends Controller
         $storedFiles = [];
 
         try {
-            $createRegistration = function (array $proof) use ($request, $validated, $qrCredentialId, $emailOtp, &$storedFiles) {
+            $createRegistration = function () use ($request, $validated, $qrCredentialId, &$storedFiles) {
                 return DB::transaction(function () use (
                     $request,
                     $validated,
                     $qrCredentialId,
-                    $proof,
-                    $emailOtp,
                     &$storedFiles
                 ) {
                     /*
@@ -181,9 +175,6 @@ class RegistrationController extends Controller
                         'status' => 'pending',
                         'submitted_at' => now(),
                     ]);
-                    if ($proof !== []) {
-                        $emailOtp->recordVerification($registration, $proof);
-                    }
 
                     // The submitted QR value is only resolved to a credential
                     // reference. The raw token is never persisted.
@@ -295,15 +286,13 @@ class RegistrationController extends Controller
             };
             // Serialize submissions so simultaneous requests cannot both pass
             // the duplicate check before either application has been saved.
-            $registration = Cache::lock('resident-registration:submit', 120)->block(10, function () use ($request, $validated, $emailOtp, $createRegistration) {
+            $registration = Cache::lock('resident-registration:submit', 120)->block(10, function () use ($request, $validated, $createRegistration) {
                 $duplicate = app(ResidentRegistrationDuplicateChecker::class)->find($validated);
                 if ($duplicate !== null) {
                     throw ValidationException::withMessages(['registration' => $duplicate]);
                 }
 
-                return config('registration.email_verification_required', true)
-                    ? $emailOtp->withVerifiedEmail($request, $validated['email'], $createRegistration)
-                    : $createRegistration([]);
+                return $createRegistration();
             });
         } catch (Throwable $exception) {
             /*

@@ -1,3 +1,4 @@
+import BirthdateInput from '@/components/BirthdateInput';
 import { Deferred, Head, router, useForm } from '@inertiajs/react';
 import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -1424,19 +1425,10 @@ export default function Residents({
                                             createResidentForm.errors.birthdate
                                         }
                                     >
-                                        <input
-                                            type="date"
-                                            value={
-                                                createResidentForm.data
-                                                    .birthdate
-                                            }
-                                            onChange={(event) =>
-                                                createResidentForm.setData(
-                                                    'birthdate',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                        <BirthdateInput
+                                            value={createResidentForm.data.birthdate}
+                                            onChange={(value) => createResidentForm.setData('birthdate', value)}
+                                            className="mt-1"
                                             required
                                         />
                                     </CreateField>

@@ -63,7 +63,6 @@ const props = {
             requires_proof: false,
         },
     ],
-    emailVerificationRequired: false,
 };
 const pagePayload = (extra = {}) => ({
     component: 'Resident/Register',
@@ -96,7 +95,6 @@ const server = createServer(async (req, res) => {
                                 registration:
                                     'The submission could not be saved. Please retry.',
                             },
-                            emailVerificationRequired: false,
                         },
                         deferredProps: { default: ['barangays', 'sectors'] },
                     }),
@@ -159,7 +157,9 @@ try {
             .getByLabel('First Name', { exact: false })
             .fill('Applicant' + index);
         await page.getByLabel('Last Name', { exact: false }).fill('Example');
-        await page.getByLabel('Birthdate', { exact: false }).fill('1990-01-01');
+        await page.getByLabel('Birth year', { exact: true }).selectOption('1990');
+        await page.getByLabel('Birth month', { exact: true }).selectOption('01');
+        await page.getByLabel('Birth day', { exact: true }).selectOption('01');
         await page.getByLabel('Sex', { exact: false }).selectOption('Female');
         await page
             .getByLabel('Civil Status', { exact: false })
@@ -173,6 +173,9 @@ try {
         await page.reload();
         await page.getByLabel('First Name', { exact: false }).waitFor();
         assert.equal(await page.getByLabel('First Name', { exact: false }).inputValue(), 'Applicant' + index);
+        assert.equal(await page.getByLabel('Birth year', { exact: true }).inputValue(), '1990');
+        assert.equal(await page.getByLabel('Birth month', { exact: true }).inputValue(), '01');
+        assert.equal(await page.getByLabel('Birth day', { exact: true }).inputValue(), '01');
         assert.equal(await page.getByLabel('House No. / Street / Sitio', { exact: false }).inputValue(), 'Test Street');
         assert.equal(await page.getByLabel('Purok', { exact: false }).inputValue(), String(index + 1));
         await page
@@ -207,7 +210,7 @@ try {
             .fill('0998000070' + index);
         await page
             .getByLabel('Email address', { exact: false })
-            .fill('applicant' + index + '@example.test');
+            .fill(index === 0 ? '' : 'applicant' + index + '@example.test');
         await page.getByLabel(/^Password/).fill('ResidentPassword123');
         await page
             .getByLabel('Confirm Password', { exact: false })
@@ -215,7 +218,7 @@ try {
         await page.reload();
         await page.getByLabel(/^Password/).waitFor();
         assert.equal(await page.getByLabel('Mobile Number', { exact: false }).inputValue(), '0998000070' + index);
-        assert.equal(await page.getByLabel('Email address', { exact: false }).inputValue(), 'applicant' + index + '@example.test');
+        assert.equal(await page.getByLabel('Email address', { exact: false }).inputValue(), index === 0 ? '' : 'applicant' + index + '@example.test');
         assert.equal(await page.getByLabel(/^Password/).inputValue(), '');
         const stored = await page.evaluate(() => localStorage.getItem('kabarangay.resident-registration.v1'));
         assert.ok(!stored.includes('ResidentPassword123'));

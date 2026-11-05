@@ -48,8 +48,6 @@ use App\Http\Controllers\Resident\OrgChartController as ResidentOrgChartControll
 use App\Http\Controllers\Resident\PasswordResetController;
 use App\Http\Controllers\Resident\QrVerificationController;
 use App\Http\Controllers\Resident\RegistrationController;
-use App\Http\Controllers\Resident\RegistrationEmailVerificationController;
-use App\Http\Controllers\Resident\RegistrationOtpController;
 use App\Http\Controllers\Resident\ResidentEmailVerificationController;
 use App\Http\Controllers\Resident\ResidentRegistrationAccessController;
 use App\Http\Controllers\Resident\ResidentRegistrationCorrectionController;
@@ -93,10 +91,6 @@ Route::view('/terms-and-conditions', 'legal.terms')->name('terms-and-conditions'
 Route::get('/terms-of-service', fn () => redirect('/terms-and-conditions', 301))->name('terms-of-service');
 Route::post('/chatbot/send', [ChatbotController::class, 'sendMessage'])
     ->middleware(['resident.auth', 'throttle:20,1'])->name('chatbot.send');
-Route::post('/register/send-otp', [RegistrationOtpController::class, 'send'])
-    ->middleware('throttle:registration-otp-send')->name('register.send-otp');
-Route::post('/register/verify-otp', [RegistrationOtpController::class, 'verify'])
-    ->middleware('throttle:registration-otp-verify')->name('register.verify-otp');
 /*
 |--------------------------------------------------------------------------
 | Public Resident QR Verification
@@ -137,22 +131,11 @@ Route::prefix('resident')->name('resident.')->group(function () {
     Route::middleware(EnsureResidentRegistrationAccess::class)->group(function () {
         Route::get('/application/{reference}', [ResidentRegistrationAccessController::class, 'show'])
             ->name('registration.application.show');
-        Route::post('/application/{reference}/email-verification', [RegistrationEmailVerificationController::class, 'verifyOtp'])
-            ->middleware('throttle:10,1')
-            ->name('registration.application.email-verification');
         Route::post('/application/{reference}/correction', [ResidentRegistrationCorrectionController::class, 'resubmit'])
             ->name('registration.application.correction.resubmit');
         Route::post('/application/{reference}/logout', [ResidentRegistrationAccessController::class, 'logout'])
             ->name('registration.application.logout');
     });
-    Route::get('/register/verification/resend', [RegistrationEmailVerificationController::class, 'showResend'])
-        ->name('registration.verification.resend');
-    Route::post('/register/verification/resend', [RegistrationEmailVerificationController::class, 'resend'])
-        ->middleware('throttle:3,1')
-        ->name('registration.verification.resend.store');
-    Route::get('/register/email/verify/{token}', [RegistrationEmailVerificationController::class, 'verify'])
-        ->middleware('throttle:10,1')
-        ->name('registration.email.verify');
 
     Route::get('/email/verify/{token}', [ResidentEmailVerificationController::class, 'verify'])->middleware('throttle:10,1')->name('email.verify');
 

@@ -193,7 +193,6 @@ class AdminResidentCreationTest extends TestCase
     public function test_application_submitted_before_admin_creation_can_find_and_link_the_new_inactive_record(): void
     {
         Mail::fake();
-        config(['registration.email_verification_required' => false]);
         $application = $this->createPendingRegistration($this->barangay, $this->purok, ['first_name' => 'Maria', 'last_name' => 'Santos', 'sex' => 'Female', 'birthdate' => '1990-01-01', 'mobile' => '09175550101', 'email' => 'maria@example.test']);
         $admin = $this->createStaff($this->barangay, 'admin');
         $this->actingAs($admin)->post('/admin/residents', [...$this->residentData(), 'email' => 'maria@example.test'])->assertRedirect()->assertSessionHasNoErrors();

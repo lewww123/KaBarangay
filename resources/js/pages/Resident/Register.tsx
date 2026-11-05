@@ -1,11 +1,7 @@
+import BirthdateInput from '@/components/BirthdateInput';
 import { readRegistrationDraft, saveRegistrationDraft, readRegistrationFiles, saveRegistrationFiles, clearRegistrationDraft, REGISTRATION_FILE_FIELDS } from '@/lib/registrationDraft';
 import { Head, Link, useForm } from '@inertiajs/react';
 import LegalLinks from '@/components/LegalLinks';
-import EmailVerificationSection from '@/components/registration/EmailVerificationSection';
-import useRegistrationEmailOtp, {
-    type RegistrationEmailVerification,
-    type RegistrationEmailOtpControls,
-} from '@/hooks/useRegistrationEmailOtp';
 import {
     ChangeEvent,
     FormEvent,
@@ -44,8 +40,6 @@ type Sector = {
 type Props = {
     barangays?: Barangay[];
     sectors?: Sector[];
-    emailVerification?: RegistrationEmailVerification;
-    emailVerificationRequired?: boolean;
 };
 
 type ClientErrors = Record<string, string>;
@@ -70,8 +64,6 @@ export default function Register(props: Props) {
 function RegistrationContent({
     barangays,
     sectors,
-    emailVerification,
-    emailVerificationRequired = false,
 }: Props) {
     const safeBarangays = Array.isArray(barangays) ? barangays : [];
     const safeSectors = Array.isArray(sectors) ? sectors : [];
@@ -83,6 +75,7 @@ function RegistrationContent({
     );
 
     const [savedDraft] = useState(readRegistrationDraft);
+    const [submissionFeedback, setSubmissionFeedback] = useState<{ kind: 'error'; message: string } | null>(null);
     const [step, setStep] = useState(savedDraft?.step ?? 1);
     const [draftFilesReady, setDraftFilesReady] = useState(false);
     const [draftStorageError, setDraftStorageError] = useState(false);
@@ -107,8 +100,7 @@ function RegistrationContent({
             address_line: '',
             sectors: [] as string[],
             mobile: '',
-            email: emailVerification?.email ?? '',
-            email_verified: emailVerification?.status === 'verified',
+            email: '',
             qr_token: '',
             ...savedDraft?.fields,
             sex: (savedDraft?.fields.sex ?? '') as Sex,
@@ -157,10 +149,6 @@ function RegistrationContent({
         void saveRegistrationFiles(files).catch(() => setDraftStorageError(true));
     }, [draftFilesReady, data.valid_id, data.live_identity_photo, data.senior_proof, data.pwd_proof]);
 
-    const emailOtp = useRegistrationEmailOtp(
-        data.email,
-        emailVerificationRequired ? emailVerification : undefined,
-    );
 
     const selectedBarangay = useMemo(
         () =>
@@ -213,21 +201,6 @@ function RegistrationContent({
         });
     };
 
-    useEffect(() => {
-        setData('email_verified', emailOtp.verified);
-    }, [emailOtp.verified, setData]);
-
-    useEffect(() => {
-        if (emailOtp.verified) {
-            setClientErrors((current) => {
-                if (!('email_verification' in current)) return current;
-                const next = { ...current };
-                delete next.email_verification;
-                return next;
-            });
-            clearErrors('email_verification' as never);
-        }
-    }, [emailOtp.verified, clearErrors]);
 
     const chooseBarangay = (value: string) => {
         setData('barangay_id', value);
@@ -306,7 +279,7 @@ function RegistrationContent({
                 nextErrors.last_name = 'Last name is required.';
             }
 
-            if (!data.birthdate) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(data.birthdate)) {
                 nextErrors.birthdate = 'Birthdate is required.';
             }
 
@@ -366,14 +339,8 @@ function RegistrationContent({
                     'Enter a valid Philippine mobile number, for example 09171234567.';
             }
 
-            if (!data.email.trim()) {
-                nextErrors.email = 'Email address is required.';
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
+            if (data.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
                 nextErrors.email = 'Enter a valid email address.';
-            }
-            if (emailVerificationRequired && !emailOtp.verified) {
-                nextErrors.email_verification =
-                    'Verify your email with an OTP before continuing.';
             }
 
             if (!data.password) {
@@ -427,15 +394,6 @@ function RegistrationContent({
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (emailVerificationRequired && !emailOtp.verified) {
-            setClientErrors({
-                email_verification:
-                    'Verify your email with an OTP before submitting registration.',
-            });
-            setStep(5);
-            scrollTop();
-            return;
-        }
 
         if (!validateStep(6)) {
             return;
@@ -452,9 +410,6 @@ function RegistrationContent({
                 void clearRegistrationDraft().catch(() => {});
             },
             onError: (serverErrors) => {
-                if ('email_verification' in serverErrors) {
-                    emailOtp.reset();
-                }
                 const keys = Object.keys(serverErrors);
 
                 if (keys.some((key) => ['barangay_id'].includes(key))) {
@@ -497,7 +452,6 @@ function RegistrationContent({
                         [
                             'mobile',
                             'email',
-                            'email_verification',
                             'password',
                             'password_confirmation',
                         ].includes(key),
@@ -510,11 +464,11 @@ function RegistrationContent({
                 const messages = Object.values(serverErrors).filter(
                     (value): value is string => typeof value === 'string',
                 );
-                emailOtp.showError(
+                setSubmissionFeedback({ kind: 'error', message:
                     messages.length > 0
                         ? messages.join('\n')
                         : 'Please correct the highlighted fields and try again.',
-                );
+                });
             },
             onFinish: () => setData('qr_token', ''),
         });
@@ -544,27 +498,27 @@ function RegistrationContent({
             <Head title="Create Resident Account" />
 
             <div className="min-h-screen bg-[#f7f6f0]">
-                {emailOtp.feedback && (
+                {submissionFeedback && (
                     <div
                         role={
-                            emailOtp.feedback.kind === 'error'
+                            submissionFeedback.kind === 'error'
                                 ? 'alert'
                                 : 'status'
                         }
                         aria-live={
-                            emailOtp.feedback.kind === 'error'
+                            submissionFeedback.kind === 'error'
                                 ? 'assertive'
                                 : 'polite'
                         }
-                        className={`fixed top-4 right-4 z-[100] flex max-w-[calc(100vw-2rem)] items-start gap-3 rounded-xl border p-4 text-sm shadow-lg sm:max-w-md ${emailOtp.feedback.kind === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-900'}`}
+                        className={`fixed top-4 right-4 z-[100] flex max-w-[calc(100vw-2rem)] items-start gap-3 rounded-xl border p-4 text-sm shadow-lg sm:max-w-md ${submissionFeedback.kind === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-900'}`}
                     >
                         <span className="whitespace-pre-line">
-                            {emailOtp.feedback.message}
+                            {submissionFeedback.message}
                         </span>
                         <button
                             type="button"
                             aria-label="Dismiss notification"
-                            onClick={emailOtp.dismissFeedback}
+                            onClick={() => setSubmissionFeedback(null)}
                             className="font-bold"
                         >
                             ×
@@ -738,10 +692,6 @@ function RegistrationContent({
                                 {step === 5 && (
                                     <AccountSecurityStep
                                         data={data}
-                                        emailOtp={emailOtp}
-                                        emailVerificationRequired={
-                                            emailVerificationRequired
-                                        }
                                         errors={fieldError}
                                         setData={setData}
                                         clearFieldError={clearFieldError}
@@ -769,13 +719,8 @@ function RegistrationContent({
                                         birthdate={data.birthdate}
                                         sex={data.sex}
                                         civilStatus={data.civil_status}
-                                        mobile={data.mobile}
-                                        email={
-                                            emailVerificationRequired &&
-                                            emailOtp.verified
-                                                ? `${data.email} · OTP verified`
-                                                : data.email
-                                        }
+                                        mobile={`${data.mobile} · Unverified`}
+                                        email={data.email}
                                         sectorNames={selectedSectorNames}
                                         validId={data.valid_id}
                                         livePhoto={data.live_identity_photo}
@@ -844,12 +789,6 @@ function RegistrationContent({
                                     <button
                                         type="button"
                                         onClick={nextStep}
-                                        disabled={
-                                            step === 5 &&
-                                            emailVerificationRequired &&
-                                            (!emailOtp.verified ||
-                                                emailOtp.busy !== null)
-                                        }
                                         className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         Continue
@@ -858,11 +797,7 @@ function RegistrationContent({
                                 ) : (
                                     <button
                                         type="submit"
-                                        disabled={
-                                            processing ||
-                                            (emailVerificationRequired &&
-                                                !emailOtp.verified)
-                                        }
+                                        disabled={processing}
                                         className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {processing ? (
@@ -1516,8 +1451,6 @@ function IdentityVerificationStep({
 
 function AccountSecurityStep({
     data,
-    emailOtp,
-    emailVerificationRequired,
     errors,
     setData,
     clearFieldError,
@@ -1526,8 +1459,6 @@ function AccountSecurityStep({
     togglePassword,
     togglePasswordConfirmation,
 }: {
-    emailOtp: RegistrationEmailOtpControls;
-    emailVerificationRequired: boolean;
     data: {
         mobile: string;
         email: string;
@@ -1547,7 +1478,7 @@ function AccountSecurityStep({
             <div>
                 <SectionTitle
                     title="Contact Information"
-                    description="Your contact details will be used for account and barangay service notifications."
+                    description="Mobile number – Unverified. Mobile verification is not yet available. Email is optional."
                 />
 
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -1564,36 +1495,10 @@ function AccountSecurityStep({
                         }}
                     />
 
-                    {emailVerificationRequired ? (
-                        <EmailVerificationSection
-                            email={data.email}
-                            controls={emailOtp}
-                            error={
-                                errors('email') || errors('email_verification')
-                            }
-                            onEmailChange={(value) => {
-                                setData('email', value);
-                                clearFieldError('email');
-                                clearFieldError('email_verification');
-                            }}
-                        />
-                    ) : (
-                        <InputField
-                            label="Email address"
-                            required
-                            type="email"
-                            value={data.email}
-                            placeholder="you@gmail.com"
-                            error={errors('email')}
-                            onChange={(value) => {
-                                setData('email', value);
-                                clearFieldError('email');
-                            }}
-                        />
-                    )}
-                    {!emailVerificationRequired && (
+                    <InputField label="Email address (optional)" type="email" value={data.email} placeholder="Optional" error={errors('email')} onChange={(value) => { setData('email', value); clearFieldError('email'); }} />
+                    {(
                         <p className="text-xs text-gray-500 sm:col-span-2">
-                            Dito ipapadala ang approval, correction request, o
+                            Kung may email, dito ipapadala ang approval, correction request, o
                             ibang desisyon ng admin. Siguraduhing tama at aktibo
                             ang email address.
                         </p>
@@ -2532,7 +2437,9 @@ function InputField({
                 {label}
                 {required && <span className="ml-1 text-red-500">*</span>}
             </span>
-            <input
+            {type === 'date' ? (
+                <BirthdateInput value={value} onChange={onChange} required={required} />
+            ) : <input
                 type={type}
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
@@ -2543,7 +2450,7 @@ function InputField({
                         ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
                         : 'border-gray-300 focus:border-[#3f6f3d] focus:ring-[#3f6f3d]/15',
                 ].join(' ')}
-            />
+            />}
             {helper && !error && (
                 <p className="mt-1.5 text-xs text-gray-400">{helper}</p>
             )}

@@ -9,7 +9,6 @@ use App\Models\ResidentRegistration;
 use App\Models\ResidentRegistrationCorrectionCycle;
 use App\Support\AuditLogger;
 use App\Support\ResidentRegistrationCorrectionPolicy;
-use App\Support\ResidentRegistrationEmailVerificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +24,6 @@ class ResidentRegistrationCorrectionController extends Controller
     public function resubmit(
         Request $request,
         string $reference,
-        ResidentRegistrationEmailVerificationService $emailVerification,
     ): RedirectResponse {
         $context = $request->session()->get(EnsureResidentRegistrationAccess::SESSION_KEY);
         abort_unless(is_array($context) && isset($context['registration_id']), 404);
@@ -256,18 +254,6 @@ class ResidentRegistrationCorrectionController extends Controller
             $request->ip(),
         );
 
-        if ($emailChanged && config('registration.email_verification_required', false)) {
-            $updatedRegistration = $registration->fresh();
-            if ($updatedRegistration?->email !== null && trim($updatedRegistration->email) !== '') {
-                try {
-                    $emailVerification->send($updatedRegistration);
-                } catch (Throwable $exception) {
-                    Log::warning('Unable to send Resident registration email verification after correction.', [
-                        'exception' => $exception::class,
-                    ]);
-                }
-            }
-        }
 
         return back()->with('success', 'Your correction was submitted for Admin review.');
     }

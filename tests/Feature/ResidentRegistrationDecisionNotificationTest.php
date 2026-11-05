@@ -30,7 +30,6 @@ class ResidentRegistrationDecisionNotificationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['registration.email_verification_required' => true]);
         $this->withoutVite();
         Mail::fake();
         $this->barangay = $this->createBarangay('Decision Mail Barangay', 'DECISION-MAIL');
@@ -117,10 +116,9 @@ class ResidentRegistrationDecisionNotificationTest extends TestCase
 
         $notice = ResidentNotification::query()->firstOrFail();
         $this->assertSame('rejected', $registration->fresh()->status);
-        $this->assertNull($notice->email_safe_reason);
-        $this->assertSame('deferred', $notice->status);
-        $this->assertSame('resident_reason_unavailable', $notice->failure_class);
-        Mail::assertNothingSent();
+        $this->assertNotNull($notice->email_safe_reason);
+        $this->assertSame('sent', $notice->status);
+        Mail::assertSent(ResidentRegistrationDecisionMail::class, fn ($mail) => !str_contains($mail->emailSafeReason, 'Internal-only'));
     }
 
     public function test_changed_registration_email_defers_unsent_decision_notice_and_clears_verification(): void
@@ -151,11 +149,11 @@ class ResidentRegistrationDecisionNotificationTest extends TestCase
         $this->assertSame('recipient_email_changed', $notice->fresh()->failure_class);
     }
 
-    public function test_unverified_recipient_defers_notice_without_blocking_registration_decision(): void
+    public function test_absent_email_defers_notice_without_blocking_registration_decision(): void
     {
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
             'mobile' => '09980000907',
-            'email' => 'unverified@example.test',
+            'email' => null,
         ]);
         $admin = $this->createStaff($this->barangay, 'admin');
 
@@ -167,7 +165,7 @@ class ResidentRegistrationDecisionNotificationTest extends TestCase
         $notice = ResidentNotification::query()->firstOrFail();
         $this->assertSame('rejected', $registration->fresh()->status);
         $this->assertSame('deferred', $notice->status);
-        $this->assertSame('recipient_unverified', $notice->failure_class);
+        $this->assertSame('no_email_supplied', $notice->failure_class);
         Mail::assertNothingSent();
     }
 
@@ -321,7 +319,6 @@ class ResidentRegistrationDecisionNotificationTest extends TestCase
 
     public function test_unverified_applicant_receives_correction_email_when_otp_is_disabled(): void
     {
-        config(['registration.email_verification_required' => false]);
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, ['email' => 'no-otp@example.test']);
         $admin = $this->createStaff($this->barangay, 'admin');
         $this->actingAs($admin)->post('/admin/residents/'.$registration->id.'/correction', ['instructions' => 'Please correct your first name.', 'field_targets' => ['first_name']])->assertRedirect();
@@ -331,7 +328,6 @@ class ResidentRegistrationDecisionNotificationTest extends TestCase
 
     public function test_unverified_applicant_receives_safe_rejection_email_when_otp_is_disabled(): void
     {
-        config(['registration.email_verification_required' => false]);
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, ['email' => 'no-otp@example.test']);
         $admin = $this->createStaff($this->barangay, 'admin');
         $this->actingAs($admin)->post('/admin/residents/'.$registration->id.'/reject', ['reason' => 'Private admin review notes.'])->assertRedirect();
@@ -340,7 +336,6 @@ class ResidentRegistrationDecisionNotificationTest extends TestCase
 
     public function test_unverified_applicant_receives_approval_email_when_otp_is_disabled(): void
     {
-        config(['registration.email_verification_required' => false]);
         $registration = $this->createPendingRegistration($this->barangay, $this->purok, ['email' => 'no-otp@example.test']);
         $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170000999', 'email' => 'no-otp@example.test']);
         $resident->update(['source' => 'admin']);

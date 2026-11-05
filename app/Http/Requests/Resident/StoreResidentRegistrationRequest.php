@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Resident;
 
 use App\Models\Purok;
-use App\Support\RegistrationEmailOtp;
 use App\Support\ResidentRegistrationDuplicateChecker;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -49,9 +48,7 @@ class StoreResidentRegistrationRequest extends FormRequest
                 : null,
             'address_line' => trim((string) $this->address_line),
             'mobile' => $mobile,
-            'email' => $this->email
-                ? strtolower(trim((string) $this->email))
-                : null,
+            'email' => trim((string) $this->email) !== '' ? strtolower(trim((string) $this->email)) : null,
             'sectors' => array_values(
                 array_unique((array) $this->input('sectors', []))
             ),
@@ -184,7 +181,7 @@ class StoreResidentRegistrationRequest extends FormRequest
             ],
 
             'email' => [
-                'required',
+                'nullable',
                 'email:rfc',
                 'max:255',
             ],
@@ -247,9 +244,6 @@ class StoreResidentRegistrationRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if (config('registration.email_verification_required', false) && ! $validator->errors()->has('email') && ! app(RegistrationEmailOtp::class)->isVerified($this, (string) $this->email)) {
-                $validator->errors()->add('email_verification', 'Verify your email with an OTP before submitting registration.');
-            }
 
             /*
             |--------------------------------------------------------------------------

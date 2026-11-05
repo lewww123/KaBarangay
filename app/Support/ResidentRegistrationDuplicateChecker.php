@@ -11,8 +11,11 @@ final class ResidentRegistrationDuplicateChecker
     public function find(array $input): ?string
     {
         $identity = function (Builder $query) use ($input): void {
-            $query->whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($input['email']))])
-                ->orWhere('mobile', $input['mobile'])
+            $email = strtolower(trim((string) ($input['email'] ?? '')));
+            if ($email !== '') {
+                $query->whereRaw('LOWER(TRIM(email)) = ?', [$email]);
+            }
+            $query->orWhere('mobile', $input['mobile'])
                 ->orWhere(function (Builder $person) use ($input): void {
                     $person->whereRaw('LOWER(TRIM(first_name)) = ?', [strtolower(trim($input['first_name']))])
                         ->whereRaw('LOWER(TRIM(last_name)) = ?', [strtolower(trim($input['last_name']))])

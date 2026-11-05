@@ -2,7 +2,6 @@
 
 namespace Tests\Concerns;
 
-use App\Mail\RegistrationOtpMail;
 use App\Models\Announcement;
 use App\Models\Barangay;
 use App\Models\DisbursementDocument;
@@ -20,20 +19,6 @@ use Illuminate\Support\Testing\Fakes\MailFake;
 
 trait CreatesBarangayFixtures
 {
-    private function verifyRegistrationEmailForSubmission(string $email): void
-    {
-        if (! config('registration.email_verification_required', false)) {
-            return;
-        }
-        if (! (Mail::getFacadeRoot() instanceof MailFake)) {
-            Mail::fake();
-        }
-        $email = strtolower(trim($email));
-        $this->postJson('/register/send-otp', ['email' => $email])->assertOk();
-        $mail = Mail::sent(RegistrationOtpMail::class)->filter(fn ($mail) => $mail->hasTo($email))->last();
-        $this->postJson('/register/verify-otp', ['email' => $email, 'code' => $mail->verificationCode])
-            ->assertOk()->assertJsonPath('status', 'verified');
-    }
 
     private function createBarangay(string $name, string $code): Barangay
     {

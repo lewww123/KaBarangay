@@ -1,317 +1,60 @@
 <?php
-
 namespace Tests\Feature;
-
-use App\Mail\RegistrationOtpMail;
-use App\Mail\ResidentRegistrationApprovedMail;
-use App\Models\Purok;
 use App\Models\ResidentRegistration;
-use App\Support\RegistrationEmailOtp;
-use App\Support\ResidentRegistrationEmailVerificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Mail\PendingMail;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Mockery;
-use RuntimeException;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
-
 class RegistrationEmailOtpTest extends TestCase
 {
     use CreatesBarangayFixtures, RefreshDatabase;
-
-    protected function setUp(): void
+    protected function setUp(): void { parent::setUp(); $this->withoutVite(); Storage::fake('local'); Mail::fake(); }
+    public function test_optional_email_and_unverified_mobile_submission_without_otp(): void
     {
-        parent::setUp();
-        config(['registration.email_verification_required' => true]);
-        $this->freezeTime();
-        $this->withoutVite();
-        Mail::fake();
-        Storage::fake('local');
-    }
-
-    private function sendCode(string $email = 'resident@example.test'): string
-    {
-        $this->postJson('/register/send-otp', ['email' => $email])->assertOk()
-            ->assertJsonPath('status', 'pending')->assertJsonPath('retry_after', 60);
-
-        return Mail::sent(RegistrationOtpMail::class)->last()->verificationCode;
-    }
-
-    public function test_send_delivers_six_digits_and_caches_only_a_hash_for_ten_minutes(): void
-    {
-        $code = $this->sendCode(' Resident@Example.Test ');
-        $this->assertMatchesRegularExpression('/^[0-9]{6}$/D', $code);
-        Mail::assertSent(RegistrationOtpMail::class, fn ($mail) => $mail->hasTo('resident@example.test'));
-        $context = session(RegistrationEmailOtp::SESSION_KEY);
-        $record = Cache::get('registration:email-otp:'.hash_hmac('sha256', $context['id'], config('app.key')));
-        $this->assertSame(64, strlen($record['code_hash']));
-        $this->assertNotSame($code, $record['code_hash']);
-        $this->assertArrayNotHasKey('code', $record);
-        $this->assertSame(600, $record['expires_at'] - now()->timestamp);
-        $this->assertDatabaseCount('resident_registrations', 0);
-        $this->assertDatabaseCount('resident_accounts', 0);
-    }
-
-    public function test_send_requires_a_valid_email(): void
-    {
-        $this->postJson('/register/send-otp', ['email' => 'not-email'])->assertUnprocessable()->assertJsonValidationErrors('email');
-        Mail::assertNothingSent();
-    }
-
-    public function test_resend_is_blocked_for_sixty_seconds_and_replaces_the_old_code(): void
-    {
-        $oldCode = $this->sendCode();
-        $previousChallenge = session(RegistrationEmailOtp::SESSION_KEY)['id'];
-        $this->postJson('/register/send-otp', ['email' => 'resident@example.test'])->assertStatus(429)->assertHeader('Retry-After', '60');
-        Mail::assertSent(RegistrationOtpMail::class, 1);
-        $this->travel(61)->seconds();
-        $newCode = $this->sendCode();
-        $this->assertNotSame($previousChallenge, session(RegistrationEmailOtp::SESSION_KEY)['id']);
-        // Random codes can coincide; a replaced challenge is identified by its
-        // fresh nonce, so only assert old-code rejection when the values differ.
-        if ($newCode !== $oldCode) {
-            $this->postJson('/register/verify-otp', ['email' => 'resident@example.test', 'code' => $oldCode])->assertUnprocessable();
-        }
-        $this->postJson('/register/verify-otp', ['email' => 'resident@example.test', 'code' => $newCode])->assertOk()->assertJsonPath('status', 'verified');
-    }
-
-    public function test_wrong_and_expired_codes_do_not_verify(): void
-    {
-        $code = $this->sendCode();
-        $wrong = $code === '000000' ? '111111' : '000000';
-        $this->postJson('/register/verify-otp', ['email' => 'resident@example.test', 'code' => $wrong])->assertUnprocessable()->assertJsonValidationErrors('code');
-        $this->travel(601)->seconds();
-        $this->postJson('/register/verify-otp', ['email' => 'resident@example.test', 'code' => $code])->assertUnprocessable()->assertJsonValidationErrors('code');
-    }
-
-    public function test_otp_is_bound_to_its_email_and_browser_session(): void
-    {
-        $code = $this->sendCode();
-        $this->postJson('/register/verify-otp', ['email' => 'other@example.test', 'code' => $code])->assertUnprocessable();
-        $this->flushSession();
-        $this->postJson('/register/verify-otp', ['email' => 'resident@example.test', 'code' => $code])->assertUnprocessable();
-    }
-
-    public function test_five_failed_attempts_require_a_fresh_otp(): void
-    {
-        $code = $this->sendCode();
-        $wrong = $code === '000000' ? '111111' : '000000';
-        foreach (range(1, 5) as $attempt) {
-            $this->postJson('/register/verify-otp', ['email' => 'resident@example.test', 'code' => $wrong])->assertUnprocessable();
-        }
-        $this->postJson('/register/verify-otp', ['email' => 'resident@example.test', 'code' => $code])->assertUnprocessable();
-    }
-
-    public function test_verification_retries_do_not_extend_the_verified_session_proof(): void
-    {
-        $code = $this->sendCode();
-        $this->postJson('/register/verify-otp', ['email' => 'resident@example.test', 'code' => $code])->assertOk()->assertJsonPath('expires_in', 600);
-        $this->travel(30)->seconds();
-        $this->postJson('/register/verify-otp', ['email' => 'resident@example.test', 'code' => $code])->assertOk()->assertJsonPath('expires_in', 570);
-        $this->travel(571)->seconds();
-        $this->assertFalse(app(RegistrationEmailOtp::class)->isVerified(request(), 'resident@example.test'));
-    }
-
-    public function test_registration_rejects_an_unverified_email_and_forged_verified_flags(): void
-    {
-        $this->postJson('/resident/register', [...$this->payload(), 'email_verified' => true, 'email_verified_at' => now()->toIso8601String()])
-            ->assertUnprocessable()->assertJsonValidationErrors('email_verification');
-        $this->assertDatabaseCount('resident_registrations', 0);
-        $this->assertDatabaseCount('resident_accounts', 0);
-        $this->assertCount(0, Storage::disk('local')->allFiles());
-    }
-
-    public function test_verified_email_can_submit_once_and_persists_verification_evidence(): void
-    {
-        $payload = $this->payload();
-        $code = $this->sendCode();
-        $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
-        $this->post('/resident/register', $payload)->assertRedirect()->assertSessionHasNoErrors();
-        $registration = ResidentRegistration::firstOrFail();
-        $this->assertSame('pending', $registration->status);
-        $this->assertNotNull($registration->email_verified_at);
-        $this->assertSame($payload['email'], app(ResidentRegistrationEmailVerificationService::class)->verifiedDecisionEmail($registration));
-        $this->assertNull(session(RegistrationEmailOtp::SESSION_KEY));
-        $this->assertDatabaseCount('resident_accounts', 0);
-        $this->assertDatabaseCount('resident_registration_email_verification_tokens', 1);
-        $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertUnprocessable();
-    }
-
-    public function test_verified_proof_does_not_authorize_a_different_email(): void
-    {
-        $payload = $this->payload();
-        $code = $this->sendCode();
-        $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
-        $this->postJson('/resident/register', [...$payload, 'email' => 'changed@example.test'])
-            ->assertUnprocessable()->assertJsonValidationErrors('email_verification');
-        $this->assertDatabaseCount('resident_registrations', 0);
-    }
-
-    public function test_failed_registration_validation_keeps_the_verified_proof_available(): void
-    {
-        $payload = $this->payload();
-        $code = $this->sendCode();
-        $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
-        $this->postJson('/resident/register', [...$payload, 'password_confirmation' => 'wrong'])
-            ->assertUnprocessable()->assertJsonValidationErrors('password');
-        $this->post('/resident/register', $payload)->assertRedirect()->assertSessionHasNoErrors();
-        $this->assertDatabaseCount('resident_registrations', 1);
-    }
-
-    public function test_expired_verification_cannot_submit_even_with_a_verified_client_flag(): void
-    {
-        $payload = $this->payload();
-        $code = $this->sendCode();
-        $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
-        $this->travel(601)->seconds();
-        $this->postJson('/resident/register', [...$payload, 'email_verified' => true])
-            ->assertUnprocessable()->assertJsonValidationErrors('email_verification');
-        $this->assertDatabaseCount('resident_registrations', 0);
-    }
-
-    public function test_failed_registration_transaction_preserves_proof_for_a_successful_retry(): void
-    {
-        $payload = $this->payload();
-        $code = $this->sendCode();
-        $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
-        $fail = true;
-        ResidentRegistration::creating(function () use (&$fail): void {
-            if ($fail) {
-                throw new RuntimeException('Simulated registration failure');
-            }
-        });
-        $this->post('/resident/register', $payload)->assertSessionHasErrors('registration');
-        $this->assertDatabaseCount('resident_registrations', 0);
-        $fail = false;
-        $this->post('/resident/register', $payload)->assertSessionHasNoErrors();
-        $this->assertDatabaseCount('resident_registrations', 1);
-    }
-
-    public function test_mail_failure_returns_error_without_marking_email_verified_or_starting_a_cooldown(): void
-    {
-        $pending = Mockery::mock(PendingMail::class);
-        Mail::shouldReceive('to')->with('resident@example.test')->twice()->andReturn($pending);
-        $pending->shouldReceive('send')->twice()->andThrow(new RuntimeException('Simulated SMTP failure'));
-        $this->postJson('/register/send-otp', ['email' => 'resident@example.test'])->assertStatus(503);
-        $this->postJson('/register/send-otp', ['email' => 'resident@example.test'])->assertStatus(503);
-        $this->assertNull(session(RegistrationEmailOtp::SESSION_KEY));
-    }
-
-    public function test_registration_can_submit_without_otp_and_without_sending_email(): void
-    {
-        config(['registration.email_verification_required' => false]);
-        $payload = $this->payload();
-        $this->post('/resident/register', [...$payload, 'email_verified' => true])->assertRedirect()->assertSessionHasNoErrors();
-        $registration = ResidentRegistration::firstOrFail();
-        $this->assertSame('pending', $registration->status);
-        $this->assertSame($payload['email'], $registration->email);
-        $this->assertNull($registration->email_verified_at);
-        $this->assertDatabaseCount('resident_registration_email_verification_tokens', 0);
-        $this->assertDatabaseCount('resident_accounts', 0);
-        Mail::assertNothingSent();
-        $this->postJson('/register/send-otp', ['email' => $payload['email']])->assertStatus(409)->assertJsonPath('email_verification_required', false)->assertJsonPath('reload_required', true);
-    }
-
-    public function test_email_format_is_still_validated_when_otp_is_disabled(): void
-    {
-        config(['registration.email_verification_required' => false]);
-        $payload = $this->payload();
-        $this->postJson('/resident/register', [...$payload, 'email' => 'invalid-email'])->assertUnprocessable()->assertJsonValidationErrors('email');
-        $this->assertDatabaseCount('resident_registrations', 0);
-        Mail::assertNothingSent();
-    }
-
-    public function test_each_barangay_accepts_verified_registration_and_shows_pending_approval(): void
-    {
-        foreach (['San Jose', 'Sicsican', 'Sta. Monica'] as $index => $name) {
+        foreach ([null, '   ', 'optional@example.test'] as $index => $email) {
             $payload = $this->payload((string) $index);
-            $barangay = $this->createBarangay($name, 'FLOW-'.$index);
-            $payload['barangay_id'] = $barangay->id;
-            $payload['purok_id'] = $this->createPurok($barangay)->id;
-            $payload['first_name'] = 'Applicant'.$index;
-            $payload['email'] = 'applicant'.$index.'@example.test';
-            $payload['mobile'] = '0998000071'.$index;
-            $code = $this->sendCode($payload['email']);
-            $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
-            $this->post('/resident/register', $payload)
-                ->assertRedirect(route('resident.registration.submitted'))->assertSessionHasNoErrors();
-            $this->get(route('resident.registration.submitted'))->assertOk()
-                ->assertInertia(fn ($page) => $page->component('Resident/RegistrationPending'));
-            $this->assertDatabaseHas('resident_registrations', ['barangay_id' => $barangay->id, 'status' => 'pending']);
-            $admin = $this->createStaff($barangay, 'admin');
-            $this->actingAs($admin)->get('/admin/residents')->assertOk()
-                ->assertInertia(fn ($page) => $page
-                    ->where('pendingRegistrations.total', 1)
-                    ->where('pendingRegistrations.data.0.email', $payload['email'])
-                    ->where('stats.pendingRegistrations', 1));
-
-            $registration = ResidentRegistration::query()
-                ->where('email', $payload['email'])->firstOrFail();
-            $resident = $this->createResident($barangay, Purok::findOrFail($payload['purok_id']), [
-                'mobile' => '0917000071'.$index,
-            ]);
-            $resident->update(['source' => 'admin']);
-            $resident->account()->delete();
-
-            // Admin review commonly happens long after the OTP has expired.
-            $this->travel(2)->days();
-            $this->post('/admin/residents/'.$registration->id.'/approve', [
-                'resident_id' => $resident->id,
-            ])->assertRedirect()->assertSessionHasNoErrors();
-
-            $this->assertSame('approved', $registration->fresh()->status);
-            $this->assertDatabaseHas('resident_notification_outbox', [
-                'resident_registration_id' => $registration->id,
-                'decision_type' => 'approved',
-                'status' => 'sent',
-                'recipient_email' => $payload['email'],
-            ]);
-            Mail::assertSent(ResidentRegistrationApprovedMail::class, fn ($mail) => $mail->hasTo($payload['email']) &&
-                $mail->residentNumber === $resident->resident_number &&
-                getimagesizefromstring($mail->qrCodePng)['mime'] === 'image/png'
-            );
+            $payload['email'] = $email;
+            $payload['last_name'] = 'Applicant'.$index;
+            $payload['mobile'] = '0998000070'.$index;
+            $payload['mobile_verified_at'] = now()->toIso8601String();
+            $payload['email_verified_at'] = now()->toIso8601String();
+            $payload['email_verified'] = true;
+            $payload['status'] = 'approved';
+            $this->post('/resident/register', $payload)->assertSessionHasNoErrors()->assertRedirect(route('resident.registration.submitted'));
+            $registration = ResidentRegistration::where('mobile', $payload['mobile'])->sole();
+            $this->assertSame($index < 2 ? null : $email, $registration->email);
+            $this->assertSame('pending', $registration->status);
+            $this->assertNull($registration->mobile_verified_at);
+            $this->assertNull($registration->email_verified_at);
         }
-        $this->assertDatabaseCount('resident_accounts', 6);
+        $this->assertDatabaseCount('resident_accounts', 0);
+        $this->assertDatabaseCount('resident_registration_email_verification_tokens', 0);
+        Mail::assertNothingSent();
     }
-
-    public function test_same_person_cannot_apply_in_another_barangay_with_new_contact_details(): void
+    public function test_removed_registration_otp_endpoints_cannot_send_or_verify(): void
+    {
+        foreach (['/register/send-otp', '/register/verify-otp', '/resident/register/verification/resend', '/resident/application/123/email-verification'] as $path) {
+            $this->postJson($path, ['email' => 'test@example.test', 'code' => '123456'])->assertNotFound();
+        }
+        Mail::assertNothingSent();
+    }
+    public function test_invalid_email_required_mobile_and_documents_remain_enforced(): void
+    {
+        $payload = $this->payload(); $payload['email'] = 'invalid'; $payload['mobile'] = '';
+        unset($payload['valid_id'], $payload['live_identity_photo']);
+        $this->postJson('/resident/register', $payload)->assertUnprocessable()->assertJsonValidationErrors(['email', 'mobile', 'valid_id', 'live_identity_photo']);
+    }
+    public function test_duplicate_email_and_mobile_still_reject_existing_applicants(): void
     {
         $payload = $this->payload();
-        $original = $this->createBarangay('San Jose', 'DUP-SJ');
-        $existing = $this->createPendingRegistration($original, $this->createPurok($original), [
-            'first_name' => $payload['first_name'], 'last_name' => $payload['last_name'],
-            'middle_name' => null, 'suffix' => null, 'birthdate' => $payload['birthdate'],
-            'mobile' => '09989999999', 'email' => 'original@example.test',
-        ]);
-        $existing->update(['birthdate' => $payload['birthdate']]);
-        $code = $this->sendCode();
-        $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
-        $this->postJson('/resident/register', $payload)->assertUnprocessable()
-            ->assertJsonValidationErrors('registration')
-            ->assertJsonPath('errors.registration.0', 'You are already registered in San Jose. Multiple resident accounts across barangays are not allowed. If your application is pending, please wait for admin approval.');
-        $this->assertDatabaseCount('resident_registrations', 1);
+        $this->post('/resident/register', $payload)->assertSessionHasNoErrors();
+        $second = $payload; $second['first_name'] = 'Different'; $second['mobile'] = '09980000799';
+        $this->postJson('/resident/register', $second)->assertUnprocessable()->assertJsonValidationErrors('registration');
+        $second['email'] = null; $second['mobile'] = $payload['mobile'];
+        $this->postJson('/resident/register', $second)->assertUnprocessable()->assertJsonValidationErrors('registration');
     }
-
-    public function test_existing_resident_account_blocks_registration_even_without_an_active_application(): void
-    {
-        $payload = $this->payload();
-        $original = $this->createBarangay('San Jose', 'ACCOUNT-SJ');
-        $resident = $this->createResident($original, $this->createPurok($original), [
-            'email' => $payload['email'], 'mobile' => '09989999999',
-        ]);
-        $resident->update(['email' => $payload['email']]);
-        $resident->registration->update(['status' => 'rejected']);
-        $code = $this->sendCode();
-        $this->postJson('/register/verify-otp', ['email' => $payload['email'], 'code' => $code])->assertOk();
-        $response = $this->postJson('/resident/register', $payload)->assertUnprocessable()->assertJsonValidationErrors('registration');
-        $this->assertStringContainsString('San Jose', $response->json('errors.registration.0'));
-        $this->assertDatabaseCount('resident_registrations', 1);
-    }
-
     private function payload(string $codeSuffix = ''): array
     {
         $barangay = $this->createBarangay('OTP Registration', 'OTP-REG'.$codeSuffix);

@@ -122,7 +122,6 @@ class ResidentCertificateAuditEventsTest extends TestCase
             'live_identity_photo' => $this->pngUpload('selfie.png'),
         ];
 
-        $this->verifyRegistrationEmailForSubmission($payload['email']);
         $this->post('/resident/register', $payload)->assertRedirect();
 
         $registration = ResidentRegistration::query()
