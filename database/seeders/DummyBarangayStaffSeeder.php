@@ -21,11 +21,16 @@ class DummyBarangayStaffSeeder extends Seeder
         DB::transaction(function (): void {
             foreach (['BSC' => ['Sicsican', 'sicsican'], 'BSM' => ['Sta. Monica', 'stamonica']] as $code => [$name, $slug]) {
                 $barangay = Barangay::query()->where('code', $code)->where('is_active', true)->firstOrFail();
-                $purok = Purok::query()->where('barangay_id', $barangay->id)->where('is_active', true)->orderBy('id')->first()
-                    ?? Purok::query()->firstOrCreate(
-                        ['barangay_id' => $barangay->id, 'code' => $code.'-DUMMY'],
-                        ['name' => 'Dummy Staff', 'is_active' => true],
-                    );
+                $purok = Purok::query()
+                    ->where('barangay_id', $barangay->id)
+                    ->where('is_active', true)
+                    ->where('code', 'like', $code.'-P%')
+                    ->orderBy('sort_order')
+                    ->get()
+                    ->first(fn (Purok $purok) => preg_match('/^'.preg_quote($code, '/').'-P0*[1-9][0-9]*$/', (string) $purok->code) === 1);
+                if (! $purok) {
+                    throw new \RuntimeException('Configure official puroks for '.$barangay->name.' before creating dummy staff.');
+                }
                 foreach ([
                     'clerk' => ['Staff', 'Barangay Clerk'],
                     'admin' => ['Admin', 'Barangay Secretary'],

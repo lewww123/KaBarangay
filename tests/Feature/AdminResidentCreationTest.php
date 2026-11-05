@@ -212,6 +212,37 @@ class AdminResidentCreationTest extends TestCase
         $this->assertSame($residentCount, Resident::count());
     }
 
+    public function test_unmapped_dummy_purok_returns_validation_error_and_rolls_back_creation(): void
+    {
+        Mail::fake();
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $dummy = Purok::query()->create([
+            'barangay_id' => $this->barangay->id,
+            'name' => 'Dummy Staff',
+            'code' => 'BRGY-ONE-DUMMY',
+            'sort_order' => 0,
+            'is_active' => true,
+        ]);
+        $residentCount = Resident::count();
+
+        $this->actingAs($admin)
+            ->from('/admin/residents')
+            ->post('/admin/residents', [
+                ...$this->residentData(),
+                'purok_id' => $dummy->id,
+                'household_mode' => 'new',
+                'household_relationship' => 'Head',
+            ])
+            ->assertRedirect('/admin/residents')
+            ->assertSessionHasErrors('purok_id');
+
+        $this->assertDatabaseCount('residents', $residentCount);
+        $this->assertDatabaseCount('households', 0);
+        $this->assertDatabaseCount('resident_number_sequences', 0);
+        $this->assertDatabaseCount('resident_notification_outbox', 0);
+        Mail::assertNothingOutgoing();
+    }
+
     /** @return array<string, int|string> */
     private function residentData(): array
     {

@@ -7,6 +7,7 @@ use App\Models\Purok;
 use App\Models\Resident;
 use App\Models\ResidentNumberSequence;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 final class ResidentNumberGenerator
@@ -132,8 +133,8 @@ final class ResidentNumberGenerator
             return (int) $purok->sort_order;
         }
 
-        throw new RuntimeException(
-            'Unable to determine the official Purok number for this Resident.'
-        );
+        throw ValidationException::withMessages([
+            'purok_id' => 'The selected purok has no official number. Choose an official purok or ask your administrator to correct its configuration.',
+        ]);
     }
 }
