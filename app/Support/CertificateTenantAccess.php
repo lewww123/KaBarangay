@@ -12,7 +12,7 @@ final class CertificateTenantAccess
 
         return match ($name) {
             'san jose', 'barangay san jose' => CertificateTemplates::types(),
-            'sicsican', 'barangay sicsican' => ['Business Clearance', 'Barangay Certification', 'Sicsican Indigency'],
+            'sicsican', 'barangay sicsican' => ['Business Clearance', 'Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'],
             default => CertificateTemplates::types(),
         };
     }
@@ -26,10 +26,10 @@ final class CertificateTenantAccess
 
         $name = strtolower(trim($barangay->name));
         if (in_array($name, ['sicsican', 'barangay sicsican'], true)) {
-            return in_array($type, ['Business Clearance', 'Barangay Certification', 'Sicsican Indigency'], true);
+            return in_array($type, ['Business Clearance', 'Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'], true);
         }
 
         // Preserve existing validation and reviewed-PDF types for other tenants.
-        return ! in_array($type, ['Business Clearance', 'Barangay Certification', 'Sicsican Indigency'], true);
+        return ! in_array($type, ['Business Clearance', 'Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'], true);
     }
 }

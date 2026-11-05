@@ -19,6 +19,7 @@ class CertificateRequestDetails
 
     /** @var array<string, string> */
     private const TYPE_BY_CODE = [
+        'sicsican-clearance' => 'Sicsican Clearance',
         'business-clearance' => 'Business Clearance',
         'barangay-certification' => 'Barangay Certification',
         'sicsican-indigency' => 'Sicsican Indigency',
@@ -37,6 +38,7 @@ class CertificateRequestDetails
 
     /** @var array<string, string> */
     private const TYPE_BY_NAME = [
+        'sicsican clearance' => 'Sicsican Clearance',
         'business clearance' => 'Business Clearance',
         'barangay certification' => 'Barangay Certification',
         'sicsican indigency' => 'Sicsican Indigency',

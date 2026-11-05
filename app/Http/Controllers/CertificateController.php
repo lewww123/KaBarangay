@@ -61,6 +61,16 @@ class CertificateController extends Controller
         return response()->file(resource_path('certificates/sicsican/indigency.jpg'), ['Cache-Control' => 'private, no-store']);
     }
 
+    public function sicsicanReferenceArtwork(Request $request)
+    {
+        abort_unless(CertificateTenantAccess::allows($request->user()->barangay_id, 'Sicsican Clearance'), 403);
+        $data = $request->validate([
+            'variant' => ['required', Rule::in(['residency', 'clearance', 'indigency', 'business'])],
+            'asset' => ['required', Rule::in(['image1.png', 'image3.png', 'image4.png'])],
+        ]);
+        return response()->file(resource_path('certificates/sicsican/'.$data['variant'].'/'.$data['asset']), ['Cache-Control' => 'private, no-store']);
+    }
+
     public function nextControlNumber(Request $request)
     {
         $type = $request->validate(['certificate_type' => ['required', 'string', 'max:100']])['certificate_type'];
@@ -111,7 +121,7 @@ class CertificateController extends Controller
         if ($preview) {
             unset($rules['details_confirmed']);
         }
-        if ($submittedType === 'Sicsican Indigency') {
+        if (in_array($submittedType, ['Sicsican Indigency', 'Sicsican Clearance'], true)) {
             $rules['purok'] = ['required', 'string', 'max:255'];
         }
         if ($submittedType === 'Barangay Certification') {

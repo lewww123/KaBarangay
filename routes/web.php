@@ -729,6 +729,7 @@ Route::group(['domain' => config('app.staff_domain')], function () {
             Route::post('/certificates/requests/{certificateRequest}/release', [ClerkCertificateRequestController::class, 'confirmRelease'])->name('certificates.requests.release');
             Route::get('/certificates/sicsican-indigency-artwork', [CertificateController::class, 'sicsicanIndigencyArtwork']);
         Route::get('/certificates/sicsican-certification-artwork', [CertificateController::class, 'sicsicanCertificationArtwork']);
+        Route::get('/certificates/sicsican-reference-artwork', [CertificateController::class, 'sicsicanReferenceArtwork']);
         Route::get('/certificates/sicsican-artwork', [CertificateController::class, 'sicsicanArtwork']);
             Route::get('/certificates/control-number', [CertificateController::class, 'nextControlNumber'])->name('certificates.control-number');
             Route::post('/generate-certificate', [CertificateController::class, 'generate'])->name('certificates.generate');

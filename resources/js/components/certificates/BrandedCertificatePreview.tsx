@@ -61,7 +61,7 @@ export default function BrandedCertificatePreview({
             active = false;
         };
     }, [body, certificateType, hasLiveContent, onReady]);
-    if (['Business Clearance', 'Barangay Certification', 'Sicsican Indigency'].includes(certificateType || ''))
+    if (['Business Clearance', 'Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'].includes(certificateType || ''))
         return (
             <div className="certificate-preview-frame">
                 <style>

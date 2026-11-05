@@ -1,4 +1,27 @@
-# Sicsican Business Clearance
+# Sicsican certificates
+
+## November 2026 replacement
+
+The four supplied Word references replace the old image-overlay previews in
+`SicsicanCertificatePreview.tsx`: RES (Barangay Certification), loan/emp
+(Sicsican Clearance), fa/med/hosbill (Sicsican Indigency), and BUSINESS DTI
+(Business Clearance). Preview, print and saved PDF share the same content.
+Original background/seal assets are stored privately in the residency,
+clearance, indigency and business subdirectories. The authenticated reference
+artwork endpoint validates the variant/asset and checks barangay access.
+
+Names, puroks, purposes, residency years, business details and the published
+captain are populated at runtime. Sample dates, gender, age assertions and
+authority signatories are not copied into issued documents. Neutral wording
+avoids asserting a sample resident's sex or age. Residency has its fixed
+proof-of-residency purpose. Historical PDFs remain unchanged.
+
+Run migration `2026_11_06_000001_add_sicsican_clearance.php` to provision the
+fourth catalog entry. The new entry starts at fee 0; existing settings and
+history are preserved. Fresh catalogs are also supported by the seeder.
+
+The sections below describe the superseded artwork endpoints retained for
+compatibility; the new previews use the reference-artwork endpoint instead.
 
 ## Certificate of Indigency
 

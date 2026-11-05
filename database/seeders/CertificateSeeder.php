@@ -172,6 +172,12 @@ class CertificateSeeder extends Seeder
                     'requirements' => ['Resident name', 'Purok', 'Purpose'],
                     'requires_business_details' => false, 'is_active' => true,
                 ]);
+                Certificate::firstOrCreate(['barangay_id' => $barangay->id, 'code' => 'sicsican-clearance'], [
+                    'name' => 'Barangay Clearance', 'fee' => 0,
+                    'description' => 'Barangay clearance for loan and employment applications.',
+                    'requirements' => ['Resident name', 'Purok', 'Purpose'],
+                    'requires_business_details' => false, 'is_active' => true,
+                ]);
                 continue;
             }
             if (! in_array(strtolower($barangay->name), ['san jose', 'barangay san jose'], true)) {

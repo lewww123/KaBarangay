@@ -41,7 +41,7 @@ class CertificateTenantAccessTest extends TestCase
                 Certificate::withoutGlobalScopes()->create(['barangay_id' => $barangay->id, 'code' => $code, 'name' => $code, 'fee' => 0, 'is_active' => true]);
             }
         }
-        $this->assertSame(['Business Clearance', 'Barangay Certification', 'Sicsican Indigency'], array_column(CertificateTemplates::options($sicsican->id), 'value'));
+        $this->assertSame(['Business Clearance', 'Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'], array_column(CertificateTemplates::options($sicsican->id), 'value'));
         $this->assertFalse(CertificateTenantAccess::allows($sanJose->id, 'Business Clearance'));
         $this->assertFalse(CertificateTenantAccess::allows($sicsican->id, 'Residency'));
         $this->assertEqualsCanonicalizing(['business-clearance', 'barangay-certification'], Certificate::where('barangay_id', $sicsican->id)->pluck('code')->all());

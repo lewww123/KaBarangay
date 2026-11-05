@@ -1,4 +1,4 @@
-import SicsicanIndigencyPreview from '@/components/certificates/SicsicanIndigencyPreview';
+import SicsicanCertificatePreview from '@/components/certificates/SicsicanCertificatePreview';
 import { resolveCertificateOfficials } from '@/lib/certificateOfficials';
 import ResidentAutocomplete from '@/components/certificates/ResidentAutocomplete';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -2440,111 +2440,7 @@ function Dashboard({
     );
 
     const renderDocumentPreview = () => {
-        if (data.certificate_type === 'Sicsican Indigency') return (
-            <SicsicanIndigencyPreview residentName={data.resident_name} purok={data.purok} purpose={data.purpose} controlNumber={data.control_no} captain={currentCaptain} />
-        );
-        if (data.certificate_type === 'Barangay Certification') {
-            const issueDate = new Date();
-            const validDate = !Number.isNaN(issueDate.getTime());
-            return <>
-                <img src="/clerk/certificates/sicsican-certification-artwork" alt="Barangay Sicsican Certification" />
-                <div className="sicsican-value" style={{left:'39.1%',top:'34.8%',width:'30.3%',height:'1.65%',padding:0,fontSize:data.resident_name.length > 28 ? '9pt' : '12pt'}}>{data.resident_name.toUpperCase()}</div>
-                <div className="sicsican-value" style={{left:'9.1%',top:'36.7%',width:'28.1%',height:'1.6%',padding:0}}>{data.purok.replace(/^purok\s*/i, '')}</div>
-                <div className="sicsican-value" style={{left:'9.1%',top:'42%',width:'21.4%',height:'1.6%',padding:0}}>{data.years_of_residency}</div>
-                <div className="sicsican-value" style={{left:'24.8%',top:'47.3%',width:'38.1%',height:'1.6%',padding:0,fontSize:data.purpose.length > 42 ? '9pt' : '12pt'}}>{data.purpose}</div>
-                <div className="sicsican-value" style={{left:'25%',top:'52.7%',width:'18.4%',height:'1.6%',padding:0,background:'transparent'}}>{validDate ? issueDate.getDate() : ''}</div>
-                <div className="sicsican-value" style={{left:'50.4%',top:'52.7%',width:'24.9%',height:'1.6%',padding:0,background:'transparent'}}>{validDate ? issueDate.toLocaleDateString('en-US', {month:'long', year:'numeric'}) : ''}</div>
-                <div className="sicsican-value" style={{left:'55%',top:'65.9%',width:'29%',height:'2.1%',padding:0}}>{currentCaptain?.name.toUpperCase() || '___________________'}</div>
-                <div className="sicsican-value" style={{left:'12%',top:'76%',width:'24%',height:'1.5%',justifyContent:'flex-start',padding:'0 0 0 2.5mm',fontSize:'11pt',color:'#173650'}}>{data.control_no}</div>
-            </>;
-        }
-
-        if (data.certificate_type === 'Business Clearance')
-            return (
-                <>
-                    <img
-                        src="/clerk/certificates/sicsican-artwork"
-                        alt="Barangay Sicsican Business Clearance"
-                    />
-                    <div
-                        className="sicsican-value"
-                        style={{
-                            left: '13%',
-                            top: '33.5%',
-                            width: '74%',
-                            height: '3.4%',
-                        }}
-                    >
-                        {data.resident_name.toUpperCase()}
-                    </div>
-                    <div
-                        className="sicsican-value"
-                        style={{
-                            left: '13.5%',
-                            top: '39.6%',
-                            width: '74%',
-                            height: '3.4%',
-                        }}
-                    >
-                        {data.business_address.toUpperCase()}
-                    </div>
-                    <div
-                        className="sicsican-value"
-                        style={{
-                            left: '14%',
-                            top: '45.5%',
-                            width: '73.5%',
-                            height: '3.4%',
-                        }}
-                    >
-                        {data.business_name.toUpperCase()}
-                    </div>
-                    <div
-                        className="sicsican-value"
-                        style={{
-                            left: '9%',
-                            top: '63.3%',
-                            width: '81%',
-                            height: '4.5%',
-                            fontWeight: 'normal',
-                            textAlign: 'justify',
-                        }}
-                    >
-                        Given this {formatIssueDate()} at the office of the
-                        Punong Barangay, National Highway, Purok Banaba,
-                        Barangay Sicsican, Puerto Princesa City.
-                    </div>
-                    <div
-                        className="sicsican-value"
-                        style={{
-                            left: '12%',
-                            top: '75.5%',
-                            width: '23%',
-                            height: '1.8%',
-                            color: '#16944f',
-                            fontSize: '11pt',
-                            justifyContent: 'flex-start',
-                            textAlign: 'left',
-                            paddingLeft: '3.8mm',
-                        }}
-                    >
-                        {data.control_no}
-                    </div>
-                    <div
-                        className="sicsican-value"
-                        style={{
-                            left: '58%',
-                            top: '75%',
-                            width: '30%',
-                            height: '2.1%',
-                        }}
-                    >
-                        {currentCaptain?.name.toUpperCase() ||
-                            '___________________'}
-                    </div>
-                </>
-            );
-
+        if (['Business Clearance', 'Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'].includes(data.certificate_type)) return <SicsicanCertificatePreview type={data.certificate_type} name={data.resident_name} purok={data.purok} purpose={data.purpose} years={String(data.years_of_residency)} businessName={data.business_name} businessAddress={data.business_address} captain={currentCaptain} reference={data.control_no} />;
         if (data.certificate_type === DELAYED_PSA_TYPE) {
             const residentName =
                 data.resident_name.trim().toUpperCase() ||
