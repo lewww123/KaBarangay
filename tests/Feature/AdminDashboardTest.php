@@ -74,6 +74,25 @@ class AdminDashboardTest extends TestCase
             ->assertInertia(fn ($page) => $page->component('Dashboard'));
     }
 
+    public function test_deferred_dashboard_lists_are_json_arrays(): void
+    {
+        config(['inertia.defer_heavy_props' => true]);
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $this->createAnnouncement($this->barangay, ['title' => 'Published program']);
+        $initial = $this->actingAs($admin)->get('/admin')->assertOk();
+        $page = $initial->viewData('page');
+        $response = $this->get('/admin', [
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => $page['version'],
+            'X-Inertia-Partial-Component' => 'Dashboard',
+            'X-Inertia-Partial-Data' => 'stats,puroks,announcements,notifications,activity',
+        ])->assertOk();
+        foreach (['announcements', 'puroks', 'notifications'] as $key) {
+            $this->assertTrue(array_is_list($response->json('props.'.$key)), $key.' must be a JSON list');
+        }
+        $this->assertSame('Published program', $response->json('props.announcements.0.title'));
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Residents count (matches Population definition)

@@ -68,9 +68,11 @@ export function protectSession(initialPage: Page) {
         const expectedScope = scope();
         if (!expectedScope || loggingOut || document.visibilityState === 'hidden') return;
         // Also detect expiry or logout from another origin sharing the session cookie.
-        hide();
+        // Only conceal a restored document. Routine focus checks must not blank
+        // a working page while the server is slow or temporarily unavailable.
+        if (event?.type === 'pageshow' && (event as PageTransitionEvent).persisted) hide();
         const check = ++checkEpoch;
-        void fetch('/offline/session', { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+        void fetch('/offline/session', { signal: AbortSignal.timeout(8000), credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
             .then(async response => {
                 if (!response.ok) throw new Error('Session check unavailable');
                 const session = await response.json();

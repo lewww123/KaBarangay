@@ -21,9 +21,14 @@ function Screen(){const page=usePage();useEffect(()=>protectSession(page),[]);re
 }
 let account = 'Account A';
 let logoutCount = 0;
+let slowSession = false;
 const server = createServer((req, res) => {
     const path = new URL(req.url, 'http://localhost').pathname;
-    if (path === '/offline/session') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify({scope:account})); }
+    if (path === '/offline/session') {
+        res.setHeader('Content-Type', 'application/json');
+        if (slowSession) return setTimeout(() => res.end(JSON.stringify({scope:account})), 10000);
+        return res.end(JSON.stringify({scope:account}));
+    }
     if (path === '/client.js') { res.setHeader('Content-Type', 'text/javascript'); return res.end(bundle); }
     if (path === '/logout') {
         logoutCount++; account = null;
@@ -47,6 +52,14 @@ try {
     for (const tab of [page, other]) tab.on('pageerror', error => errors.push(error.message));
     await page.goto(origin + '/admin');
     await page.getByRole('heading', { name: 'Account A' }).waitFor();
+    slowSession = true;
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.waitForTimeout(200);
+    assert.equal(await page.getByRole('heading', { name: 'Account A' }).isVisible(), true, 'A slow focus check must not blank the page');
+    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+    await page.waitForTimeout(8500);
+    assert.equal(await page.getByRole('heading', { name: 'Account A' }).isVisible(), true, 'A stalled restore check must release its cover after the timeout');
+    slowSession = false;
     assert.equal(await page.evaluate(() => JSON.stringify(history.state).includes('Account A')), false);
     await page.getByRole('link', { name: 'Second page' }).click();
     await page.waitForURL('**/admin/second');

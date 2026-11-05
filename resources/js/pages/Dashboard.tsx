@@ -1,3 +1,4 @@
+import { dashboardList } from '@/lib/dashboardList';
 import { Deferred, Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminPageSkeleton from '@/components/AdminPageSkeleton';
@@ -41,12 +42,15 @@ export default function Dashboard({
         puroks: 0,
         cases: 0,
     },
-    puroks = [],
-    announcements = [],
-    notifications = [],
+    puroks: rawPuroks = [],
+    announcements: rawAnnouncements = [],
+    notifications: rawNotifications = [],
     activity = { activeStaff: 0 },
 }: DashboardProps) {
     const [puroksOpen, setPuroksOpen] = useState(false);
+    const puroks = dashboardList<NonNullable<DashboardProps['puroks']>[number]>(rawPuroks);
+    const announcements = dashboardList<NonNullable<DashboardProps['announcements']>[number]>(rawAnnouncements);
+    const notifications = dashboardList<NonNullable<DashboardProps['notifications']>[number]>(rawNotifications);
 
     return (
         <>

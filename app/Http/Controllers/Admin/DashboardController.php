@@ -31,7 +31,7 @@ class DashboardController extends Controller
             }
 
             return $payload = $this->rememberAggregate(
-                "admin:dashboard:v2:{$barangayId}",
+                "admin:dashboard:v3:{$barangayId}",
                 30,
                 function () use ($barangayId): array {
                     $puroks = collect($this->rememberReference('admin:purok-options:v2:'.$barangayId, 300, fn () => Purok::query()
@@ -70,7 +70,7 @@ class DashboardController extends Controller
                             'eventStartAt' => $announcement->event_start_at?->format('M j, Y g:i A'),
                             'location' => $announcement->location,
                         ])
-                        ->values();
+                        ->values()->all();
 
                     $notifications = [];
 
@@ -140,7 +140,7 @@ class DashboardController extends Controller
                             'puroks' => $puroksCount,
                             'cases' => $openCases,
                         ],
-                        'puroks' => $puroks,
+                        'puroks' => $puroks->values()->all(),
                         'announcements' => $announcements,
                         'notifications' => $notifications,
                         'activity' => [
