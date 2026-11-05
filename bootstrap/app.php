@@ -19,19 +19,23 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
 
         $middleware->redirectUsersTo(function (Request $request): string {
-            $department = $request->user()?->staffAssignments()
-                ->where('is_active', true)
-                ->orderBy('id')
-                ->value('department');
-
-            return match ($department) {
-                'admin' => route('admin.dashboard'),
-                'clerk' => route('clerk.dashboard'),
-                'lupon' => route('lupon.dashboard'),
-                'pwd' => route('pwd.dashboard'),
-                'senior' => route('senior.dashboard'),
-                default => route('login'),
-            };
+            $user = $request->user();
+            $destinations = [
+                'admin' => 'admin.dashboard',
+                'clerk' => 'clerk.dashboard',
+                'lupon' => 'lupon.dashboard',
+                'pwd' => 'pwd.dashboard',
+                'senior' => 'senior.dashboard',
+            ];
+            $departments = $user?->staffAssignments()->where('is_active', true)
+                ->orderBy('id')->pluck('department')->unique() ?? [];
+            foreach ($departments as $department) {
+                if (isset($destinations[$department]) && $user->hasActiveAssignment([$department])) {
+                    return route($destinations[$department]);
+                }
+            }
+            // Keep the valid session, but never redirect an unauthorized account in a loop.
+            abort(403, 'No active authorized staff assignment is available for this account.');
         });
 
         // Trust Cloudflare Tunnel / reverse proxy.

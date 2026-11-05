@@ -25,7 +25,7 @@ class ResidentAuth
                 'path' => $request->path(),
             ]);
 
-            return redirect()->route('resident.login');
+            return $this->unauthenticated($request);
         }
 
         // Make sure the resident still exists and is active.
@@ -58,7 +58,7 @@ class ResidentAuth
                 'resident_remember',
             ]);
 
-            return redirect()->route('resident.login');
+            return $this->unauthenticated($request);
         }
 
         // Store the verified resident ID again.
@@ -66,5 +66,14 @@ class ResidentAuth
         $request->attributes->set(ResidentContext::ATTRIBUTE, $resident);
 
         return $next($request);
+    }
+
+    private function unauthenticated(Request $request): Response
+    {
+        if ($request->expectsJson() && ! $request->header('X-Inertia')) {
+            return response()->json(['message' => 'Unauthenticated.'], 401)
+                ->header('Cache-Control', 'private, no-store, max-age=0');
+        }
+        return redirect()->route('resident.login');
     }
 }

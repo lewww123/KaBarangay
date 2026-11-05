@@ -145,8 +145,11 @@ export default function Settings({ barangay }: Props) {
                         className="rounded-lg border border-gray-200 bg-white"
                     >
                         <div className="grid grid-cols-1 gap-5 p-5 md:grid-cols-2">
-                            <FormField label="Administrator Name">
+                            <FormField label="Administrator Name" htmlFor="admin-settings-name">
                                 <input
+                                    id="admin-settings-name"
+                                    name="name"
+                                    autoComplete="name"
                                     type="text"
                                     value={adminName}
                                     onChange={(event) =>
@@ -157,8 +160,11 @@ export default function Settings({ barangay }: Props) {
                                 />
                             </FormField>
 
-                            <FormField label="Username">
+                            <FormField label="Username" htmlFor="admin-settings-username">
                                 <input
+                                    id="admin-settings-username"
+                                    name="username"
+                                    autoComplete="username"
                                     type="text"
                                     value={adminUsername}
                                     onChange={(event) =>
@@ -235,8 +241,11 @@ export default function Settings({ barangay }: Props) {
                                 </div>
                             )}
 
-                            <FormField label="Current Password">
+                            <FormField label="Current Password" htmlFor="admin-settings-current-password">
                                 <input
+                                    id="admin-settings-current-password"
+                                    name="current_password"
+                                    autoComplete="current-password"
                                     type="password"
                                     value={currentPassword}
                                     onChange={(event) =>
@@ -248,8 +257,11 @@ export default function Settings({ barangay }: Props) {
                             </FormField>
 
                             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                                <FormField label="New Password">
+                                <FormField label="New Password" htmlFor="admin-settings-new-password">
                                     <input
+                                    id="admin-settings-new-password"
+                                    name="password"
+                                    autoComplete="new-password"
                                         type="password"
                                         value={newPassword}
                                         onChange={(event) =>
@@ -260,8 +272,11 @@ export default function Settings({ barangay }: Props) {
                                     />
                                 </FormField>
 
-                                <FormField label="Confirm New Password">
+                                <FormField label="Confirm New Password" htmlFor="admin-settings-confirm-password">
                                     <input
+                                    id="admin-settings-confirm-password"
+                                    name="password_confirmation"
+                                    autoComplete="new-password"
                                         type="password"
                                         value={confirmPassword}
                                         onChange={(event) =>
@@ -388,14 +403,16 @@ export default function Settings({ barangay }: Props) {
 
 function FormField({
     label,
+    htmlFor,
     children,
 }: {
     label: string;
+    htmlFor: string;
     children: React.ReactNode;
 }) {
     return (
         <div>
-            <label className="mb-1.5 block text-xs font-medium text-gray-700">
+            <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-medium text-gray-700">
                 {label}
             </label>
 

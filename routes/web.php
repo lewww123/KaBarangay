@@ -120,7 +120,7 @@ Route::get('/sector-applications/{application}/documents/{document}/download', [
 
 Route::prefix('resident')->name('resident.')->group(function () {
 
-    Route::inertia('/login', 'Resident/Login')->name('login');
+    Route::get('/login', [AuthController::class, 'showResidentLogin'])->name('login');
     Route::post('/logout', [SessionController::class, 'destroy'])->name('logout');
     Route::post('/login', [AuthController::class, 'processResidentLogin'])->middleware('throttle:login-resident')->name('login.process');
     Route::get('/login/barangays', [AuthController::class, 'residentLoginBarangays'])->name('login.barangays');

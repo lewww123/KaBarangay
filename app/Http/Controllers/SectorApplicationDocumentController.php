@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SectorApplication;
 use App\Models\SectorApplicationDocument;
+use App\Support\ResidentContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -31,7 +32,6 @@ class SectorApplicationDocumentController extends Controller
         }
 
         $user = $request->user();
-        $residentId = session('resident_id');
 
         if ($user) {
             if ($user->barangay_id !== $application->barangay_id) {
@@ -54,8 +54,10 @@ class SectorApplicationDocumentController extends Controller
             abort(403, 'You are not authorized to view documents for this sector.');
         }
 
-        if ($residentId) {
-            if ($application->resident_id === (int) $residentId) {
+        if ($request->session()->has('resident_id')) {
+            $resident = ResidentContext::find();
+            abort_unless($resident, 401, 'Unauthenticated document access.');
+            if ($application->resident_id === $resident->id) {
                 return;
             }
             abort(403, 'You are not authorized to view documents belonging to another resident.');

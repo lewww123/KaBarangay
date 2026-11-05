@@ -7,6 +7,8 @@ use App\Models\Resident;
 use App\Support\AuditLogger;
 use App\Support\LoginAttemptRecorder;
 use App\Support\LoginIdentifier;
+use App\Support\ResidentContext;
+use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -27,8 +29,19 @@ class AuthController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    public function showResidentLogin()
+    {
+        return ResidentContext::find()
+            ? redirect()->route('resident.dashboard')
+            : Inertia::render('Resident/Login');
+    }
+
     public function processResidentLogin(Request $request)
     {
+        if (ResidentContext::find()) {
+            return redirect()->route('resident.dashboard');
+        }
+
         $validated = $request->validate([
             'barangay_id' => [
                 'required',
