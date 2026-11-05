@@ -56,7 +56,7 @@ type LuponSummary = {
     total: number;
 };
 
-const _emptyPaginator = <T,>(): Paginator<T> => ({
+const emptyPaginator = <T,>(): Paginator<T> => ({
     data: [],
     current_page: 1,
     last_page: 1,
@@ -68,7 +68,7 @@ const _emptyPaginator = <T,>(): Paginator<T> => ({
     next_page_url: null,
 });
 
-const _emptyStats = {
+const emptyStats = {
     total: 0,
     active: 0,
     sectorApplications: 0,
@@ -80,7 +80,7 @@ const _emptyStats = {
 };
 
 type Props = {
-    stats: {
+    stats?: {
         total?: number;
         active?: number;
         sectorApplications: number;
@@ -90,16 +90,16 @@ type Props = {
         certificates: number;
         openCases: number;
     };
-    generalMembers: Paginator<MemberRecord>;
-    pwdMembers: Paginator<MemberRecord>;
-    seniorMembers: Paginator<MemberRecord>;
-    puroks: PurokOption[];
+    generalMembers?: Paginator<MemberRecord>;
+    pwdMembers?: Paginator<MemberRecord>;
+    seniorMembers?: Paginator<MemberRecord>;
+    puroks?: PurokOption[];
     filters: MemberFilters;
-    certificates: {
+    certificates?: {
         processed: number;
         completed: number;
     };
-    certificateRequests: Paginator<CertificateRequestRecord>;
+    certificateRequests?: Paginator<CertificateRequestRecord>;
     certificateFilters: CertificateFilters;
     luponSummary?: LuponSummary;
     initialTab?: string;
@@ -114,14 +114,16 @@ type ActiveTab =
     | 'lupon';
 
 export default function Sectors({
-    stats,
-    generalMembers,
-    pwdMembers,
-    seniorMembers,
-    puroks,
+    // Deferred props are absent on first load and may be absent in history.
+    // JSX children are evaluated before Deferred can show its fallback.
+    stats = emptyStats,
+    generalMembers = emptyPaginator<MemberRecord>(),
+    pwdMembers = emptyPaginator<MemberRecord>(),
+    seniorMembers = emptyPaginator<MemberRecord>(),
+    puroks = [],
     filters,
-    certificates,
-    certificateRequests,
+    certificates = { processed: 0, completed: 0 },
+    certificateRequests = emptyPaginator<CertificateRequestRecord>(),
     certificateFilters,
     luponSummary = { open: 0, closed: 0, total: 0 },
     initialTab = 'general',

@@ -21,6 +21,7 @@ class CertificateRequestDetails
     private const TYPE_BY_CODE = [
         'business-clearance' => 'Business Clearance',
         'barangay-certification' => 'Barangay Certification',
+        'sicsican-indigency' => 'Sicsican Indigency',
         'residency' => 'Residency',
         'indigency' => 'Indigency',
         'delayed-psa-registration' => 'Delayed PSA Registration',
@@ -38,6 +39,7 @@ class CertificateRequestDetails
     private const TYPE_BY_NAME = [
         'business clearance' => 'Business Clearance',
         'barangay certification' => 'Barangay Certification',
+        'sicsican indigency' => 'Sicsican Indigency',
         'certificate of residency' => 'Residency',
         'certificate of indigency' => 'Indigency',
         'delayed psa' => 'Delayed PSA Registration',

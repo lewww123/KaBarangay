@@ -1,3 +1,4 @@
+import SicsicanIndigencyPreview from '@/components/certificates/SicsicanIndigencyPreview';
 import { resolveCertificateOfficials } from '@/lib/certificateOfficials';
 import ResidentAutocomplete from '@/components/certificates/ResidentAutocomplete';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -2439,6 +2440,9 @@ function Dashboard({
     );
 
     const renderDocumentPreview = () => {
+        if (data.certificate_type === 'Sicsican Indigency') return (
+            <SicsicanIndigencyPreview residentName={data.resident_name} purok={data.purok} purpose={data.purpose} controlNumber={data.control_no} captain={currentCaptain} />
+        );
         if (data.certificate_type === 'Barangay Certification') {
             const issueDate = new Date();
             const validDate = !Number.isNaN(issueDate.getTime());

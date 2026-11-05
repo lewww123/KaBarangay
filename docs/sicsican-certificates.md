@@ -1,5 +1,18 @@
 # Sicsican Business Clearance
 
+## Certificate of Indigency
+
+The purple Sicsican artwork is stored privately at
+`resources/certificates/sicsican/indigency.jpg`. Its catalog code is
+`sicsican-indigency`, mapped to the separate PDF type `Sicsican Indigency` so
+San Jose's `Indigency` Word/PDF layout is unaffected. The authenticated artwork
+endpoint checks the acting clerk's barangay. Name, purok, purpose, issue date,
+published captain, and reference are populated in the print/PDF preview.
+
+Deploy migration `2026_11_05_000002_add_sicsican_indigency.php` to add the catalog
+entry. It is idempotent and preserves any existing fee/settings. The seeder
+supports fresh Sicsican catalogs. Initial fee is 0 pending the actual rate.
+
 ## Barangay Certification
 
 The blue Barangay Certification artwork is also stored privately in

@@ -166,6 +166,12 @@ class CertificateSeeder extends Seeder
                     'requirements' => ['Resident name', 'Purok', 'Years of residency', 'Purpose'],
                     'requires_business_details' => false, 'is_active' => true,
                 ]);
+                Certificate::firstOrCreate(['barangay_id' => $barangay->id, 'code' => 'sicsican-indigency'], [
+                    'name' => 'Certificate of Indigency', 'fee' => 0,
+                    'description' => 'Sicsican certificate of indigency for a stated purpose.',
+                    'requirements' => ['Resident name', 'Purok', 'Purpose'],
+                    'requires_business_details' => false, 'is_active' => true,
+                ]);
                 continue;
             }
             if (! in_array(strtolower($barangay->name), ['san jose', 'barangay san jose'], true)) {
