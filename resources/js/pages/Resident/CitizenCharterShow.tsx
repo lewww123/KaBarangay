@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { Download, ExternalLink } from 'lucide-react';
 import {
     formatCharterDate,
     formatFileSize,
@@ -20,48 +21,48 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
         <ResidentLayout active="charter">
             <Head title={`${service.title} | Citizen's Charter`} />
 
-            <div className="mx-auto w-full max-w-5xl space-y-6">
+            <div className="mx-auto w-full max-w-4xl space-y-5">
                 {/* BREADCRUMB */}
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-ink-muted">
                     <Link
                         href="/resident/citizen-charter"
-                        className="hover:text-[#3b6fa8]"
+                        className="hover:text-brand"
                     >
                         Citizen&apos;s Charter
                     </Link>
                     <span>/</span>
-                    <span className="line-clamp-1 font-semibold text-gray-800">
+                    <span className="line-clamp-1 font-semibold text-ink-strong">
                         {service.title}
                     </span>
                 </div>
 
                 {/* SERVICE HEADER CARD */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                                <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
                                     {service.category || 'Barangay Service'}
                                 </span>
                                 {version && (
-                                    <span className="text-xs text-gray-400">
+                                    <span className="text-xs text-ink-faint">
                                         Official Document (
                                         {formatFileSize(version.file_size)})
                                     </span>
                                 )}
                             </div>
 
-                            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                            <h1 className="text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                                 {service.title}
                             </h1>
 
                             {service.description && (
-                                <p className="max-w-3xl text-sm leading-relaxed text-gray-600">
+                                <p className="max-w-3xl text-sm leading-relaxed text-ink-muted">
                                     {service.description}
                                 </p>
                             )}
 
-                            <div className="pt-1 text-xs text-gray-400">
+                            <div className="pt-1 text-xs text-ink-faint">
                                 Published standard as of{' '}
                                 {formatCharterDate(service.published_at)}
                             </div>
@@ -74,18 +75,19 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
                                     href={service.file_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-line px-4 py-2 text-xs font-semibold text-ink transition hover:bg-secondary"
                                 >
-                                    Open in New Tab ↗
+                                    Open in New Tab
+                                    <ExternalLink className="size-3.5" />
                                 </a>
                             )}
                             {service.download_url && (
                                 <a
                                     href={service.download_url}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#2a5279]"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-white shadow-card transition hover:bg-brand-deep"
                                 >
                                     <span>Download PDF</span>
-                                    <span>↓</span>
+                                    <Download className="size-3.5" />
                                 </a>
                             )}
                         </div>
@@ -95,15 +97,15 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
                 {/* PDF VIEWER SECTION */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-bold text-gray-900">
+                        <h2 className="text-sm font-semibold text-ink-strong">
                             Official Charter Document
                         </h2>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-ink-faint">
                             Authorized Barangay Service Standard
                         </span>
                     </div>
 
-                    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                    <div className="overflow-hidden rounded-xl border border-line-soft bg-white shadow-card">
                         {service.file_url ? (
                             <iframe
                                 src={service.file_url}
@@ -111,22 +113,22 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
                                 title={`Citizen's Charter PDF - ${service.title}`}
                             />
                         ) : (
-                            <div className="p-12 text-center text-xs text-gray-400">
+                            <div className="p-12 text-center text-xs text-ink-faint">
                                 Document file is currently unavailable.
                             </div>
                         )}
                     </div>
 
                     {/* MOBILE FALLBACK NOTE */}
-                    <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 text-xs text-gray-500">
-                        <span className="font-semibold text-gray-700">
+                    <div className="rounded-xl border border-line-soft bg-canvas/70 p-3.5 text-xs text-ink-muted">
+                        <span className="font-semibold text-ink">
                             Mobile notice:
                         </span>{' '}
                         If your device or browser cannot display embedded PDF
                         previews, use the{' '}
                         <a
                             href={service.download_url || '#'}
-                            className="font-semibold text-[#3b6fa8] underline"
+                            className="font-semibold text-brand underline"
                         >
                             Download PDF
                         </a>{' '}
@@ -135,7 +137,7 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
                             href={service.file_url || '#'}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-semibold text-[#3b6fa8] underline"
+                            className="font-semibold text-brand underline"
                         >
                             Open in New Tab
                         </a>{' '}

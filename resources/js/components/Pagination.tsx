@@ -27,7 +27,7 @@ export default function Pagination({ paginator, label }: Props) {
                 link.url === null ? (
                     <span
                         key={`${link.label}-${index}`}
-                        className="inline-flex h-10 min-w-10 items-center justify-center rounded-lg border border-gray-200 px-3 text-xs font-semibold text-gray-400 sm:text-sm"
+                        className="inline-flex h-10 min-w-10 items-center justify-center rounded-lg border border-line-soft px-3 text-xs font-semibold text-ink-faint sm:text-sm"
                     >
                         {linkLabel(link.label)}
                     </span>
@@ -40,8 +40,8 @@ export default function Pagination({ paginator, label }: Props) {
                         aria-current={link.active ? 'page' : undefined}
                         className={`inline-flex h-10 min-w-10 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition sm:text-sm ${
                             link.active
-                                ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
-                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                                ? 'border-brand bg-brand text-white'
+                                : 'border-line bg-white text-ink hover:bg-canvas'
                         }`}
                     >
                         {linkLabel(link.label)}

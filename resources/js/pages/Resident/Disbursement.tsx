@@ -36,13 +36,13 @@ function DisbursementContent({ documents, resident }: Props) {
         <ResidentLayout active="disbursement">
             <Head title="Disbursement Documents" />
 
-            <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-                <section className="overflow-hidden rounded-2xl bg-[#3b6fa8] px-5 py-6 text-white shadow-sm sm:px-7">
+            <div className="mx-auto w-full max-w-4xl space-y-5">
+                <section className="overflow-hidden rounded-xl bg-brand px-5 py-6 text-white shadow-card sm:px-7">
                     <p className="text-xs font-semibold tracking-wide text-white/70 uppercase">
                         Barangay transparency
                     </p>
 
-                    <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
+                    <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                         Disbursement Documents
                     </h1>
 
@@ -60,11 +60,11 @@ function DisbursementContent({ documents, resident }: Props) {
 
                 <div className="mt-5 flex items-center justify-between gap-3">
                     <div>
-                        <h2 className="text-sm font-semibold text-gray-900">
+                        <h2 className="text-sm font-semibold text-ink-strong">
                             Published documents
                         </h2>
 
-                        <p className="mt-0.5 text-xs text-gray-500">
+                        <p className="mt-0.5 text-xs text-ink-muted">
                             {documents.total}{' '}
                             {documents.total === 1 ? 'document' : 'documents'}{' '}
                             available
@@ -73,16 +73,16 @@ function DisbursementContent({ documents, resident }: Props) {
                 </div>
 
                 {documents.data.length === 0 ? (
-                    <section className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-14 text-center">
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                    <section className="mt-4 rounded-xl border border-dashed border-line bg-white px-5 py-14 text-center">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-ink-faint">
                             <DocumentIcon />
                         </div>
 
-                        <h2 className="mt-3 text-sm font-semibold text-gray-800">
+                        <h2 className="mt-3 text-sm font-semibold text-ink-strong">
                             No disbursement documents yet
                         </h2>
 
-                        <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-gray-500">
+                        <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-ink-muted">
                             Published payout records will appear here. Please
                             check again later or contact the barangay office for
                             assistance.
@@ -93,23 +93,23 @@ function DisbursementContent({ documents, resident }: Props) {
                         {documents.data.map((document) => (
                             <article
                                 key={document.id}
-                                className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#3b6fa8]/30 hover:shadow-md sm:p-5"
+                                className="rounded-xl border border-line-soft bg-white p-4 shadow-card transition hover:border-brand/30 hover:shadow-md sm:p-5"
                             >
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <span className="rounded-md border border-[#3b6fa8]/20 bg-[#3b6fa8]/5 px-2 py-0.5 text-[11px] font-semibold text-[#3b6fa8]">
+                                            <span className="rounded-md border border-brand/20 bg-brand/5 px-2 py-0.5 text-[11px] font-semibold text-brand">
                                                 {disbursementFileType(document)}
                                             </span>
 
-                                            <span className="text-[11px] text-gray-400">
+                                            <span className="text-[11px] text-ink-faint">
                                                 {formatFileSize(
                                                     document.file_size,
                                                 )}
                                             </span>
 
                                             {document.published_at && (
-                                                <span className="text-[11px] text-gray-400">
+                                                <span className="text-[11px] text-ink-faint">
                                                     Published{' '}
                                                     {formatDisbursementDate(
                                                         document.published_at,
@@ -118,17 +118,17 @@ function DisbursementContent({ documents, resident }: Props) {
                                             )}
                                         </div>
 
-                                        <h3 className="mt-2 text-base font-semibold break-words text-gray-900">
+                                        <h3 className="mt-2 text-base font-semibold break-words text-ink-strong">
                                             {document.title}
                                         </h3>
 
                                         {document.description && (
-                                            <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-gray-500">
+                                            <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink-muted">
                                                 {document.description}
                                             </p>
                                         )}
 
-                                        <p className="mt-2 truncate text-[11px] text-gray-400">
+                                        <p className="mt-2 truncate text-[11px] text-ink-faint">
                                             {document.original_name}
                                         </p>
                                     </div>
@@ -136,14 +136,14 @@ function DisbursementContent({ documents, resident }: Props) {
                                     <div className="flex shrink-0 flex-wrap gap-2">
                                         <Link
                                             href={document.preview_url}
-                                            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#3b6fa8] px-4 text-xs font-semibold text-white transition hover:bg-[#2a5279]"
+                                            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand px-4 text-xs font-semibold text-white transition hover:bg-brand-deep"
                                         >
                                             View document
                                         </Link>
 
                                         <a
                                             href={document.download_url}
-                                            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                                            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-line bg-white px-4 text-xs font-semibold text-ink transition hover:bg-canvas"
                                         >
                                             Download
                                         </a>
@@ -156,7 +156,7 @@ function DisbursementContent({ documents, resident }: Props) {
 
                 {documents.last_page > 1 && (
                     <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-ink-muted">
                             Showing {documents.from ?? 0} to {documents.to ?? 0}{' '}
                             of {documents.total}
                         </p>
@@ -184,10 +184,10 @@ function DisbursementContent({ documents, resident }: Props) {
                                     }}
                                     className={`rounded-md px-3 py-1.5 text-xs ${
                                         link.active
-                                            ? 'bg-[#3b6fa8] text-white'
+                                            ? 'bg-brand text-white'
                                             : link.url
-                                              ? 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-                                              : 'cursor-not-allowed border border-gray-200 bg-white text-gray-300'
+                                              ? 'border border-line bg-white text-ink-muted hover:bg-canvas'
+                                              : 'cursor-not-allowed border border-line-soft bg-white text-ink-faint'
                                     }`}
                                     dangerouslySetInnerHTML={{
                                         __html: link.label,
@@ -197,7 +197,7 @@ function DisbursementContent({ documents, resident }: Props) {
                         </div>
                     </div>
                 )}
-            </main>
+            </div>
         </ResidentLayout>
     );
 }

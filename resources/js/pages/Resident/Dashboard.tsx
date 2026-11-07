@@ -1,5 +1,17 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
 import { ReactNode, useState } from 'react';
+import {
+    AlertTriangle,
+    Ambulance,
+    Check,
+    CloudRain,
+    Copy,
+    Flame,
+    Hospital,
+    MessageSquare,
+    Phone,
+    Shield,
+} from 'lucide-react';
 import ResidentLayout from '@/layouts/ResidentLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 
@@ -278,7 +290,7 @@ function DashboardContent({
                         title="Request Tanod Assistance"
                         description="Tell us what happened so the barangay can review your concern."
                         icon={
-                            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#eaf1f8] text-[#3b6fa8]">
+                            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-soft text-brand">
                                 <ShieldIcon />
                             </span>
                         }
@@ -378,9 +390,9 @@ function ContactActionButtons({
             {contact.can_call && (
                 <a
                     href={contact.tel_uri}
-                    className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-4 text-xs font-semibold text-white shadow-sm transition ${
+                    className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-4 text-xs font-semibold text-white shadow-card transition ${
                         theme === 'green'
-                            ? 'bg-[#3b6fa8] hover:bg-[#2a5279]'
+                            ? 'bg-brand hover:bg-brand-deep'
                             : 'bg-red-700 hover:bg-red-800'
                     }`}
                     aria-label={`Call ${contact.name} at ${contact.phone_number}`}
@@ -394,21 +406,32 @@ function ContactActionButtons({
             {contact.can_sms && (
                 <a
                     href={contact.sms_uri}
-                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-line bg-white px-3 text-xs font-semibold text-ink shadow-card transition hover:bg-canvas"
                     aria-label={`Text ${contact.name} at ${contact.phone_number}`}
                     title="Open your SMS app; send the message there"
                 >
-                    💬 Text
+                    <MessageSquare className="size-4" />
+                    Text
                 </a>
             )}
 
             <button
                 type="button"
                 onClick={handleCopy}
-                className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-gray-200 bg-gray-50 px-2.5 text-xs font-medium text-gray-600 transition hover:bg-gray-100"
+                className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-line-soft bg-canvas px-2.5 text-xs font-medium text-ink-muted transition hover:bg-secondary"
                 title="Copy phone number to clipboard"
             >
-                {copied ? '✓ Copied' : '📋 Copy'}
+                {copied ? (
+                    <>
+                        <Check className="size-3.5" />
+                        Copied
+                    </>
+                ) : (
+                    <>
+                        <Copy className="size-3.5" />
+                        Copy
+                    </>
+                )}
             </button>
             {copyError && (
                 <span role="status" className="w-full text-xs text-red-700">
@@ -454,32 +477,32 @@ function TanodAssistanceForm({
     return (
         <div className="space-y-5">
             {showEmptyState ? (
-                <section className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center">
-                    <p className="text-sm font-semibold text-gray-900">
+                <section className="rounded-xl border border-line-soft bg-canvas p-6 text-center">
+                    <p className="text-sm font-semibold text-ink-strong">
                         No Tanod hotlines configured
                     </p>
-                    <p className="mt-1 text-sm leading-6 text-gray-500">
+                    <p className="mt-1 text-sm leading-6 text-ink-muted">
                         Your barangay has not added Tanod contacts yet.
                     </p>
                 </section>
             ) : (
-                <section className="overflow-hidden rounded-2xl border border-[#cdddc9] bg-white shadow-sm">
+                <section className="overflow-hidden rounded-xl border border-line-soft bg-white shadow-card">
                     <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                         <div className="flex min-w-0 items-start gap-3">
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1f8] text-[#3b6fa8]">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
                                 <PhoneIcon />
                             </div>
 
                             <div className="min-w-0">
-                                <p className="text-xs font-semibold tracking-wide text-[#5d7c59] uppercase">
+                                <p className="text-xs font-semibold tracking-wide text-brand uppercase">
                                     Official Hotline
                                 </p>
 
-                                <h3 className="mt-1 text-base font-semibold text-gray-900">
+                                <h3 className="mt-1 text-base font-semibold tracking-tight text-ink-strong">
                                     {officialName}
                                 </h3>
 
-                                <p className="mt-1 text-2xl font-bold tracking-wide text-[#2a5279]">
+                                <p className="mt-1 text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl tracking-wide text-brand-deep">
                                     {officialPhoneDisplay}
                                 </p>
                             </div>
@@ -498,7 +521,7 @@ function TanodAssistanceForm({
                         onClick={() =>
                             setShowOtherContacts((current) => !current)
                         }
-                        className="flex min-h-12 w-full items-center justify-between gap-3 border-t border-[#dfe4ea] bg-[#ffffff] px-4 py-3 text-left text-sm font-semibold text-[#2a5279] transition hover:bg-[#eef1f5] sm:px-5"
+                        className="flex min-h-12 w-full items-center justify-between gap-3 border-t border-line-soft bg-surface px-4 py-3 text-left text-sm font-semibold text-brand-deep transition hover:bg-canvas sm:px-5"
                         aria-expanded={showOtherContacts}
                     >
                         <span>
@@ -519,36 +542,36 @@ function TanodAssistanceForm({
             {showOtherContacts && !showEmptyState && (
                 <section>
                     <div className="mb-3">
-                        <h3 className="text-sm font-semibold text-gray-900 sm:text-base">
+                        <h3 className="text-sm font-semibold text-ink-strong sm:text-base">
                             Other Tanod Contacts
                         </h3>
 
-                        <p className="mt-1 text-xs leading-5 text-gray-500 sm:text-sm">
+                        <p className="mt-1 text-xs leading-5 text-ink-muted sm:text-sm">
                             These are backup contacts for key Tanod personnel.
                         </p>
                     </div>
 
                     <div className="space-y-2">
                         {otherContacts.length === 0 ? (
-                            <p className="py-2 text-xs text-gray-500">
+                            <p className="py-2 text-xs text-ink-muted">
                                 No additional Tanod contacts listed.
                             </p>
                         ) : (
                             otherContacts.map((contact) => (
                                 <div
                                     key={contact.id}
-                                    className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3.5 sm:flex-row sm:items-center sm:justify-between"
+                                    className="flex flex-col gap-3 rounded-xl border border-line-soft bg-white p-3.5 sm:flex-row sm:items-center sm:justify-between"
                                 >
                                     <div className="min-w-0">
-                                        <p className="font-semibold text-gray-900">
+                                        <p className="font-semibold text-ink-strong">
                                             {contact.name}
                                         </p>
                                         {contact.label && (
-                                            <p className="mt-0.5 text-sm text-gray-500">
+                                            <p className="mt-0.5 text-sm text-ink-muted">
                                                 {contact.label}
                                             </p>
                                         )}
-                                        <p className="mt-1 text-sm font-semibold tracking-wide text-[#2a5279]">
+                                        <p className="mt-1 text-sm font-semibold tracking-wide text-brand-deep">
                                             {formatPhoneNumber(
                                                 contact.phone_number,
                                             )}
@@ -566,12 +589,12 @@ function TanodAssistanceForm({
                 </section>
             )}
 
-            <div className="border-t border-gray-100 pt-5">
-                <h3 className="text-base font-semibold text-gray-900">
+            <div className="border-t border-line-soft pt-5">
+                <h3 className="text-base font-semibold tracking-tight text-ink-strong">
                     Send a Tanod Assistance Request
                 </h3>
 
-                <p className="mt-1 text-sm leading-5 text-gray-500">
+                <p className="mt-1 text-sm leading-5 text-ink-muted">
                     For non-urgent concerns, you can also send a request through
                     KaBarangay.
                 </p>
@@ -580,7 +603,7 @@ function TanodAssistanceForm({
             <div>
                 <label
                     htmlFor="tanod-concern"
-                    className="mb-2 block text-sm font-semibold text-gray-700"
+                    className="mb-2 block text-sm font-semibold text-ink"
                 >
                     Concern Type
                 </label>
@@ -589,7 +612,7 @@ function TanodAssistanceForm({
                     id="tanod-concern"
                     value={concernType}
                     onChange={(e) => setConcernType(e.target.value)}
-                    className="min-h-12 w-full rounded-xl border border-gray-300 bg-white px-3 text-base text-gray-800 transition outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/15 sm:text-sm"
+                    className="min-h-12 w-full rounded-xl border border-line bg-white px-3 text-base text-ink-strong transition outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 sm:text-sm"
                 >
                     <option value="">Select concern</option>
                     <option value="noise">Noise disturbance</option>
@@ -603,7 +626,7 @@ function TanodAssistanceForm({
             <div>
                 <label
                     htmlFor="tanod-location"
-                    className="mb-2 block text-sm font-semibold text-gray-700"
+                    className="mb-2 block text-sm font-semibold text-ink"
                 >
                     Where is it happening?
                 </label>
@@ -614,14 +637,14 @@ function TanodAssistanceForm({
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="Enter purok, street, or nearby landmark"
-                    className="min-h-12 w-full rounded-xl border border-gray-300 bg-white px-3 text-base text-gray-800 transition outline-none placeholder:text-gray-400 focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/15 sm:text-sm"
+                    className="min-h-12 w-full rounded-xl border border-line bg-white px-3 text-base text-ink-strong transition outline-none placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15 sm:text-sm"
                 />
             </div>
 
             <div>
                 <label
                     htmlFor="tanod-details"
-                    className="mb-2 block text-sm font-semibold text-gray-700"
+                    className="mb-2 block text-sm font-semibold text-ink"
                 >
                     Tell us what happened
                 </label>
@@ -632,7 +655,7 @@ function TanodAssistanceForm({
                     value={details}
                     onChange={(e) => setDetails(e.target.value)}
                     placeholder="Describe the concern clearly..."
-                    className="w-full resize-y rounded-xl border border-gray-300 bg-white p-3 text-base text-gray-800 transition outline-none placeholder:text-gray-400 focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/15 sm:text-sm"
+                    className="w-full resize-y rounded-xl border border-line bg-white p-3 text-base text-ink-strong transition outline-none placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15 sm:text-sm"
                 />
             </div>
 
@@ -640,7 +663,7 @@ function TanodAssistanceForm({
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="min-h-12 rounded-xl border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    className="min-h-12 rounded-xl border border-line bg-white px-5 text-sm font-semibold text-ink transition hover:bg-canvas"
                 >
                     Cancel
                 </button>
@@ -648,7 +671,7 @@ function TanodAssistanceForm({
                 <button
                     type="button"
                     onClick={handleSubmit}
-                    className="min-h-12 rounded-xl bg-[#3b6fa8] px-5 text-sm font-semibold text-white transition hover:bg-[#2a5279]"
+                    className="min-h-12 rounded-xl bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-deep"
                 >
                     Send Request
                 </button>
@@ -680,45 +703,54 @@ function EmergencyPanel({
         dynamicCategories[0] || 'City Emergency',
     );
 
-    const visibleQuickCalls = [
+    const quickCalls: {
+        icon: ReactNode;
+        title: string;
+        contact: ResidentContact | null;
+    }[] = [
         {
-            icon: '🆘',
+            icon: <AlertTriangle className="size-5" />,
             title: 'City Emergency',
             contact:
                 hotlines.find((h) => h.sub_category === 'City Emergency') ??
                 null,
         },
         {
-            icon: '🚑',
+            icon: <Ambulance className="size-5" />,
             title: 'Ambulance',
             contact:
                 hotlines.find((h) => h.sub_category === 'Ambulance') ?? null,
         },
         {
-            icon: '🔥',
+            icon: <Flame className="size-5" />,
             title: 'Fire',
             contact: hotlines.find((h) => h.sub_category === 'Fire') ?? null,
         },
         {
-            icon: '👮',
+            icon: <Shield className="size-5" />,
             title: 'Police',
             contact: hotlines.find((h) => h.sub_category === 'Police') ?? null,
         },
-    ].filter(
+    ];
+
+    const visibleQuickCalls = quickCalls.filter(
         (
             call,
-        ): call is { icon: string; title: string; contact: ResidentContact } =>
-            call.contact !== null && call.contact.can_call,
+        ): call is {
+            icon: ReactNode;
+            title: string;
+            contact: ResidentContact;
+        } => call.contact !== null && call.contact.can_call,
     );
 
     if (showEmptyState) {
         return (
             <div className="space-y-5">
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
-                    <p className="text-sm font-semibold text-gray-900">
+                <div className="rounded-xl border border-line-soft bg-canvas p-6 text-center">
+                    <p className="text-sm font-semibold text-ink-strong">
                         No verified emergency contacts available
                     </p>
-                    <p className="mt-1 text-sm leading-6 text-gray-500">
+                    <p className="mt-1 text-sm leading-6 text-ink-muted">
                         Verified emergency service contacts have not been added
                         yet.
                     </p>
@@ -728,7 +760,7 @@ function EmergencyPanel({
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="min-h-12 w-full rounded-xl border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 sm:w-auto"
+                        className="min-h-12 w-full rounded-xl border border-line bg-white px-5 text-sm font-semibold text-ink transition hover:bg-canvas sm:w-auto"
                     >
                         Close
                     </button>
@@ -757,10 +789,10 @@ function EmergencyPanel({
 
             {visibleQuickCalls.length > 0 && (
                 <section>
-                    <h3 className="text-base font-semibold text-gray-900">
+                    <h3 className="text-base font-semibold tracking-tight text-ink-strong">
                         Quick Call
                     </h3>
-                    <p className="mt-1 text-sm leading-5 text-gray-500">
+                    <p className="mt-1 text-sm leading-5 text-ink-muted">
                         Common emergency contacts are placed first.
                     </p>
 
@@ -777,8 +809,8 @@ function EmergencyPanel({
                 </section>
             )}
 
-            <section className="border-t border-gray-100 pt-5">
-                <h3 className="text-base font-semibold text-gray-900">
+            <section className="border-t border-line-soft pt-5">
+                <h3 className="text-base font-semibold tracking-tight text-ink-strong">
                     All Emergency Contacts
                 </h3>
 
@@ -792,7 +824,7 @@ function EmergencyPanel({
                         return (
                             <div
                                 key={category}
-                                className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                                className="overflow-hidden rounded-xl border border-line-soft bg-white"
                             >
                                 <button
                                     type="button"
@@ -801,7 +833,7 @@ function EmergencyPanel({
                                             isOpen ? '' : category,
                                         )
                                     }
-                                    className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-gray-50"
+                                    className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-canvas"
                                     aria-expanded={isOpen}
                                 >
                                     <span className="flex items-center gap-3">
@@ -810,10 +842,10 @@ function EmergencyPanel({
                                         </span>
 
                                         <span>
-                                            <span className="block text-sm font-semibold text-gray-900">
+                                            <span className="block text-sm font-semibold text-ink-strong">
                                                 {category}
                                             </span>
-                                            <span className="block text-xs text-gray-500">
+                                            <span className="block text-xs text-ink-muted">
                                                 {contacts.length} contact
                                                 {contacts.length > 1 ? 's' : ''}
                                             </span>
@@ -821,29 +853,29 @@ function EmergencyPanel({
                                     </span>
 
                                     <span
-                                        className={`text-gray-400 transition-transform ${isOpen ? 'rotate-90' : ''}`}
+                                        className={`text-ink-faint transition-transform ${isOpen ? 'rotate-90' : ''}`}
                                     >
                                         <ChevronRightIcon />
                                     </span>
                                 </button>
 
                                 {isOpen && (
-                                    <div className="border-t border-gray-100 bg-gray-50/60 p-2">
+                                    <div className="border-t border-line-soft bg-canvas/60 p-2">
                                         {contacts.map((contact) => (
                                             <div
                                                 key={contact.id}
                                                 className="mb-2 flex flex-col gap-3 rounded-lg bg-white p-3 last:mb-0 sm:flex-row sm:items-center sm:justify-between"
                                             >
                                                 <div className="min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900">
+                                                    <p className="text-sm font-semibold text-ink-strong">
                                                         {contact.name}
                                                     </p>
                                                     {contact.label && (
-                                                        <p className="mt-0.5 text-xs text-gray-500">
+                                                        <p className="mt-0.5 text-xs text-ink-muted">
                                                             {contact.label}
                                                         </p>
                                                     )}
-                                                    <p className="mt-1 text-sm font-bold tracking-wide text-red-700">
+                                                    <p className="mt-1 text-sm font-semibold tracking-wide text-red-700">
                                                         {formatPhoneNumber(
                                                             contact.phone_number,
                                                         )}
@@ -868,7 +900,7 @@ function EmergencyPanel({
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="min-h-12 w-full rounded-xl border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 sm:w-auto"
+                    className="min-h-12 w-full rounded-xl border border-line bg-white px-5 text-sm font-semibold text-ink transition hover:bg-canvas sm:w-auto"
                 >
                     Close
                 </button>
@@ -882,7 +914,7 @@ function EmergencyQuickCall({
     title,
     contact,
 }: {
-    icon: string;
+    icon: ReactNode;
     title: string;
     contact: ResidentContact;
 }) {
@@ -891,7 +923,7 @@ function EmergencyQuickCall({
             href={contact.tel_uri}
             className="flex min-h-[86px] items-center gap-3 rounded-xl border border-red-100 bg-red-50 p-3.5 transition hover:border-red-200 hover:bg-red-100/70"
         >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-red-700 shadow-card">
                 {icon}
             </span>
 
@@ -900,11 +932,11 @@ function EmergencyQuickCall({
                     {title}
                 </span>
 
-                <span className="mt-0.5 block truncate text-xs text-gray-500">
+                <span className="mt-0.5 block truncate text-xs text-ink-muted">
                     {contact.label || contact.name}
                 </span>
 
-                <span className="mt-1 block text-sm font-bold tracking-wide text-red-700">
+                <span className="mt-1 block text-sm font-semibold tracking-wide text-red-700">
                     {formatPhoneNumber(contact.phone_number)}
                 </span>
             </span>
@@ -919,19 +951,19 @@ function EmergencyQuickCall({
 function emergencyCategoryIcon(category: string) {
     switch (category) {
         case 'City Emergency':
-            return '🆘';
+            return <AlertTriangle className="size-4" />;
         case 'Ambulance':
-            return '🚑';
+            return <Ambulance className="size-4" />;
         case 'Fire':
-            return '🔥';
+            return <Flame className="size-4" />;
         case 'Police':
-            return '👮';
+            return <Shield className="size-4" />;
         case 'Hospital':
-            return '🏥';
+            return <Hospital className="size-4" />;
         case 'Disaster':
-            return '🌧️';
+            return <CloudRain className="size-4" />;
         default:
-            return '☎️';
+            return <Phone className="size-4" />;
     }
 }
 
@@ -960,20 +992,20 @@ function ModalContainer({
                 }
             }}
         >
-            <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl sm:max-w-xl">
-                <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-100 bg-white p-5 sm:p-6">
+            <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-xl border border-line-soft bg-white shadow-2xl sm:max-w-xl">
+                <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line-soft bg-white p-5 sm:p-6">
                     <div className="flex min-w-0 items-start gap-3">
                         {icon}
 
                         <div className="min-w-0">
                             <h2
                                 id="resident-dashboard-modal-title"
-                                className="text-xl font-semibold text-gray-900"
+                                className="text-xl font-semibold text-ink-strong"
                             >
                                 {title}
                             </h2>
 
-                            <p className="mt-1 text-sm leading-5 text-gray-500">
+                            <p className="mt-1 text-sm leading-5 text-ink-muted">
                                 {description}
                             </p>
                         </div>
@@ -983,7 +1015,7 @@ function ModalContainer({
                         type="button"
                         onClick={onClose}
                         aria-label="Close"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 focus:ring-2 focus:ring-gray-200 focus:outline-none"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-secondary focus:ring-2 focus:ring-gray-200 focus:outline-none"
                     >
                         <CloseIcon />
                     </button>

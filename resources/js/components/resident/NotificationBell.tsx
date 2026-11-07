@@ -114,7 +114,7 @@ export default function NotificationBell() {
                     <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
                 </svg>
                 {unread > 0 && (
-                    <span className="absolute top-0 right-0 min-w-4 rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                    <span className="absolute top-0 right-0 min-w-4 rounded-full bg-red-600 px-1 text-[10px] font-semibold text-white">
                         {unread > 99 ? '99+' : unread}
                     </span>
                 )}
@@ -123,15 +123,15 @@ export default function NotificationBell() {
                 <section
                     id="resident-notifications"
                     aria-label="Notifications"
-                    className="fixed top-16 right-3 z-50 w-[calc(100vw-1.5rem)] max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-900 shadow-xl sm:absolute sm:top-full sm:right-0 sm:mt-2 sm:w-96"
+                    className="fixed top-16 right-3 z-50 w-[calc(100vw-1.5rem)] max-w-sm overflow-hidden rounded-xl border border-line-soft bg-white text-ink-strong shadow-xl sm:absolute sm:top-full sm:right-0 sm:mt-2 sm:w-96"
                 >
-                    <div className="flex items-center justify-between border-b border-gray-100 p-4">
+                    <div className="flex items-center justify-between border-b border-line-soft p-4">
                         <h2 className="font-semibold">Notifications</h2>
                         <button
                             type="button"
                             disabled={busy || unread === 0}
                             onClick={() => void read()}
-                            className="text-xs font-semibold text-[#2a5279] disabled:opacity-40"
+                            className="text-xs font-semibold text-brand-deep disabled:opacity-40"
                         >
                             Mark all as read
                         </button>
@@ -152,13 +152,13 @@ export default function NotificationBell() {
                         {!loaded && !error && (
                             <p
                                 role="status"
-                                className="p-6 text-center text-sm text-gray-500"
+                                className="p-6 text-center text-sm text-ink-muted"
                             >
                                 Loading notifications…
                             </p>
                         )}
                         {loaded && items.length === 0 && (
-                            <p className="p-6 text-center text-sm text-gray-500">
+                            <p className="p-6 text-center text-sm text-ink-muted">
                                 You’re all caught up. Certificate and attendance
                                 updates will appear here.
                             </p>
@@ -169,23 +169,23 @@ export default function NotificationBell() {
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void read(notice)}
-                                className={`block w-full border-b border-gray-100 p-4 text-left hover:bg-gray-100 disabled:opacity-60 ${notice.read_at ? 'bg-white' : 'bg-green-50'}`}
+                                className={`block w-full border-b border-line-soft p-4 text-left hover:bg-secondary disabled:opacity-60 ${notice.read_at ? 'bg-white' : 'bg-brand-soft'}`}
                             >
                                 <span className="flex items-center gap-2 text-sm font-semibold">
                                     {!notice.read_at && (
                                         <span
-                                            className="h-2 w-2 shrink-0 rounded-full bg-green-700"
+                                            className="h-2 w-2 shrink-0 rounded-full bg-brand"
                                             aria-label="Unread"
                                         />
                                     )}
                                     {notice.title}
                                 </span>
-                                <span className="mt-1 block text-xs leading-5 text-gray-600">
+                                <span className="mt-1 block text-xs leading-5 text-ink-muted">
                                     {notice.message}
                                 </span>
                                 <time
                                     dateTime={notice.created_at}
-                                    className="mt-2 block text-[11px] text-gray-500"
+                                    className="mt-2 block text-[11px] text-ink-muted"
                                 >
                                     {new Date(
                                         notice.created_at,
@@ -194,7 +194,7 @@ export default function NotificationBell() {
                             </button>
                         ))}
                     </div>
-                    <div className="flex justify-between p-3 text-xs text-gray-500">
+                    <div className="flex justify-between p-3 text-xs text-ink-muted">
                         <span>Latest 30 updates · refreshes automatically</span>
                         <button
                             type="button"
@@ -202,7 +202,7 @@ export default function NotificationBell() {
                                 setOpen(false);
                                 button.current?.focus();
                             }}
-                            className="font-semibold text-[#2a5279]"
+                            className="font-semibold text-brand-deep"
                         >
                             Close
                         </button>

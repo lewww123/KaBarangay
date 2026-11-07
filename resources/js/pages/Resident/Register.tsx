@@ -1,6 +1,8 @@
 import BirthdateInput from '@/components/BirthdateInput';
+import { LogoMark } from '@/components/Logo';
 import { readRegistrationDraft, saveRegistrationDraft, readRegistrationFiles, saveRegistrationFiles, clearRegistrationDraft, REGISTRATION_FILE_FIELDS } from '@/lib/registrationDraft';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { X } from 'lucide-react';
 import LegalLinks from '@/components/LegalLinks';
 import {
     ChangeEvent,
@@ -497,7 +499,7 @@ function RegistrationContent({
         <>
             <Head title="Create Resident Account" />
 
-            <div className="min-h-screen bg-[#eef1f5]">
+            <div className="min-h-screen bg-canvas">
                 {submissionFeedback && (
                     <div
                         role={
@@ -519,9 +521,9 @@ function RegistrationContent({
                             type="button"
                             aria-label="Dismiss notification"
                             onClick={() => setSubmissionFeedback(null)}
-                            className="font-bold"
+                            className="font-semibold"
                         >
-                            ×
+                            <X className="size-4" />
                         </button>
                     </div>
                 )}
@@ -530,11 +532,11 @@ function RegistrationContent({
                 <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
                     <div className="mx-auto max-w-4xl">
                         <div className="mb-5 text-center sm:mb-7">
-                            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                            <h1 className="text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                                 Create Resident Account
                             </h1>
 
-                            <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-gray-500">
+                            <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-ink-muted">
                                 Your resident record must first be added by your
                                 barangay Admin. Submit this application so staff
                                 can verify your identity and link your online
@@ -545,19 +547,19 @@ function RegistrationContent({
                         <RegistrationProgress step={step} />
 
                         {selectedBarangay && step > 1 && (
-                            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-[#dfe4ea] bg-[#eef1f5] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-line-soft bg-canvas px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex min-w-0 items-start gap-3">
-                                    <div className="mt-0.5 shrink-0 text-[#3b6fa8]">
+                                    <div className="mt-0.5 shrink-0 text-brand">
                                         <MapPinIcon />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-[11px] font-bold tracking-wider text-[#3b6fa8] uppercase">
+                                        <p className="text-[11px] font-semibold tracking-wider text-brand uppercase">
                                             Registering under
                                         </p>
-                                        <p className="mt-0.5 truncate text-sm font-bold text-gray-800">
+                                        <p className="mt-0.5 truncate text-sm font-semibold text-ink-strong">
                                             {selectedBarangay.name}
                                         </p>
-                                        <p className="mt-0.5 text-xs text-gray-500">
+                                        <p className="mt-0.5 text-xs text-ink-muted">
                                             {[
                                                 selectedBarangay.city_municipality,
                                                 selectedBarangay.province,
@@ -575,7 +577,7 @@ function RegistrationContent({
                                         setClientErrors({});
                                         scrollTop();
                                     }}
-                                    className="min-h-10 shrink-0 rounded-lg border border-[#c2cbd4] bg-white px-4 text-xs font-bold text-[#3b6fa8] transition hover:bg-[#eef5eb]"
+                                    className="min-h-10 shrink-0 rounded-lg border border-line bg-white px-4 text-xs font-semibold text-brand transition hover:bg-brand-soft"
                                 >
                                     Change Barangay
                                 </button>
@@ -606,23 +608,23 @@ function RegistrationContent({
                             </div>
                         )}
 
-                        <p role="status" className="mt-4 text-sm text-gray-600">
+                        <p role="status" className="mt-4 text-sm text-ink-muted">
                             {draftStorageError ? 'Your browser could not save the complete draft. Keep this page open to avoid losing unsaved details.' : 'Your details and attachments are saved on this device until registration is submitted. Passwords must be entered again when you return.'}
                         </p>
                         <form
                             onSubmit={handleSubmit}
-                            className="mt-5 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:mt-6"
+                            className="mt-5 overflow-hidden rounded-xl border border-line-soft bg-white shadow-card sm:mt-6"
                         >
-                            <div className="border-b border-gray-100 px-5 py-5 sm:px-7">
-                                <p className="text-xs font-bold tracking-wider text-[#3b6fa8] uppercase">
+                            <div className="border-b border-line-soft px-5 py-5 sm:px-7">
+                                <p className="text-xs font-semibold tracking-wider text-brand uppercase">
                                     Step {step} of {TOTAL_STEPS}
                                 </p>
 
-                                <h2 className="mt-1 text-lg font-bold text-gray-900 sm:text-xl">
+                                <h2 className="mt-1 text-base font-semibold tracking-tight text-ink-strong">
                                     {STEP_TITLES[step - 1]}
                                 </h2>
 
-                                <p className="mt-1 text-sm leading-6 text-gray-500">
+                                <p className="mt-1 text-sm leading-6 text-ink-muted">
                                     {getStepDescription(step)}
                                 </p>
                             </div>
@@ -748,14 +750,14 @@ function RegistrationContent({
                             </div>
 
                             {processing && progress && (
-                                <div className="border-t border-gray-100 px-5 pt-4 sm:px-7">
-                                    <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
+                                <div className="border-t border-line-soft px-5 pt-4 sm:px-7">
+                                    <div className="flex items-center justify-between text-xs font-semibold text-ink-muted">
                                         <span>Uploading registration...</span>
                                         <span>{progress.percentage}%</span>
                                     </div>
-                                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
+                                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
                                         <div
-                                            className="h-full rounded-full bg-[#3b6fa8] transition-all"
+                                            className="h-full rounded-full bg-brand transition-all"
                                             style={{
                                                 width: `${progress.percentage}%`,
                                             }}
@@ -764,13 +766,13 @@ function RegistrationContent({
                                 </div>
                             )}
 
-                            <div className="flex flex-col-reverse gap-3 border-t border-gray-100 bg-gray-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+                            <div className="flex flex-col-reverse gap-3 border-t border-line-soft bg-canvas/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
                                 {step > 1 ? (
                                     <button
                                         type="button"
                                         onClick={previousStep}
                                         disabled={processing}
-                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-white px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         <ArrowLeftIcon />
                                         Back
@@ -778,7 +780,7 @@ function RegistrationContent({
                                 ) : (
                                     <Link
                                         href="/resident/login"
-                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
+                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-white px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-canvas"
                                     >
                                         <ArrowLeftIcon />
                                         Back to Login
@@ -789,7 +791,7 @@ function RegistrationContent({
                                     <button
                                         type="button"
                                         onClick={nextStep}
-                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3b6fa8] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2a5279] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-semibold text-white shadow-card transition hover:bg-brand-deep active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         Continue
                                         <ArrowRightIcon />
@@ -798,7 +800,7 @@ function RegistrationContent({
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3b6fa8] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2a5279] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-semibold text-white shadow-card transition hover:bg-brand-deep active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {processing ? (
                                             <>
@@ -816,11 +818,11 @@ function RegistrationContent({
                             </div>
                         </form>
 
-                        <p className="mt-5 text-center text-xs leading-5 text-gray-400">
+                        <p className="mt-5 text-center text-xs leading-5 text-ink-faint">
                             Already registered?{' '}
                             <Link
                                 href="/resident/login"
-                                className="font-semibold text-[#3b6fa8] hover:underline"
+                                className="font-semibold text-brand hover:underline"
                             >
                                 Sign in to your account
                             </Link>
@@ -828,7 +830,7 @@ function RegistrationContent({
 
                         <LegalLinks />
                         {selectedBarangay && (
-                            <p className="mt-2 text-center text-xs text-gray-400">
+                            <p className="mt-2 text-center text-xs text-ink-faint">
                                 Selected location: {barangayLocation}
                             </p>
                         )}
@@ -881,7 +883,7 @@ function BarangayStep({
 
             {barangays.length === 0 && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <p className="text-sm font-bold text-amber-900">
+                    <p className="text-sm font-semibold text-amber-900">
                         No barangays are available.
                     </p>
                     <p className="mt-1 text-xs leading-5 text-amber-800">
@@ -897,7 +899,7 @@ function BarangayStep({
                     className={[
                         'rounded-xl border p-4',
                         selectedBarangay.puroks.length > 0
-                            ? 'border-[#dfe4ea] bg-[#eef1f5]'
+                            ? 'border-line-soft bg-canvas'
                             : 'border-amber-200 bg-amber-50',
                     ].join(' ')}
                 >
@@ -905,7 +907,7 @@ function BarangayStep({
                         <div
                             className={
                                 selectedBarangay.puroks.length > 0
-                                    ? 'text-[#3b6fa8]'
+                                    ? 'text-brand'
                                     : 'text-amber-700'
                             }
                         >
@@ -913,10 +915,10 @@ function BarangayStep({
                         </div>
 
                         <div>
-                            <p className="text-sm font-bold text-gray-800">
+                            <p className="text-sm font-semibold text-ink-strong">
                                 {selectedBarangay.name}
                             </p>
-                            <p className="mt-1 text-xs leading-5 text-gray-600">
+                            <p className="mt-1 text-xs leading-5 text-ink-muted">
                                 {[
                                     selectedBarangay.city_municipality,
                                     selectedBarangay.province,
@@ -926,7 +928,7 @@ function BarangayStep({
                             </p>
 
                             {selectedBarangay.puroks.length > 0 ? (
-                                <p className="mt-2 text-xs text-gray-500">
+                                <p className="mt-2 text-xs text-ink-muted">
                                     {selectedBarangay.puroks.length} purok
                                     {selectedBarangay.puroks.length === 1
                                         ? ''
@@ -1083,7 +1085,7 @@ function PersonalInformationStep({
                 </div>
             </div>
 
-            <div className="border-t border-gray-100 pt-6">
+            <div className="border-t border-line-soft pt-6">
                 <SectionTitle
                     title="Residential Address"
                     description="Choose the purok that belongs to your selected barangay, then enter your complete current address."
@@ -1130,11 +1132,11 @@ function PersonalInformationStep({
                 </div>
 
                 {barangay && (
-                    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                        <p className="text-xs font-medium text-gray-500">
+                    <div className="mt-4 rounded-xl border border-line-soft bg-canvas px-4 py-3">
+                        <p className="text-xs font-medium text-ink-muted">
                             Selected Barangay
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-gray-800">
+                        <p className="mt-1 text-sm font-semibold text-ink-strong">
                             {[
                                 barangay.name,
                                 barangay.city_municipality,
@@ -1178,7 +1180,7 @@ function SectorInformationStep({
 
             {membershipSectors.length === 0 && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <p className="text-sm font-bold text-amber-900">
+                    <p className="text-sm font-semibold text-amber-900">
                         Senior Citizen and PWD options are not available.
                     </p>
                     <p className="mt-1 text-xs leading-5 text-amber-800">
@@ -1238,16 +1240,16 @@ function SectorInformationStep({
             )}
 
             {regularSelected && (
-                <div className="rounded-xl border border-[#dfe4ea] bg-[#eef1f5] p-4">
-                    <p className="text-sm font-bold text-gray-800">
+                <div className="rounded-xl border border-line-soft bg-canvas p-4">
+                    <p className="text-sm font-semibold text-ink-strong">
                         Selected classification
                     </p>
                     <div className="mt-2">
-                        <span className="rounded-full bg-[#eaf1f8] px-3 py-1 text-xs font-bold text-[#3b6fa8]">
+                        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
                             Regular Resident
                         </span>
                     </div>
-                    <p className="mt-3 text-xs leading-5 text-gray-500">
+                    <p className="mt-3 text-xs leading-5 text-ink-muted">
                         Senior Citizen and PWD are disabled while Regular
                         Resident is selected. Deselect Regular Resident first if
                         you need to choose a sector.
@@ -1256,8 +1258,8 @@ function SectorInformationStep({
             )}
 
             {!regularSelected && hasSectorSelection && (
-                <div className="rounded-xl border border-[#dfe4ea] bg-[#eef1f5] p-4">
-                    <p className="text-sm font-bold text-gray-800">
+                <div className="rounded-xl border border-line-soft bg-canvas p-4">
+                    <p className="text-sm font-semibold text-ink-strong">
                         Selected classification
                         {selectedSlugs.length > 1 ? 's' : ''}
                     </p>
@@ -1270,14 +1272,14 @@ function SectorInformationStep({
                             .map((sector) => (
                                 <span
                                     key={sector.id}
-                                    className="rounded-full bg-[#eaf1f8] px-3 py-1 text-xs font-bold text-[#3b6fa8]"
+                                    className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand"
                                 >
                                     {sector.name}
                                 </span>
                             ))}
                     </div>
 
-                    <p className="mt-3 text-xs leading-5 text-gray-500">
+                    <p className="mt-3 text-xs leading-5 text-ink-muted">
                         Regular Resident is disabled while a Senior Citizen or
                         PWD classification is selected. You may select both
                         Senior Citizen and PWD if both apply to you.
@@ -1332,7 +1334,7 @@ function IdentityVerificationStep({
                         <ShieldIcon />
                     </div>
                     <div>
-                        <p className="text-sm font-bold text-amber-900">
+                        <p className="text-sm font-semibold text-amber-900">
                             Identity verification
                         </p>
                         <p className="mt-1 text-xs leading-5 text-amber-800">
@@ -1344,17 +1346,17 @@ function IdentityVerificationStep({
                 </div>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="rounded-xl border border-line-soft bg-white p-4">
                 <label
                     htmlFor="registration-qr-token"
-                    className="block text-sm font-semibold text-gray-800"
+                    className="block text-sm font-semibold text-ink-strong"
                 >
                     Existing Resident QR token{' '}
-                    <span className="font-normal text-gray-500">
+                    <span className="font-normal text-ink-muted">
                         (optional)
                     </span>
                 </label>
-                <p className="mt-1 text-xs leading-5 text-gray-500">
+                <p className="mt-1 text-xs leading-5 text-ink-muted">
                     Enter the raw token from your existing KaBarangay Resident
                     QR. It may help staff find a matching record, but it does
                     not prove identity or link an account. You can continue
@@ -1369,7 +1371,7 @@ function IdentityVerificationStep({
                     autoComplete="off"
                     autoCapitalize="off"
                     spellCheck={false}
-                    className="mt-3 min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20 focus:outline-none"
+                    className="mt-3 min-h-11 w-full rounded-lg border border-line px-3 py-2 font-mono text-sm focus:border-brand focus:ring-2 focus:ring-brand/20 focus:outline-none"
                     placeholder="KBQR-…"
                 />
             </div>
@@ -1393,7 +1395,7 @@ function IdentityVerificationStep({
             </div>
 
             {(isSenior || isPwd) && (
-                <div className="border-t border-gray-100 pt-6">
+                <div className="border-t border-line-soft pt-6">
                     <SectionTitle
                         title="Sector Supporting Documents"
                         description="Provide proof for every sector you selected."
@@ -1429,7 +1431,7 @@ function IdentityVerificationStep({
                 </div>
             )}
 
-            <div className="border-t border-gray-100 pt-6">
+            <div className="border-t border-line-soft pt-6">
                 <SectionTitle
                     title="Live Identity Photo"
                     description="Use your device camera to take a live photo. Existing gallery photos cannot be selected here."
@@ -1497,7 +1499,7 @@ function AccountSecurityStep({
 
                     <InputField label="Email address (optional)" type="email" value={data.email} placeholder="Optional" error={errors('email')} onChange={(value) => { setData('email', value); clearFieldError('email'); }} />
                     {(
-                        <p className="text-xs text-gray-500 sm:col-span-2">
+                        <p className="text-xs text-ink-muted sm:col-span-2">
                             Kung may email, dito ipapadala ang approval, correction request, o
                             ibang desisyon ng admin. Siguraduhing tama at aktibo
                             ang email address.
@@ -1506,7 +1508,7 @@ function AccountSecurityStep({
                 </div>
             </div>
 
-            <div className="border-t border-gray-100 pt-6">
+            <div className="border-t border-line-soft pt-6">
                 <SectionTitle
                     title="Create Your Password"
                     description="Use a strong password that you do not use for other accounts."
@@ -1627,7 +1629,7 @@ function ReviewStep({
 
             <ReviewCard title="Sector Information" onEdit={() => goToStep(3)}>
                 {sectorNames.length === 0 ? (
-                    <p className="text-sm font-semibold text-gray-700">
+                    <p className="text-sm font-semibold text-ink">
                         Regular Resident
                     </p>
                 ) : (
@@ -1635,7 +1637,7 @@ function ReviewStep({
                         {sectorNames.map((name) => (
                             <span
                                 key={name}
-                                className="rounded-full bg-[#eaf1f8] px-3 py-1.5 text-xs font-bold text-[#3b6fa8]"
+                                className="rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand"
                             >
                                 {name}
                             </span>
@@ -1692,7 +1694,7 @@ function ReviewStep({
                 </div>
             )}
 
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <div className="rounded-xl border border-line-soft bg-canvas p-4">
                 <label className="flex cursor-pointer items-start gap-3">
                     <input
                         type="checkbox"
@@ -1700,9 +1702,9 @@ function ReviewStep({
                         onChange={(event) =>
                             onDeclarationChange(event.target.checked)
                         }
-                        className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 accent-[#3b6fa8]"
+                        className="mt-0.5 h-5 w-5 shrink-0 rounded border-line accent-brand"
                     />
-                    <span className="text-xs leading-5 text-gray-600 sm:text-sm">
+                    <span className="text-xs leading-5 text-ink-muted sm:text-sm">
                         I confirm that the information and documents I provided
                         are true and belong to me. I understand that my selected
                         barangay will review my residency, identification, live
@@ -1964,7 +1966,7 @@ function LiveCameraCapture({
     return (
         <div>
             {cameraOpen ? (
-                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
+                <div className="overflow-hidden rounded-xl border border-line-soft bg-black">
                     <div className="relative aspect-[4/3] w-full overflow-hidden bg-black sm:aspect-video">
                         <video
                             ref={videoRef}
@@ -2002,7 +2004,7 @@ function LiveCameraCapture({
                             type="button"
                             onClick={stopCamera}
                             disabled={capturing}
-                            className="min-h-11 rounded-xl border border-gray-300 px-5 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="min-h-11 rounded-xl border border-line px-5 text-sm font-semibold text-ink hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             Cancel
                         </button>
@@ -2011,7 +2013,7 @@ function LiveCameraCapture({
                             type="button"
                             onClick={capturePhoto}
                             disabled={!cameraReady || capturing}
-                            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3b6fa8] px-6 text-sm font-bold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-6 text-sm font-semibold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {capturing ? (
                                 <>
@@ -2028,23 +2030,23 @@ function LiveCameraCapture({
                     </div>
                 </div>
             ) : value && previewUrl ? (
-                <div className="rounded-2xl border border-[#c2cbd4] bg-[#ffffff] p-4">
+                <div className="rounded-xl border border-line bg-surface p-4">
                     <div className="grid gap-4 sm:grid-cols-[180px_1fr] sm:items-center">
                         <img
                             src={previewUrl}
                             alt="Live identity photo preview"
-                            className="aspect-[4/3] w-full rounded-xl border border-gray-200 bg-white object-cover"
+                            className="aspect-[4/3] w-full rounded-xl border border-line-soft bg-white object-cover"
                         />
 
                         <div>
-                            <div className="flex items-center gap-2 text-[#3b6fa8]">
+                            <div className="flex items-center gap-2 text-brand">
                                 <CircleCheckIcon />
-                                <p className="text-sm font-bold">
+                                <p className="text-sm font-semibold">
                                     Live identity photo captured
                                 </p>
                             </div>
 
-                            <p className="mt-2 text-xs leading-5 text-gray-500">
+                            <p className="mt-2 text-xs leading-5 text-ink-muted">
                                 This photo was captured directly from this
                                 device camera.
                             </p>
@@ -2053,7 +2055,7 @@ function LiveCameraCapture({
                                 type="button"
                                 onClick={openCamera}
                                 disabled={startingCamera}
-                                className="mt-4 min-h-10 rounded-lg border border-gray-300 bg-white px-4 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="mt-4 min-h-10 rounded-lg border border-line bg-white px-4 text-xs font-semibold text-ink hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {startingCamera
                                     ? 'Opening Camera...'
@@ -2065,21 +2067,21 @@ function LiveCameraCapture({
             ) : (
                 <div
                     className={[
-                        'flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center sm:p-8',
+                        'flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center sm:p-8',
                         error
                             ? 'border-red-300 bg-red-50/30'
-                            : 'border-gray-300 bg-gray-50/50',
+                            : 'border-line bg-canvas/50',
                     ].join(' ')}
                 >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#eaf1f8] text-[#3b6fa8]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-soft text-brand">
                         <CameraIcon />
                     </div>
 
-                    <p className="mt-3 text-sm font-bold text-gray-800">
+                    <p className="mt-3 text-sm font-semibold text-ink-strong">
                         Live Identity Photo
                     </p>
 
-                    <p className="mt-1 max-w-md text-xs leading-5 text-gray-500">
+                    <p className="mt-1 max-w-md text-xs leading-5 text-ink-muted">
                         Open your device camera and take a current photo of
                         yourself. Gallery upload is not available for this
                         verification step.
@@ -2089,7 +2091,7 @@ function LiveCameraCapture({
                         type="button"
                         onClick={openCamera}
                         disabled={startingCamera}
-                        className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3b6fa8] px-5 text-sm font-bold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {startingCamera ? (
                             <>
@@ -2114,7 +2116,7 @@ function LiveCameraCapture({
                 </p>
             )}
 
-            <p className="mt-2 text-xs leading-5 text-gray-400">
+            <p className="mt-2 text-xs leading-5 text-ink-faint">
                 Works with laptop webcams and phone front cameras. Camera
                 permission is required; deployed sites must use HTTPS.
             </p>
@@ -2183,22 +2185,22 @@ function FileUpload({
             {!value ? (
                 <label
                     className={[
-                        'flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition sm:p-8',
+                        'flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition sm:p-8',
                         error || localError
                             ? 'border-red-300 bg-red-50/30'
-                            : 'border-gray-300 bg-gray-50/50 hover:border-[#7ca278] hover:bg-[#ffffff]',
+                            : 'border-line bg-canvas/50 hover:border-brand hover:bg-surface',
                     ].join(' ')}
                 >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#eaf1f8] text-[#3b6fa8]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-soft text-brand">
                         {icon}
                     </div>
-                    <p className="mt-3 text-sm font-bold text-gray-800">
+                    <p className="mt-3 text-sm font-semibold text-ink-strong">
                         {title}
                     </p>
-                    <p className="mt-1 max-w-md text-xs leading-5 text-gray-500">
+                    <p className="mt-1 max-w-md text-xs leading-5 text-ink-muted">
                         {description}
                     </p>
-                    <span className="mt-4 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 shadow-sm">
+                    <span className="mt-4 rounded-lg border border-line bg-white px-4 py-2 text-xs font-semibold text-ink shadow-card">
                         Choose File
                     </span>
                     <input
@@ -2209,31 +2211,31 @@ function FileUpload({
                     />
                 </label>
             ) : (
-                <div className="rounded-2xl border border-[#c2cbd4] bg-[#ffffff] p-4">
+                <div className="rounded-xl border border-line bg-surface p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         {previewUrl ? (
                             <img
                                 src={previewUrl}
                                 alt={`${title} preview`}
-                                className="h-24 w-full rounded-xl border border-gray-200 bg-white object-cover sm:w-28"
+                                className="h-24 w-full rounded-xl border border-line-soft bg-white object-cover sm:w-28"
                             />
                         ) : (
-                            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-white text-[#3b6fa8] shadow-sm">
+                            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-white text-brand shadow-card">
                                 <DocumentIcon />
                             </div>
                         )}
 
                         <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 text-[#3b6fa8]">
+                            <div className="flex items-center gap-2 text-brand">
                                 <CircleCheckIcon />
-                                <p className="text-sm font-bold text-gray-800">
+                                <p className="text-sm font-semibold text-ink-strong">
                                     {title} added
                                 </p>
                             </div>
-                            <p className="mt-1 truncate text-xs text-gray-500">
+                            <p className="mt-1 truncate text-xs text-ink-muted">
                                 {value.name}
                             </p>
-                            <p className="mt-1 text-xs text-gray-400">
+                            <p className="mt-1 text-xs text-ink-faint">
                                 {formatFileSize(value.size)}
                             </p>
                         </div>
@@ -2244,7 +2246,7 @@ function FileUpload({
                                 setLocalError('');
                                 onChange(null);
                             }}
-                            className="min-h-10 rounded-lg border border-gray-300 bg-white px-3 text-xs font-bold text-gray-600 hover:bg-gray-50"
+                            className="min-h-10 rounded-lg border border-line bg-white px-3 text-xs font-semibold text-ink-muted hover:bg-canvas"
                         >
                             Remove
                         </button>
@@ -2273,18 +2275,18 @@ function RegistrationProgress({ step }: { step: number }) {
 
     return (
         <>
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:hidden">
+            <div className="rounded-xl border border-line-soft bg-white p-4 shadow-card md:hidden">
                 <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-bold text-[#3b6fa8]">
+                    <span className="text-xs font-semibold text-brand">
                         Step {step} of {TOTAL_STEPS}
                     </span>
-                    <span className="truncate text-xs font-semibold text-gray-500">
+                    <span className="truncate text-xs font-semibold text-ink-muted">
                         {labels[step - 1]}
                     </span>
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
                     <div
-                        className="h-full rounded-full bg-[#3b6fa8] transition-all duration-300"
+                        className="h-full rounded-full bg-brand transition-all duration-300"
                         style={{
                             width: `${(step / TOTAL_STEPS) * 100}%`,
                         }}
@@ -2292,7 +2294,7 @@ function RegistrationProgress({ step }: { step: number }) {
                 </div>
             </div>
 
-            <div className="hidden rounded-2xl border border-gray-200 bg-white px-5 py-5 shadow-sm md:block">
+            <div className="hidden rounded-xl border border-line-soft bg-white px-5 py-5 shadow-card md:block">
                 <div className="flex items-start">
                     {labels.map((label, index) => {
                         const number = index + 1;
@@ -2307,10 +2309,10 @@ function RegistrationProgress({ step }: { step: number }) {
                                 <div className="flex min-w-[72px] flex-col items-center text-center">
                                     <div
                                         className={[
-                                            'flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold transition',
+                                            'flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-semibold transition',
                                             complete || active
-                                                ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
-                                                : 'border-gray-200 bg-white text-gray-400',
+                                                ? 'border-brand bg-brand text-white'
+                                                : 'border-line-soft bg-white text-ink-faint',
                                         ].join(' ')}
                                     >
                                         {complete ? <SmallCheckIcon /> : number}
@@ -2319,10 +2321,10 @@ function RegistrationProgress({ step }: { step: number }) {
                                         className={[
                                             'mt-2 text-[11px] font-semibold lg:text-xs',
                                             active
-                                                ? 'text-[#3b6fa8]'
+                                                ? 'text-brand'
                                                 : complete
-                                                  ? 'text-gray-700'
-                                                  : 'text-gray-400',
+                                                  ? 'text-ink'
+                                                  : 'text-ink-faint',
                                         ].join(' ')}
                                     >
                                         {label}
@@ -2334,8 +2336,8 @@ function RegistrationProgress({ step }: { step: number }) {
                                         className={[
                                             'mt-4 h-0.5 flex-1',
                                             number < step
-                                                ? 'bg-[#3b6fa8]'
-                                                : 'bg-gray-200',
+                                                ? 'bg-brand'
+                                                : 'bg-line-soft',
                                         ].join(' ')}
                                     />
                                 )}
@@ -2350,17 +2352,15 @@ function RegistrationProgress({ step }: { step: number }) {
 
 function PublicHeader() {
     return (
-        <header className="border-b border-[#2a5279] bg-[#3b6fa8]">
+        <header className="border-b border-brand-deep bg-brand">
             <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <Link
                     href="/resident/login"
                     className="inline-flex min-w-0 items-center gap-3 text-white"
                 >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-[#3b6fa8]">
-                        KB
-                    </div>
+                    <LogoMark tone="onBrand" size="md" className="shrink-0" />
                     <div className="min-w-0">
-                        <p className="text-base leading-tight font-bold sm:text-lg">
+                        <p className="text-base leading-tight font-semibold sm:text-lg">
                             KaBarangay
                         </p>
                         <p className="text-xs text-white/80">Resident Portal</p>
@@ -2387,10 +2387,10 @@ function SectionTitle({
 }) {
     return (
         <div>
-            <h3 className="text-sm font-bold text-gray-900 sm:text-base">
+            <h3 className="text-sm font-semibold text-ink-strong sm:text-base">
                 {title}
             </h3>
-            <p className="mt-1 text-xs leading-5 text-gray-500 sm:text-sm">
+            <p className="mt-1 text-xs leading-5 text-ink-muted sm:text-sm">
                 {description}
             </p>
         </div>
@@ -2399,12 +2399,12 @@ function SectionTitle({
 
 function InfoBox({ children }: { children: ReactNode }) {
     return (
-        <div className="rounded-xl border border-[#dfe4ea] bg-[#eef1f5] p-4">
+        <div className="rounded-xl border border-line-soft bg-canvas p-4">
             <div className="flex items-start gap-3">
-                <div className="mt-0.5 shrink-0 text-[#3b6fa8]">
+                <div className="mt-0.5 shrink-0 text-brand">
                     <InfoIcon />
                 </div>
-                <p className="text-xs leading-5 text-gray-600 sm:text-sm">
+                <p className="text-xs leading-5 text-ink-muted sm:text-sm">
                     {children}
                 </p>
             </div>
@@ -2433,7 +2433,7 @@ function InputField({
 }) {
     return (
         <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-gray-700">
+            <span className="mb-1.5 block text-sm font-semibold text-ink">
                 {label}
                 {required && <span className="ml-1 text-red-500">*</span>}
             </span>
@@ -2445,14 +2445,14 @@ function InputField({
                 onChange={(event) => onChange(event.target.value)}
                 placeholder={placeholder}
                 className={[
-                    'min-h-11 w-full rounded-xl border bg-white px-3.5 text-base text-gray-800 outline-none transition placeholder:text-gray-400 focus:ring-2 sm:text-sm',
+                    'min-h-11 w-full rounded-xl border bg-white px-3.5 text-base text-ink-strong outline-none transition placeholder:text-ink-faint focus:ring-2 sm:text-sm',
                     error
                         ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-                        : 'border-gray-300 focus:border-[#3b6fa8] focus:ring-[#3b6fa8]/15',
+                        : 'border-line focus:border-brand focus:ring-brand/15',
                 ].join(' ')}
             />}
             {helper && !error && (
-                <p className="mt-1.5 text-xs text-gray-400">{helper}</p>
+                <p className="mt-1.5 text-xs text-ink-faint">{helper}</p>
             )}
             {error && (
                 <p className="mt-1.5 text-xs font-semibold text-red-600">
@@ -2482,7 +2482,7 @@ function SelectField({
 }) {
     return (
         <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-gray-700">
+            <span className="mb-1.5 block text-sm font-semibold text-ink">
                 {label}
                 {required && <span className="ml-1 text-red-500">*</span>}
             </span>
@@ -2491,10 +2491,10 @@ function SelectField({
                 disabled={disabled}
                 onChange={(event) => onChange(event.target.value)}
                 className={[
-                    'min-h-11 w-full rounded-xl border bg-white px-3.5 text-base text-gray-800 outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 sm:text-sm',
+                    'min-h-11 w-full rounded-xl border bg-white px-3.5 text-base text-ink-strong outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-ink-faint sm:text-sm',
                     error
                         ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-                        : 'border-gray-300 focus:border-[#3b6fa8] focus:ring-[#3b6fa8]/15',
+                        : 'border-line focus:border-brand focus:ring-brand/15',
                 ].join(' ')}
             >
                 {options.map((option) => (
@@ -2534,22 +2534,22 @@ function SectorCard({
             disabled={disabled}
             aria-pressed={selected}
             className={[
-                'relative min-h-44 rounded-2xl border-2 p-5 text-left transition',
+                'relative min-h-44 rounded-xl border-2 p-5 text-left transition',
                 selected
-                    ? 'border-[#3b6fa8] bg-[#ffffff] shadow-sm'
+                    ? 'border-brand bg-surface shadow-card'
                     : disabled
-                      ? 'cursor-not-allowed border-gray-200 bg-gray-50 opacity-55'
-                      : 'border-gray-200 bg-white hover:border-[#c2cbd4] hover:bg-gray-50',
+                      ? 'cursor-not-allowed border-line-soft bg-canvas opacity-55'
+                      : 'border-line-soft bg-white hover:border-line hover:bg-canvas',
             ].join(' ')}
         >
             <div
                 className={[
                     'flex h-11 w-11 items-center justify-center rounded-xl',
                     selected
-                        ? 'bg-[#3b6fa8] text-white'
+                        ? 'bg-brand text-white'
                         : disabled
-                          ? 'bg-gray-100 text-gray-400'
-                          : 'bg-gray-100 text-gray-500',
+                          ? 'bg-secondary text-ink-faint'
+                          : 'bg-secondary text-ink-muted',
                 ].join(' ')}
             >
                 {icon}
@@ -2557,8 +2557,8 @@ function SectorCard({
 
             <p
                 className={[
-                    'mt-4 text-sm font-bold',
-                    disabled && !selected ? 'text-gray-400' : 'text-gray-900',
+                    'mt-4 text-sm font-semibold',
+                    disabled && !selected ? 'text-ink-faint' : 'text-ink-strong',
                 ].join(' ')}
             >
                 {title}
@@ -2567,7 +2567,7 @@ function SectorCard({
             <p
                 className={[
                     'mt-2 text-xs leading-5',
-                    disabled && !selected ? 'text-gray-400' : 'text-gray-500',
+                    disabled && !selected ? 'text-ink-faint' : 'text-ink-muted',
                 ].join(' ')}
             >
                 {description}
@@ -2577,10 +2577,10 @@ function SectorCard({
                 className={[
                     'absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-md border-2',
                     selected
-                        ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
+                        ? 'border-brand bg-brand text-white'
                         : disabled
-                          ? 'border-gray-200 bg-gray-100'
-                          : 'border-gray-300 bg-white',
+                          ? 'border-line-soft bg-secondary'
+                          : 'border-line bg-white',
                 ].join(' ')}
             >
                 {selected && <TinyCheckIcon />}
@@ -2606,7 +2606,7 @@ function PasswordField({
 }) {
     return (
         <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-gray-700">
+            <span className="mb-1.5 block text-sm font-semibold text-ink">
                 {label}
                 <span className="ml-1 text-red-500">*</span>
             </span>
@@ -2616,7 +2616,7 @@ function PasswordField({
                     'flex min-h-11 items-center rounded-xl border bg-white px-3.5 transition focus-within:ring-2',
                     error
                         ? 'border-red-300 focus-within:border-red-400 focus-within:ring-red-100'
-                        : 'border-gray-300 focus-within:border-[#3b6fa8] focus-within:ring-[#3b6fa8]/15',
+                        : 'border-line focus-within:border-brand focus-within:ring-brand/15',
                 ].join(' ')}
             >
                 <input
@@ -2630,7 +2630,7 @@ function PasswordField({
                 <button
                     type="button"
                     onClick={onToggle}
-                    className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-faint hover:bg-secondary hover:text-ink"
                     aria-label={show ? 'Hide password' : 'Show password'}
                 >
                     {show ? <EyeOffIcon /> : <EyeIcon />}
@@ -2648,8 +2648,8 @@ function PasswordField({
 
 function PasswordRequirements({ password }: { password: string }) {
     return (
-        <div className="mt-4 rounded-xl bg-gray-50 p-4">
-            <p className="text-xs font-bold text-gray-700">
+        <div className="mt-4 rounded-xl bg-canvas p-4">
+            <p className="text-xs font-semibold text-ink">
                 Password requirements
             </p>
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
@@ -2674,8 +2674,8 @@ function Requirement({ met, text }: { met: boolean; text: string }) {
                 className={[
                     'flex h-4 w-4 items-center justify-center rounded-full',
                     met
-                        ? 'bg-[#3b6fa8] text-white'
-                        : 'border border-gray-300 text-transparent',
+                        ? 'bg-brand text-white'
+                        : 'border border-line text-transparent',
                 ].join(' ')}
             >
                 <TinyCheckIcon />
@@ -2683,7 +2683,7 @@ function Requirement({ met, text }: { met: boolean; text: string }) {
             <span
                 className={[
                     'text-xs',
-                    met ? 'font-medium text-[#3b6fa8]' : 'text-gray-500',
+                    met ? 'font-medium text-brand' : 'text-ink-muted',
                 ].join(' ')}
             >
                 {text}
@@ -2702,13 +2702,13 @@ function ReviewCard({
     children: ReactNode;
 }) {
     return (
-        <div className="rounded-xl border border-gray-200 p-4 sm:p-5">
+        <div className="rounded-xl border border-line-soft p-4 sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
-                <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+                <h3 className="text-sm font-semibold text-ink-strong">{title}</h3>
                 <button
                     type="button"
                     onClick={onEdit}
-                    className="text-xs font-bold text-[#3b6fa8] hover:underline"
+                    className="text-xs font-semibold text-brand hover:underline"
                 >
                     Edit
                 </button>
@@ -2721,8 +2721,8 @@ function ReviewCard({
 function ReviewItem({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <p className="text-xs text-gray-400">{label}</p>
-            <p className="mt-1 text-sm font-semibold break-words text-gray-700">
+            <p className="text-xs text-ink-faint">{label}</p>
+            <p className="mt-1 text-sm font-semibold break-words text-ink">
                 {value || '—'}
             </p>
         </div>
@@ -2731,13 +2731,13 @@ function ReviewItem({ label, value }: { label: string; value: string }) {
 
 function DocumentStatus({ label, file }: { label: string; file: File | null }) {
     return (
-        <div className="flex min-w-0 items-center gap-3 rounded-xl bg-gray-50 p-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#eaf1f8] text-[#3b6fa8]">
+        <div className="flex min-w-0 items-center gap-3 rounded-xl bg-canvas p-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
                 <DocumentIcon />
             </div>
             <div className="min-w-0">
-                <p className="text-xs font-bold text-gray-700">{label}</p>
-                <p className="mt-0.5 truncate text-xs text-gray-500">
+                <p className="text-xs font-semibold text-ink">{label}</p>
+                <p className="mt-0.5 truncate text-xs text-ink-muted">
                     {file?.name ?? 'Not provided'}
                 </p>
             </div>

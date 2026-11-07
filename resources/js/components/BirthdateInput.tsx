@@ -17,7 +17,7 @@ export default function BirthdateInput({ value, onChange, required, className }:
         if (Number(parts.day) > limit) parts.day = '';
         onChange([parts.year, parts.month, parts.day].join('-'));
     };
-    const selectClass = 'min-w-0 w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-sm';
+    const selectClass = 'min-w-0 w-full rounded-md border border-line bg-white px-2 py-2 text-sm';
     return (
         <span className={['grid grid-cols-[1.4fr_1fr_1fr] gap-2', className].filter(Boolean).join(' ')}>
             <select aria-label="Birth month" value={month} onChange={(event) => update('month', event.target.value)} required={required} className={selectClass}>

@@ -215,11 +215,11 @@ export default function Settings() {
                 <div className="mb-6">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
-                            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                            <h1 className="text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                                 Settings
                             </h1>
 
-                            <p className="mt-1 max-w-xl text-sm leading-6 text-gray-500">
+                            <p className="mt-1 max-w-xl text-sm leading-6 text-ink-muted">
                                 Personalize KaBarangay for a more comfortable
                                 and accessible experience.
                             </p>
@@ -379,18 +379,18 @@ export default function Settings() {
                     LIVE ACCESSIBILITY STATUS
                 ======================================================== */}
 
-                <div className="mt-4 rounded-2xl border border-[#dfe4ea] bg-[#ffffff] p-4 sm:p-5">
+                <div className="mt-4 rounded-xl border border-line-soft bg-surface p-4 sm:p-5">
                     <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#d6e4f2] text-[#3b6fa8]">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand">
                             <EyeIcon />
                         </div>
 
                         <div className="min-w-0">
-                            <p className="text-sm font-bold text-gray-900">
+                            <p className="text-sm font-semibold text-ink-strong">
                                 Accessibility Preview
                             </p>
 
-                            <p className="mt-1 text-sm leading-6 text-gray-600">
+                            <p className="mt-1 text-sm leading-6 text-ink-muted">
                                 This panel changes together with your settings.
                                 Try changing text size, contrast, or motion
                                 options.
@@ -556,7 +556,7 @@ export default function Settings() {
                     <button
                         type="button"
                         onClick={resetSettings}
-                        className="min-h-10 rounded-lg px-3 text-sm font-semibold text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+                        className="min-h-10 rounded-lg px-3 text-sm font-semibold text-ink-muted transition hover:bg-secondary hover:text-ink-strong"
                     >
                         Reset accessibility settings
                     </button>
@@ -574,11 +574,11 @@ export default function Settings() {
                             <TrashIcon />
                         </div>
 
-                        <h2 className="mt-4 text-lg font-bold text-gray-900">
+                        <h2 className="mt-4 text-base font-semibold tracking-tight text-ink-strong">
                             Clear chatbot history?
                         </h2>
 
-                        <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-gray-500">
+                        <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-ink-muted">
                             Your saved KaBarangay Assistant conversation on this
                             device will be removed.
                         </p>
@@ -587,7 +587,7 @@ export default function Settings() {
                             <button
                                 type="button"
                                 onClick={() => setShowClearChat(false)}
-                                className="min-h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                                className="min-h-11 rounded-xl border border-line bg-white px-4 text-sm font-semibold text-ink transition hover:bg-canvas"
                             >
                                 Cancel
                             </button>
@@ -613,11 +613,11 @@ export default function Settings() {
                     <div>
                         <div className="flex items-start justify-between gap-3">
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900">
+                                <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                                     Change Password
                                 </h2>
 
-                                <p className="mt-1 text-sm leading-5 text-gray-500">
+                                <p className="mt-1 text-sm leading-5 text-ink-muted">
                                     Enter your current and new password.
                                 </p>
                             </div>
@@ -626,7 +626,7 @@ export default function Settings() {
                                 type="button"
                                 onClick={closePasswordModal}
                                 disabled={passwordForm.processing}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 disabled:opacity-50"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-secondary disabled:opacity-50"
                                 aria-label="Close change password dialog"
                             >
                                 <CloseIcon />
@@ -684,7 +684,7 @@ export default function Settings() {
                             <button
                                 type="submit"
                                 disabled={passwordForm.processing}
-                                className="mt-5 min-h-11 w-full rounded-xl bg-[#3b6fa8] px-4 text-sm font-semibold text-white transition hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
+                                className="mt-5 min-h-11 w-full rounded-xl bg-brand px-4 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {passwordForm.processing
                                     ? 'Updating…'
@@ -716,18 +716,18 @@ function SettingCard({
     children: React.ReactNode;
 }) {
     return (
-        <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-xl border border-line-soft bg-white p-4 shadow-card sm:p-5">
             <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eaf1f8] text-[#3b6fa8]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
                     {icon}
                 </div>
 
                 <div className="min-w-0">
-                    <h2 className="text-base font-bold text-gray-900">
+                    <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                         {title}
                     </h2>
 
-                    <p className="mt-0.5 max-w-lg text-xs leading-5 text-gray-500 sm:text-sm">
+                    <p className="mt-0.5 max-w-lg text-xs leading-5 text-ink-muted sm:text-sm">
                         {description}
                     </p>
                 </div>
@@ -753,9 +753,9 @@ function SettingLabel({
 }) {
     return (
         <div>
-            <p className="text-sm font-semibold text-gray-800">{title}</p>
+            <p className="text-sm font-semibold text-ink-strong">{title}</p>
 
-            <p className="mt-0.5 max-w-lg text-xs leading-5 text-gray-500">
+            <p className="mt-0.5 max-w-lg text-xs leading-5 text-ink-muted">
                 {description}
             </p>
         </div>
@@ -783,22 +783,22 @@ function SwitchRow({
         <div className="flex items-center justify-between gap-4 py-0.5">
             <div className="min-w-0 pr-2">
                 <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-gray-800">
+                    <p className="text-sm font-semibold text-ink-strong">
                         {title}
                     </p>
 
                     <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                             checked
                                 ? 'bg-green-50 text-green-700'
-                                : 'bg-gray-100 text-gray-500'
+                                : 'bg-secondary text-ink-muted'
                         }`}
                     >
                         {checked ? 'ON' : 'OFF'}
                     </span>
                 </div>
 
-                <p className="mt-1 max-w-lg text-xs leading-5 text-gray-500">
+                <p className="mt-1 max-w-lg text-xs leading-5 text-ink-muted">
                     {description}
                 </p>
             </div>
@@ -810,8 +810,8 @@ function SwitchRow({
                 onClick={() => onChange(!checked)}
                 className={`kb-setting-switch relative h-8 w-[54px] shrink-0 rounded-full border transition-all duration-200 ${
                     checked
-                        ? 'border-[#3b6fa8] bg-[#3b6fa8] shadow-sm'
-                        : 'border-gray-300 bg-gray-200'
+                        ? 'border-brand bg-brand shadow-card'
+                        : 'border-line bg-line-soft'
                 }`}
             >
                 <span
@@ -820,7 +820,7 @@ function SwitchRow({
                     }`}
                 >
                     {checked && (
-                        <span className="text-[#3b6fa8]">
+                        <span className="text-brand">
                             <CheckIcon />
                         </span>
                     )}
@@ -853,8 +853,8 @@ function ThemeButton({
             onClick={onClick}
             className={`min-h-[74px] rounded-xl border px-2 py-3 transition ${
                 selected
-                    ? 'border-[#6e747c] bg-[#eef1f5] text-[#2a5279] ring-1 ring-[#6e747c]'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-[#6e747c] bg-canvas text-brand-deep ring-1 ring-[#6e747c]'
+                    : 'border-line-soft bg-white text-ink-muted hover:border-line hover:bg-canvas'
             }`}
         >
             <div className="flex flex-col items-center gap-2">
@@ -891,20 +891,20 @@ function TextSizeButton({
             onClick={onClick}
             className={`min-h-[74px] rounded-xl border p-2 transition ${
                 selected
-                    ? 'border-[#6e747c] bg-[#eef1f5] ring-1 ring-[#6e747c]'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-[#6e747c] bg-canvas ring-1 ring-[#6e747c]'
+                    : 'border-line-soft bg-white hover:border-line hover:bg-canvas'
             }`}
         >
             <div className="flex flex-col items-center justify-center">
                 <span
-                    className={`font-bold ${
-                        selected ? 'text-[#2a5279]' : 'text-gray-700'
+                    className={`font-semibold ${
+                        selected ? 'text-brand-deep' : 'text-ink'
                     } ${sampleClass}`}
                 >
                     Aa
                 </span>
 
-                <span className="mt-1 text-[10px] font-semibold text-gray-500 sm:text-xs">
+                <span className="mt-1 text-[10px] font-semibold text-ink-muted sm:text-xs">
                     {label}
                 </span>
             </div>
@@ -920,10 +920,10 @@ function TextSizeButton({
 
 function StatusChip({ label, value }: { label: string; value: string }) {
     return (
-        <span className="inline-flex items-center gap-1 rounded-lg border border-[#dfe4ea] bg-white px-2.5 py-1.5 text-xs">
-            <span className="text-gray-400">{label}:</span>
+        <span className="inline-flex items-center gap-1 rounded-lg border border-line-soft bg-white px-2.5 py-1.5 text-xs">
+            <span className="text-ink-faint">{label}:</span>
 
-            <span className="font-semibold text-[#3b6fa8]">{value}</span>
+            <span className="font-semibold text-brand">{value}</span>
         </span>
     );
 }
@@ -950,9 +950,9 @@ function ActionRow({
     return (
         <div className="flex items-center justify-between gap-4">
             <div className="min-w-0 pr-2">
-                <p className="text-sm font-semibold text-gray-800">{title}</p>
+                <p className="text-sm font-semibold text-ink-strong">{title}</p>
 
-                <p className="mt-1 text-xs leading-5 text-gray-500">
+                <p className="mt-1 text-xs leading-5 text-ink-muted">
                     {description}
                 </p>
             </div>
@@ -963,7 +963,7 @@ function ActionRow({
                 className={`min-h-10 shrink-0 rounded-lg border px-3 text-xs font-semibold transition sm:text-sm ${
                     danger
                         ? 'border-red-200 bg-white text-red-600 hover:bg-red-50'
-                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        : 'border-line bg-white text-ink hover:bg-canvas'
                 }`}
             >
                 {button}
@@ -973,7 +973,7 @@ function ActionRow({
 }
 
 function SectionDivider() {
-    return <div className="my-4 border-t border-gray-100" />;
+    return <div className="my-4 border-t border-line-soft" />;
 }
 
 /*
@@ -1003,7 +1003,7 @@ function PasswordField({
         <div>
             <label
                 htmlFor={id}
-                className="mb-1.5 block text-sm font-semibold text-gray-700"
+                className="mb-1.5 block text-sm font-semibold text-ink"
             >
                 {label}
             </label>
@@ -1019,7 +1019,7 @@ function PasswordField({
                 aria-describedby={
                     error ? `${id}-error` : hint ? `${id}-hint` : undefined
                 }
-                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 text-base text-gray-800 transition outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/15 sm:text-sm"
+                className="h-11 w-full rounded-xl border border-line bg-white px-3.5 text-base text-ink-strong transition outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 sm:text-sm"
             />
 
             {error ? (
@@ -1030,7 +1030,7 @@ function PasswordField({
                     {error}
                 </p>
             ) : hint ? (
-                <p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">
+                <p id={`${id}-hint`} className="mt-1 text-xs text-ink-muted">
                     {hint}
                 </p>
             ) : null}
@@ -1060,7 +1060,7 @@ function Modal({
                 aria-label="Close modal"
             />
 
-            <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+            <div className="relative z-10 w-full max-w-md rounded-xl border border-line-soft bg-white p-5 shadow-2xl sm:p-6">
                 {children}
             </div>
         </div>

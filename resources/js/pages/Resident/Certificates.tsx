@@ -377,16 +377,16 @@ function CertificatesContent({
                     PAGE HEADER
                 ====================================================== */}
                 <section className="mb-5 sm:mb-6">
-                    <h1 className="text-2xl font-semibold text-gray-800 sm:text-3xl">
+                    <h1 className="text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                         Certificate Request
                     </h1>
-                    <p className="mt-2 text-sm leading-6 text-gray-500 sm:text-base">
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">
                         Request a barangay certificate or track your submitted
                         request.
                     </p>
                     <a
                         href="/offline-certificates.html"
-                        className="mt-2 inline-block text-sm font-semibold text-[#3b6fa8] underline"
+                        className="mt-2 inline-block text-sm font-semibold text-brand underline underline-offset-2"
                     >
                         Offline drafts & pending requests
                     </a>
@@ -403,14 +403,14 @@ function CertificatesContent({
                 {/* ======================================================
                     TABS
                 ====================================================== */}
-                <div className="mb-6 flex w-full max-w-xl rounded-xl border border-gray-200 bg-white p-1">
+                <div className="mb-5 inline-flex max-w-full gap-1 overflow-x-auto rounded-lg border border-line-soft bg-canvas p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <button
                         type="button"
                         onClick={() => setActiveTab('request')}
-                        className={`min-h-12 flex-1 rounded-lg px-2 text-sm font-semibold transition sm:px-4 sm:text-base ${
+                        className={`inline-flex h-9 shrink-0 items-center rounded-md px-3 text-xs font-medium whitespace-nowrap transition-colors ${
                             activeTab === 'request'
-                                ? 'bg-[#3b6fa8] text-white'
-                                : 'text-gray-600 hover:bg-gray-50'
+                                ? 'bg-white text-ink-strong shadow-card'
+                                : 'text-ink-muted hover:text-ink-strong'
                         }`}
                     >
                         Request Certificate
@@ -418,10 +418,10 @@ function CertificatesContent({
                     <button
                         type="button"
                         onClick={() => setActiveTab('requests')}
-                        className={`min-h-12 flex-1 rounded-lg px-2 text-sm font-semibold transition sm:px-4 sm:text-base ${
+                        className={`inline-flex h-9 shrink-0 items-center rounded-md px-3 text-xs font-medium whitespace-nowrap transition-colors ${
                             activeTab === 'requests'
-                                ? 'bg-[#3b6fa8] text-white'
-                                : 'text-gray-600 hover:bg-gray-50'
+                                ? 'bg-white text-ink-strong shadow-card'
+                                : 'text-ink-muted hover:text-ink-strong'
                         }`}
                     >
                         My Requests
@@ -435,19 +435,19 @@ function CertificatesContent({
                     <>
                         {/* FORM */}
                         {step === 'form' && (
-                            <div className="mx-auto w-full max-w-3xl">
+                            <div className="mx-auto w-full max-w-4xl">
                                 {cameFromAssistant && selectedCertificate && (
-                                    <div className="mb-4 rounded-xl border border-[#d7e7d2] bg-[#f3f8f1] p-4">
+                                    <div className="mb-4 rounded-xl border border-brand-muted bg-brand-soft p-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#d6e4f2] text-[#3b6fa8]">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand">
                                                 <CertificateOutlineIcon small />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-semibold text-gray-800">
+                                                <p className="text-sm font-semibold text-ink-strong">
                                                     Selected by KaBarangay
                                                     Assistant
                                                 </p>
-                                                <p className="mt-1 text-sm leading-6 text-gray-600">
+                                                <p className="mt-1 text-sm leading-6 text-ink-muted">
                                                     {selectedCertificate.name}{' '}
                                                     is already selected.
                                                     Continue with the request
@@ -462,7 +462,7 @@ function CertificatesContent({
                                                         CERTIFICATE_FLOW_KEY,
                                                     );
                                                 }}
-                                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-white hover:text-gray-600"
+                                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-faint transition hover:bg-white hover:text-ink-muted"
                                                 aria-label="Dismiss assistant message"
                                             >
                                                 <CloseIcon />
@@ -473,21 +473,21 @@ function CertificatesContent({
 
                                 <form
                                     onSubmit={handleContinue}
-                                    className="mx-auto w-full max-w-3xl"
+                                    className="mx-auto w-full max-w-4xl"
                                 >
                                     {/* VERIFIED RESIDENT */}
-                                    <section className="mb-4 rounded-xl border border-gray-200 bg-white p-4 sm:mb-5 sm:p-6">
+                                    <section className="mb-4 rounded-xl border border-line-soft bg-white p-4 sm:mb-5 sm:p-6">
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                             <div>
-                                                <h2 className="text-lg font-semibold text-gray-800">
+                                                <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                                                     Your Information
                                                 </h2>
-                                                <p className="mt-1 text-sm leading-6 text-gray-500">
+                                                <p className="mt-1 text-sm leading-6 text-ink-muted">
                                                     Taken from your verified
                                                     resident profile.
                                                 </p>
                                             </div>
-                                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#eef1f5] px-3 py-1.5 text-sm font-semibold text-[#3b6fa8]">
+                                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-canvas px-3 py-1.5 text-sm font-semibold text-brand">
                                                 <CheckSmallIcon /> Verified
                                             </span>
                                         </div>
@@ -528,11 +528,11 @@ function CertificatesContent({
                                     </section>
 
                                     {/* REQUEST DETAILS */}
-                                    <section className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
-                                        <h2 className="text-lg font-semibold text-gray-800">
+                                    <section className="rounded-xl border border-line-soft bg-white p-4 sm:p-6">
+                                        <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                                             Request Details
                                         </h2>
-                                        <p className="mt-1 text-sm leading-6 text-gray-500">
+                                        <p className="mt-1 text-sm leading-6 text-ink-muted">
                                             Enter only the information needed
                                             for this request.
                                         </p>
@@ -541,7 +541,7 @@ function CertificatesContent({
                                         <div className="mt-5 sm:mt-6">
                                             <label
                                                 htmlFor="certificate"
-                                                className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                className="mb-2 block text-sm font-medium text-ink sm:text-base"
                                             >
                                                 Certificate Type *
                                             </label>
@@ -581,11 +581,11 @@ function CertificatesContent({
 
                                         {/* CERTIFICATE INFORMATION */}
                                         {selectedCertificate && (
-                                            <div className="mt-4 rounded-xl bg-[#ffffff] p-4">
-                                                <p className="text-base font-semibold text-gray-800">
+                                            <div className="mt-4 rounded-xl bg-surface p-4">
+                                                <p className="text-base font-semibold tracking-tight text-ink-strong">
                                                     {selectedCertificate.name}
                                                 </p>
-                                                <p className="mt-1 text-sm leading-6 text-gray-500">
+                                                <p className="mt-1 text-sm leading-6 text-ink-muted">
                                                     {
                                                         selectedCertificate.description
                                                     }
@@ -619,7 +619,7 @@ function CertificatesContent({
                                                     .requirements?.length >
                                                     0 && (
                                                     <div className="mt-4">
-                                                        <p className="text-sm font-semibold text-gray-700">
+                                                        <p className="text-sm font-semibold text-ink">
                                                             Requirements
                                                         </p>
                                                         <ul className="mt-2 space-y-2">
@@ -631,9 +631,9 @@ function CertificatesContent({
                                                                         key={
                                                                             requirement
                                                                         }
-                                                                        className="flex items-start gap-2 text-sm leading-6 text-gray-600"
+                                                                        className="flex items-start gap-2 text-sm leading-6 text-ink-muted"
                                                                     >
-                                                                        <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#3b6fa8] text-white">
+                                                                        <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand text-white">
                                                                             <CheckSmallIcon />
                                                                         </span>
                                                                         <span>
@@ -648,11 +648,11 @@ function CertificatesContent({
                                                     </div>
                                                 )}
 
-                                                <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-                                                    <span className="text-sm font-medium text-gray-600">
+                                                <div className="mt-4 flex items-center justify-between border-t border-line-soft pt-4">
+                                                    <span className="text-sm font-medium text-ink-muted">
                                                         Fee
                                                     </span>
-                                                    <span className="text-lg font-semibold text-[#3b6fa8]">
+                                                    <span className="text-lg font-semibold text-brand">
                                                         {selectedCertificate.fee >
                                                         0
                                                             ? `₱${selectedCertificate.fee.toLocaleString()}`
@@ -664,16 +664,16 @@ function CertificatesContent({
 
                                         {/* FIXED PURPOSE */}
                                         {selectedCertificate?.fixedPurpose && (
-                                            <div className="mt-5 rounded-lg border border-[#d7e3d4] bg-[#eef1f5] p-4">
-                                                <p className="text-sm font-medium text-gray-600">
+                                            <div className="mt-5 rounded-lg border border-line-soft bg-canvas p-4">
+                                                <p className="text-sm font-medium text-ink-muted">
                                                     Purpose
                                                 </p>
-                                                <p className="mt-1 text-base font-semibold text-gray-800">
+                                                <p className="mt-1 text-base font-semibold tracking-tight text-ink-strong">
                                                     {
                                                         selectedCertificate.fixedPurpose
                                                     }
                                                 </p>
-                                                <p className="mt-1 text-xs leading-5 text-gray-500">
+                                                <p className="mt-1 text-xs leading-5 text-ink-muted">
                                                     This certificate uses a
                                                     fixed purpose set by the
                                                     barangay.
@@ -687,7 +687,7 @@ function CertificatesContent({
                                                 <div className="mt-5">
                                                     <label
                                                         htmlFor="purpose"
-                                                        className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                        className="mb-2 block text-sm font-medium text-ink sm:text-base"
                                                     >
                                                         Purpose / Requirement
                                                         For *
@@ -751,7 +751,7 @@ function CertificatesContent({
                                                     <div className="mt-5">
                                                         <label
                                                             htmlFor="otherPurpose"
-                                                            className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                            className="mb-2 block text-sm font-medium text-ink sm:text-base"
                                                         >
                                                             Please specify *
                                                         </label>
@@ -778,18 +778,18 @@ function CertificatesContent({
 
                                         {/* BUSINESS DETAILS */}
                                         {selectedCertificate?.requiresBusinessDetails && (
-                                            <div className="mt-6 border-t border-gray-100 pt-6">
-                                                <h3 className="text-base font-semibold text-gray-800">
+                                            <div className="mt-6 border-t border-line-soft pt-6">
+                                                <h3 className="text-base font-semibold tracking-tight text-ink-strong">
                                                     Business Information
                                                 </h3>
-                                                <p className="mt-1 text-sm text-gray-500">
+                                                <p className="mt-1 text-sm text-ink-muted">
                                                     Enter the business
                                                     information required for
                                                     this certificate.
                                                 </p>
                                                 <div className="mt-4 space-y-4">
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium text-gray-700 sm:text-base">
+                                                        <label className="mb-2 block text-sm font-medium text-ink sm:text-base">
                                                             Business Owner
                                                         </label>
                                                         <input
@@ -799,9 +799,9 @@ function CertificatesContent({
                                                             }
                                                             readOnly
                                                             aria-readonly="true"
-                                                            className={`${inputClass} cursor-not-allowed bg-gray-50 text-gray-600`}
+                                                            className={`${inputClass} cursor-not-allowed bg-canvas text-ink-muted`}
                                                         />
-                                                        <p className="mt-2 text-xs text-gray-500">
+                                                        <p className="mt-2 text-xs text-ink-muted">
                                                             The verified
                                                             Resident account
                                                             holder is used as
@@ -811,7 +811,7 @@ function CertificatesContent({
                                                     <div>
                                                         <label
                                                             htmlFor="businessName"
-                                                            className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                            className="mb-2 block text-sm font-medium text-ink sm:text-base"
                                                         >
                                                             Business Name *
                                                         </label>
@@ -841,7 +841,7 @@ function CertificatesContent({
                                                     <div>
                                                         <label
                                                             htmlFor="businessAddress"
-                                                            className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                            className="mb-2 block text-sm font-medium text-ink sm:text-base"
                                                         >
                                                             Business Address *
                                                         </label>
@@ -876,13 +876,13 @@ function CertificatesContent({
 
                                         {/* CERTIFICATE-SPECIFIC DETAILS */}
                                         {detailsFields.length > 0 && (
-                                            <div className="mt-6 border-t border-gray-100 pt-6">
-                                                <h3 className="text-base font-semibold text-gray-800">
+                                            <div className="mt-6 border-t border-line-soft pt-6">
+                                                <h3 className="text-base font-semibold tracking-tight text-ink-strong">
                                                     {selectedCertificate?.certificateType ??
                                                         'Certificate'}{' '}
                                                     Information
                                                 </h3>
-                                                <p className="mt-1 text-sm text-gray-500">
+                                                <p className="mt-1 text-sm text-ink-muted">
                                                     These details are printed on
                                                     the certificate. Please
                                                     review them carefully.
@@ -895,7 +895,7 @@ function CertificatesContent({
                                                             >
                                                                 <label
                                                                     htmlFor={`detail-${field.key}`}
-                                                                    className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                                    className="mb-2 block text-sm font-medium text-ink sm:text-base"
                                                                 >
                                                                     {
                                                                         field.label
@@ -978,10 +978,10 @@ function CertificatesContent({
                                         <div className="mt-5">
                                             <label
                                                 htmlFor="additionalDetails"
-                                                className="mb-2 block text-sm font-medium text-gray-700 sm:text-base"
+                                                className="mb-2 block text-sm font-medium text-ink sm:text-base"
                                             >
                                                 Additional Details
-                                                <span className="ml-1 text-xs font-normal text-gray-400 sm:text-sm">
+                                                <span className="ml-1 text-xs font-normal text-ink-faint sm:text-sm">
                                                     (Optional)
                                                 </span>
                                             </label>
@@ -1006,7 +1006,7 @@ function CertificatesContent({
 
                                         <button
                                             type="submit"
-                                            className="mt-6 flex min-h-12 w-full items-center justify-center rounded-lg bg-[#3b6fa8] px-5 text-base font-semibold text-white transition hover:bg-[#2a5279]"
+                                            className="mt-6 flex min-h-12 w-full items-center justify-center rounded-lg bg-brand px-5 text-base font-semibold text-white transition hover:bg-brand-deep"
                                         >
                                             Continue
                                         </button>
@@ -1019,7 +1019,7 @@ function CertificatesContent({
                                                 processing ||
                                                 !selectedCertificate
                                             }
-                                            className="mt-3 min-h-11 w-full rounded-lg border border-[#3b6fa8] px-4 font-semibold text-[#3b6fa8] disabled:opacity-50"
+                                            className="mt-3 min-h-11 w-full rounded-lg border border-brand px-4 font-semibold text-brand disabled:opacity-50"
                                         >
                                             Save draft on this device
                                         </button>
@@ -1030,12 +1030,12 @@ function CertificatesContent({
 
                         {/* REVIEW */}
                         {step === 'review' && selectedCertificate && (
-                            <div className="mx-auto w-full max-w-3xl">
-                                <section className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
-                                    <h2 className="text-xl font-semibold text-gray-800">
+                            <div className="mx-auto w-full max-w-4xl">
+                                <section className="rounded-xl border border-line-soft bg-white p-4 sm:p-6">
+                                    <h2 className="text-xl font-semibold tracking-tight text-ink-strong">
                                         Review Your Request
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-gray-500 sm:text-base">
+                                    <p className="mt-2 text-sm leading-6 text-ink-muted sm:text-base">
                                         Check the information before submitting
                                         your request.
                                     </p>
@@ -1112,7 +1112,7 @@ function CertificatesContent({
                                                 void saveOfflineDraft()
                                             }
                                             disabled={processing}
-                                            className="min-h-12 rounded-lg border border-[#3b6fa8] px-4 font-semibold text-[#3b6fa8] disabled:opacity-50"
+                                            className="min-h-12 rounded-lg border border-brand px-4 font-semibold text-brand disabled:opacity-50"
                                         >
                                             Save draft on this device
                                         </button>
@@ -1120,7 +1120,7 @@ function CertificatesContent({
                                             type="button"
                                             onClick={() => setStep('form')}
                                             disabled={processing}
-                                            className="min-h-12 w-full rounded-lg border border-gray-300 px-6 text-base font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
+                                            className="min-h-12 w-full rounded-lg border border-line px-6 text-base font-semibold text-ink-muted transition hover:bg-canvas disabled:opacity-50 sm:w-auto"
                                         >
                                             Back
                                         </button>
@@ -1128,7 +1128,7 @@ function CertificatesContent({
                                             type="button"
                                             onClick={handleSubmitRequest}
                                             disabled={processing}
-                                            className="min-h-12 w-full rounded-lg bg-[#3b6fa8] px-6 text-base font-semibold text-white transition hover:bg-[#2a5279] disabled:opacity-50 sm:w-auto"
+                                            className="min-h-12 w-full rounded-lg bg-brand px-6 text-base font-semibold text-white transition hover:bg-brand-deep disabled:opacity-50 sm:w-auto"
                                         >
                                             {processing
                                                 ? 'Submitting...'
@@ -1142,30 +1142,30 @@ function CertificatesContent({
                         {/* SUCCESS */}
                         {step === 'success' && submittedRequest && (
                             <div className="mx-auto w-full max-w-xl">
-                                <section className="rounded-xl border border-gray-200 bg-white p-5 text-center sm:p-7">
-                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#3b6fa8] text-white">
+                                <section className="rounded-xl border border-line-soft bg-white p-5 text-center sm:p-7">
+                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white">
                                         <CheckLargeIcon />
                                     </div>
-                                    <h2 className="mt-5 text-xl font-semibold text-gray-800 sm:text-2xl">
+                                    <h2 className="mt-5 text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                                         Request Submitted
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-gray-500 sm:text-base">
+                                    <p className="mt-2 text-sm leading-6 text-ink-muted sm:text-base">
                                         Your certificate request has been
                                         submitted for barangay review.
                                     </p>
-                                    <div className="mt-6 rounded-xl bg-[#ffffff] p-4 text-left sm:p-5">
+                                    <div className="mt-6 rounded-xl bg-surface p-4 text-left sm:p-5">
                                         <InfoItem
                                             label="Request Number"
                                             value={submittedRequest.reference}
                                         />
-                                        <div className="my-4 border-t border-gray-200" />
+                                        <div className="my-4 border-t border-line-soft" />
                                         <InfoItem
                                             label="Certificate"
                                             value={submittedRequest.certificate}
                                         />
-                                        <div className="my-4 border-t border-gray-200" />
+                                        <div className="my-4 border-t border-line-soft" />
                                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                            <span className="text-sm text-gray-500">
+                                            <span className="text-sm text-ink-muted">
                                                 Status
                                             </span>
                                             <StatusBadge
@@ -1177,7 +1177,7 @@ function CertificatesContent({
                                         <button
                                             type="button"
                                             onClick={resetForm}
-                                            className="min-h-12 rounded-lg border border-[#3b6fa8] px-5 text-base font-semibold text-[#3b6fa8] transition hover:bg-[#eef1f5]"
+                                            className="min-h-12 rounded-lg border border-brand px-5 text-base font-semibold text-brand transition hover:bg-canvas"
                                         >
                                             Request Another
                                         </button>
@@ -1186,7 +1186,7 @@ function CertificatesContent({
                                             onClick={() =>
                                                 setActiveTab('requests')
                                             }
-                                            className="min-h-12 rounded-lg bg-[#3b6fa8] px-5 text-base font-semibold text-white transition hover:bg-[#2a5279]"
+                                            className="min-h-12 rounded-lg bg-brand px-5 text-base font-semibold text-white transition hover:bg-brand-deep"
                                         >
                                             My Requests
                                         </button>
@@ -1203,10 +1203,10 @@ function CertificatesContent({
                 {activeTab === 'requests' && (
                     <section className="mx-auto w-full max-w-4xl">
                         <div className="mb-4">
-                            <h2 className="text-xl font-semibold text-gray-800">
+                            <h2 className="text-xl font-semibold tracking-tight text-ink-strong">
                                 My Requests
                             </h2>
-                            <p className="mt-1 text-sm leading-6 text-gray-500 sm:text-base">
+                            <p className="mt-1 text-sm leading-6 text-ink-muted sm:text-base">
                                 View and track your submitted certificate
                                 requests.
                             </p>
@@ -1216,17 +1216,17 @@ function CertificatesContent({
                                 {requests.data.map((request) => (
                                     <div
                                         key={request.id}
-                                        className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5"
+                                        className="rounded-xl border border-line-soft bg-white p-4 sm:p-5"
                                     >
                                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                             <div className="min-w-0">
-                                                <p className="text-base font-semibold break-words text-gray-800 sm:text-lg">
+                                                <p className="text-base font-semibold break-words text-ink-strong sm:text-lg">
                                                     {request.certificate}
                                                 </p>
-                                                <p className="mt-1 text-sm font-medium break-all text-gray-500">
+                                                <p className="mt-1 text-sm font-medium break-all text-ink-muted">
                                                     {request.reference}
                                                 </p>
-                                                <p className="mt-1 text-sm text-gray-400">
+                                                <p className="mt-1 text-sm text-ink-faint">
                                                     Submitted: {request.date}
                                                 </p>
                                             </div>
@@ -1241,7 +1241,7 @@ function CertificatesContent({
                                                             request,
                                                         )
                                                     }
-                                                    className="min-h-11 w-full rounded-lg border border-[#3b6fa8] px-4 text-sm font-semibold text-[#3b6fa8] transition hover:bg-[#eef1f5] sm:w-auto"
+                                                    className="min-h-11 w-full rounded-lg border border-brand px-4 text-sm font-semibold text-brand transition hover:bg-canvas sm:w-auto"
                                                 >
                                                     View Details
                                                 </button>
@@ -1255,12 +1255,12 @@ function CertificatesContent({
                                 />
                             </div>
                         ) : (
-                            <div className="rounded-xl border border-gray-200 bg-white p-7 text-center">
+                            <div className="rounded-xl border border-line-soft bg-white p-7 text-center">
                                 <CertificateOutlineIcon />
-                                <h3 className="mt-4 text-lg font-semibold text-gray-800">
+                                <h3 className="mt-4 text-base font-semibold tracking-tight text-ink-strong">
                                     No certificate requests
                                 </h3>
-                                <p className="mt-2 text-sm leading-6 text-gray-500">
+                                <p className="mt-2 text-sm leading-6 text-ink-muted">
                                     Your submitted requests will appear here.
                                 </p>
                                 <button
@@ -1269,7 +1269,7 @@ function CertificatesContent({
                                         resetForm();
                                         setActiveTab('request');
                                     }}
-                                    className="mt-5 min-h-12 w-full rounded-lg bg-[#3b6fa8] px-5 text-base font-semibold text-white sm:w-auto"
+                                    className="mt-5 min-h-12 w-full rounded-lg bg-brand px-5 text-base font-semibold text-white sm:w-auto"
                                 >
                                     Request Certificate
                                 </button>
@@ -1299,7 +1299,7 @@ function CertificatesContent({
 */
 
 const inputClass =
-    'min-h-12 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20 sm:px-4 sm:text-base';
+    'min-h-12 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/20 sm:px-4 sm:text-base';
 
 /*
 |--------------------------------------------------------------------------
@@ -1316,14 +1316,14 @@ function RequestDetailsModal({
 }) {
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4">
-            <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
+            <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-xl">
                 {/* HEADER */}
-                <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-4 sm:px-5">
+                <div className="flex shrink-0 items-center justify-between border-b border-line-soft px-4 py-4 sm:px-5">
                     <div className="min-w-0">
-                        <h2 className="text-lg font-semibold text-gray-800 sm:text-xl">
+                        <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                             Request Details
                         </h2>
-                        <p className="mt-1 text-sm font-medium break-all text-gray-500">
+                        <p className="mt-1 text-sm font-medium break-all text-ink-muted">
                             {request.reference}
                         </p>
                     </div>
@@ -1331,7 +1331,7 @@ function RequestDetailsModal({
                         type="button"
                         onClick={onClose}
                         aria-label="Close request details"
-                        className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100"
+                        className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-secondary"
                     >
                         <CloseIcon />
                     </button>
@@ -1339,7 +1339,7 @@ function RequestDetailsModal({
 
                 {/* CONTENT */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-                    <div className="rounded-xl border border-gray-200 bg-[#ffffff] p-4">
+                    <div className="rounded-xl border border-line-soft bg-surface p-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <InfoItem
                                 label="Certificate"
@@ -1377,7 +1377,7 @@ function RequestDetailsModal({
                         </div>
                         {request.additionalDetails && (
                             <>
-                                <div className="my-4 border-t border-gray-200" />
+                                <div className="my-4 border-t border-line-soft" />
                                 <InfoItem
                                     label="Additional Details"
                                     value={request.additionalDetails}
@@ -1386,7 +1386,7 @@ function RequestDetailsModal({
                         )}
                         {request.adminNote && (
                             <>
-                                <div className="my-4 border-t border-gray-200" />
+                                <div className="my-4 border-t border-line-soft" />
                                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                                     <p className="text-sm font-semibold text-amber-800">
                                         Barangay Note
@@ -1397,9 +1397,9 @@ function RequestDetailsModal({
                                 </div>
                             </>
                         )}
-                        <div className="my-4 border-t border-gray-200" />
+                        <div className="my-4 border-t border-line-soft" />
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-ink-muted">
                                 Current Status
                             </span>
                             <StatusBadge status={request.status} />
@@ -1408,10 +1408,10 @@ function RequestDetailsModal({
 
                     {/* TRACK STATUS */}
                     <div className="mt-6">
-                        <h3 className="text-lg font-semibold text-gray-800">
+                        <h3 className="text-base font-semibold tracking-tight text-ink-strong">
                             Track Status
                         </h3>
-                        <p className="mt-1 text-sm leading-6 text-gray-500">
+                        <p className="mt-1 text-sm leading-6 text-ink-muted">
                             Follow the progress of your certificate request.
                         </p>
                         <div className="mt-5">
@@ -1421,11 +1421,11 @@ function RequestDetailsModal({
                 </div>
 
                 {/* FOOTER */}
-                <div className="shrink-0 border-t border-gray-200 p-4">
+                <div className="shrink-0 border-t border-line-soft p-4">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="min-h-11 w-full rounded-lg bg-[#3b6fa8] px-5 text-sm font-semibold text-white transition hover:bg-[#2a5279] sm:ml-auto sm:block sm:w-auto"
+                        className="min-h-11 w-full rounded-lg bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-deep sm:ml-auto sm:block sm:w-auto"
                     >
                         Close
                     </button>
@@ -1515,18 +1515,18 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                 <div
                                     className={`absolute top-9 left-[17px] h-[calc(100%-1px)] w-[2px] ${
                                         index < currentStep
-                                            ? 'bg-[#3b6fa8]'
-                                            : 'bg-gray-200'
+                                            ? 'bg-brand'
+                                            : 'bg-line-soft'
                                     }`}
                                 />
                             )}
                             <div
                                 className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 ${
                                     completed
-                                        ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
+                                        ? 'border-brand bg-brand text-white'
                                         : current
-                                          ? 'border-[#3b6fa8] bg-[#eaf1f8] text-[#3b6fa8]'
-                                          : 'border-gray-300 bg-white text-gray-400'
+                                          ? 'border-brand bg-brand-soft text-brand'
+                                          : 'border-line bg-white text-ink-faint'
                                 }`}
                             >
                                 <TrackerIcon
@@ -1536,17 +1536,17 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                             </div>
                             <div className="min-w-0 pb-6">
                                 <p
-                                    className={`text-sm font-semibold ${completed || current ? 'text-gray-800' : 'text-gray-400'}`}
+                                    className={`text-sm font-semibold ${completed || current ? 'text-ink-strong' : 'text-ink-faint'}`}
                                 >
                                     {step}
                                 </p>
                                 {completed && (
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-ink-muted">
                                         Completed
                                     </p>
                                 )}
                                 {current && (
-                                    <p className="mt-1 text-xs font-semibold text-[#3b6fa8]">
+                                    <p className="mt-1 text-xs font-semibold text-brand">
                                         Current status
                                     </p>
                                 )}
@@ -1577,16 +1577,16 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                             >
                                 {index > 0 && (
                                     <div
-                                        className={`absolute top-5 right-1/2 h-[3px] w-full ${reached ? 'bg-[#3b6fa8]' : 'bg-gray-200'}`}
+                                        className={`absolute top-5 right-1/2 h-[3px] w-full ${reached ? 'bg-brand' : 'bg-line-soft'}`}
                                     />
                                 )}
                                 <div
                                     className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 ${
                                         completed
-                                            ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
+                                            ? 'border-brand bg-brand text-white'
                                             : current
-                                              ? 'border-[#3b6fa8] bg-[#eaf1f8] text-[#3b6fa8]'
-                                              : 'border-gray-300 bg-white text-gray-400'
+                                              ? 'border-brand bg-brand-soft text-brand'
+                                              : 'border-line bg-white text-ink-faint'
                                     }`}
                                 >
                                     <TrackerIcon
@@ -1597,14 +1597,14 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                 <p
                                     className={`mt-2 max-w-[105px] text-center text-xs leading-4 font-semibold ${
                                         completed || current
-                                            ? 'text-gray-800'
-                                            : 'text-gray-400'
+                                            ? 'text-ink-strong'
+                                            : 'text-ink-faint'
                                     }`}
                                 >
                                     {step}
                                 </p>
                                 {current && (
-                                    <span className="mt-1 text-[11px] font-semibold text-[#3b6fa8]">
+                                    <span className="mt-1 text-[11px] font-semibold text-brand">
                                         Current
                                     </span>
                                 )}
@@ -1615,16 +1615,16 @@ function RequestTracker({ status }: { status: RequestStatus }) {
             </div>
 
             {/* STATUS MESSAGE */}
-            <div className="mt-4 rounded-xl border border-[#d8e8d4] bg-[#ffffff] p-4">
+            <div className="mt-4 rounded-xl border border-line-soft bg-surface p-4">
                 <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#d6e4f2] text-[#3b6fa8]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand">
                         <CurrentStatusIcon status={status} />
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-gray-800">
+                        <p className="text-sm font-semibold text-ink-strong">
                             {getFriendlyStatusTitle(status)}
                         </p>
-                        <p className="mt-1 text-sm leading-6 text-gray-600">
+                        <p className="mt-1 text-sm leading-6 text-ink-muted">
                             {getStatusMessage(status)}
                         </p>
                     </div>
@@ -1683,7 +1683,7 @@ function TrackerIcon({
     }
 
     if (step === 'For Payment') {
-        return <span className="text-sm leading-none font-bold">₱</span>;
+        return <span className="text-sm leading-none font-semibold">₱</span>;
     }
 
     if (step === 'Processing') {
@@ -1753,7 +1753,7 @@ function TrackerIcon({
 
 function CurrentStatusIcon({ status }: { status: RequestStatus }) {
     if (status === 'For Payment') {
-        return <span className="text-sm font-bold">₱</span>;
+        return <span className="text-sm font-semibold">₱</span>;
     }
 
     if (status === 'Processing') {
@@ -1848,10 +1848,10 @@ function getStatusMessage(status: RequestStatus) {
 function InfoItem({ label, value }: { label: string; value: string }) {
     return (
         <div className="min-w-0">
-            <p className="text-xs font-medium text-gray-500 sm:text-sm">
+            <p className="text-xs font-medium text-ink-muted sm:text-sm">
                 {label}
             </p>
-            <p className="mt-1 text-sm font-semibold break-words text-gray-800 sm:text-base">
+            <p className="mt-1 text-sm font-semibold break-words text-ink-strong sm:text-base">
                 {value}
             </p>
         </div>
@@ -1875,10 +1875,10 @@ function ReviewRow({
 }) {
     return (
         <div
-            className={`flex flex-col gap-1 py-4 sm:flex-row sm:justify-between sm:gap-6 ${!last ? 'border-b border-gray-100' : ''}`}
+            className={`flex flex-col gap-1 py-4 sm:flex-row sm:justify-between sm:gap-6 ${!last ? 'border-b border-line-soft' : ''}`}
         >
-            <span className="text-sm text-gray-500">{label}</span>
-            <span className="text-sm font-medium break-words text-gray-800 sm:max-w-[65%] sm:text-right sm:text-base">
+            <span className="text-sm text-ink-muted">{label}</span>
+            <span className="text-sm font-medium break-words text-ink-strong sm:max-w-[65%] sm:text-right sm:text-base">
                 {value}
             </span>
         </div>
@@ -1897,8 +1897,8 @@ function StatusBadge({ status }: { status: RequestStatus }) {
         'Needs Action': 'bg-[#fff0e5] text-[#a65316]',
         'For Payment': 'bg-[#f3ecff] text-[#6f42a5]',
         Processing: 'bg-[#eef3fb] text-[#416b9c]',
-        'Ready for Claim': 'bg-[#eef1f5] text-[#3b6fa8]',
-        Released: 'bg-gray-100 text-gray-600',
+        'Ready for Claim': 'bg-canvas text-brand',
+        Released: 'bg-secondary text-ink-muted',
         Rejected: 'bg-[#fdecec] text-[#a33a3a]',
     };
 
@@ -1989,7 +1989,7 @@ function CertificateOutlineIcon({ small = false }: { small?: boolean }) {
         <svg
             viewBox="0 0 24 24"
             fill="none"
-            className={small ? 'h-4 w-4' : 'mx-auto h-10 w-10 text-[#3b6fa8]'}
+            className={small ? 'h-4 w-4' : 'mx-auto h-10 w-10 text-brand'}
             stroke="currentColor"
             strokeWidth="1.8"
             strokeLinecap="round"

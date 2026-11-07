@@ -10,12 +10,12 @@ export default function EmailVerification({ status, title, message }: Props) {
     const success = status === 'verified';
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#eef1f5] px-4 py-10">
+        <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
             <Head title={title} />
 
-            <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm sm:p-8">
+            <div className="w-full max-w-md rounded-xl border border-line-soft bg-white p-6 text-center shadow-card sm:p-8">
                 <div
-                    className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${success ? 'bg-[#eaf1f8] text-[#3b6fa8]' : 'bg-amber-50 text-amber-700'}`}
+                    className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${success ? 'bg-brand-soft text-brand' : 'bg-amber-50 text-amber-700'}`}
                 >
                     <svg
                         viewBox="0 0 24 24"
@@ -37,23 +37,23 @@ export default function EmailVerification({ status, title, message }: Props) {
                     </svg>
                 </div>
 
-                <h1 className="mt-5 text-xl font-bold text-gray-900">
+                <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-strong">
                     {title}
                 </h1>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
+                <p className="mt-2 text-sm leading-6 text-ink-muted">
                     {message}
                 </p>
 
                 <div className="mt-6 flex flex-col gap-2">
                     <Link
                         href="/resident/register"
-                        className="rounded-lg bg-[#3b6fa8] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2a5279]"
+                        className="rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-deep"
                     >
                         Return to Registration
                     </Link>
                     <Link
                         href="/resident/login"
-                        className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        className="rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-ink hover:bg-canvas"
                     >
                         Back to Login
                     </Link>

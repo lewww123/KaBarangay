@@ -1,6 +1,7 @@
 import { plainAssistantText } from '@/lib/assistantText';
 import axios from 'axios';
 import { Link } from '@inertiajs/react';
+import { ArrowRight, X } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import AssistantLauncher, { type LauncherPosition } from './AssistantLauncher';
 
@@ -300,12 +301,12 @@ export default function BarangayChatbot({
                     style={floatingStyle}
                     className={
                         floating
-                            ? 'fixed right-3 bottom-20 z-50 flex h-[min(520px,calc(100dvh-7rem))] w-[min(360px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border bg-white shadow-2xl'
-                            : 'flex h-[min(76dvh,740px)] min-h-96 flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm'
+                            ? 'fixed right-3 bottom-20 z-50 flex h-[min(520px,calc(100dvh-7rem))] w-[min(360px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-line-soft bg-surface shadow-2xl'
+                            : 'flex h-[min(76dvh,740px)] min-h-96 flex-col overflow-hidden rounded-xl border border-line-soft bg-surface shadow-card'
                     }
                 >
                     <header
-                        className={`flex shrink-0 items-center justify-between gap-2 bg-[#3b6fa8] text-white ${floating ? 'p-3' : 'p-4'}`}
+                        className={`flex shrink-0 items-center justify-between gap-2 bg-brand text-white ${floating ? 'p-3' : 'p-4'}`}
                     >
                         <div className="flex min-w-0 items-center gap-3">
                             <RobotAvatar
@@ -331,8 +332,8 @@ export default function BarangayChatbot({
                                         Personal barangay assistant
                                     </p>
                                 )}
-                                <p className="mt-1 flex items-center gap-1 text-[10px] text-emerald-100">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+                                <p className="mt-1 flex items-center gap-1 text-[10px] text-white/75">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-white/80" />
                                     Live request tracking
                                 </p>
                             </div>
@@ -350,15 +351,15 @@ export default function BarangayChatbot({
                                     type="button"
                                     onClick={() => setOpen(false)}
                                     aria-label="Close assistant"
-                                    className="rounded px-2 py-1"
+                                    className="rounded p-1 transition hover:bg-white/10"
                                 >
-                                    ×
+                                    <X className="size-4" />
                                 </button>
                             )}
                         </div>
                     </header>
                     <div
-                        className={`flex min-h-0 flex-1 flex-col overflow-y-auto bg-stone-50 ${floating ? 'p-3' : 'p-4'}`}
+                        className={`flex min-h-0 flex-1 flex-col overflow-y-auto bg-canvas ${floating ? 'p-3' : 'p-4'}`}
                     >
                         <div
                             role="log"
@@ -373,7 +374,7 @@ export default function BarangayChatbot({
                                     className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div
-                                        className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm break-words whitespace-pre-wrap ${item.role === 'user' ? 'bg-[#3b6fa8] text-white' : 'border border-emerald-100 bg-white text-stone-800 shadow-sm'}`}
+                                        className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap ${item.role === 'user' ? 'bg-brand text-white' : 'border border-line-soft bg-white text-ink shadow-card'}`}
                                     >
                                         <span className="mb-1 block text-[10px] font-bold opacity-70">
                                             {item.role === 'user' ? (
@@ -397,15 +398,15 @@ export default function BarangayChatbot({
                                         {item.records?.map((record, index) => (
                                             <div
                                                 key={record.reference + index}
-                                                className="mt-3 space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 text-stone-800"
+                                                className="mt-3 space-y-2 rounded-xl border border-brand-muted bg-brand-soft/60 p-3 text-ink"
                                             >
                                                 <p className="text-xs font-bold">
                                                     {record.label}
                                                 </p>
-                                                <p className="font-mono text-[11px] text-stone-500">
+                                                <p className="font-mono text-[11px] text-ink-muted">
                                                     {record.reference}
                                                 </p>
-                                                <p className="inline-block rounded-full border border-emerald-200 bg-white px-2 py-1 text-xs font-semibold text-emerald-900">
+                                                <p className="inline-block rounded-full border border-brand-muted bg-white px-2 py-1 text-xs font-semibold text-brand-deep">
                                                     {record.status}
                                                 </p>
                                                 <p className="text-xs leading-5">
@@ -413,14 +414,15 @@ export default function BarangayChatbot({
                                                 </p>
                                                 <Link
                                                     href={record.url}
-                                                    className="inline-flex text-xs font-bold text-emerald-800 underline"
+                                                    className="inline-flex items-center gap-1 text-xs font-semibold text-brand underline"
                                                 >
-                                                    Buksan ang record →
+                                                    Buksan ang record
+                                                    <ArrowRight className="size-3" />
                                                 </Link>
                                             </div>
                                         ))}
                                         {item.checkedAt && (
-                                            <p className="mt-2 text-[10px] text-stone-500">
+                                            <p className="mt-2 text-[10px] text-ink-muted">
                                                 Mula sa system · Sinuri{' '}
                                                 {new Date(
                                                     item.checkedAt,
@@ -440,11 +442,11 @@ export default function BarangayChatbot({
                         {loading && (
                             <p
                                 role="status"
-                                className="mt-3 text-sm text-stone-600"
+                                className="mt-3 text-sm text-ink-muted"
                             >
                                 <span
                                     aria-hidden="true"
-                                    className="mr-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-emerald-800 border-t-transparent"
+                                    className="mr-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-brand border-t-transparent"
                                 />
                                 Naghahanda ng sagot si Kabarangay AI…
                             </p>
@@ -475,7 +477,7 @@ export default function BarangayChatbot({
                         <div ref={bottom} />
                     </div>
                     <footer
-                        className={`shrink-0 border-t ${floating ? 'space-y-2 p-2.5' : 'space-y-3 p-3'}`}
+                        className={`shrink-0 border-t border-line-soft bg-surface ${floating ? 'space-y-2 p-2.5' : 'space-y-3 p-3'}`}
                     >
                         {messages.length === 1 && (
                             <div className="flex flex-wrap gap-2">
@@ -487,7 +489,7 @@ export default function BarangayChatbot({
                                             type="button"
                                             disabled={loading}
                                             onClick={() => void send(text)}
-                                            className="rounded-lg border px-2 py-1 text-left text-xs text-emerald-900 disabled:opacity-50"
+                                            className="rounded-lg border border-line-soft bg-canvas px-2.5 py-1.5 text-left text-xs font-medium text-ink transition-colors hover:border-brand hover:text-brand disabled:opacity-50"
                                         >
                                             {text}
                                         </button>
@@ -496,7 +498,7 @@ export default function BarangayChatbot({
                         )}
                         <nav
                             aria-label="Mga serbisyo"
-                            className="flex gap-3 text-xs font-semibold text-emerald-800"
+                            className="flex gap-3 text-xs font-semibold text-brand"
                         >
                             <Link href="/resident/certificates">
                                 Certificates
@@ -538,16 +540,16 @@ export default function BarangayChatbot({
                                         }
                                     }}
                                     placeholder="I-type ang iyong tanong…"
-                                    className="w-full resize-none rounded-xl border border-stone-300 p-2 text-sm focus:border-emerald-700 focus:outline-none"
+                                    className="w-full resize-none rounded-xl border border-line bg-canvas p-2 text-sm focus:border-brand focus:outline-none"
                                 />
-                                <p className="text-right text-[10px] text-stone-500">
+                                <p className="text-right text-[10px] text-ink-muted">
                                     {input.length}/1000
                                 </p>
                             </div>
                             <button
                                 type="submit"
                                 disabled={loading || !input.trim()}
-                                className="mb-4 rounded-xl bg-[#3b6fa8] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                                className="mb-4 min-h-9 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
                             >
                                 {loading ? 'Sandali…' : 'Ipadala'}
                             </button>
@@ -575,24 +577,24 @@ function RobotAvatar({
             }
             fill="none"
         >
-            <circle cx="32" cy="32" r="31" fill="#ecfdf5" />
+            <circle cx="32" cy="32" r="31" fill="#eaf1f8" />
             <path
                 d="M32 15V9"
-                stroke="#047857"
+                stroke="#2f5f94"
                 strokeWidth="3"
                 strokeLinecap="round"
             />
-            <circle cx="32" cy="8" r="3" fill="#34d399" />
-            <rect x="11" y="22" width="5" height="19" rx="2.5" fill="#34d399" />
-            <rect x="48" y="22" width="5" height="19" rx="2.5" fill="#34d399" />
+            <circle cx="32" cy="8" r="3" fill="#3b6fa8" />
+            <rect x="11" y="22" width="5" height="19" rx="2.5" fill="#3b6fa8" />
+            <rect x="48" y="22" width="5" height="19" rx="2.5" fill="#3b6fa8" />
             <rect
                 x="16"
                 y="17"
                 width="32"
                 height="31"
                 rx="11"
-                fill="#d1fae5"
-                stroke="#047857"
+                fill="#d6e4f2"
+                stroke="#2f5f94"
                 strokeWidth="2"
             />
             <rect
@@ -601,19 +603,19 @@ function RobotAvatar({
                 width="22"
                 height="13"
                 rx="6.5"
-                fill="#064e3b"
+                fill="#2a5279"
             />
-            <circle cx="27" cy="30" r="2.5" fill="#6ee7b7" />
-            <circle cx="37" cy="30" r="2.5" fill="#6ee7b7" />
+            <circle cx="27" cy="30" r="2.5" fill="#8ec5f0" />
+            <circle cx="37" cy="30" r="2.5" fill="#8ec5f0" />
             <path
                 d="M27 41Q32 45 37 41"
-                stroke="#047857"
+                stroke="#2f5f94"
                 strokeWidth="2"
                 strokeLinecap="round"
             />
             <path
                 d="M23 53Q32 49 41 53"
-                stroke="#047857"
+                stroke="#2f5f94"
                 strokeWidth="3"
                 strokeLinecap="round"
             />

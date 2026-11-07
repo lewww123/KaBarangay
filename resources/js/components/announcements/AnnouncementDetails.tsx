@@ -55,20 +55,20 @@ export default function AnnouncementDetails({
         <div className="space-y-5">
             <Link
                 href={backHref}
-                className="inline-flex text-xs font-semibold text-[#3b6fa8] hover:text-[#2a5279]"
+                className="inline-flex text-xs font-semibold text-brand hover:text-brand-deep"
             >
                 Back to announcements
             </Link>
 
-            <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-                <div className="flex flex-col gap-4 border-b border-gray-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-6">
+                <div className="flex flex-col gap-4 border-b border-line-soft pb-5 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                         <div className="mb-3 flex flex-wrap items-center gap-2">
                             <span
-                                className={`inline-flex rounded px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase ${
+                                className={`inline-flex rounded px-2.5 py-1 text-[10px] font-semibold tracking-wider uppercase ${
                                     isEvent
                                         ? 'bg-purple-100 text-purple-800'
-                                        : 'bg-[#eaf1f8] text-[#3b6fa8]'
+                                        : 'bg-brand-soft text-brand'
                                 }`}
                             >
                                 {isEvent ? 'Event' : 'Informational Update'}
@@ -80,22 +80,22 @@ export default function AnnouncementDetails({
                                 />
                             )}
 
-                            <span className="inline-flex rounded bg-gray-100 px-2.5 py-1 text-[10px] font-bold tracking-wider text-gray-600 uppercase">
+                            <span className="inline-flex rounded bg-secondary px-2.5 py-1 text-[10px] font-semibold tracking-wider text-ink-muted uppercase">
                                 {formatCategoryLabel(announcement.category)}
                             </span>
 
-                            <span className="inline-flex rounded bg-gray-100 px-2.5 py-1 text-[10px] font-bold tracking-wider text-gray-600 uppercase">
+                            <span className="inline-flex rounded bg-secondary px-2.5 py-1 text-[10px] font-semibold tracking-wider text-ink-muted uppercase">
                                 {formatAudienceLabel(
                                     announcement.target_audience,
                                 )}
                             </span>
                         </div>
 
-                        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                        <h1 className="text-xl font-semibold text-ink-strong sm:text-2xl">
                             {announcement.title}
                         </h1>
 
-                        <p className="mt-2 text-xs text-gray-500">
+                        <p className="mt-2 text-xs text-ink-muted">
                             Posted {formatDateTime(announcement.created_at)}
                             {announcement.author?.name
                                 ? ` by ${announcement.author.name}`
@@ -105,7 +105,7 @@ export default function AnnouncementDetails({
 
                     {showApprovalStatus && announcement.approval_status && (
                         <span
-                            className={`inline-flex w-fit rounded px-2.5 py-1 text-xs font-bold uppercase ${approvalStatusStyle(
+                            className={`inline-flex w-fit rounded px-2.5 py-1 text-xs font-semibold uppercase ${approvalStatusStyle(
                                 announcement.approval_status,
                             )}`}
                         >
@@ -137,22 +137,22 @@ export default function AnnouncementDetails({
 
                 <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
                     <div>
-                        <p className="text-sm leading-relaxed whitespace-pre-line text-gray-700">
+                        <p className="text-sm leading-relaxed whitespace-pre-line text-ink">
                             {announcement.content}
                         </p>
 
                         {isEvent &&
                             (announcement.event_start_at ||
                                 announcement.location) && (
-                                <div className="mt-6 rounded-lg border border-[#dfe4ea] bg-[#ffffff] p-4">
-                                    <h2 className="text-xs font-bold tracking-wide text-[#2a5279] uppercase">
+                                <div className="mt-6 rounded-lg border border-line-soft bg-canvas p-4">
+                                    <h2 className="text-xs font-semibold tracking-wide text-brand-deep uppercase">
                                         Event details
                                     </h2>
 
-                                    <dl className="mt-3 space-y-2 text-sm text-gray-700">
+                                    <dl className="mt-3 space-y-2 text-sm text-ink">
                                         {announcement.event_start_at && (
                                             <div className="flex gap-2">
-                                                <dt className="w-20 shrink-0 font-semibold text-gray-500">
+                                                <dt className="w-20 shrink-0 font-semibold text-ink-muted">
                                                     Schedule
                                                 </dt>
                                                 <dd>
@@ -165,7 +165,7 @@ export default function AnnouncementDetails({
 
                                         {announcement.location && (
                                             <div className="flex gap-2">
-                                                <dt className="w-20 shrink-0 font-semibold text-gray-500">
+                                                <dt className="w-20 shrink-0 font-semibold text-ink-muted">
                                                     Venue
                                                 </dt>
                                                 <dd>{announcement.location}</dd>
@@ -177,17 +177,17 @@ export default function AnnouncementDetails({
                     </div>
 
                     <aside className="space-y-4">
-                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                            <h2 className="text-xs font-bold tracking-wide text-gray-500 uppercase">
+                        <div className="rounded-lg border border-line-soft bg-canvas p-4">
+                            <h2 className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
                                 Announcement information
                             </h2>
 
                             <dl className="mt-3 space-y-3 text-xs">
                                 <div>
-                                    <dt className="font-semibold text-gray-500">
+                                    <dt className="font-semibold text-ink-muted">
                                         Type
                                     </dt>
-                                    <dd className="mt-0.5 text-gray-800">
+                                    <dd className="mt-0.5 text-ink-strong">
                                         {isEvent
                                             ? 'Event'
                                             : 'Informational Update'}
@@ -195,10 +195,10 @@ export default function AnnouncementDetails({
                                 </div>
 
                                 <div>
-                                    <dt className="font-semibold text-gray-500">
+                                    <dt className="font-semibold text-ink-muted">
                                         Category
                                     </dt>
-                                    <dd className="mt-0.5 text-gray-800">
+                                    <dd className="mt-0.5 text-ink-strong">
                                         {formatCategoryLabel(
                                             announcement.category,
                                         )}
@@ -206,10 +206,10 @@ export default function AnnouncementDetails({
                                 </div>
 
                                 <div>
-                                    <dt className="font-semibold text-gray-500">
+                                    <dt className="font-semibold text-ink-muted">
                                         Audience
                                     </dt>
-                                    <dd className="mt-0.5 text-gray-800">
+                                    <dd className="mt-0.5 text-ink-strong">
                                         {formatAudienceLabel(
                                             announcement.target_audience,
                                         )}
@@ -218,10 +218,10 @@ export default function AnnouncementDetails({
 
                                 {showAttendanceSetting && isEvent && (
                                     <div>
-                                        <dt className="font-semibold text-gray-500">
+                                        <dt className="font-semibold text-ink-muted">
                                             Attendance
                                         </dt>
-                                        <dd className="mt-0.5 text-gray-800">
+                                        <dd className="mt-0.5 text-ink-strong">
                                             {formatAttendanceSetting(
                                                 announcement,
                                             )}
@@ -231,10 +231,10 @@ export default function AnnouncementDetails({
 
                                 {announcement.author?.name && (
                                     <div>
-                                        <dt className="font-semibold text-gray-500">
+                                        <dt className="font-semibold text-ink-muted">
                                             Posted by
                                         </dt>
-                                        <dd className="mt-0.5 text-gray-800">
+                                        <dd className="mt-0.5 text-ink-strong">
                                             {announcement.author.name}
                                         </dd>
                                     </div>
@@ -244,7 +244,7 @@ export default function AnnouncementDetails({
 
                         {showCompletion && announcement.completed_at && (
                             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800">
-                                <p className="font-bold uppercase">Done</p>
+                                <p className="font-semibold uppercase">Done</p>
                                 <p className="mt-1">
                                     Completed{' '}
                                     {formatDateTime(announcement.completed_at)}

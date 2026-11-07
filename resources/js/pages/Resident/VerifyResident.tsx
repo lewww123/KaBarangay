@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { Check, X } from 'lucide-react';
 
 interface Verification {
     valid: boolean;
@@ -15,22 +16,26 @@ export default function VerifyResident({ verification }: Props) {
         <>
             <Head title="Resident Verification" />
 
-            <div className="min-h-screen bg-gray-50 px-4 py-8 sm:px-6">
+            <div className="min-h-screen bg-canvas px-4 py-8 sm:px-6">
                 <div className="mx-auto flex min-h-[90vh] max-w-md items-center justify-center">
-                    <div className="w-full overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-gray-200">
+                    <div className="w-full overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-line-soft">
                         {/* Header */}
-                        <div className="bg-green-700 px-6 py-7 text-center text-white">
-                            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-white text-3xl">
-                                {verification.valid ? '✓' : '✕'}
+                        <div className="bg-brand px-6 py-7 text-center text-white">
+                            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-white text-brand">
+                                {verification.valid ? (
+                                    <Check className="size-8" strokeWidth={2.5} />
+                                ) : (
+                                    <X className="size-8" strokeWidth={2.5} />
+                                )}
                             </div>
 
-                            <h1 className="text-2xl font-bold">
+                            <h1 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
                                 {verification.valid
                                     ? 'Resident Verified'
                                     : 'Verification Failed'}
                             </h1>
 
-                            <p className="mt-2 text-sm text-green-100">
+                            <p className="mt-2 text-sm text-white/70">
                                 KaBarangay Resident Verification
                             </p>
                         </div>
@@ -52,18 +57,18 @@ export default function VerifyResident({ verification }: Props) {
                                     </div>
 
                                     {verification.barangay && (
-                                        <div className="border-t border-gray-100 pt-4 text-center">
-                                            <p className="text-xs font-medium tracking-wide text-gray-500 uppercase">
+                                        <div className="border-t border-line-soft pt-4 text-center">
+                                            <p className="text-xs font-medium tracking-wide text-ink-muted uppercase">
                                                 Barangay
                                             </p>
 
-                                            <p className="mt-1 font-semibold text-gray-900">
+                                            <p className="mt-1 font-semibold text-ink-strong">
                                                 {verification.barangay}
                                             </p>
                                         </div>
                                     )}
 
-                                    <p className="mt-6 text-center text-xs leading-5 text-gray-500">
+                                    <p className="mt-6 text-center text-xs leading-5 text-ink-muted">
                                         For privacy, personal details are not
                                         displayed on this public verification
                                         page.
@@ -84,7 +89,7 @@ export default function VerifyResident({ verification }: Props) {
                                         </p>
                                     </div>
 
-                                    <p className="mt-6 text-sm text-gray-500">
+                                    <p className="mt-6 text-sm text-ink-muted">
                                         Please contact the Barangay Office if
                                         you believe this verification result is
                                         incorrect.
@@ -94,8 +99,8 @@ export default function VerifyResident({ verification }: Props) {
                         </div>
 
                         {/* Footer */}
-                        <div className="border-t border-gray-100 bg-gray-50 px-6 py-4 text-center">
-                            <p className="text-xs text-gray-500">
+                        <div className="border-t border-line-soft bg-canvas px-6 py-4 text-center">
+                            <p className="text-xs text-ink-muted">
                                 KaBarangay • Resident Verification System
                             </p>
                         </div>

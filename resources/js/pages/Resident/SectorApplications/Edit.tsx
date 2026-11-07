@@ -70,11 +70,11 @@ export default function ResidentSectorApplicationEdit({
     return (
         <ResidentLayout active="sectors">
             <Head title="Correct Application" />
-            <div className="mx-auto max-w-4xl space-y-6 p-4 font-sans sm:p-6">
-                <h1 className="text-2xl font-black tracking-tight text-gray-900">
+            <div className="mx-auto max-w-4xl space-y-5 p-4 font-sans sm:p-6">
+                <h1 className="text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                     Correct Application #{application.tracking_number}
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-ink-muted">
                     Sector: {application.sector}
                 </p>
                 {application.correction_notes && (
@@ -89,7 +89,7 @@ export default function ResidentSectorApplicationEdit({
                 )}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-ink">
                             Notes (optional)
                         </label>
                         <textarea
@@ -97,7 +97,7 @@ export default function ResidentSectorApplicationEdit({
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             rows={4}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-line shadow-card focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             placeholder="Add any additional information needed for correction"
                         />
                         {errors['details.notes'] && (
@@ -107,7 +107,7 @@ export default function ResidentSectorApplicationEdit({
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-ink">
                             Replace / Add Documents
                         </label>
                         <input
@@ -115,7 +115,7 @@ export default function ResidentSectorApplicationEdit({
                             name="documents[]"
                             multiple
                             onChange={(e) => setFiles(e.target.files)}
-                            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700"
+                            className="mt-1 block w-full text-sm text-ink-muted file:mr-4 file:rounded-md file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700"
                         />
                         {errors.documents && (
                             <p className="mt-1 text-sm text-red-600">
@@ -125,20 +125,20 @@ export default function ResidentSectorApplicationEdit({
                     </div>
                     {application.documents.length > 0 && (
                         <div className="space-y-2">
-                            <p className="font-medium text-gray-700">
+                            <p className="font-medium text-ink">
                                 Existing Documents:
                             </p>
                             <ul className="list-inside list-disc space-y-1">
                                 {application.documents.map((doc) => (
                                     <li
                                         key={doc.id}
-                                        className="text-sm text-gray-600"
+                                        className="text-sm text-ink-muted"
                                     >
                                         <a
                                             href={doc.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="underline hover:text-gray-900"
+                                            className="underline hover:text-ink-strong"
                                         >
                                             {doc.title} ({doc.type})
                                         </a>
@@ -153,7 +153,7 @@ export default function ResidentSectorApplicationEdit({
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#3b6fa8] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#2a5279] disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-semibold text-white shadow-card transition hover:bg-brand-deep disabled:opacity-50"
                     >
                         {submitting ? 'Submitting…' : 'Resubmit Correction'}
                     </button>

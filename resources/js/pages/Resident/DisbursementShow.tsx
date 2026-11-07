@@ -22,51 +22,51 @@ export default function ResidentDisbursementShow({
         <ResidentLayout active="disbursement">
             <Head title={document.title} />
 
-            <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-4xl space-y-5">
                 <Link
                     href="/resident/disbursement"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 transition hover:text-[#3b6fa8]"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-muted transition hover:text-brand"
                 >
                     <BackIcon />
                     Back to disbursement documents
                 </Link>
 
-                <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                <section className="mt-4 rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-6">
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-md border border-[#3b6fa8]/20 bg-[#3b6fa8]/5 px-2 py-0.5 text-[11px] font-semibold text-[#3b6fa8]">
+                        <span className="rounded-md border border-brand/20 bg-brand/5 px-2 py-0.5 text-[11px] font-semibold text-brand">
                             {disbursementFileType(document)}
                         </span>
 
-                        <span className="text-[11px] text-gray-400">
+                        <span className="text-[11px] text-ink-faint">
                             {formatFileSize(document.file_size)}
                         </span>
                     </div>
 
-                    <h1 className="mt-3 text-2xl font-bold break-words text-gray-900">
+                    <h1 className="mt-3 text-xl font-semibold tracking-tight break-words text-ink-strong sm:text-2xl">
                         {document.title}
                     </h1>
 
                     {document.description && (
-                        <p className="mt-2 max-w-3xl text-sm leading-relaxed whitespace-pre-wrap text-gray-600">
+                        <p className="mt-2 max-w-3xl text-sm leading-relaxed whitespace-pre-wrap text-ink-muted">
                             {document.description}
                         </p>
                     )}
 
-                    <dl className="mt-4 grid gap-3 border-t border-gray-100 pt-4 text-xs sm:grid-cols-3">
+                    <dl className="mt-4 grid gap-3 border-t border-line-soft pt-4 text-xs sm:grid-cols-3">
                         <div>
-                            <dt className="font-medium text-gray-400">
+                            <dt className="font-medium text-ink-faint">
                                 Original file
                             </dt>
-                            <dd className="mt-1 break-words text-gray-700">
+                            <dd className="mt-1 break-words text-ink">
                                 {document.original_name}
                             </dd>
                         </div>
 
                         <div>
-                            <dt className="font-medium text-gray-400">
+                            <dt className="font-medium text-ink-faint">
                                 Published
                             </dt>
-                            <dd className="mt-1 text-gray-700">
+                            <dd className="mt-1 text-ink">
                                 {formatDisbursementDateTime(
                                     document.published_at,
                                 )}
@@ -74,10 +74,10 @@ export default function ResidentDisbursementShow({
                         </div>
 
                         <div>
-                            <dt className="font-medium text-gray-400">
+                            <dt className="font-medium text-ink-faint">
                                 Format
                             </dt>
-                            <dd className="mt-1 text-gray-700">
+                            <dd className="mt-1 text-ink">
                                 {disbursementFileType(document)}
                             </dd>
                         </div>
@@ -86,11 +86,11 @@ export default function ResidentDisbursementShow({
 
                 <section className="mt-5">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <h2 className="text-sm font-semibold text-gray-900">
+                        <h2 className="text-sm font-semibold text-ink-strong">
                             Document preview
                         </h2>
 
-                        <p className="text-[11px] text-gray-500">
+                        <p className="text-[11px] text-ink-muted">
                             Download the original for the complete file
                         </p>
                     </div>
@@ -101,11 +101,11 @@ export default function ResidentDisbursementShow({
                     />
                 </section>
 
-                <p className="mt-5 rounded-xl border border-gray-200 bg-white px-4 py-3 text-xs leading-relaxed text-gray-500">
+                <p className="mt-5 rounded-xl border border-line-soft bg-white px-4 py-3 text-xs leading-relaxed text-ink-muted">
                     For questions about a disbursement record, please contact
                     the barangay office and provide the document title.
                 </p>
-            </main>
+            </div>
         </ResidentLayout>
     );
 }

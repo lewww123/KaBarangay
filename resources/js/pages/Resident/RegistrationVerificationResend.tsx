@@ -17,19 +17,19 @@ export default function RegistrationVerificationResend({ feedback }: Props) {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#eef1f5] px-4 py-10">
+        <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
             <Head title="Resend Registration Verification" />
-            <main className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+            <main className="w-full max-w-md rounded-xl border border-line-soft bg-white p-6 shadow-card sm:p-8">
                 <Link
                     href="/resident/register"
-                    className="text-sm font-semibold text-[#3b6fa8] hover:underline"
+                    className="text-sm font-semibold text-brand hover:underline"
                 >
                     KaBarangay Resident Registration
                 </Link>
-                <h1 className="mt-5 text-2xl font-bold text-gray-900">
+                <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                     Request a verification code
                 </h1>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
+                <p className="mt-2 text-sm leading-6 text-ink-muted">
                     Enter the application reference and the password created
                     during registration. For privacy, the same response is shown
                     whether or not a message can be sent.
@@ -48,7 +48,7 @@ export default function RegistrationVerificationResend({ feedback }: Props) {
                     <div>
                         <label
                             htmlFor="registration-reference"
-                            className="mb-1 block text-sm font-medium text-gray-700"
+                            className="mb-1 block text-sm font-medium text-ink"
                         >
                             Application reference
                         </label>
@@ -60,13 +60,13 @@ export default function RegistrationVerificationResend({ feedback }: Props) {
                             onChange={(event) =>
                                 form.setData('reference', event.target.value)
                             }
-                            className="min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20 focus:outline-none"
+                            className="min-h-11 w-full rounded-lg border border-line px-3 py-2 font-mono text-sm focus:border-brand focus:ring-2 focus:ring-brand/20 focus:outline-none"
                         />
                     </div>
                     <div>
                         <label
                             htmlFor="registration-password"
-                            className="mb-1 block text-sm font-medium text-gray-700"
+                            className="mb-1 block text-sm font-medium text-ink"
                         >
                             Registration password
                         </label>
@@ -78,13 +78,13 @@ export default function RegistrationVerificationResend({ feedback }: Props) {
                             onChange={(event) =>
                                 form.setData('password', event.target.value)
                             }
-                            className="min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20 focus:outline-none"
+                            className="min-h-11 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20 focus:outline-none"
                         />
                     </div>
                     <button
                         type="submit"
                         disabled={form.processing}
-                        className="min-h-11 w-full rounded-lg bg-[#3b6fa8] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="min-h-11 w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {form.processing
                             ? 'Submitting…'
@@ -92,7 +92,7 @@ export default function RegistrationVerificationResend({ feedback }: Props) {
                     </button>
                 </form>
 
-                <p className="mt-4 text-xs leading-5 text-gray-500">
+                <p className="mt-4 text-xs leading-5 text-ink-muted">
                     Email OTP verification is required for Resident
                     registration. Request a fresh code if your application email
                     needs to be verified again.

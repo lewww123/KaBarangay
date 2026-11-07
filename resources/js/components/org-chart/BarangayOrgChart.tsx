@@ -16,16 +16,16 @@ type Props = {
 
 type Tone = 'leadership' | 'legislative' | 'support' | 'other';
 const accents: Record<Tone, string> = {
-    leadership: 'border-t-emerald-700 bg-emerald-50/40',
-    legislative: 'border-t-sky-600 bg-sky-50/40',
-    support: 'border-t-amber-500 bg-amber-50/40',
-    other: 'border-t-slate-400 bg-slate-50/40',
+    leadership: 'border-t-brand bg-brand-soft/40',
+    legislative: 'border-t-brand/60 bg-canvas',
+    support: 'border-t-line bg-canvas',
+    other: 'border-t-line bg-canvas',
 };
 const labels: Record<Tone, string> = {
-    leadership: 'text-emerald-800',
-    legislative: 'text-sky-800',
-    support: 'text-amber-800',
-    other: 'text-slate-600',
+    leadership: 'text-brand-deep',
+    legislative: 'text-brand',
+    support: 'text-ink',
+    other: 'text-ink-muted',
 };
 
 /** Shared read-only chart; selection opens the caller's existing detail/edit view. */
@@ -57,26 +57,26 @@ export default function BarangayOrgChart({
     return (
         <section
             aria-label="Barangay organizational hierarchy"
-            className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm"
+            className="min-w-0 rounded-xl border border-line-soft bg-white shadow-card"
         >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-                <h2 className="text-sm font-bold text-slate-900">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-5 py-4">
+                <h2 className="text-sm font-semibold text-ink-strong">
                     Barangay Leadership &amp; Officials
                 </h2>
                 <div
-                    className="flex flex-wrap gap-3 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+                    className="flex flex-wrap gap-3 text-[10px] font-semibold tracking-wide text-ink-muted uppercase"
                     aria-label="Role colors"
                 >
-                    <Legend color="bg-emerald-700">Leadership</Legend>
-                    <Legend color="bg-sky-600">Legislative</Legend>
-                    <Legend color="bg-amber-500">Support</Legend>
+                    <Legend color="bg-brand">Leadership</Legend>
+                    <Legend color="bg-brand/60">Legislative</Legend>
+                    <Legend color="bg-line">Support</Legend>
                 </div>
             </div>
             <div
                 role="region"
                 aria-label="Scrollable organizational chart"
                 tabIndex={0}
-                className="overflow-x-auto overscroll-x-contain rounded-b-2xl focus-visible:outline-2 focus-visible:outline-emerald-600"
+                className="overflow-x-auto overscroll-x-contain rounded-b-2xl focus-visible:outline-2 focus-visible:outline-brand"
             >
                 <div
                     className="px-5 py-7 sm:px-7 sm:py-9"
@@ -86,11 +86,11 @@ export default function BarangayOrgChart({
                         {chart.captain ? (
                             card(chart.captain, 'leadership', chart.isActing)
                         ) : (
-                            <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 p-6 text-center">
-                                <h3 className="text-xs font-bold tracking-wide text-emerald-800 uppercase">
+                            <div className="rounded-xl border border-dashed border-brand-muted bg-brand-soft p-6 text-center">
+                                <h3 className="text-xs font-semibold tracking-wide text-brand-deep uppercase">
                                     Punong Barangay
                                 </h3>
-                                <p className="mt-2 text-sm text-slate-500">
+                                <p className="mt-2 text-sm text-ink-muted">
                                     Not assigned
                                 </p>
                             </div>
@@ -100,11 +100,11 @@ export default function BarangayOrgChart({
                         {/* Continue the captain's branch around the legislative row to support staff. */}
                         <span
                             aria-hidden="true"
-                            className="absolute top-3 right-1/2 left-0 h-px bg-slate-300"
+                            className="absolute top-3 right-1/2 left-0 h-px bg-line"
                         />
                         <span
                             aria-hidden="true"
-                            className="absolute top-3 bottom-0 left-0 w-px bg-slate-300"
+                            className="absolute top-3 bottom-0 left-0 w-px bg-line"
                         />
                         <Stem />
                         <Branch
@@ -117,8 +117,8 @@ export default function BarangayOrgChart({
                         />
                     </div>
                     <div aria-hidden="true" className="relative h-6 sm:h-7">
-                        <span className="absolute top-0 left-0 h-1/2 w-1/2 border-b border-l border-slate-300" />
-                        <span className="absolute top-1/2 left-1/2 h-1/2 w-px bg-slate-300" />
+                        <span className="absolute top-0 left-0 h-1/2 w-1/2 border-b border-l border-line" />
+                        <span className="absolute top-1/2 left-1/2 h-1/2 w-px bg-line" />
                     </div>
                     <Branch
                         title="Appointed Officials"
@@ -129,8 +129,8 @@ export default function BarangayOrgChart({
                         empty="No appointed positions to display."
                     />
                     {chart.others.length > 0 && (
-                        <div className="mt-8 border-t border-slate-100 pt-6">
-                            <h3 className="mb-4 text-center text-xs font-bold tracking-widest text-slate-500 uppercase">
+                        <div className="mt-8 border-t border-line-soft pt-6">
+                            <h3 className="mb-4 text-center text-xs font-semibold tracking-widest text-ink-muted uppercase">
                                 Other Barangay Positions
                             </h3>
                             <ul className="grid grid-cols-3 gap-3 lg:grid-cols-4">
@@ -144,7 +144,7 @@ export default function BarangayOrgChart({
                     )}
                 </div>
             </div>
-            <p className="border-t border-slate-100 px-5 py-2 text-center text-xs text-slate-500 md:hidden">
+            <p className="border-t border-line-soft px-5 py-2 text-center text-xs text-ink-muted md:hidden">
                 Scroll sideways to view the full chart.
             </p>
         </section>
@@ -170,11 +170,11 @@ function Branch({
         <section aria-label={title}>
             <div className="text-center">
                 <h3
-                    className={`text-xs font-extrabold tracking-[0.18em] uppercase ${labels[tone]}`}
+                    className={`text-xs font-semibold tracking-[0.18em] uppercase ${labels[tone]}`}
                 >
                     {title}
                 </h3>
-                <p className="mt-1 text-[11px] text-slate-500">{subtitle}</p>
+                <p className="mt-1 text-[11px] text-ink-muted">{subtitle}</p>
             </div>
             {positions.length ? (
                 <>
@@ -192,7 +192,7 @@ function Branch({
                             >
                                 <span
                                     aria-hidden="true"
-                                    className="absolute top-0 h-px bg-slate-300"
+                                    className="absolute top-0 h-px bg-line"
                                     style={{
                                         left: index === 0 ? '50%' : 0,
                                         right:
@@ -203,7 +203,7 @@ function Branch({
                                 />
                                 <span
                                     aria-hidden="true"
-                                    className="absolute top-0 left-1/2 h-6 w-px bg-slate-300"
+                                    className="absolute top-0 left-1/2 h-6 w-px bg-line"
                                 />
                                 {renderCard(position, tone)}
                             </li>
@@ -211,7 +211,7 @@ function Branch({
                     </ul>
                 </>
             ) : (
-                <p className="mt-4 text-center text-xs text-slate-400 italic">
+                <p className="mt-4 text-center text-xs text-ink-faint italic">
                     {empty}
                 </p>
             )}
@@ -246,7 +246,7 @@ function OfficialCard({
         : '—';
     const badge = orgChartStatusBadge(position.status);
     const title = tone === 'leadership' ? 'Punong Barangay' : position.title;
-    const className = `flex h-full w-full min-w-0 flex-col items-center rounded-xl border border-slate-200 border-t-4 px-2 py-4 lg:px-3 text-center shadow-sm transition ${accents[tone]} ${onSelect ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600' : ''} ${selected ? 'ring-2 ring-emerald-600 ring-offset-2' : ''}`;
+    const className = `flex h-full w-full min-w-0 flex-col items-center rounded-xl border border-line-soft border-t-4 px-2 py-4 lg:px-3 text-center shadow-card transition ${accents[tone]} ${onSelect ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand' : ''} ${selected ? 'ring-2 ring-brand ring-offset-2' : ''}`;
     const content = (
         <>
             {position.photo_url ? (
@@ -255,36 +255,36 @@ function OfficialCard({
                     alt={`Portrait of ${name || position.title}`}
                     loading="lazy"
                     decoding="async"
-                    className={`${tone === 'leadership' ? 'h-16 w-16' : 'h-12 w-12'} rounded-full border-2 border-white object-cover shadow-sm`}
+                    className={`${tone === 'leadership' ? 'h-16 w-16' : 'h-12 w-12'} rounded-full border-2 border-white object-cover shadow-card`}
                 />
             ) : (
                 <span
                     aria-hidden="true"
-                    className={`${tone === 'leadership' ? 'h-16 w-16 text-lg' : 'h-12 w-12 text-sm'} flex shrink-0 items-center justify-center rounded-full bg-white font-bold shadow-sm ${labels[tone]}`}
+                    className={`${tone === 'leadership' ? 'h-16 w-16 text-lg' : 'h-12 w-12 text-sm'} flex shrink-0 items-center justify-center rounded-full bg-white font-semibold shadow-card ${labels[tone]}`}
                 >
                     {initials}
                 </span>
             )}
-            <h4 className="mt-3 w-full text-xs leading-snug font-bold break-words text-slate-900 lg:text-sm">
+            <h4 className="mt-3 w-full text-xs leading-snug font-semibold break-words text-ink-strong lg:text-sm">
                 {name || (
-                    <span className="font-normal text-slate-400 italic">
+                    <span className="font-normal text-ink-faint italic">
                         Vacant
                     </span>
                 )}
             </h4>
             <p
-                className={`mt-1.5 w-full text-[10px] leading-relaxed font-bold tracking-wide break-words uppercase ${labels[tone]}`}
+                className={`mt-1.5 w-full text-[10px] leading-relaxed font-semibold tracking-wide break-words uppercase ${labels[tone]}`}
             >
                 {title}
             </p>
             {acting && (
-                <span className="mt-2 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-900">
+                <span className="mt-2 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold text-amber-900">
                     (Acting)
                 </span>
             )}
             {showStatus && (
                 <span
-                    className={`mt-2 rounded-full border px-2 py-0.5 text-[9px] font-bold ${badge.classes}`}
+                    className={`mt-2 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${badge.classes}`}
                 >
                     {badge.label}
                 </span>
@@ -309,7 +309,7 @@ function Stem() {
     return (
         <div
             aria-hidden="true"
-            className="mx-auto h-6 w-px bg-slate-300 sm:h-7"
+            className="mx-auto h-6 w-px bg-line sm:h-7"
         />
     );
 }

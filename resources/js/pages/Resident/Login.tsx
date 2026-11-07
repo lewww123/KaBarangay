@@ -202,19 +202,19 @@ export default function Login() {
 
                         ================================================= */}
 
-                        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
+                        <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-7">
                             {/* HEADING */}
 
                             <div className="text-center">
-                                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf1f8] text-[#3b6fa8]">
+                                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-brand-soft text-brand">
                                     <ResidentIcon />
                                 </div>
 
-                                <h1 className="mt-4 text-xl font-bold text-gray-900 sm:text-2xl">
+                                <h1 className="mt-4 text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                                     Resident Login
                                 </h1>
 
-                                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-gray-500">
+                                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-ink-muted">
                                     Sign in to access your barangay services,
                                     requests, announcements, QR code, and
                                     resident account.
@@ -239,10 +239,10 @@ export default function Login() {
                                         className={`flex min-h-11 items-center gap-3 rounded-xl border bg-white px-3.5 transition focus-within:ring-2 ${
                                             errors.barangay_id
                                                 ? 'border-red-400 focus-within:border-red-500 focus-within:ring-red-100'
-                                                : 'border-gray-300 focus-within:border-[#3b6fa8] focus-within:ring-[#3b6fa8]/15'
+                                                : 'border-line focus-within:border-brand focus-within:ring-brand/15'
                                         }`}
                                     >
-                                        <div className="shrink-0 text-gray-400">
+                                        <div className="shrink-0 text-ink-faint">
                                             <BarangayIcon />
                                         </div>
 
@@ -265,7 +265,7 @@ export default function Login() {
                                                 }
                                             }}
 
-                                            className="h-11 min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-gray-800 ring-0 outline-none focus:ring-0 focus:outline-none disabled:cursor-wait disabled:text-gray-400 sm:text-sm"
+                                            className="h-11 min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink-strong ring-0 outline-none focus:ring-0 focus:outline-none disabled:cursor-wait disabled:text-ink-faint sm:text-sm"
                                         >
                                             <option value="">
                                                 {barangaysLoading
@@ -312,8 +312,8 @@ export default function Login() {
 
                                     error={errors.identifier}
                                 >
-                                    <div className="flex min-h-11 items-center gap-3 rounded-xl border border-gray-300 bg-white px-3.5 transition focus-within:border-[#3b6fa8] focus-within:ring-2 focus-within:ring-[#3b6fa8]/15">
-                                        <div className="shrink-0 text-gray-400">
+                                    <div className="flex min-h-11 items-center gap-3 rounded-xl border border-line bg-white px-3.5 transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15">
+                                        <div className="shrink-0 text-ink-faint">
                                             <UserIcon />
                                         </div>
 
@@ -343,7 +343,7 @@ export default function Login() {
 
                                             placeholder="e.g. BSJ-RES-000001"
 
-                                            className="h-11 min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-gray-800 ring-0 outline-none placeholder:text-gray-400 focus:ring-0 focus:outline-none sm:text-sm"
+                                            className="h-11 min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink-strong ring-0 outline-none placeholder:text-ink-faint focus:ring-0 focus:outline-none sm:text-sm"
                                         />
                                     </div>
                                 </Field>
@@ -355,8 +355,8 @@ export default function Login() {
 
                                     error={errors.password}
                                 >
-                                    <div className="flex min-h-11 items-center gap-3 rounded-xl border border-gray-300 bg-white px-3.5 transition focus-within:border-[#3b6fa8] focus-within:ring-2 focus-within:ring-[#3b6fa8]/15">
-                                        <div className="shrink-0 text-gray-400">
+                                    <div className="flex min-h-11 items-center gap-3 rounded-xl border border-line bg-white px-3.5 transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15">
+                                        <div className="shrink-0 text-ink-faint">
                                             <LockIcon />
                                         </div>
 
@@ -388,7 +388,7 @@ export default function Login() {
 
                                             placeholder="Enter your password"
 
-                                            className="h-11 min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-gray-800 ring-0 outline-none placeholder:text-gray-400 focus:ring-0 focus:outline-none sm:text-sm"
+                                            className="h-11 min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink-strong ring-0 outline-none placeholder:text-ink-faint focus:ring-0 focus:outline-none sm:text-sm"
                                         />
 
                                         <button
@@ -400,7 +400,7 @@ export default function Login() {
                                                 )
                                             }
 
-                                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-faint transition hover:bg-secondary hover:text-ink"
 
                                             aria-label={
                                                 showPassword
@@ -432,10 +432,10 @@ export default function Login() {
                                                 )
                                             }
 
-                                            className="h-4 w-4 rounded border-gray-300 accent-[#3b6fa8]"
+                                            className="h-4 w-4 rounded border-line accent-brand"
                                         />
 
-                                        <span className="text-sm text-gray-600">
+                                        <span className="text-sm text-ink-muted">
                                             Remember me
                                         </span>
                                     </label>
@@ -443,7 +443,7 @@ export default function Login() {
                                     <Link
                                         href="/resident/forgot-password"
 
-                                        className="text-sm font-semibold text-[#3b6fa8] transition hover:text-[#2a5279] hover:underline"
+                                        className="text-sm font-semibold text-brand transition hover:text-brand-deep hover:underline"
                                     >
                                         Forgot Password?
                                     </Link>
@@ -464,7 +464,7 @@ export default function Login() {
 
                                     disabled={isSubmitting}
 
-                                    className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#3b6fa8] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2a5279] active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
+                                    className="flex min-h-12 w-full items-center justify-center rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white shadow-card transition hover:bg-brand-deep active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
                                 >
                                     {isSubmitting ? 'Signing In...' : 'Sign In'}
                                 </button>
@@ -474,26 +474,26 @@ export default function Login() {
                             {/* DIVIDER */}
 
                             <div className="my-6 flex items-center gap-3">
-                                <div className="h-px flex-1 bg-gray-200" />
+                                <div className="h-px flex-1 bg-line-soft" />
 
-                                <span className="text-xs font-medium text-gray-400">
+                                <span className="text-xs font-medium text-ink-faint">
                                     NEW RESIDENT ACCOUNT
                                 </span>
 
-                                <div className="h-px flex-1 bg-gray-200" />
+                                <div className="h-px flex-1 bg-line-soft" />
                             </div>
 
                             {/* CREATE ACCOUNT */}
 
                             <div className="text-center">
-                                <p className="text-sm leading-6 text-gray-600">
+                                <p className="text-sm leading-6 text-ink-muted">
                                     Don't have a KaBarangay resident account?
                                 </p>
 
                                 <Link
                                     href="/resident/register"
 
-                                    className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-[#c2cbd4] bg-white px-4 py-2.5 text-sm font-bold text-[#3b6fa8] transition hover:bg-[#f2f7f0]"
+                                    className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-brand transition hover:bg-brand-soft"
                                 >
                                     Create Resident Account
                                 </Link>
@@ -506,18 +506,18 @@ export default function Login() {
 
                         ================================================= */}
 
-                        <div className="mt-4 rounded-xl border border-[#dfe4ea] bg-[#ffffff] p-4">
+                        <div className="mt-4 rounded-xl border border-line-soft bg-surface p-4">
                             <div className="flex items-start gap-3">
-                                <div className="mt-0.5 shrink-0 text-[#3b6fa8]">
+                                <div className="mt-0.5 shrink-0 text-brand">
                                     <InfoIcon />
                                 </div>
 
                                 <div>
-                                    <p className="text-sm font-semibold text-gray-800">
+                                    <p className="text-sm font-semibold text-ink-strong">
                                         New account approval
                                     </p>
 
-                                    <p className="mt-1 text-xs leading-5 text-gray-600">
+                                    <p className="mt-1 text-xs leading-5 text-ink-muted">
                                         New resident accounts must be reviewed
                                         and approved by the barangay before they
                                         can sign in.
@@ -533,7 +533,7 @@ export default function Login() {
                         ================================================= */}
 
                         <div className="mt-5 text-center">
-                            <p className="text-xs leading-5 text-gray-400">
+                            <p className="text-xs leading-5 text-ink-faint">
                                 Need assistance? Please contact the Barangay San
                                 Jose office.
                             </p>
@@ -569,7 +569,7 @@ function Field({
 }) {
     return (
         <div>
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+            <label className="mb-1.5 block text-sm font-semibold text-ink">
                 {label}
             </label>
 

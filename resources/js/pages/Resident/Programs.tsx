@@ -38,25 +38,25 @@ function ProgramsContent({ programs }: { programs: Program[] }) {
             <Head title="Barangay Programs" />
 
             <div className="mx-auto max-w-5xl">
-                <header className="border-b border-gray-200 pb-5">
-                    <p className="text-sm font-bold tracking-[0.16em] text-[#3b6fa8] uppercase">
+                <header>
+                    <p className="text-xs font-semibold tracking-[0.16em] text-brand uppercase">
                         Community Services
                     </p>
-                    <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+                    <h1 className="mt-1 text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                         Barangay Programs
                     </h1>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">
                         Explore published community programs, projects, and
                         events available to you.
                     </p>
                 </header>
 
                 {programs.length === 0 ? (
-                    <section className="mt-6 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
-                        <h2 className="text-lg font-bold text-gray-800">
+                    <section className="mt-6 rounded-xl border border-dashed border-line bg-white p-10 text-center">
+                        <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                             No active programs right now
                         </h2>
-                        <p className="mt-2 text-sm text-gray-500">
+                        <p className="mt-2 text-sm text-ink-muted">
                             Check back for newly published barangay initiatives
                             and events.
                         </p>
@@ -66,20 +66,20 @@ function ProgramsContent({ programs }: { programs: Program[] }) {
                         {programs.map((program) => (
                             <article
                                 key={program.id}
-                                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+                                className="rounded-xl border border-line-soft bg-white p-5 shadow-card"
                             >
                                 <div className="flex items-start justify-between gap-3">
-                                    <h2 className="text-lg font-bold text-gray-900">
+                                    <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                                         {program.title}
                                     </h2>
-                                    <span className="shrink-0 rounded-full bg-[#eef1f5] px-3 py-1 text-xs font-bold text-[#2a5279]">
+                                    <span className="shrink-0 rounded-full bg-canvas px-3 py-1 text-xs font-semibold text-brand-deep">
                                         {program.eligibility}
                                     </span>
                                 </div>
-                                <p className="mt-3 text-sm leading-6 whitespace-pre-line text-gray-600">
+                                <p className="mt-3 text-sm leading-6 whitespace-pre-line text-ink-muted">
                                     {program.description}
                                 </p>
-                                <dl className="mt-5 space-y-2 border-t border-gray-100 pt-4 text-sm">
+                                <dl className="mt-5 space-y-2 border-t border-line-soft pt-4 text-sm">
                                     <ProgramDetail
                                         label="Schedule"
                                         value={
@@ -118,10 +118,10 @@ function ProgramsContent({ programs }: { programs: Program[] }) {
 function ProgramDetail({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex gap-3">
-            <dt className="w-24 shrink-0 font-semibold text-gray-500">
+            <dt className="w-24 shrink-0 font-semibold text-ink-muted">
                 {label}
             </dt>
-            <dd className="text-gray-800">{value}</dd>
+            <dd className="text-ink-strong">{value}</dd>
         </div>
     );
 }
