@@ -173,7 +173,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
             <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <p className="text-xs font-semibold tracking-wide text-[#3f6f3d] uppercase">
+                        <p className="text-xs font-semibold tracking-wide text-[#3b6fa8] uppercase">
                             Financial transparency
                         </p>
 
@@ -190,7 +190,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                     <button
                         type="button"
                         onClick={openUpload}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#3f6f3d] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#315b30]"
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#3b6fa8] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2a5279]"
                     >
                         <UploadIcon />
                         Upload document
@@ -228,7 +228,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                     }
                                     className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                                         filters.status === tab.value
-                                            ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                                            ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
                                             : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                                     }`}
                                 >
@@ -255,7 +255,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                         setSearch(event.target.value)
                                     }
                                     placeholder="Search by title or file name"
-                                    className="min-h-10 w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-sm transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                    className="min-h-10 w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-sm transition outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20"
                                 />
                             </label>
 
@@ -308,7 +308,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                             <button
                                 type="button"
                                 onClick={openUpload}
-                                className="mt-4 rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#315b30]"
+                                className="mt-4 rounded-lg bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2a5279]"
                             >
                                 Upload document
                             </button>
@@ -360,7 +360,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                         }}
                                         className={`rounded-md px-3 py-1.5 text-xs ${
                                             link.active
-                                                ? 'bg-[#3f6f3d] text-white'
+                                                ? 'bg-[#3b6fa8] text-white'
                                                 : link.url
                                                   ? 'border border-gray-300 text-gray-600 hover:bg-gray-50'
                                                   : 'cursor-not-allowed border border-gray-200 text-gray-300'
@@ -423,7 +423,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                     required
                                     autoFocus
                                     placeholder="e.g. 2026 Educational Assistance Payout"
-                                    className="mt-1.5 min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                    className="mt-1.5 min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm transition outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20"
                                 />
 
                                 {form.errors.title && (
@@ -452,7 +452,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                     rows={3}
                                     maxLength={2000}
                                     placeholder="Add context for staff reviewing this document."
-                                    className="mt-1.5 w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                    className="mt-1.5 w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm transition outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20"
                                 />
 
                                 {form.errors.description && (
@@ -502,7 +502,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                 <div>
                                     <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
                                         <div
-                                            className="h-full rounded-full bg-[#3f6f3d] transition-all"
+                                            className="h-full rounded-full bg-[#3b6fa8] transition-all"
                                             style={{
                                                 width: `${uploadProgress}%`,
                                             }}
@@ -531,7 +531,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                         form.processing ||
                                         form.data.document === null
                                     }
-                                    className="min-h-10 rounded-lg bg-[#3f6f3d] px-4 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="min-h-10 rounded-lg bg-[#3b6fa8] px-4 text-sm font-semibold text-white transition hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {form.processing
                                         ? 'Uploading...'
@@ -638,7 +638,7 @@ function DocumentRow({
                         type="button"
                         disabled={busy}
                         onClick={() => onAction(document, 'publish')}
-                        className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#3f6f3d] px-3 text-xs font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#3b6fa8] px-3 text-xs font-semibold text-white transition hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {busy ? 'Publishing...' : 'Publish'}
                     </button>

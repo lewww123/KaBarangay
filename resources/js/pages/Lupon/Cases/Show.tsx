@@ -344,7 +344,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                 <h1 className="text-2xl font-bold text-gray-900">
                                     {caseData.caseNumber}
                                 </h1>
-                                <span className="rounded-full bg-[#e8f1e4] px-3 py-0.5 text-xs font-semibold text-[#3f6f3d]">
+                                <span className="rounded-full bg-[#eaf1f8] px-3 py-0.5 text-xs font-semibold text-[#3b6fa8]">
                                     {caseData.phase} Phase
                                 </span>
                                 <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-0.5 text-xs font-semibold text-blue-700">
@@ -489,7 +489,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                             onClick={() =>
                                                 setShowPartyModal(true)
                                             }
-                                            className="rounded-lg border border-[#3f6f3d] px-3 py-1 text-xs font-semibold text-[#3f6f3d] hover:bg-[#f0f6ee]"
+                                            className="rounded-lg border border-[#3b6fa8] px-3 py-1 text-xs font-semibold text-[#3b6fa8] hover:bg-[#eef1f5]"
                                         >
                                             + Add Complainant
                                         </button>
@@ -530,7 +530,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                 </p>
                                                             )}
                                                             {c.residentNumber && (
-                                                                <p className="mt-1 text-[11px] font-medium text-[#3f6f3d]">
+                                                                <p className="mt-1 text-[11px] font-medium text-[#3b6fa8]">
                                                                     Resident ID:{' '}
                                                                     {
                                                                         c.residentNumber
@@ -640,7 +640,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                                         'link_verify',
                                                                                     )
                                                                                 }
-                                                                                className="text-xs font-semibold text-[#3f6f3d] hover:underline"
+                                                                                className="text-xs font-semibold text-[#3b6fa8] hover:underline"
                                                                             >
                                                                                 Change
                                                                                 Account
@@ -667,7 +667,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                                     'link_verify',
                                                                                 )
                                                                             }
-                                                                            className="rounded-lg bg-[#3f6f3d] px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                                                            className="rounded-lg bg-[#3b6fa8] px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-[#2a5279]"
                                                                         >
                                                                             Link
                                                                             &
@@ -939,7 +939,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                         type="submit"
                                         disabled={saving}
                                         aria-busy={saving}
-                                        className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                                        className="rounded-xl bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a5279]"
                                     >
                                         {saving
                                             ? 'Saving hearing schedule…'
@@ -1020,7 +1020,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     type="submit"
                                     disabled={saving}
                                     aria-busy={saving}
-                                    className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                                    className="rounded-xl bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a5279]"
                                 >
                                     {saving ? 'Saving complainant…' : 'Save'}
                                 </button>
@@ -1146,7 +1146,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                 type="submit"
                                                 disabled={saving}
                                                 aria-busy={saving}
-                                                className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                                                className="rounded-xl bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a5279]"
                                             >
                                                 {saving
                                                     ? 'Saving settlement…'
@@ -1252,7 +1252,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     disabled={saving || associationLoading}
                                     className={`rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm ${
                                         associationAction === 'link_verify'
-                                            ? 'bg-[#3f6f3d] hover:bg-[#315b30]'
+                                            ? 'bg-[#3b6fa8] hover:bg-[#2a5279]'
                                             : 'bg-red-600 hover:bg-red-700'
                                     }`}
                                 >

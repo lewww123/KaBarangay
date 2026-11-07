@@ -25,7 +25,7 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                     <Link
                         href="/resident/citizen-charter"
-                        className="hover:text-[#3f6f3d]"
+                        className="hover:text-[#3b6fa8]"
                     >
                         Citizen&apos;s Charter
                     </Link>
@@ -82,7 +82,7 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
                             {service.download_url && (
                                 <a
                                     href={service.download_url}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#315b30]"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#2a5279]"
                                 >
                                     <span>Download PDF</span>
                                     <span>↓</span>
@@ -126,7 +126,7 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
                         previews, use the{' '}
                         <a
                             href={service.download_url || '#'}
-                            className="font-semibold text-[#3f6f3d] underline"
+                            className="font-semibold text-[#3b6fa8] underline"
                         >
                             Download PDF
                         </a>{' '}
@@ -135,7 +135,7 @@ export default function ResidentCitizenCharterShow({ service }: Props) {
                             href={service.file_url || '#'}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-semibold text-[#3f6f3d] underline"
+                            className="font-semibold text-[#3b6fa8] underline"
                         >
                             Open in New Tab
                         </a>{' '}

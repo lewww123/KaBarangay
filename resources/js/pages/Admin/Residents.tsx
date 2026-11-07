@@ -924,7 +924,7 @@ export default function Residents({
                         <button
                             type="button"
                             onClick={() => setShowCreateResident(true)}
-                            className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                            className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a5279]"
                         >
                             Add Resident
                         </button>
@@ -1033,14 +1033,14 @@ export default function Residents({
                                         ? 'Search resident...'
                                         : 'Search applicant...'
                                 }
-                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] sm:w-72"
+                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] sm:w-72"
                             />
                         </div>
                     </div>
 
                     {flash?.success && (
-                        <div className="mb-4 rounded-lg border border-[#b7d8b2] bg-[#edf4ea] px-4 py-3">
-                            <p className="text-sm font-medium text-[#3f6f3d]">
+                        <div className="mb-4 rounded-lg border border-[#c2cbd4] bg-[#eef1f5] px-4 py-3">
+                            <p className="text-sm font-medium text-[#3b6fa8]">
                                 {flash.success}
                             </p>
                         </div>
@@ -1124,7 +1124,7 @@ export default function Residents({
                                         pendingPaginator.current_page > 1) && (
                                         <button
                                             type="button"
-                                            className="text-sm font-semibold text-[#315b30] underline"
+                                            className="text-sm font-semibold text-[#2a5279] underline"
                                             onClick={() => {
                                                 setRegistrationSearch('');
                                                 lastQueriedRegistration.current =
@@ -1669,7 +1669,7 @@ export default function Residents({
                                     <button
                                         type="submit"
                                         disabled={createResidentForm.processing}
-                                        className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
+                                        className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a5279] disabled:opacity-60"
                                     >
                                         {createResidentForm.processing
                                             ? 'Creating...'
@@ -1704,7 +1704,7 @@ function HouseholdsTable({
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[640px]">
-                    <thead className="border-b border-gray-200 bg-[#fafaf7]">
+                    <thead className="border-b border-gray-200 bg-[#ffffff]">
                         <tr>
                             <TableHead>Household Code</TableHead>
                             <TableHead>Family Head</TableHead>
@@ -1718,7 +1718,7 @@ function HouseholdsTable({
                                 key={household.id}
                                 className="border-b border-gray-100"
                             >
-                                <td className="px-5 py-4 font-mono text-xs font-semibold text-[#3f6f3d]">
+                                <td className="px-5 py-4 font-mono text-xs font-semibold text-[#3b6fa8]">
                                     {household.code}
                                 </td>
                                 <td className="px-5 py-4 text-sm text-gray-800">
@@ -1777,7 +1777,7 @@ function AddedByAdminResidentsTable({
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[1120px]">
-                    <thead className="border-b border-gray-200 bg-[#fafaf7]">
+                    <thead className="border-b border-gray-200 bg-[#ffffff]">
                         <tr>
                             <TableHead>Resident ID</TableHead>
                             <TableHead>Resident</TableHead>
@@ -1801,11 +1801,11 @@ function AddedByAdminResidentsTable({
                                         : ''
                                 }
                             >
-                                <td className="px-5 py-4 font-mono text-xs font-semibold text-[#3f6f3d]">
+                                <td className="px-5 py-4 font-mono text-xs font-semibold text-[#3b6fa8]">
                                     <button
                                         type="button"
                                         onClick={() => onView(resident)}
-                                        className="text-left hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[#3f6f3d] focus-visible:outline-none"
+                                        className="text-left hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[#3b6fa8] focus-visible:outline-none"
                                         aria-label={`View details for Resident ID ${resident.residentId}`}
                                     >
                                         {resident.residentId}
@@ -1815,7 +1815,7 @@ function AddedByAdminResidentsTable({
                                     <button
                                         type="button"
                                         onClick={() => onView(resident)}
-                                        className="text-left text-sm font-medium text-gray-800 hover:text-[#3f6f3d] hover:underline"
+                                        className="text-left text-sm font-medium text-gray-800 hover:text-[#3b6fa8] hover:underline"
                                     >
                                         {resident.fullName}
                                     </button>
@@ -1861,7 +1861,7 @@ function AddedByAdminResidentsTable({
                                             onClick={() =>
                                                 onToggleStatus(resident)
                                             }
-                                            className="text-xs font-medium text-[#3f6f3d] hover:underline"
+                                            className="text-xs font-medium text-[#3b6fa8] hover:underline"
                                         >
                                             {resident.status === 'active'
                                                 ? 'Deactivate'
@@ -1873,7 +1873,7 @@ function AddedByAdminResidentsTable({
                                             onClick={() =>
                                                 onToggleAccount(resident)
                                             }
-                                            className="text-xs font-medium text-[#3f6f3d] hover:underline"
+                                            className="text-xs font-medium text-[#3b6fa8] hover:underline"
                                         >
                                             {resident.accountActive
                                                 ? 'Disable Login'
@@ -1897,7 +1897,7 @@ function AddedByAdminResidentsTable({
                                             onClick={() =>
                                                 onReissueQr(resident)
                                             }
-                                            className="text-xs font-medium text-[#3f6f3d] hover:underline"
+                                            className="text-xs font-medium text-[#3b6fa8] hover:underline"
                                         >
                                             {resident.qrStatus === 'none'
                                                 ? 'Issue QR'
@@ -1946,7 +1946,7 @@ function StatusBadge({
         <span
             className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
                 active
-                    ? 'bg-[#edf4ea] text-[#3f6f3d]'
+                    ? 'bg-[#eef1f5] text-[#3b6fa8]'
                     : 'bg-gray-100 text-gray-500'
             }`}
         >
@@ -2033,7 +2033,7 @@ function PendingRegistrationsTable({
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[950px]">
-                    <thead className="border-b border-gray-200 bg-[#fafaf7]">
+                    <thead className="border-b border-gray-200 bg-[#ffffff]">
                         <tr>
                             <TableHead>Applicant</TableHead>
                             <TableHead>Purok</TableHead>
@@ -2133,7 +2133,7 @@ function PendingRegistrationsTable({
                                             disabled={
                                                 processingApproveId !== null
                                             }
-                                            className="rounded-md bg-[#3f6f3d] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="rounded-md bg-[#3b6fa8] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             {processingApproveId ===
                                             application.id
@@ -2192,7 +2192,7 @@ function AllResidentsTable({
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[1080px]">
-                    <thead className="border-b border-gray-200 bg-[#fafaf7]">
+                    <thead className="border-b border-gray-200 bg-[#ffffff]">
                         <tr>
                             <TableHead>Resident ID</TableHead>
                             <TableHead>Resident</TableHead>
@@ -2313,7 +2313,7 @@ function RejectedRegistrationsTable({
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[950px]">
-                    <thead className="border-b border-gray-200 bg-[#fafaf7]">
+                    <thead className="border-b border-gray-200 bg-[#ffffff]">
                         <tr>
                             <TableHead>Applicant</TableHead>
                             <TableHead>Purok</TableHead>
@@ -2436,8 +2436,8 @@ function StatusPill({ status }: { status: string }) {
     const normalized = (status || '').toLowerCase();
 
     const styles: Record<string, string> = {
-        active: 'bg-[#edf4ea] text-[#3f6f3d]',
-        approved: 'bg-[#edf4ea] text-[#3f6f3d]',
+        active: 'bg-[#eef1f5] text-[#3b6fa8]',
+        approved: 'bg-[#eef1f5] text-[#3b6fa8]',
         pending: 'bg-[#fff4d8] text-[#946b00]',
         needs_correction: 'bg-[#fde8e8] text-[#b23b3b]',
         rejected: 'bg-red-50 text-red-600',
@@ -2651,7 +2651,7 @@ function ResidentQrPanel({ residentId }: { residentId: number }) {
     };
 
     return (
-        <div className="rounded-lg border border-gray-200 bg-[#fafaf7] p-4">
+        <div className="rounded-lg border border-gray-200 bg-[#ffffff] p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <p className="text-[10px] font-semibold tracking-wide text-gray-400 uppercase">
@@ -2667,7 +2667,7 @@ function ResidentQrPanel({ residentId }: { residentId: number }) {
                     type="button"
                     onClick={reveal}
                     disabled={loading}
-                    className="rounded-md border border-[#3f6f3d] px-3 py-2 text-xs font-semibold text-[#3f6f3d] hover:bg-[#edf4ea] disabled:opacity-60"
+                    className="rounded-md border border-[#3b6fa8] px-3 py-2 text-xs font-semibold text-[#3b6fa8] hover:bg-[#eef1f5] disabled:opacity-60"
                 >
                     {loading
                         ? 'Loading...'
@@ -2766,7 +2766,7 @@ function RegistrationDetailsBody({
             </div>
 
             {registration.review_notes && (
-                <div className="rounded-lg border border-gray-200 bg-[#fafaf7] p-4">
+                <div className="rounded-lg border border-gray-200 bg-[#ffffff] p-4">
                     <p className="text-[10px] font-semibold tracking-wide text-gray-400 uppercase">
                         Review Notes
                     </p>
@@ -2777,8 +2777,8 @@ function RegistrationDetailsBody({
             )}
 
             {registration.matched_resident && (
-                <section className="rounded-lg border border-[#b7d8b2] bg-[#edf4ea] p-4">
-                    <p className="text-[10px] font-semibold tracking-wide text-[#3f6f3d] uppercase">
+                <section className="rounded-lg border border-[#c2cbd4] bg-[#eef1f5] p-4">
+                    <p className="text-[10px] font-semibold tracking-wide text-[#3b6fa8] uppercase">
                         Linked Official Resident
                     </p>
                     <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -3100,7 +3100,7 @@ function ApplicationModal({
                         />
                     </div>
 
-                    <section className="mt-6 rounded-xl border border-[#d7e5d2] bg-[#f8fbf6] p-4">
+                    <section className="mt-6 rounded-xl border border-[#dfe4ea] bg-[#ffffff] p-4">
                         <div className="mb-3">
                             <h2 className="text-sm font-semibold text-gray-800">
                                 Select the official Barangay Resident
@@ -3133,7 +3133,7 @@ function ApplicationModal({
                                 setCandidateSearch(event.target.value);
                                 setSelectedCandidateId(null);
                             }}
-                            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#6b9464] focus:ring-2 focus:ring-[#b7d8b2]"
+                            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#6e747c] focus:ring-2 focus:ring-[#c2cbd4]"
                             placeholder="Resident number or name"
                             disabled={processingApprove}
                         />
@@ -3190,7 +3190,7 @@ function ApplicationModal({
                                 {candidates.map((candidate) => (
                                     <label
                                         key={candidate.id}
-                                        className={`flex cursor-pointer items-start gap-3 rounded-lg border bg-white p-3 ${selectedCandidateId === candidate.id ? 'border-[#6b9464] ring-1 ring-[#6b9464]' : 'border-gray-200'}`}
+                                        className={`flex cursor-pointer items-start gap-3 rounded-lg border bg-white p-3 ${selectedCandidateId === candidate.id ? 'border-[#6e747c] ring-1 ring-[#6e747c]' : 'border-gray-200'}`}
                                     >
                                         <input
                                             type="radio"
@@ -3205,7 +3205,7 @@ function ApplicationModal({
                                                     candidate.id,
                                                 )
                                             }
-                                            className="mt-1 accent-[#3f6f3d]"
+                                            className="mt-1 accent-[#3b6fa8]"
                                         />
                                         <span className="min-w-0 flex-1">
                                             <span className="block text-sm font-medium text-gray-800">
@@ -3352,7 +3352,7 @@ function ApplicationModal({
                             !selectedCandidate ||
                             selectedCandidate.account_exists
                         }
-                        className="rounded-md bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-md bg-[#3b6fa8] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {processingApprove
                             ? 'Approving...'
@@ -3588,7 +3588,7 @@ function CorrectionRequestModal({
                         <button
                             type="submit"
                             disabled={form.processing}
-                            className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                            className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                         >
                             {form.processing
                                 ? 'Saving…'
@@ -3611,7 +3611,7 @@ function ApplicationDocuments({
     );
     if (documents.length === 0) {
         return (
-            <div className="rounded-lg border border-gray-200 bg-[#fafaf7] p-4">
+            <div className="rounded-lg border border-gray-200 bg-[#ffffff] p-4">
                 <p className="text-sm font-medium text-gray-600">
                     No registration documents found.
                 </p>
@@ -3626,7 +3626,7 @@ function ApplicationDocuments({
                     key={document.id}
                     className="overflow-hidden rounded-lg border border-gray-200 bg-white"
                 >
-                    <div className="border-b border-gray-100 bg-[#fafaf7] px-4 py-3">
+                    <div className="border-b border-gray-100 bg-[#ffffff] px-4 py-3">
                         <div className="flex items-start justify-between gap-3">
                             <div>
                                 <p className="text-sm font-semibold text-gray-800">
@@ -3703,7 +3703,7 @@ function ApplicationDocuments({
                             href={document.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="rounded-md border border-[#b7d8b2] px-3 py-2 text-xs font-medium text-[#3f6f3d] transition hover:bg-[#edf4ea]"
+                            className="rounded-md border border-[#c2cbd4] px-3 py-2 text-xs font-medium text-[#3b6fa8] transition hover:bg-[#eef1f5]"
                         >
                             {document.is_image
                                 ? 'View Full Image'
@@ -3849,7 +3849,7 @@ function RejectModal({
 }
 
 const inputClass =
-    'w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d]';
+    'w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8]';
 
 function SummaryCard({
     title,
@@ -3864,13 +3864,13 @@ function SummaryCard({
         <div
             className={`rounded-lg border p-5 ${
                 highlight
-                    ? 'border-[#b7d8b2] bg-[#edf4ea]'
+                    ? 'border-[#c2cbd4] bg-[#eef1f5]'
                     : 'border-gray-200 bg-white'
             }`}
         >
             <p
                 className={`text-xs font-medium tracking-wide uppercase ${
-                    highlight ? 'text-[#3f6f3d]' : 'text-gray-400'
+                    highlight ? 'text-[#3b6fa8]' : 'text-gray-400'
                 }`}
             >
                 {title}
@@ -3895,7 +3895,7 @@ function TabButton({
             onClick={onClick}
             className={`border-b-2 px-4 py-3 text-sm font-medium whitespace-nowrap ${
                 active
-                    ? 'border-[#3f6f3d] text-[#3f6f3d]'
+                    ? 'border-[#3b6fa8] text-[#3b6fa8]'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
         >
@@ -3925,7 +3925,7 @@ function PurokTabs({
                     onClick={() => onSelect(null)}
                     className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition ${
                         selected === null
-                            ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                            ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
                             : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                 >
@@ -3939,7 +3939,7 @@ function PurokTabs({
                         onClick={() => onSelect(purok.id)}
                         className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition ${
                             selected === purok.id
-                                ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                                ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
                                 : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
                         }`}
                     >
@@ -3980,7 +3980,7 @@ function SectorBadges({ sectors }: { sectors: Sector[] }) {
                     return (
                         <span
                             key={sector.id}
-                            className="rounded-full bg-[#edf4ea] px-2.5 py-1 text-xs font-medium text-[#3f6f3d]"
+                            className="rounded-full bg-[#eef1f5] px-2.5 py-1 text-xs font-medium text-[#3b6fa8]"
                         >
                             Senior
                         </span>

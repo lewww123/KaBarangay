@@ -92,7 +92,7 @@ function HearingsIndex({
             <div className="mx-auto max-w-7xl space-y-6 p-2 font-sans sm:p-4">
                 <header className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p className="text-xs font-semibold tracking-wide text-[#3f6f3d] uppercase">
+                        <p className="text-xs font-semibold tracking-wide text-[#3b6fa8] uppercase">
                             Lupon Desk
                         </p>
                         <h1 className="mt-1 text-2xl font-semibold text-gray-800">
@@ -129,7 +129,7 @@ function HearingsIndex({
                                     setSearch(event.target.value)
                                 }
                                 placeholder="Case number or party"
-                                className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20"
                             />
                         </label>
                         <FilterSelect
@@ -153,7 +153,7 @@ function HearingsIndex({
                         <div className="flex items-end gap-2">
                             <button
                                 type="submit"
-                                className="flex-1 rounded-xl bg-[#3f6f3d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#315b30]"
+                                className="flex-1 rounded-xl bg-[#3b6fa8] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2a5279]"
                             >
                                 Apply
                             </button>
@@ -179,7 +179,7 @@ function HearingsIndex({
                     </div>
 
                     {hearings.data.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-gray-300 bg-[#fafaf7] p-10 text-center">
+                        <div className="rounded-2xl border border-dashed border-gray-300 bg-[#ffffff] p-10 text-center">
                             <span className="text-3xl" aria-hidden="true">
                                 🗓️
                             </span>
@@ -200,11 +200,11 @@ function HearingsIndex({
                                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <span className="rounded-lg bg-[#f4f7ef] px-2.5 py-1 font-mono text-sm font-bold text-[#315b30]">
+                                            <span className="rounded-lg bg-[#eef1f5] px-2.5 py-1 font-mono text-sm font-bold text-[#2a5279]">
                                                 {hearing.caseNumber ??
                                                     'Case unavailable'}
                                             </span>
-                                            <span className="rounded-full bg-[#e8f1e4] px-2.5 py-1 text-xs font-semibold text-[#315b30]">
+                                            <span className="rounded-full bg-[#eaf1f8] px-2.5 py-1 text-xs font-semibold text-[#2a5279]">
                                                 {hearing.phase} phase
                                             </span>
                                             <StatusPill
@@ -247,7 +247,7 @@ function HearingsIndex({
                                     </div>
                                     <Link
                                         href={`/lupon/cases/${hearing.caseId}`}
-                                        className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[#3f6f3d]/30 px-4 py-2 text-sm font-semibold text-[#315b30] hover:bg-[#f4f7ef]"
+                                        className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[#3b6fa8]/30 px-4 py-2 text-sm font-semibold text-[#2a5279] hover:bg-[#eef1f5]"
                                     >
                                         Open case →
                                     </Link>
@@ -271,7 +271,7 @@ function HearingsIndex({
                                 const label = link.label
                                     .replace('&laquo;', '‹')
                                     .replace('&raquo;', '›');
-                                const classes = `min-w-9 rounded-lg px-3 py-2 text-center text-sm font-medium ${link.active ? 'bg-[#3f6f3d] text-white' : 'text-gray-600 hover:bg-[#f4f7ef]'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`;
+                                const classes = `min-w-9 rounded-lg px-3 py-2 text-center text-sm font-medium ${link.active ? 'bg-[#3b6fa8] text-white' : 'text-gray-600 hover:bg-[#eef1f5]'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`;
                                 return link.url ? (
                                     <Link
                                         key={`${link.label}-${index}`}
@@ -322,7 +322,7 @@ function FilterSelect({
             <select
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#3f6f3d]"
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#3b6fa8]"
             >
                 <option value="">All</option>
                 {options.map((option) => (

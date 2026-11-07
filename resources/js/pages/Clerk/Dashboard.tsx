@@ -40,7 +40,7 @@ interface DashboardProps {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-    approved: 'bg-[#e8f1e4] text-[#3f6f3d] border-[#b8d6bf]',
+    approved: 'bg-[#eaf1f8] text-[#3b6fa8] border-[#b8d6bf]',
     pending: 'bg-amber-50 text-amber-700 border-amber-200',
     rejected: 'bg-red-50 text-red-700 border-red-200',
 };
@@ -91,7 +91,7 @@ export default function Dashboard({
                 >
                     {/* REAL STATS */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <div className="rounded-r-lg border-l-4 border-[#3f6f3d] bg-white p-4 shadow-sm sm:p-5">
+                        <div className="rounded-r-lg border-l-4 border-[#3b6fa8] bg-white p-4 shadow-sm sm:p-5">
                             <h3 className="mb-1 text-xs font-semibold tracking-wider text-gray-500 uppercase">
                                 Active Residents
                             </h3>
@@ -118,14 +118,14 @@ export default function Dashboard({
                     </div>
 
                     {/* RECENT ANNOUNCEMENTS */}
-                    <div className="overflow-hidden rounded-lg border border-[#e6ddcd] bg-white shadow-sm">
-                        <div className="flex items-center justify-between border-b border-[#e6ddcd] px-4 py-4 sm:px-6">
+                    <div className="overflow-hidden rounded-lg border border-[#c2cbd4] bg-white shadow-sm">
+                        <div className="flex items-center justify-between border-b border-[#c2cbd4] px-4 py-4 sm:px-6">
                             <h2 className="text-sm font-semibold tracking-wider text-gray-700 uppercase">
                                 Recent Updates & Programs
                             </h2>
                             <Link
                                 href="/clerk/updates"
-                                className="text-xs font-medium text-[#3f6f3d] hover:text-[#315b30]"
+                                className="text-xs font-medium text-[#3b6fa8] hover:text-[#2a5279]"
                             >
                                 Manage updates &rarr;
                             </Link>
@@ -139,7 +139,7 @@ export default function Dashboard({
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[600px] border-collapse text-left">
                                     <thead>
-                                        <tr className="border-b border-[#e6ddcd] bg-[#f0ebe1] text-xs tracking-wider text-[#8a7f6a] uppercase">
+                                        <tr className="border-b border-[#c2cbd4] bg-[#eef1f5] text-xs tracking-wider text-[#6e747c] uppercase">
                                             <th className="px-4 py-3 font-medium sm:px-6">
                                                 Title
                                             </th>

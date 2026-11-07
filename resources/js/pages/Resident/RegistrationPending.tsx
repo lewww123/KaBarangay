@@ -3,15 +3,15 @@ import LegalLinks from '@/components/LegalLinks';
 
 export default function RegistrationPending() {
     return (
-        <div className="min-h-screen bg-[#f7f6f0]">
+        <div className="min-h-screen bg-[#eef1f5]">
             <Head title="Registration Submitted" />
-            <header className="border-b border-[#315b30] bg-[#3f6f3d]">
+            <header className="border-b border-[#2a5279] bg-[#3b6fa8]">
                 <div className="mx-auto flex min-h-16 max-w-7xl items-center px-4 sm:px-6">
                     <Link
                         href="/resident/login"
                         className="flex items-center gap-3 text-white"
                     >
-                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-bold text-[#3f6f3d]">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-bold text-[#3b6fa8]">
                             KB
                         </span>
                         <span>
@@ -28,7 +28,7 @@ export default function RegistrationPending() {
                     aria-labelledby="registration-submitted-title"
                     className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8"
                 >
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#eaf1f8] text-[#3b6fa8]">
                         <svg
                             aria-hidden="true"
                             viewBox="0 0 24 24"
@@ -53,8 +53,8 @@ export default function RegistrationPending() {
                         is waiting for admin approval. Authorized barangay
                         personnel will review your information and documents.
                     </p>
-                    <div className="mt-6 rounded-xl border border-[#d8e6d3] bg-[#f4f8f2] p-4">
-                        <h2 className="text-sm font-bold text-[#315b30]">
+                    <div className="mt-6 rounded-xl border border-[#dfe4ea] bg-[#ffffff] p-4">
+                        <h2 className="text-sm font-bold text-[#2a5279]">
                             Check your email for updates
                         </h2>
                         <p className="mt-2 text-sm leading-6 text-gray-700">
@@ -70,7 +70,7 @@ export default function RegistrationPending() {
                     </p>
                     <Link
                         href="/resident/login"
-                        className="mt-6 flex min-h-12 items-center justify-center rounded-xl bg-[#3f6f3d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#315b30]"
+                        className="mt-6 flex min-h-12 items-center justify-center rounded-xl bg-[#3b6fa8] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#2a5279]"
                     >
                         Back to Resident Login
                     </Link>

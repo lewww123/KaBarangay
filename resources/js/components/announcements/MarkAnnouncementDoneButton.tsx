@@ -65,7 +65,7 @@ export default function MarkAnnouncementDoneButton({
                     setOpen(true);
                 }}
                 className={cn(
-                    'inline-flex items-center justify-center rounded-lg bg-[#2f5e3a] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#264c30]',
+                    'inline-flex items-center justify-center rounded-lg bg-[#2a5279] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2a5279]',
                     className,
                 )}
             >
@@ -124,7 +124,7 @@ export default function MarkAnnouncementDoneButton({
                                 type="button"
                                 onClick={confirmCompletion}
                                 disabled={processing}
-                                className="rounded-lg bg-[#2f5e3a] px-4 py-2 text-sm font-medium text-white hover:bg-[#264c30] disabled:opacity-60"
+                                className="rounded-lg bg-[#2a5279] px-4 py-2 text-sm font-medium text-white hover:bg-[#2a5279] disabled:opacity-60"
                             >
                                 {processing
                                     ? 'Saving...'

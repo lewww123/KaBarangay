@@ -37,7 +37,7 @@ function DisbursementContent({ documents, resident }: Props) {
             <Head title="Disbursement Documents" />
 
             <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-                <section className="overflow-hidden rounded-2xl bg-[#3f6f3d] px-5 py-6 text-white shadow-sm sm:px-7">
+                <section className="overflow-hidden rounded-2xl bg-[#3b6fa8] px-5 py-6 text-white shadow-sm sm:px-7">
                     <p className="text-xs font-semibold tracking-wide text-white/70 uppercase">
                         Barangay transparency
                     </p>
@@ -93,12 +93,12 @@ function DisbursementContent({ documents, resident }: Props) {
                         {documents.data.map((document) => (
                             <article
                                 key={document.id}
-                                className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#3f6f3d]/30 hover:shadow-md sm:p-5"
+                                className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#3b6fa8]/30 hover:shadow-md sm:p-5"
                             >
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <span className="rounded-md border border-[#3f6f3d]/20 bg-[#3f6f3d]/5 px-2 py-0.5 text-[11px] font-semibold text-[#3f6f3d]">
+                                            <span className="rounded-md border border-[#3b6fa8]/20 bg-[#3b6fa8]/5 px-2 py-0.5 text-[11px] font-semibold text-[#3b6fa8]">
                                                 {disbursementFileType(document)}
                                             </span>
 
@@ -136,7 +136,7 @@ function DisbursementContent({ documents, resident }: Props) {
                                     <div className="flex shrink-0 flex-wrap gap-2">
                                         <Link
                                             href={document.preview_url}
-                                            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#3f6f3d] px-4 text-xs font-semibold text-white transition hover:bg-[#315b30]"
+                                            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#3b6fa8] px-4 text-xs font-semibold text-white transition hover:bg-[#2a5279]"
                                         >
                                             View document
                                         </Link>
@@ -184,7 +184,7 @@ function DisbursementContent({ documents, resident }: Props) {
                                     }}
                                     className={`rounded-md px-3 py-1.5 text-xs ${
                                         link.active
-                                            ? 'bg-[#3f6f3d] text-white'
+                                            ? 'bg-[#3b6fa8] text-white'
                                             : link.url
                                               ? 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
                                               : 'cursor-not-allowed border border-gray-200 bg-white text-gray-300'

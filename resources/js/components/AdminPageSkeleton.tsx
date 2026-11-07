@@ -46,7 +46,7 @@ export default function AdminPageSkeleton({
             )}
 
             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                <div className="flex gap-4 border-b border-gray-200 bg-[#fafaf7] px-5 py-3">
+                <div className="flex gap-4 border-b border-gray-200 bg-[#ffffff] px-5 py-3">
                     {Array.from({ length: columns }).map((_, index) => (
                         <div
                             key={index}

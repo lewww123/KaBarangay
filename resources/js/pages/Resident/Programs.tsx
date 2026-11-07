@@ -39,7 +39,7 @@ function ProgramsContent({ programs }: { programs: Program[] }) {
 
             <div className="mx-auto max-w-5xl">
                 <header className="border-b border-gray-200 pb-5">
-                    <p className="text-sm font-bold tracking-[0.16em] text-[#3f6f3d] uppercase">
+                    <p className="text-sm font-bold tracking-[0.16em] text-[#3b6fa8] uppercase">
                         Community Services
                     </p>
                     <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -72,7 +72,7 @@ function ProgramsContent({ programs }: { programs: Program[] }) {
                                     <h2 className="text-lg font-bold text-gray-900">
                                         {program.title}
                                     </h2>
-                                    <span className="shrink-0 rounded-full bg-[#edf4ea] px-3 py-1 text-xs font-bold text-[#315b30]">
+                                    <span className="shrink-0 rounded-full bg-[#eef1f5] px-3 py-1 text-xs font-bold text-[#2a5279]">
                                         {program.eligibility}
                                     </span>
                                 </div>

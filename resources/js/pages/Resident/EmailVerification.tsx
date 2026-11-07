@@ -10,12 +10,12 @@ export default function EmailVerification({ status, title, message }: Props) {
     const success = status === 'verified';
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#f7f6f0] px-4 py-10">
+        <div className="flex min-h-screen items-center justify-center bg-[#eef1f5] px-4 py-10">
             <Head title={title} />
 
             <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm sm:p-8">
                 <div
-                    className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${success ? 'bg-[#e8f1e4] text-[#3f6f3d]' : 'bg-amber-50 text-amber-700'}`}
+                    className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${success ? 'bg-[#eaf1f8] text-[#3b6fa8]' : 'bg-amber-50 text-amber-700'}`}
                 >
                     <svg
                         viewBox="0 0 24 24"
@@ -47,7 +47,7 @@ export default function EmailVerification({ status, title, message }: Props) {
                 <div className="mt-6 flex flex-col gap-2">
                     <Link
                         href="/resident/register"
-                        className="rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#315b30]"
+                        className="rounded-lg bg-[#3b6fa8] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2a5279]"
                     >
                         Return to Registration
                     </Link>

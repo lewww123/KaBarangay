@@ -17,12 +17,12 @@ export default function RegistrationVerificationResend({ feedback }: Props) {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#f7f6f0] px-4 py-10">
+        <div className="flex min-h-screen items-center justify-center bg-[#eef1f5] px-4 py-10">
             <Head title="Resend Registration Verification" />
             <main className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
                 <Link
                     href="/resident/register"
-                    className="text-sm font-semibold text-[#3f6f3d] hover:underline"
+                    className="text-sm font-semibold text-[#3b6fa8] hover:underline"
                 >
                     KaBarangay Resident Registration
                 </Link>
@@ -60,7 +60,7 @@ export default function RegistrationVerificationResend({ feedback }: Props) {
                             onChange={(event) =>
                                 form.setData('reference', event.target.value)
                             }
-                            className="min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20 focus:outline-none"
+                            className="min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20 focus:outline-none"
                         />
                     </div>
                     <div>
@@ -78,13 +78,13 @@ export default function RegistrationVerificationResend({ feedback }: Props) {
                             onChange={(event) =>
                                 form.setData('password', event.target.value)
                             }
-                            className="min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20 focus:outline-none"
+                            className="min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20 focus:outline-none"
                         />
                     </div>
                     <button
                         type="submit"
                         disabled={form.processing}
-                        className="min-h-11 w-full rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="min-h-11 w-full rounded-lg bg-[#3b6fa8] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {form.processing
                             ? 'Submitting…'

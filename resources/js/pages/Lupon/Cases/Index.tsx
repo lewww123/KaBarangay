@@ -109,7 +109,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                     <div className="flex flex-wrap items-center gap-2">
                         <Link
                             href="/lupon/cases/create"
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#2a5279]"
                         >
                             + Add Case
                         </Link>
@@ -158,7 +158,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                                 placeholder="Search by case #, title, or party name..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-800 outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-800 outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20"
                             />
                         </div>
 
@@ -169,7 +169,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                                     setPhase(e.target.value);
                                     applyFilter({ phase: e.target.value });
                                 }}
-                                className="rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#3f6f3d]"
+                                className="rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#3b6fa8]"
                             >
                                 <option value="">All Phases</option>
                                 {phases.map((p) => (
@@ -185,7 +185,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                                     setStatus(e.target.value);
                                     applyFilter({ status: e.target.value });
                                 }}
-                                className="rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#3f6f3d]"
+                                className="rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#3b6fa8]"
                             >
                                 <option value="">All Statuses</option>
                                 {statuses.map((s) => (
@@ -197,7 +197,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
 
                             <button
                                 type="submit"
-                                className="rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                className="rounded-xl bg-[#3b6fa8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#2a5279]"
                             >
                                 Filter
                             </button>
@@ -207,7 +207,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
 
                 {/* Cases List */}
                 {cases.data.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-gray-300 bg-[#fafaf7] p-12 text-center">
+                    <div className="rounded-2xl border border-dashed border-gray-300 bg-[#ffffff] p-12 text-center">
                         <span className="text-3xl">📂</span>
                         <h3 className="mt-3 text-base font-semibold text-gray-800">
                             No cases found
@@ -223,7 +223,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                         {cases.data.map((c) => (
                             <div
                                 key={c.id}
-                                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#3f6f3d]/60"
+                                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#3b6fa8]/60"
                             >
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div className="space-y-1.5">
@@ -231,7 +231,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                                             <span className="text-lg font-bold text-gray-900">
                                                 {c.caseNumber}
                                             </span>
-                                            <span className="rounded-full bg-[#e8f1e4] px-2.5 py-0.5 text-xs font-semibold text-[#3f6f3d]">
+                                            <span className="rounded-full bg-[#eaf1f8] px-2.5 py-0.5 text-xs font-semibold text-[#3b6fa8]">
                                                 {c.phase} Phase
                                             </span>
                                             <StatusBadge status={c.status} />
@@ -279,7 +279,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
 
                                     <Link
                                         href={`/lupon/cases/${c.id}`}
-                                        className="shrink-0 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                        className="shrink-0 rounded-xl bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#2a5279]"
                                     >
                                         View Case Details →
                                     </Link>
@@ -308,7 +308,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                                 const label = link.label
                                     .replace('&laquo;', '‹')
                                     .replace('&raquo;', '›');
-                                const classes = `min-w-9 rounded-lg px-3 py-2 text-center text-sm font-medium ${link.active ? 'bg-[#3f6f3d] text-white' : 'text-gray-600 hover:bg-[#f4f7ef]'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`;
+                                const classes = `min-w-9 rounded-lg px-3 py-2 text-center text-sm font-medium ${link.active ? 'bg-[#3b6fa8] text-white' : 'text-gray-600 hover:bg-[#eef1f5]'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`;
 
                                 return link.url ? (
                                     <Link

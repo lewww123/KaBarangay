@@ -87,7 +87,7 @@ export default function Settings({ barangay }: Props) {
                 </div>
 
                 {profileMessage && (
-                    <div className="mb-5 rounded-lg border border-[#b7d8b2] bg-[#edf7ea] px-4 py-3 text-sm font-medium text-[#315b30]">
+                    <div className="mb-5 rounded-lg border border-[#c2cbd4] bg-[#edf7ea] px-4 py-3 text-sm font-medium text-[#2a5279]">
                         {profileMessage}
                     </div>
                 )}
@@ -111,7 +111,7 @@ export default function Settings({ barangay }: Props) {
                                     Barangay Name
                                 </p>
 
-                                <div className="flex min-h-[42px] items-center rounded-md border border-gray-200 bg-[#fafaf7] px-3">
+                                <div className="flex min-h-[42px] items-center rounded-md border border-gray-200 bg-[#ffffff] px-3">
                                     <span className="text-sm text-gray-800">
                                         {barangayName ?? 'Not available'}
                                     </span>
@@ -180,8 +180,8 @@ export default function Settings({ barangay }: Props) {
                                     Role
                                 </p>
 
-                                <div className="flex min-h-[42px] items-center rounded-md border border-gray-200 bg-[#fafaf7] px-3">
-                                    <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs font-medium text-[#3f6f3d]">
+                                <div className="flex min-h-[42px] items-center rounded-md border border-gray-200 bg-[#ffffff] px-3">
+                                    <span className="rounded-full bg-[#eef1f5] px-3 py-1 text-xs font-medium text-[#3b6fa8]">
                                         Admin / Superuser
                                     </span>
                                 </div>
@@ -192,8 +192,8 @@ export default function Settings({ barangay }: Props) {
                                     Account Status
                                 </p>
 
-                                <div className="flex min-h-[42px] items-center rounded-md border border-gray-200 bg-[#fafaf7] px-3">
-                                    <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs font-medium text-[#3f6f3d]">
+                                <div className="flex min-h-[42px] items-center rounded-md border border-gray-200 bg-[#ffffff] px-3">
+                                    <span className="rounded-full bg-[#eef1f5] px-3 py-1 text-xs font-medium text-[#3b6fa8]">
                                         Active
                                     </span>
                                 </div>
@@ -203,7 +203,7 @@ export default function Settings({ barangay }: Props) {
                         <div className="flex justify-end border-t border-gray-100 px-5 py-4">
                             <button
                                 type="submit"
-                                className="rounded-md bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#315b30]"
+                                className="rounded-md bg-[#3b6fa8] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#2a5279]"
                             >
                                 Save Account Information
                             </button>
@@ -233,7 +233,7 @@ export default function Settings({ barangay }: Props) {
                                 <div
                                     className={`rounded-md px-4 py-3 text-xs font-medium ${
                                         passwordMessage.includes('successfully')
-                                            ? 'bg-[#edf4ea] text-[#315b30]'
+                                            ? 'bg-[#eef1f5] text-[#2a5279]'
                                             : 'bg-[#fff1f0] text-[#a33b3b]'
                                     }`}
                                 >
@@ -300,7 +300,7 @@ export default function Settings({ barangay }: Props) {
                         <div className="flex justify-end border-t border-gray-100 px-5 py-4">
                             <button
                                 type="submit"
-                                className="rounded-md bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#315b30]"
+                                className="rounded-md bg-[#3b6fa8] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#2a5279]"
                             >
                                 Change Password
                             </button>
@@ -455,7 +455,7 @@ function ExportRow({
             <a
                 href={href}
                 download
-                className="shrink-0 rounded-md border border-[#3f6f3d] px-4 py-2 text-sm font-medium text-[#3f6f3d] transition hover:bg-[#edf4ea]"
+                className="shrink-0 rounded-md border border-[#3b6fa8] px-4 py-2 text-sm font-medium text-[#3b6fa8] transition hover:bg-[#eef1f5]"
             >
                 {actionLabel}
             </a>
@@ -498,7 +498,7 @@ function SettingToggle({
                 type="button"
                 onClick={onChange}
                 className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                    enabled ? 'bg-[#3f6f3d]' : 'bg-gray-300'
+                    enabled ? 'bg-[#3b6fa8]' : 'bg-gray-300'
                 }`}
                 aria-pressed={enabled}
             >

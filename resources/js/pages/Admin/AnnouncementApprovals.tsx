@@ -70,7 +70,7 @@ function AnnouncementApprovals({
                                     key={status}
                                     type="button"
                                     onClick={() => setTab(status)}
-                                    className={`rounded-full px-4 py-2 text-sm capitalize ${tab === status ? 'bg-[#3f6f3d] text-white' : 'bg-gray-100 text-gray-700'}`}
+                                    className={`rounded-full px-4 py-2 text-sm capitalize ${tab === status ? 'bg-[#3b6fa8] text-white' : 'bg-gray-100 text-gray-700'}`}
                                 >
                                     {status} (
                                     {
@@ -106,7 +106,7 @@ function AnnouncementApprovals({
                                 <h2 className="font-semibold text-gray-900">
                                     {program.title}
                                 </h2>
-                                <span className="rounded bg-[#e8f1e4] px-2 py-1 text-xs font-semibold text-[#3f6f3d]">
+                                <span className="rounded bg-[#eaf1f8] px-2 py-1 text-xs font-semibold text-[#3b6fa8]">
                                     {formatAnnouncementStatusLabel(program)}
                                 </span>
                             </div>

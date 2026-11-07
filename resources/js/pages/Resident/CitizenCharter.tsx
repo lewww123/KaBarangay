@@ -91,11 +91,11 @@ function CitizenCharterContent({
                             placeholder="Search barangay services, procedures..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm focus:border-[#3f6f3d] focus:outline-hidden"
+                            className="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm focus:border-[#3b6fa8] focus:outline-hidden"
                         />
                         <button
                             type="submit"
-                            className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#315b30]"
+                            className="rounded-xl bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2a5279]"
                         >
                             Search
                         </button>
@@ -109,7 +109,7 @@ function CitizenCharterContent({
                                 onClick={() => filterBy({ category: '' })}
                                 className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
                                     filters.category === ''
-                                        ? 'bg-[#3f6f3d] text-white shadow-xs'
+                                        ? 'bg-[#3b6fa8] text-white shadow-xs'
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                             >
@@ -126,7 +126,7 @@ function CitizenCharterContent({
                                         }
                                         className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
                                             active
-                                                ? 'bg-[#3f6f3d] text-white shadow-xs'
+                                                ? 'bg-[#3b6fa8] text-white shadow-xs'
                                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                     >
@@ -221,7 +221,7 @@ function CitizenCharterContent({
                                                 service.detail_url ||
                                                 `/resident/citizen-charter/${service.id}`
                                             }
-                                            className="inline-flex items-center gap-1.5 rounded-lg bg-[#3f6f3d] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#315b30]"
+                                            className="inline-flex items-center gap-1.5 rounded-lg bg-[#3b6fa8] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#2a5279]"
                                         >
                                             <span>View Details</span>
                                             <span>→</span>
@@ -271,7 +271,7 @@ function CitizenCharterContent({
                                     }}
                                     className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                         link.active
-                                            ? 'bg-[#3f6f3d] text-white'
+                                            ? 'bg-[#3b6fa8] text-white'
                                             : link.url
                                               ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
                                               : 'cursor-not-allowed text-gray-300'

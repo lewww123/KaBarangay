@@ -98,7 +98,7 @@ function LuponCaseContent({ viewerRole = 'complainant', caseData }: Props) {
                                 <h1 className="text-2xl font-bold text-gray-900">
                                     {caseData.caseNumber}
                                 </h1>
-                                <span className="rounded-full bg-[#e8f1e4] px-3 py-0.5 text-xs font-semibold text-[#3f6f3d]">
+                                <span className="rounded-full bg-[#eaf1f8] px-3 py-0.5 text-xs font-semibold text-[#3b6fa8]">
                                     {caseData.phase} Phase
                                 </span>
                                 <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-0.5 text-xs font-semibold text-blue-700">

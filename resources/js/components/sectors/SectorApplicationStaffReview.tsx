@@ -304,7 +304,7 @@ export default function SectorApplicationStaffReview({
                                             identityVerified: e.target.checked,
                                         }))
                                     }
-                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
+                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
                                 />
                                 <span>
                                     Identity matches active resident register
@@ -323,7 +323,7 @@ export default function SectorApplicationStaffReview({
                                                 e.target.checked,
                                         }))
                                     }
-                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
+                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
                                 />
                                 <span>
                                     Verified residency in Barangay San Jose
@@ -340,7 +340,7 @@ export default function SectorApplicationStaffReview({
                                             documentsComplete: e.target.checked,
                                         }))
                                     }
-                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
+                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
                                 />
                                 <span>
                                     Proof of eligibility is legible and complete
@@ -357,7 +357,7 @@ export default function SectorApplicationStaffReview({
                                             eligibilityMet: e.target.checked,
                                         }))
                                     }
-                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
+                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
                                 />
                                 <span className="font-bold text-gray-800">
                                     I verify this applicant meets {sectorLabel}{' '}
@@ -376,7 +376,7 @@ export default function SectorApplicationStaffReview({
                                 value={staffNotes}
                                 onChange={(e) => setStaffNotes(e.target.value)}
                                 placeholder="Add internal review notes..."
-                                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 p-2.5 text-xs text-gray-800 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 p-2.5 text-xs text-gray-800 focus:border-[#3b6fa8] focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                             />
                         </div>
 
@@ -400,7 +400,7 @@ export default function SectorApplicationStaffReview({
                                 type="button"
                                 onClick={handleApprove}
                                 disabled={!allChecked || isProcessing}
-                                className="w-full rounded-xl bg-[#3f6f3d] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:opacity-40"
+                                className="w-full rounded-xl bg-[#3b6fa8] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#2a5279] disabled:opacity-40"
                             >
                                 Approve & Activate Membership
                             </button>

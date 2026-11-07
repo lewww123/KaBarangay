@@ -51,7 +51,7 @@ function PopulationContent({ stats, puroks }: Props) {
             <AdminLayout active="population">
                 {/* PAGE HEADER */}
                 <div className="mb-5">
-                    <h1 className="text-2xl font-semibold text-[#315b30]">
+                    <h1 className="text-2xl font-semibold text-[#2a5279]">
                         Population Monitoring
                     </h1>
 
@@ -91,11 +91,11 @@ function PopulationContent({ stats, puroks }: Props) {
                 <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
                     {/* PUROK BREAKDOWN */}
                     <section>
-                        <h2 className="mb-3 text-lg font-semibold text-[#315b30]">
+                        <h2 className="mb-3 text-lg font-semibold text-[#2a5279]">
                             Purok Breakdown
                         </h2>
 
-                        <div className="overflow-hidden rounded-xl border border-[#d9d0c3] bg-white">
+                        <div className="overflow-hidden rounded-xl border border-[#c2cbd4] bg-white">
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[850px]">
                                     <thead className="bg-[#eee7dc]">
@@ -128,7 +128,7 @@ function PopulationContent({ stats, puroks }: Props) {
                                                         {purok.name}
                                                     </td>
 
-                                                    <td className="px-4 py-4 text-sm font-semibold text-[#315b30]">
+                                                    <td className="px-4 py-4 text-sm font-semibold text-[#2a5279]">
                                                         {purok.total}
                                                     </td>
 
@@ -174,11 +174,11 @@ function PopulationContent({ stats, puroks }: Props) {
 
                     {/* SECTOR DISTRIBUTION */}
                     <section>
-                        <h2 className="mb-3 text-lg font-semibold text-[#315b30]">
+                        <h2 className="mb-3 text-lg font-semibold text-[#2a5279]">
                             Sector Distribution
                         </h2>
 
-                        <div className="rounded-xl border border-[#d9d0c3] bg-white p-4">
+                        <div className="rounded-xl border border-[#c2cbd4] bg-white p-4">
                             <DistributionRow
                                 label="Total Residents"
                                 value={stats.totalResidents}
@@ -217,7 +217,7 @@ function PopulationContent({ stats, puroks }: Props) {
                         </div>
 
                         {/* EXCLUDED FROM POPULATION */}
-                        <div className="mt-4 rounded-xl border border-[#d9d0c3] bg-[#fafaf7] p-4">
+                        <div className="mt-4 rounded-xl border border-[#c2cbd4] bg-[#ffffff] p-4">
                             <h3 className="text-xs font-semibold tracking-wide text-[#a7846b] uppercase">
                                 Not Counted as Population
                             </h3>
@@ -246,7 +246,7 @@ function PopulationContent({ stats, puroks }: Props) {
                 </div>
 
                 {!hasPopulation && (
-                    <p className="mt-5 rounded-xl border border-[#d9d0c3] bg-white px-5 py-4 text-sm text-gray-400">
+                    <p className="mt-5 rounded-xl border border-[#c2cbd4] bg-white px-5 py-4 text-sm text-gray-400">
                         No active permanent residents have been recorded for
                         this barangay yet.
                     </p>
@@ -270,7 +270,7 @@ function SummaryCard({
     type: 'residents' | 'senior' | 'pwd' | 'regular';
 }) {
     const styles = {
-        residents: 'border-[#3db85a] bg-[#dff0e2] text-[#315b30]',
+        residents: 'border-[#3db85a] bg-[#dff0e2] text-[#2a5279]',
         senior: 'border-[#579fea] bg-[#dcecff] text-[#0d4d91]',
         pwd: 'border-[#e4ad25] bg-[#fff2c9] text-[#8a6500]',
         regular: 'border-[#b8a38d] bg-[#eee6dc] text-[#765236]',
@@ -319,14 +319,14 @@ function DistributionRow({
     const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0;
 
     const barStyles = {
-        general: 'bg-[#3f6f3d]',
+        general: 'bg-[#3b6fa8]',
         regular: 'bg-[#9b8065]',
         senior: 'bg-[#73bf61]',
         pwd: 'bg-[#e4ad25]',
     };
 
     const valueStyles = {
-        general: 'text-[#315b30]',
+        general: 'text-[#2a5279]',
         regular: 'text-[#8e755c]',
         senior: 'text-[#63aa53]',
         pwd: 'text-[#8a6500]',

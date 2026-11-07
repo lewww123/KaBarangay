@@ -29,8 +29,8 @@ export default function AnnouncementReviewSummary({
           : 'Admin approval is required before this announcement is published.';
 
     return (
-        <div className="rounded-md border border-[#d6e3d2] bg-[#f7faf6] p-3">
-            <h3 className="text-[10px] font-bold tracking-wide text-[#315b30] uppercase">
+        <div className="rounded-md border border-[#dfe4ea] bg-[#ffffff] p-3">
+            <h3 className="text-[10px] font-bold tracking-wide text-[#2a5279] uppercase">
                 Review
             </h3>
             <dl className="mt-2 space-y-1.5 text-xs">

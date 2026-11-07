@@ -305,7 +305,7 @@ export default function BarangayChatbot({
                     }
                 >
                     <header
-                        className={`flex shrink-0 items-center justify-between gap-2 bg-[#3f6f3d] text-white ${floating ? 'p-3' : 'p-4'}`}
+                        className={`flex shrink-0 items-center justify-between gap-2 bg-[#3b6fa8] text-white ${floating ? 'p-3' : 'p-4'}`}
                     >
                         <div className="flex min-w-0 items-center gap-3">
                             <RobotAvatar
@@ -373,7 +373,7 @@ export default function BarangayChatbot({
                                     className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div
-                                        className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm break-words whitespace-pre-wrap ${item.role === 'user' ? 'bg-[#3f6f3d] text-white' : 'border border-emerald-100 bg-white text-stone-800 shadow-sm'}`}
+                                        className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm break-words whitespace-pre-wrap ${item.role === 'user' ? 'bg-[#3b6fa8] text-white' : 'border border-emerald-100 bg-white text-stone-800 shadow-sm'}`}
                                     >
                                         <span className="mb-1 block text-[10px] font-bold opacity-70">
                                             {item.role === 'user' ? (
@@ -547,7 +547,7 @@ export default function BarangayChatbot({
                             <button
                                 type="submit"
                                 disabled={loading || !input.trim()}
-                                className="mb-4 rounded-xl bg-[#3f6f3d] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                                className="mb-4 rounded-xl bg-[#3b6fa8] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
                             >
                                 {loading ? 'Sandali…' : 'Ipadala'}
                             </button>

@@ -23,11 +23,11 @@ export default function PwdLayout({ children, active, user }: PwdLayoutProps) {
     };
 
     return (
-        <div className="min-h-screen bg-[#f7f6f0] text-gray-800">
+        <div className="min-h-screen bg-[#eef1f5] text-gray-800">
             {/* TOP HEADER */}
-            <header className="flex min-h-14 items-center justify-between bg-[#3f6f3d] px-4 py-3 text-white sm:px-5">
+            <header className="flex min-h-14 items-center justify-between bg-[#3b6fa8] px-4 py-3 text-white sm:px-5">
                 <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-[#3f6f3d]">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-[#3b6fa8]">
                         SJ
                     </div>
 
@@ -44,7 +44,7 @@ export default function PwdLayout({ children, active, user }: PwdLayoutProps) {
                         {user?.name || 'PWD Staff'}
                     </span>
 
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#315b30] font-semibold">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2a5279] font-semibold">
                         {user?.name ? user.name.charAt(0).toUpperCase() : 'P'}
                     </div>
                 </div>
@@ -135,7 +135,7 @@ function SidebarLink({
             href={href}
             className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition ${
                 active
-                    ? 'bg-[#e8f1e4] text-[#3f6f3d]'
+                    ? 'bg-[#eaf1f8] text-[#3b6fa8]'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
             }`}
         >

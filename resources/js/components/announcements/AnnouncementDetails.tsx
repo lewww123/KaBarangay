@@ -55,7 +55,7 @@ export default function AnnouncementDetails({
         <div className="space-y-5">
             <Link
                 href={backHref}
-                className="inline-flex text-xs font-semibold text-[#3f6f3d] hover:text-[#315b30]"
+                className="inline-flex text-xs font-semibold text-[#3b6fa8] hover:text-[#2a5279]"
             >
                 Back to announcements
             </Link>
@@ -68,7 +68,7 @@ export default function AnnouncementDetails({
                                 className={`inline-flex rounded px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase ${
                                     isEvent
                                         ? 'bg-purple-100 text-purple-800'
-                                        : 'bg-[#e8f1e4] text-[#3f6f3d]'
+                                        : 'bg-[#eaf1f8] text-[#3b6fa8]'
                                 }`}
                             >
                                 {isEvent ? 'Event' : 'Informational Update'}
@@ -144,8 +144,8 @@ export default function AnnouncementDetails({
                         {isEvent &&
                             (announcement.event_start_at ||
                                 announcement.location) && (
-                                <div className="mt-6 rounded-lg border border-[#d6e3d2] bg-[#f7faf6] p-4">
-                                    <h2 className="text-xs font-bold tracking-wide text-[#315b30] uppercase">
+                                <div className="mt-6 rounded-lg border border-[#dfe4ea] bg-[#ffffff] p-4">
+                                    <h2 className="text-xs font-bold tracking-wide text-[#2a5279] uppercase">
                                         Event details
                                     </h2>
 
@@ -260,7 +260,7 @@ export default function AnnouncementDetails({
                         {attendanceHref && (
                             <Link
                                 href={attendanceHref}
-                                className="inline-flex w-full items-center justify-center rounded-md bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-[#315b30]"
+                                className="inline-flex w-full items-center justify-center rounded-md bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-[#2a5279]"
                             >
                                 Open attendance sheet
                             </Link>

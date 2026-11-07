@@ -72,7 +72,7 @@ const statusStyles: Record<string, string> = {
     'Needs Action': 'bg-[#fff0e5] text-[#a65316]',
     'For Payment': 'bg-[#f3ecff] text-[#6f42a5]',
     Processing: 'bg-[#eef3fb] text-[#416b9c]',
-    'Ready for Claim': 'bg-[#edf4ea] text-[#3f6f3d]',
+    'Ready for Claim': 'bg-[#eef1f5] text-[#3b6fa8]',
     Released: 'bg-gray-100 text-gray-600',
     Rejected: 'bg-[#fdecec] text-[#a33a3a]',
 };
@@ -233,7 +233,7 @@ function CertificatesContent({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by reference, resident, resident no., certificate, or purpose..."
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d] sm:w-96"
+                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3b6fa8] sm:w-96"
                 />
 
                 <div className="flex items-center gap-2">
@@ -244,7 +244,7 @@ function CertificatesContent({
                         aria-label="Filter by status"
                         value={filterStatus}
                         onChange={(e) => changeStatus(e.target.value)}
-                        className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                        className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3b6fa8]"
                     >
                         <option value="">All Statuses</option>
                         {statuses.map((status) => (
@@ -414,7 +414,7 @@ function StatCard({
 }) {
     return (
         <div
-            className={`rounded-lg border p-4 shadow-sm ${highlight ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white' : 'border-gray-200 bg-white'}`}
+            className={`rounded-lg border p-4 shadow-sm ${highlight ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white' : 'border-gray-200 bg-white'}`}
         >
             <p
                 className={`text-[11px] font-medium tracking-wide uppercase ${highlight ? 'text-white/80' : 'text-gray-400'}`}

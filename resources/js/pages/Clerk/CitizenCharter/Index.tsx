@@ -130,7 +130,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                     <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#315b30]"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#3b6fa8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2a5279]"
                     >
                         <span>➕</span>
                         <span>Add New Service</span>
@@ -198,7 +198,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                     onClick={() => visit({ status: tab.value })}
                                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                                         isCurrent
-                                            ? 'bg-[#3f6f3d] text-white shadow-xs'
+                                            ? 'bg-[#3b6fa8] text-white shadow-xs'
                                             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                                     }`}
                                 >
@@ -227,7 +227,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                             placeholder="Search service title, category..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                         />
                         <button
                             type="submit"
@@ -291,7 +291,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                                             service.show_url ||
                                                             `/clerk/citizen-charter/${service.id}`
                                                         }
-                                                        className="font-bold text-gray-900 hover:text-[#3f6f3d]"
+                                                        className="font-bold text-gray-900 hover:text-[#3b6fa8]"
                                                     >
                                                         {service.title}
                                                     </Link>
@@ -395,7 +395,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                         }}
                                         className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                             link.active
-                                                ? 'bg-[#3f6f3d] text-white'
+                                                ? 'bg-[#3b6fa8] text-white'
                                                 : link.url
                                                   ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
                                                   : 'cursor-not-allowed text-gray-300'
@@ -442,7 +442,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                     onChange={(e) =>
                                         form.setData('title', e.target.value)
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                 />
                                 {form.errors.title && (
                                     <p className="mt-1 text-xs text-red-600">
@@ -466,7 +466,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                                 e.target.value,
                                             )
                                         }
-                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                     />
                                     {form.errors.category && (
                                         <p className="mt-1 text-xs text-red-600">
@@ -489,7 +489,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                                 e.target.value,
                                             )
                                         }
-                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                     />
                                     {form.errors.display_order && (
                                         <p className="mt-1 text-xs text-red-600">
@@ -513,7 +513,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                             e.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                 />
                                 {form.errors.description && (
                                     <p className="mt-1 text-xs text-red-600">
@@ -538,7 +538,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                             e.target.files?.[0] || null,
                                         )
                                     }
-                                    className="mt-1 block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f1e4] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#3f6f3d] hover:file:bg-[#d6e7ce]"
+                                    className="mt-1 block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#eaf1f8] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#3b6fa8] hover:file:bg-[#d6e4f2]"
                                 />
                                 <p className="mt-1 text-[11px] text-gray-400">
                                     PDF file only. Max 2 MB per runtime upload
@@ -562,7 +562,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                 <button
                                     type="submit"
                                     disabled={form.processing}
-                                    className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-50"
+                                    className="rounded-lg bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2a5279] disabled:opacity-50"
                                 >
                                     {form.processing
                                         ? 'Saving...'

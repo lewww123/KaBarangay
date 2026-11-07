@@ -497,7 +497,7 @@ function RegistrationContent({
         <>
             <Head title="Create Resident Account" />
 
-            <div className="min-h-screen bg-[#f7f6f0]">
+            <div className="min-h-screen bg-[#eef1f5]">
                 {submissionFeedback && (
                     <div
                         role={
@@ -545,13 +545,13 @@ function RegistrationContent({
                         <RegistrationProgress step={step} />
 
                         {selectedBarangay && step > 1 && (
-                            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-[#dce8d8] bg-[#f5f9f3] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-[#dfe4ea] bg-[#eef1f5] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex min-w-0 items-start gap-3">
-                                    <div className="mt-0.5 shrink-0 text-[#3f6f3d]">
+                                    <div className="mt-0.5 shrink-0 text-[#3b6fa8]">
                                         <MapPinIcon />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-[11px] font-bold tracking-wider text-[#3f6f3d] uppercase">
+                                        <p className="text-[11px] font-bold tracking-wider text-[#3b6fa8] uppercase">
                                             Registering under
                                         </p>
                                         <p className="mt-0.5 truncate text-sm font-bold text-gray-800">
@@ -575,7 +575,7 @@ function RegistrationContent({
                                         setClientErrors({});
                                         scrollTop();
                                     }}
-                                    className="min-h-10 shrink-0 rounded-lg border border-[#b9ceb4] bg-white px-4 text-xs font-bold text-[#3f6f3d] transition hover:bg-[#eef5eb]"
+                                    className="min-h-10 shrink-0 rounded-lg border border-[#c2cbd4] bg-white px-4 text-xs font-bold text-[#3b6fa8] transition hover:bg-[#eef5eb]"
                                 >
                                     Change Barangay
                                 </button>
@@ -614,7 +614,7 @@ function RegistrationContent({
                             className="mt-5 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:mt-6"
                         >
                             <div className="border-b border-gray-100 px-5 py-5 sm:px-7">
-                                <p className="text-xs font-bold tracking-wider text-[#3f6f3d] uppercase">
+                                <p className="text-xs font-bold tracking-wider text-[#3b6fa8] uppercase">
                                     Step {step} of {TOTAL_STEPS}
                                 </p>
 
@@ -755,7 +755,7 @@ function RegistrationContent({
                                     </div>
                                     <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
                                         <div
-                                            className="h-full rounded-full bg-[#3f6f3d] transition-all"
+                                            className="h-full rounded-full bg-[#3b6fa8] transition-all"
                                             style={{
                                                 width: `${progress.percentage}%`,
                                             }}
@@ -789,7 +789,7 @@ function RegistrationContent({
                                     <button
                                         type="button"
                                         onClick={nextStep}
-                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3b6fa8] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2a5279] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         Continue
                                         <ArrowRightIcon />
@@ -798,7 +798,7 @@ function RegistrationContent({
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3b6fa8] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2a5279] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {processing ? (
                                             <>
@@ -820,7 +820,7 @@ function RegistrationContent({
                             Already registered?{' '}
                             <Link
                                 href="/resident/login"
-                                className="font-semibold text-[#3f6f3d] hover:underline"
+                                className="font-semibold text-[#3b6fa8] hover:underline"
                             >
                                 Sign in to your account
                             </Link>
@@ -897,7 +897,7 @@ function BarangayStep({
                     className={[
                         'rounded-xl border p-4',
                         selectedBarangay.puroks.length > 0
-                            ? 'border-[#dce8d8] bg-[#f5f9f3]'
+                            ? 'border-[#dfe4ea] bg-[#eef1f5]'
                             : 'border-amber-200 bg-amber-50',
                     ].join(' ')}
                 >
@@ -905,7 +905,7 @@ function BarangayStep({
                         <div
                             className={
                                 selectedBarangay.puroks.length > 0
-                                    ? 'text-[#3f6f3d]'
+                                    ? 'text-[#3b6fa8]'
                                     : 'text-amber-700'
                             }
                         >
@@ -1238,12 +1238,12 @@ function SectorInformationStep({
             )}
 
             {regularSelected && (
-                <div className="rounded-xl border border-[#dce8d8] bg-[#f5f9f3] p-4">
+                <div className="rounded-xl border border-[#dfe4ea] bg-[#eef1f5] p-4">
                     <p className="text-sm font-bold text-gray-800">
                         Selected classification
                     </p>
                     <div className="mt-2">
-                        <span className="rounded-full bg-[#e8f1e4] px-3 py-1 text-xs font-bold text-[#3f6f3d]">
+                        <span className="rounded-full bg-[#eaf1f8] px-3 py-1 text-xs font-bold text-[#3b6fa8]">
                             Regular Resident
                         </span>
                     </div>
@@ -1256,7 +1256,7 @@ function SectorInformationStep({
             )}
 
             {!regularSelected && hasSectorSelection && (
-                <div className="rounded-xl border border-[#dce8d8] bg-[#f5f9f3] p-4">
+                <div className="rounded-xl border border-[#dfe4ea] bg-[#eef1f5] p-4">
                     <p className="text-sm font-bold text-gray-800">
                         Selected classification
                         {selectedSlugs.length > 1 ? 's' : ''}
@@ -1270,7 +1270,7 @@ function SectorInformationStep({
                             .map((sector) => (
                                 <span
                                     key={sector.id}
-                                    className="rounded-full bg-[#e8f1e4] px-3 py-1 text-xs font-bold text-[#3f6f3d]"
+                                    className="rounded-full bg-[#eaf1f8] px-3 py-1 text-xs font-bold text-[#3b6fa8]"
                                 >
                                     {sector.name}
                                 </span>
@@ -1369,7 +1369,7 @@ function IdentityVerificationStep({
                     autoComplete="off"
                     autoCapitalize="off"
                     spellCheck={false}
-                    className="mt-3 min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20 focus:outline-none"
+                    className="mt-3 min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20 focus:outline-none"
                     placeholder="KBQR-…"
                 />
             </div>
@@ -1635,7 +1635,7 @@ function ReviewStep({
                         {sectorNames.map((name) => (
                             <span
                                 key={name}
-                                className="rounded-full bg-[#e8f1e4] px-3 py-1.5 text-xs font-bold text-[#3f6f3d]"
+                                className="rounded-full bg-[#eaf1f8] px-3 py-1.5 text-xs font-bold text-[#3b6fa8]"
                             >
                                 {name}
                             </span>
@@ -1700,7 +1700,7 @@ function ReviewStep({
                         onChange={(event) =>
                             onDeclarationChange(event.target.checked)
                         }
-                        className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 accent-[#3f6f3d]"
+                        className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 accent-[#3b6fa8]"
                     />
                     <span className="text-xs leading-5 text-gray-600 sm:text-sm">
                         I confirm that the information and documents I provided
@@ -2011,7 +2011,7 @@ function LiveCameraCapture({
                             type="button"
                             onClick={capturePhoto}
                             disabled={!cameraReady || capturing}
-                            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-6 text-sm font-bold text-white hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3b6fa8] px-6 text-sm font-bold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {capturing ? (
                                 <>
@@ -2028,7 +2028,7 @@ function LiveCameraCapture({
                     </div>
                 </div>
             ) : value && previewUrl ? (
-                <div className="rounded-2xl border border-[#c9dcc5] bg-[#f6faf5] p-4">
+                <div className="rounded-2xl border border-[#c2cbd4] bg-[#ffffff] p-4">
                     <div className="grid gap-4 sm:grid-cols-[180px_1fr] sm:items-center">
                         <img
                             src={previewUrl}
@@ -2037,7 +2037,7 @@ function LiveCameraCapture({
                         />
 
                         <div>
-                            <div className="flex items-center gap-2 text-[#3f6f3d]">
+                            <div className="flex items-center gap-2 text-[#3b6fa8]">
                                 <CircleCheckIcon />
                                 <p className="text-sm font-bold">
                                     Live identity photo captured
@@ -2071,7 +2071,7 @@ function LiveCameraCapture({
                             : 'border-gray-300 bg-gray-50/50',
                     ].join(' ')}
                 >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e8f1e4] text-[#3f6f3d]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#eaf1f8] text-[#3b6fa8]">
                         <CameraIcon />
                     </div>
 
@@ -2089,7 +2089,7 @@ function LiveCameraCapture({
                         type="button"
                         onClick={openCamera}
                         disabled={startingCamera}
-                        className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-5 text-sm font-bold text-white hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3b6fa8] px-5 text-sm font-bold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {startingCamera ? (
                             <>
@@ -2186,10 +2186,10 @@ function FileUpload({
                         'flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition sm:p-8',
                         error || localError
                             ? 'border-red-300 bg-red-50/30'
-                            : 'border-gray-300 bg-gray-50/50 hover:border-[#7ca278] hover:bg-[#f7faf6]',
+                            : 'border-gray-300 bg-gray-50/50 hover:border-[#7ca278] hover:bg-[#ffffff]',
                     ].join(' ')}
                 >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e8f1e4] text-[#3f6f3d]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#eaf1f8] text-[#3b6fa8]">
                         {icon}
                     </div>
                     <p className="mt-3 text-sm font-bold text-gray-800">
@@ -2209,7 +2209,7 @@ function FileUpload({
                     />
                 </label>
             ) : (
-                <div className="rounded-2xl border border-[#c9dcc5] bg-[#f6faf5] p-4">
+                <div className="rounded-2xl border border-[#c2cbd4] bg-[#ffffff] p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         {previewUrl ? (
                             <img
@@ -2218,13 +2218,13 @@ function FileUpload({
                                 className="h-24 w-full rounded-xl border border-gray-200 bg-white object-cover sm:w-28"
                             />
                         ) : (
-                            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-white text-[#3f6f3d] shadow-sm">
+                            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-white text-[#3b6fa8] shadow-sm">
                                 <DocumentIcon />
                             </div>
                         )}
 
                         <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 text-[#3f6f3d]">
+                            <div className="flex items-center gap-2 text-[#3b6fa8]">
                                 <CircleCheckIcon />
                                 <p className="text-sm font-bold text-gray-800">
                                     {title} added
@@ -2275,7 +2275,7 @@ function RegistrationProgress({ step }: { step: number }) {
         <>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:hidden">
                 <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-bold text-[#3f6f3d]">
+                    <span className="text-xs font-bold text-[#3b6fa8]">
                         Step {step} of {TOTAL_STEPS}
                     </span>
                     <span className="truncate text-xs font-semibold text-gray-500">
@@ -2284,7 +2284,7 @@ function RegistrationProgress({ step }: { step: number }) {
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
                     <div
-                        className="h-full rounded-full bg-[#3f6f3d] transition-all duration-300"
+                        className="h-full rounded-full bg-[#3b6fa8] transition-all duration-300"
                         style={{
                             width: `${(step / TOTAL_STEPS) * 100}%`,
                         }}
@@ -2309,7 +2309,7 @@ function RegistrationProgress({ step }: { step: number }) {
                                         className={[
                                             'flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold transition',
                                             complete || active
-                                                ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                                                ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
                                                 : 'border-gray-200 bg-white text-gray-400',
                                         ].join(' ')}
                                     >
@@ -2319,7 +2319,7 @@ function RegistrationProgress({ step }: { step: number }) {
                                         className={[
                                             'mt-2 text-[11px] font-semibold lg:text-xs',
                                             active
-                                                ? 'text-[#3f6f3d]'
+                                                ? 'text-[#3b6fa8]'
                                                 : complete
                                                   ? 'text-gray-700'
                                                   : 'text-gray-400',
@@ -2334,7 +2334,7 @@ function RegistrationProgress({ step }: { step: number }) {
                                         className={[
                                             'mt-4 h-0.5 flex-1',
                                             number < step
-                                                ? 'bg-[#3f6f3d]'
+                                                ? 'bg-[#3b6fa8]'
                                                 : 'bg-gray-200',
                                         ].join(' ')}
                                     />
@@ -2350,13 +2350,13 @@ function RegistrationProgress({ step }: { step: number }) {
 
 function PublicHeader() {
     return (
-        <header className="border-b border-[#315b30] bg-[#3f6f3d]">
+        <header className="border-b border-[#2a5279] bg-[#3b6fa8]">
             <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <Link
                     href="/resident/login"
                     className="inline-flex min-w-0 items-center gap-3 text-white"
                 >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-[#3f6f3d]">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-[#3b6fa8]">
                         KB
                     </div>
                     <div className="min-w-0">
@@ -2399,9 +2399,9 @@ function SectionTitle({
 
 function InfoBox({ children }: { children: ReactNode }) {
     return (
-        <div className="rounded-xl border border-[#dce8d8] bg-[#f5f9f3] p-4">
+        <div className="rounded-xl border border-[#dfe4ea] bg-[#eef1f5] p-4">
             <div className="flex items-start gap-3">
-                <div className="mt-0.5 shrink-0 text-[#3f6f3d]">
+                <div className="mt-0.5 shrink-0 text-[#3b6fa8]">
                     <InfoIcon />
                 </div>
                 <p className="text-xs leading-5 text-gray-600 sm:text-sm">
@@ -2448,7 +2448,7 @@ function InputField({
                     'min-h-11 w-full rounded-xl border bg-white px-3.5 text-base text-gray-800 outline-none transition placeholder:text-gray-400 focus:ring-2 sm:text-sm',
                     error
                         ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-                        : 'border-gray-300 focus:border-[#3f6f3d] focus:ring-[#3f6f3d]/15',
+                        : 'border-gray-300 focus:border-[#3b6fa8] focus:ring-[#3b6fa8]/15',
                 ].join(' ')}
             />}
             {helper && !error && (
@@ -2494,7 +2494,7 @@ function SelectField({
                     'min-h-11 w-full rounded-xl border bg-white px-3.5 text-base text-gray-800 outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 sm:text-sm',
                     error
                         ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-                        : 'border-gray-300 focus:border-[#3f6f3d] focus:ring-[#3f6f3d]/15',
+                        : 'border-gray-300 focus:border-[#3b6fa8] focus:ring-[#3b6fa8]/15',
                 ].join(' ')}
             >
                 {options.map((option) => (
@@ -2536,17 +2536,17 @@ function SectorCard({
             className={[
                 'relative min-h-44 rounded-2xl border-2 p-5 text-left transition',
                 selected
-                    ? 'border-[#3f6f3d] bg-[#f4f8f2] shadow-sm'
+                    ? 'border-[#3b6fa8] bg-[#ffffff] shadow-sm'
                     : disabled
                       ? 'cursor-not-allowed border-gray-200 bg-gray-50 opacity-55'
-                      : 'border-gray-200 bg-white hover:border-[#b9ceb4] hover:bg-gray-50',
+                      : 'border-gray-200 bg-white hover:border-[#c2cbd4] hover:bg-gray-50',
             ].join(' ')}
         >
             <div
                 className={[
                     'flex h-11 w-11 items-center justify-center rounded-xl',
                     selected
-                        ? 'bg-[#3f6f3d] text-white'
+                        ? 'bg-[#3b6fa8] text-white'
                         : disabled
                           ? 'bg-gray-100 text-gray-400'
                           : 'bg-gray-100 text-gray-500',
@@ -2577,7 +2577,7 @@ function SectorCard({
                 className={[
                     'absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-md border-2',
                     selected
-                        ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                        ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
                         : disabled
                           ? 'border-gray-200 bg-gray-100'
                           : 'border-gray-300 bg-white',
@@ -2616,7 +2616,7 @@ function PasswordField({
                     'flex min-h-11 items-center rounded-xl border bg-white px-3.5 transition focus-within:ring-2',
                     error
                         ? 'border-red-300 focus-within:border-red-400 focus-within:ring-red-100'
-                        : 'border-gray-300 focus-within:border-[#3f6f3d] focus-within:ring-[#3f6f3d]/15',
+                        : 'border-gray-300 focus-within:border-[#3b6fa8] focus-within:ring-[#3b6fa8]/15',
                 ].join(' ')}
             >
                 <input
@@ -2674,7 +2674,7 @@ function Requirement({ met, text }: { met: boolean; text: string }) {
                 className={[
                     'flex h-4 w-4 items-center justify-center rounded-full',
                     met
-                        ? 'bg-[#3f6f3d] text-white'
+                        ? 'bg-[#3b6fa8] text-white'
                         : 'border border-gray-300 text-transparent',
                 ].join(' ')}
             >
@@ -2683,7 +2683,7 @@ function Requirement({ met, text }: { met: boolean; text: string }) {
             <span
                 className={[
                     'text-xs',
-                    met ? 'font-medium text-[#3f6f3d]' : 'text-gray-500',
+                    met ? 'font-medium text-[#3b6fa8]' : 'text-gray-500',
                 ].join(' ')}
             >
                 {text}
@@ -2708,7 +2708,7 @@ function ReviewCard({
                 <button
                     type="button"
                     onClick={onEdit}
-                    className="text-xs font-bold text-[#3f6f3d] hover:underline"
+                    className="text-xs font-bold text-[#3b6fa8] hover:underline"
                 >
                     Edit
                 </button>
@@ -2732,7 +2732,7 @@ function ReviewItem({ label, value }: { label: string; value: string }) {
 function DocumentStatus({ label, file }: { label: string; file: File | null }) {
     return (
         <div className="flex min-w-0 items-center gap-3 rounded-xl bg-gray-50 p-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e8f1e4] text-[#3f6f3d]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#eaf1f8] text-[#3b6fa8]">
                 <DocumentIcon />
             </div>
             <div className="min-w-0">

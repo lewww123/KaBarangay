@@ -125,7 +125,7 @@ export default function AssistantLauncher({
                 aria-describedby="kabarangay-ai-move-help"
                 title="Kabarangay AI — i-drag pataas o pababa"
                 style={top === null ? { bottom: EDGE } : { top }}
-                className={`fixed right-4 z-[60] flex h-14 w-14 touch-none items-center justify-center rounded-full border border-emerald-300 bg-gradient-to-br from-emerald-900 to-[#3f6f3d] p-2 text-white shadow-xl select-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700 ${moving ? 'cursor-grabbing' : 'cursor-grab'}`}
+                className={`fixed right-4 z-[60] flex h-14 w-14 touch-none items-center justify-center rounded-full border border-emerald-300 bg-gradient-to-br from-emerald-900 to-[#3b6fa8] p-2 text-white shadow-xl select-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700 ${moving ? 'cursor-grabbing' : 'cursor-grab'}`}
                 onClick={(event) => {
                     if (skipClick.current && event.detail !== 0) {
                         skipClick.current = false;

@@ -275,7 +275,7 @@ function ClerkAnnouncementsIndex({
                     <button
                         type="button"
                         onClick={openCreateModal}
-                        className="inline-flex items-center justify-center gap-2 rounded-md bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-[#315b30]"
+                        className="inline-flex items-center justify-center gap-2 rounded-md bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-[#2a5279]"
                     >
                         {isUpdate
                             ? '+ Publish Update'
@@ -305,7 +305,7 @@ function ClerkAnnouncementsIndex({
                                 ? 'Search updates by title or content...'
                                 : 'Search announcements by title or content...'
                         }
-                        className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d] sm:w-72"
+                        className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3b6fa8] sm:w-72"
                     />
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -319,7 +319,7 @@ function ClerkAnnouncementsIndex({
                                     onChange={(e) =>
                                         setSelectedType(e.target.value)
                                     }
-                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3b6fa8]"
                                 >
                                     <option value="ALL">All Types</option>
                                     <option value="event">Events</option>
@@ -338,7 +338,7 @@ function ClerkAnnouncementsIndex({
                             onChange={(e) =>
                                 setSelectedCategory(e.target.value)
                             }
-                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3b6fa8]"
                         >
                             <option value="ALL">All Categories</option>
                             <option value="General">General</option>
@@ -358,7 +358,7 @@ function ClerkAnnouncementsIndex({
                             onChange={(e) =>
                                 setSelectedImportance(e.target.value)
                             }
-                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3b6fa8]"
                         >
                             <option value="ALL">All Importance</option>
                             {ANNOUNCEMENT_IMPORTANCE_OPTIONS.map((option) => (
@@ -447,7 +447,7 @@ function ClerkAnnouncementsIndex({
                                                 )}
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <span className="rounded bg-[#e8f1e4] px-2 py-0.5 text-xs font-bold text-[#3f6f3d] uppercase">
+                                                <span className="rounded bg-[#eaf1f8] px-2 py-0.5 text-xs font-bold text-[#3b6fa8] uppercase">
                                                     {item.category}
                                                 </span>
                                             </td>
@@ -493,7 +493,7 @@ function ClerkAnnouncementsIndex({
                                             <td className="space-x-2 px-5 py-3.5 text-right">
                                                 <Link
                                                     href={`${basePath}/${item.id}`}
-                                                    className="inline-flex rounded border border-[#cbdcc6] bg-[#f4f8f2] px-2.5 py-1 text-xs font-medium text-[#3f6f3d] hover:bg-[#e8f1e4]"
+                                                    className="inline-flex rounded border border-[#c2cbd4] bg-[#ffffff] px-2.5 py-1 text-xs font-medium text-[#3b6fa8] hover:bg-[#eaf1f8]"
                                                 >
                                                     Details
                                                 </Link>
@@ -505,7 +505,7 @@ function ClerkAnnouncementsIndex({
                                                             'clerk',
                                                             item.id,
                                                         )}
-                                                        className="inline-flex rounded bg-[#3f6f3d] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#315b30]"
+                                                        className="inline-flex rounded bg-[#3b6fa8] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#2a5279]"
                                                     >
                                                         Attendance
                                                     </Link>
@@ -599,7 +599,7 @@ function ClerkAnnouncementsIndex({
                                         onChange={(e) =>
                                             setData('title', e.target.value)
                                         }
-                                        className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                        className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3b6fa8]"
                                         required
                                     />
                                     {errors.title && (
@@ -619,7 +619,7 @@ function ClerkAnnouncementsIndex({
                                         onChange={(e) =>
                                             setData('content', e.target.value)
                                         }
-                                        className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                        className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3b6fa8]"
                                         required
                                     />
                                     {errors.content && (
@@ -644,7 +644,7 @@ function ClerkAnnouncementsIndex({
                                                 }
                                                 className={`rounded-md border px-3 py-2 text-left text-xs font-semibold transition ${
                                                     formType === 'informational'
-                                                        ? 'border-[#3f6f3d] bg-[#e8f1e4] text-[#315b30]'
+                                                        ? 'border-[#3b6fa8] bg-[#eaf1f8] text-[#2a5279]'
                                                         : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
                                                 }`}
                                             >
@@ -661,7 +661,7 @@ function ClerkAnnouncementsIndex({
                                                 }
                                                 className={`rounded-md border px-3 py-2 text-left text-xs font-semibold transition ${
                                                     formType === 'event'
-                                                        ? 'border-[#3f6f3d] bg-[#e8f1e4] text-[#315b30]'
+                                                        ? 'border-[#3b6fa8] bg-[#eaf1f8] text-[#2a5279]'
                                                         : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
                                                 }`}
                                             >
@@ -688,7 +688,7 @@ function ClerkAnnouncementsIndex({
                                                         e.target.value,
                                                     )
                                                 }
-                                                className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                                className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3b6fa8]"
                                             >
                                                 <option value="General">
                                                     General
@@ -723,7 +723,7 @@ function ClerkAnnouncementsIndex({
                                                     e.target.value,
                                                 )
                                             }
-                                            className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                            className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3b6fa8]"
                                         >
                                             {ANNOUNCEMENT_IMPORTANCE_OPTIONS.map(
                                                 (option) => (
@@ -756,7 +756,7 @@ function ClerkAnnouncementsIndex({
                                                 e.target.value,
                                             )
                                         }
-                                        className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                        className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3b6fa8]"
                                     >
                                         <option value="all">
                                             All Residents
@@ -784,7 +784,7 @@ function ClerkAnnouncementsIndex({
                                                             e.target.value,
                                                         )
                                                     }
-                                                    className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                                    className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3b6fa8]"
                                                     required
                                                 />
                                                 {errors.event_start_at && (
@@ -807,7 +807,7 @@ function ClerkAnnouncementsIndex({
                                                             e.target.value,
                                                         )
                                                     }
-                                                    className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                                    className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3b6fa8]"
                                                     required
                                                 />
                                                 {errors.location && (
@@ -867,7 +867,7 @@ function ClerkAnnouncementsIndex({
                                         type="submit"
                                         disabled={processing}
                                         aria-busy={processing}
-                                        className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
+                                        className="rounded-md bg-[#3b6fa8] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#2a5279] disabled:opacity-60"
                                     >
                                         {processing
                                             ? 'Submitting...'

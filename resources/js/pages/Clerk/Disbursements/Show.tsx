@@ -66,7 +66,7 @@ export default function ClerkDisbursementShow({
             <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
                 <Link
                     href="/clerk/disbursements"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 transition hover:text-[#3f6f3d]"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 transition hover:text-[#3b6fa8]"
                 >
                     <BackIcon />
                     Back to disbursement documents
@@ -115,7 +115,7 @@ export default function ClerkDisbursementShow({
                                     type="button"
                                     disabled={busy}
                                     onClick={() => runAction('publish')}
-                                    className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#3f6f3d] px-4 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#3b6fa8] px-4 text-sm font-semibold text-white transition hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {busy ? 'Publishing...' : 'Publish'}
                                 </button>

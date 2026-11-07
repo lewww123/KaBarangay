@@ -40,7 +40,7 @@ export default function Pagination({ paginator, label }: Props) {
                         aria-current={link.active ? 'page' : undefined}
                         className={`inline-flex h-10 min-w-10 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition sm:text-sm ${
                             link.active
-                                ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                                ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
                                 : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                         }`}
                     >

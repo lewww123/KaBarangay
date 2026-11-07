@@ -165,7 +165,7 @@ export default function Announcements({
                     </div>
                     <button
                         onClick={openCreateModal}
-                        className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-medium text-white"
+                        className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm font-medium text-white"
                     >
                         + New Announcement
                     </button>
@@ -356,7 +356,7 @@ export default function Announcements({
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="rounded bg-[#3f6f3d] px-4 py-2 text-sm font-bold text-white"
+                                        className="rounded bg-[#3b6fa8] px-4 py-2 text-sm font-bold text-white"
                                     >
                                         Submit for Approval
                                     </button>

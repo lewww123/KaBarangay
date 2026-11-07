@@ -200,7 +200,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                     <button
                         type="button"
                         onClick={openCreate}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#315b30]"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#3b6fa8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2a5279]"
                     >
                         <span
                             aria-hidden="true"
@@ -327,7 +327,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                 />
                                 {form.errors.title && (
                                     <p className="mt-1 text-xs text-red-600">
@@ -351,7 +351,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                 />
                                 <p className="mt-1 text-[11px] text-gray-400">
                                     Leave empty if the position is currently
@@ -376,7 +376,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                 >
                                     <option value="">
                                         None — top-level position
@@ -411,7 +411,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                                             event.target.files?.[0] ?? null,
                                         )
                                     }
-                                    className="mt-1 block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f1e4] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#3f6f3d] hover:file:bg-[#d6e7ce]"
+                                    className="mt-1 block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#eaf1f8] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#3b6fa8] hover:file:bg-[#d6e4f2]"
                                 />
                                 <p className="mt-1 text-[11px] text-gray-400">
                                     Stored privately. Maximum 2 MB. Leave empty
@@ -445,7 +445,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                                 <button
                                     type="submit"
                                     disabled={form.processing}
-                                    className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-50"
+                                    className="rounded-lg bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2a5279] disabled:opacity-50"
                                 >
                                     {form.processing
                                         ? 'Saving...'
@@ -591,7 +591,7 @@ function PositionNode({
                             <button
                                 type="button"
                                 onClick={() => onPublish(node)}
-                                className="rounded-md bg-[#3f6f3d] px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-[#315b30]"
+                                className="rounded-md bg-[#3b6fa8] px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-[#2a5279]"
                             >
                                 {node.status === 'archived'
                                     ? 'Republish'

@@ -142,7 +142,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                     <Link
                         href="/clerk/citizen-charter"
-                        className="hover:text-[#3f6f3d]"
+                        className="hover:text-[#3b6fa8]"
                     >
                         Citizen&apos;s Charter
                     </Link>
@@ -249,7 +249,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                     <button
                                         type="button"
                                         onClick={handlePublish}
-                                        className="rounded-lg bg-[#3f6f3d] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#315b30]"
+                                        className="rounded-lg bg-[#3b6fa8] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#2a5279]"
                                     >
                                         {service.is_published
                                             ? 'Re-Publish'
@@ -293,7 +293,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                             e.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                 />
                                 {editForm.errors.title && (
                                     <p className="mt-1 text-xs text-red-600">
@@ -316,7 +316,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                                 e.target.value,
                                             )
                                         }
-                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                     />
                                 </div>
                                 <div>
@@ -333,7 +333,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                                 parseInt(e.target.value) || 0,
                                             )
                                         }
-                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                     />
                                 </div>
                             </div>
@@ -351,7 +351,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                             e.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
                                 />
                             </div>
 
@@ -359,7 +359,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                 <button
                                     type="submit"
                                     disabled={editForm.processing}
-                                    className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white hover:bg-[#315b30] disabled:opacity-50"
+                                    className="rounded-lg bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white hover:bg-[#2a5279] disabled:opacity-50"
                                 >
                                     {editForm.processing
                                         ? 'Saving...'
@@ -401,7 +401,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                     )}
                                     <a
                                         href={previewVersion.download_url}
-                                        className="rounded-md bg-[#3f6f3d] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#315b30]"
+                                        className="rounded-md bg-[#3b6fa8] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#2a5279]"
                                     >
                                         Download PDF ↓
                                     </a>
@@ -445,7 +445,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                         onClick={() => setPreviewVersion(ver)}
                                         className={`cursor-pointer rounded-xl border p-3.5 transition ${
                                             isCurrentActive
-                                                ? 'border-[#3f6f3d] bg-[#f0f6ef] shadow-xs'
+                                                ? 'border-[#3b6fa8] bg-[#f0f6ef] shadow-xs'
                                                 : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                                         }`}
                                     >
@@ -538,7 +538,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                             e.target.files?.[0] || null,
                                         )
                                     }
-                                    className="mt-1 block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f1e4] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#3f6f3d] hover:file:bg-[#d6e7ce]"
+                                    className="mt-1 block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#eaf1f8] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#3b6fa8] hover:file:bg-[#d6e4f2]"
                                 />
                                 <p className="mt-1 text-[11px] text-gray-400">
                                     PDF only. Max 2 MB per runtime limit.
@@ -561,7 +561,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                 <button
                                     type="submit"
                                     disabled={versionForm.processing}
-                                    className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-50"
+                                    className="rounded-lg bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2a5279] disabled:opacity-50"
                                 >
                                     {versionForm.processing
                                         ? 'Uploading...'

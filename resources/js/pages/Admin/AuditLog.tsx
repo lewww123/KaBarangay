@@ -417,7 +417,7 @@ function PaginationControls({
                         disabled={!link.url}
                         className={`rounded-md px-3 py-1.5 text-xs ${
                             link.active
-                                ? 'bg-[#3f6f3d] text-white'
+                                ? 'bg-[#3b6fa8] text-white'
                                 : link.url
                                   ? 'border border-gray-300 text-gray-600 hover:bg-gray-50'
                                   : 'cursor-not-allowed text-gray-400'
@@ -501,29 +501,29 @@ function ActivityLogSection({
             >
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[700px]">
-                        <thead className="bg-[#f0ebe1]">
-                            <tr className="border-b border-[#e6ddcd]">
+                        <thead className="bg-[#eef1f5]">
+                            <tr className="border-b border-[#c2cbd4]">
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     DATE/TIME
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     SECTOR
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     STAFF NAME
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     ACTION
                                 </th>
@@ -636,29 +636,29 @@ function LoginAttemptsSection({
             >
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[420px]">
-                        <thead className="bg-[#f0ebe1]">
-                            <tr className="border-b border-[#e6ddcd]">
+                        <thead className="bg-[#eef1f5]">
+                            <tr className="border-b border-[#c2cbd4]">
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     ACTOR
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     CHANNEL
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     TIME
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     STATUS
                                 </th>
@@ -781,29 +781,29 @@ function SuspiciousActivitySection({
             >
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[520px]">
-                        <thead className="bg-[#f0ebe1]">
-                            <tr className="border-b border-[#e6ddcd]">
+                        <thead className="bg-[#eef1f5]">
+                            <tr className="border-b border-[#c2cbd4]">
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     DETECTED
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     ALERT
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     ATTEMPTS
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     WINDOW
                                 </th>

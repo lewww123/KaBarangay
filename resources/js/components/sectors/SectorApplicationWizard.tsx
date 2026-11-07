@@ -234,7 +234,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                         </button>
                         <Link
                             href={cancelUrl}
-                            className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#315b30]"
+                            className="rounded-xl bg-[#3b6fa8] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#2a5279]"
                         >
                             View Applications Queue →
                         </Link>
@@ -276,7 +276,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                             }
                                         }}
                                         placeholder="Scan QR or enter BSJ-RES-000001 / raw token..."
-                                        className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 font-mono text-sm text-gray-800 placeholder-gray-400 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                        className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 font-mono text-sm text-gray-800 placeholder-gray-400 focus:border-[#3b6fa8] focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                                     />
                                     {lookupQuery && (
                                         <button
@@ -297,7 +297,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                     type="button"
                                     onClick={() => handleResidentLookup()}
                                     disabled={lookupLoading}
-                                    className="rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:opacity-50"
+                                    className="rounded-xl bg-[#3b6fa8] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#2a5279] disabled:opacity-50"
                                 >
                                     {lookupLoading
                                         ? 'Verifying...'
@@ -380,7 +380,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                                     e.target.checked,
                                                 )
                                             }
-                                            className="h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
+                                            className="h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
                                         />
                                         <label
                                             htmlFor="confirm_identity"
@@ -480,7 +480,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                     !isConfirmedResident || isAlreadyMember
                                 }
                                 placeholder="Add observations on submitted proofs, physical presence, or special accommodation requirements..."
-                                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 p-3 text-xs text-gray-800 placeholder-gray-400 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none disabled:opacity-50"
+                                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 p-3 text-xs text-gray-800 placeholder-gray-400 focus:border-[#3b6fa8] focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none disabled:opacity-50"
                             />
                         </div>
 
@@ -499,7 +499,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                     isAlreadyMember ||
                                     isSubmitting
                                 }
-                                className="inline-flex items-center gap-2 rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:opacity-50"
+                                className="inline-flex items-center gap-2 rounded-xl bg-[#3b6fa8] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#2a5279] disabled:opacity-50"
                             >
                                 {isSubmitting
                                     ? 'Processing Application...'

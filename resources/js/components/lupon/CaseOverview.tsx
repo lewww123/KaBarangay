@@ -97,7 +97,7 @@ export default function CaseOverview({ caseData }: { caseData: OverviewCase }) {
                     Location: {complaint.incidentLocation || 'Not recorded'}
                 </p>
                 <details className="mt-3">
-                    <summary className="cursor-pointer text-sm font-semibold text-[#3f6f3d]">
+                    <summary className="cursor-pointer text-sm font-semibold text-[#3b6fa8]">
                         Read salaysay and requested action
                     </summary>
                     <p className="mt-3 text-sm whitespace-pre-wrap">

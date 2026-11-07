@@ -25,7 +25,7 @@ export default function ResidentDisbursementShow({
             <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
                 <Link
                     href="/resident/disbursement"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 transition hover:text-[#3f6f3d]"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 transition hover:text-[#3b6fa8]"
                 >
                     <BackIcon />
                     Back to disbursement documents
@@ -33,7 +33,7 @@ export default function ResidentDisbursementShow({
 
                 <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-md border border-[#3f6f3d]/20 bg-[#3f6f3d]/5 px-2 py-0.5 text-[11px] font-semibold text-[#3f6f3d]">
+                        <span className="rounded-md border border-[#3b6fa8]/20 bg-[#3b6fa8]/5 px-2 py-0.5 text-[11px] font-semibold text-[#3b6fa8]">
                             {disbursementFileType(document)}
                         </span>
 

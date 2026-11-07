@@ -386,7 +386,7 @@ function CertificatesContent({
                     </p>
                     <a
                         href="/offline-certificates.html"
-                        className="mt-2 inline-block text-sm font-semibold text-[#3f6f3d] underline"
+                        className="mt-2 inline-block text-sm font-semibold text-[#3b6fa8] underline"
                     >
                         Offline drafts & pending requests
                     </a>
@@ -409,7 +409,7 @@ function CertificatesContent({
                         onClick={() => setActiveTab('request')}
                         className={`min-h-12 flex-1 rounded-lg px-2 text-sm font-semibold transition sm:px-4 sm:text-base ${
                             activeTab === 'request'
-                                ? 'bg-[#3f6f3d] text-white'
+                                ? 'bg-[#3b6fa8] text-white'
                                 : 'text-gray-600 hover:bg-gray-50'
                         }`}
                     >
@@ -420,7 +420,7 @@ function CertificatesContent({
                         onClick={() => setActiveTab('requests')}
                         className={`min-h-12 flex-1 rounded-lg px-2 text-sm font-semibold transition sm:px-4 sm:text-base ${
                             activeTab === 'requests'
-                                ? 'bg-[#3f6f3d] text-white'
+                                ? 'bg-[#3b6fa8] text-white'
                                 : 'text-gray-600 hover:bg-gray-50'
                         }`}
                     >
@@ -439,7 +439,7 @@ function CertificatesContent({
                                 {cameFromAssistant && selectedCertificate && (
                                     <div className="mb-4 rounded-xl border border-[#d7e7d2] bg-[#f3f8f1] p-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-[#3f6f3d]">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#d6e4f2] text-[#3b6fa8]">
                                                 <CertificateOutlineIcon small />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -487,7 +487,7 @@ function CertificatesContent({
                                                     resident profile.
                                                 </p>
                                             </div>
-                                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#edf4ea] px-3 py-1.5 text-sm font-semibold text-[#3f6f3d]">
+                                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#eef1f5] px-3 py-1.5 text-sm font-semibold text-[#3b6fa8]">
                                                 <CheckSmallIcon /> Verified
                                             </span>
                                         </div>
@@ -581,7 +581,7 @@ function CertificatesContent({
 
                                         {/* CERTIFICATE INFORMATION */}
                                         {selectedCertificate && (
-                                            <div className="mt-4 rounded-xl bg-[#f7f8f5] p-4">
+                                            <div className="mt-4 rounded-xl bg-[#ffffff] p-4">
                                                 <p className="text-base font-semibold text-gray-800">
                                                     {selectedCertificate.name}
                                                 </p>
@@ -633,7 +633,7 @@ function CertificatesContent({
                                                                         }
                                                                         className="flex items-start gap-2 text-sm leading-6 text-gray-600"
                                                                     >
-                                                                        <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#3f6f3d] text-white">
+                                                                        <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#3b6fa8] text-white">
                                                                             <CheckSmallIcon />
                                                                         </span>
                                                                         <span>
@@ -652,7 +652,7 @@ function CertificatesContent({
                                                     <span className="text-sm font-medium text-gray-600">
                                                         Fee
                                                     </span>
-                                                    <span className="text-lg font-semibold text-[#3f6f3d]">
+                                                    <span className="text-lg font-semibold text-[#3b6fa8]">
                                                         {selectedCertificate.fee >
                                                         0
                                                             ? `₱${selectedCertificate.fee.toLocaleString()}`
@@ -664,7 +664,7 @@ function CertificatesContent({
 
                                         {/* FIXED PURPOSE */}
                                         {selectedCertificate?.fixedPurpose && (
-                                            <div className="mt-5 rounded-lg border border-[#d7e3d4] bg-[#edf4ea] p-4">
+                                            <div className="mt-5 rounded-lg border border-[#d7e3d4] bg-[#eef1f5] p-4">
                                                 <p className="text-sm font-medium text-gray-600">
                                                     Purpose
                                                 </p>
@@ -1006,7 +1006,7 @@ function CertificatesContent({
 
                                         <button
                                             type="submit"
-                                            className="mt-6 flex min-h-12 w-full items-center justify-center rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
+                                            className="mt-6 flex min-h-12 w-full items-center justify-center rounded-lg bg-[#3b6fa8] px-5 text-base font-semibold text-white transition hover:bg-[#2a5279]"
                                         >
                                             Continue
                                         </button>
@@ -1019,7 +1019,7 @@ function CertificatesContent({
                                                 processing ||
                                                 !selectedCertificate
                                             }
-                                            className="mt-3 min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 font-semibold text-[#3f6f3d] disabled:opacity-50"
+                                            className="mt-3 min-h-11 w-full rounded-lg border border-[#3b6fa8] px-4 font-semibold text-[#3b6fa8] disabled:opacity-50"
                                         >
                                             Save draft on this device
                                         </button>
@@ -1112,7 +1112,7 @@ function CertificatesContent({
                                                 void saveOfflineDraft()
                                             }
                                             disabled={processing}
-                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-4 font-semibold text-[#3f6f3d] disabled:opacity-50"
+                                            className="min-h-12 rounded-lg border border-[#3b6fa8] px-4 font-semibold text-[#3b6fa8] disabled:opacity-50"
                                         >
                                             Save draft on this device
                                         </button>
@@ -1128,7 +1128,7 @@ function CertificatesContent({
                                             type="button"
                                             onClick={handleSubmitRequest}
                                             disabled={processing}
-                                            className="min-h-12 w-full rounded-lg bg-[#3f6f3d] px-6 text-base font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-50 sm:w-auto"
+                                            className="min-h-12 w-full rounded-lg bg-[#3b6fa8] px-6 text-base font-semibold text-white transition hover:bg-[#2a5279] disabled:opacity-50 sm:w-auto"
                                         >
                                             {processing
                                                 ? 'Submitting...'
@@ -1143,7 +1143,7 @@ function CertificatesContent({
                         {step === 'success' && submittedRequest && (
                             <div className="mx-auto w-full max-w-xl">
                                 <section className="rounded-xl border border-gray-200 bg-white p-5 text-center sm:p-7">
-                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#3f6f3d] text-white">
+                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#3b6fa8] text-white">
                                         <CheckLargeIcon />
                                     </div>
                                     <h2 className="mt-5 text-xl font-semibold text-gray-800 sm:text-2xl">
@@ -1153,7 +1153,7 @@ function CertificatesContent({
                                         Your certificate request has been
                                         submitted for barangay review.
                                     </p>
-                                    <div className="mt-6 rounded-xl bg-[#f7f8f5] p-4 text-left sm:p-5">
+                                    <div className="mt-6 rounded-xl bg-[#ffffff] p-4 text-left sm:p-5">
                                         <InfoItem
                                             label="Request Number"
                                             value={submittedRequest.reference}
@@ -1177,7 +1177,7 @@ function CertificatesContent({
                                         <button
                                             type="button"
                                             onClick={resetForm}
-                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-5 text-base font-semibold text-[#3f6f3d] transition hover:bg-[#edf4ea]"
+                                            className="min-h-12 rounded-lg border border-[#3b6fa8] px-5 text-base font-semibold text-[#3b6fa8] transition hover:bg-[#eef1f5]"
                                         >
                                             Request Another
                                         </button>
@@ -1186,7 +1186,7 @@ function CertificatesContent({
                                             onClick={() =>
                                                 setActiveTab('requests')
                                             }
-                                            className="min-h-12 rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
+                                            className="min-h-12 rounded-lg bg-[#3b6fa8] px-5 text-base font-semibold text-white transition hover:bg-[#2a5279]"
                                         >
                                             My Requests
                                         </button>
@@ -1241,7 +1241,7 @@ function CertificatesContent({
                                                             request,
                                                         )
                                                     }
-                                                    className="min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 text-sm font-semibold text-[#3f6f3d] transition hover:bg-[#edf4ea] sm:w-auto"
+                                                    className="min-h-11 w-full rounded-lg border border-[#3b6fa8] px-4 text-sm font-semibold text-[#3b6fa8] transition hover:bg-[#eef1f5] sm:w-auto"
                                                 >
                                                     View Details
                                                 </button>
@@ -1269,7 +1269,7 @@ function CertificatesContent({
                                         resetForm();
                                         setActiveTab('request');
                                     }}
-                                    className="mt-5 min-h-12 w-full rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white sm:w-auto"
+                                    className="mt-5 min-h-12 w-full rounded-lg bg-[#3b6fa8] px-5 text-base font-semibold text-white sm:w-auto"
                                 >
                                     Request Certificate
                                 </button>
@@ -1299,7 +1299,7 @@ function CertificatesContent({
 */
 
 const inputClass =
-    'min-h-12 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20 sm:px-4 sm:text-base';
+    'min-h-12 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/20 sm:px-4 sm:text-base';
 
 /*
 |--------------------------------------------------------------------------
@@ -1339,7 +1339,7 @@ function RequestDetailsModal({
 
                 {/* CONTENT */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-                    <div className="rounded-xl border border-gray-200 bg-[#fafaf7] p-4">
+                    <div className="rounded-xl border border-gray-200 bg-[#ffffff] p-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <InfoItem
                                 label="Certificate"
@@ -1425,7 +1425,7 @@ function RequestDetailsModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="min-h-11 w-full rounded-lg bg-[#3f6f3d] px-5 text-sm font-semibold text-white transition hover:bg-[#315b30] sm:ml-auto sm:block sm:w-auto"
+                        className="min-h-11 w-full rounded-lg bg-[#3b6fa8] px-5 text-sm font-semibold text-white transition hover:bg-[#2a5279] sm:ml-auto sm:block sm:w-auto"
                     >
                         Close
                     </button>
@@ -1515,7 +1515,7 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                 <div
                                     className={`absolute top-9 left-[17px] h-[calc(100%-1px)] w-[2px] ${
                                         index < currentStep
-                                            ? 'bg-[#3f6f3d]'
+                                            ? 'bg-[#3b6fa8]'
                                             : 'bg-gray-200'
                                     }`}
                                 />
@@ -1523,9 +1523,9 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                             <div
                                 className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 ${
                                     completed
-                                        ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                                        ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
                                         : current
-                                          ? 'border-[#3f6f3d] bg-[#e8f2e5] text-[#3f6f3d]'
+                                          ? 'border-[#3b6fa8] bg-[#eaf1f8] text-[#3b6fa8]'
                                           : 'border-gray-300 bg-white text-gray-400'
                                 }`}
                             >
@@ -1546,7 +1546,7 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                     </p>
                                 )}
                                 {current && (
-                                    <p className="mt-1 text-xs font-semibold text-[#3f6f3d]">
+                                    <p className="mt-1 text-xs font-semibold text-[#3b6fa8]">
                                         Current status
                                     </p>
                                 )}
@@ -1577,15 +1577,15 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                             >
                                 {index > 0 && (
                                     <div
-                                        className={`absolute top-5 right-1/2 h-[3px] w-full ${reached ? 'bg-[#3f6f3d]' : 'bg-gray-200'}`}
+                                        className={`absolute top-5 right-1/2 h-[3px] w-full ${reached ? 'bg-[#3b6fa8]' : 'bg-gray-200'}`}
                                     />
                                 )}
                                 <div
                                     className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 ${
                                         completed
-                                            ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                                            ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
                                             : current
-                                              ? 'border-[#3f6f3d] bg-[#e8f2e5] text-[#3f6f3d]'
+                                              ? 'border-[#3b6fa8] bg-[#eaf1f8] text-[#3b6fa8]'
                                               : 'border-gray-300 bg-white text-gray-400'
                                     }`}
                                 >
@@ -1604,7 +1604,7 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                     {step}
                                 </p>
                                 {current && (
-                                    <span className="mt-1 text-[11px] font-semibold text-[#3f6f3d]">
+                                    <span className="mt-1 text-[11px] font-semibold text-[#3b6fa8]">
                                         Current
                                     </span>
                                 )}
@@ -1615,9 +1615,9 @@ function RequestTracker({ status }: { status: RequestStatus }) {
             </div>
 
             {/* STATUS MESSAGE */}
-            <div className="mt-4 rounded-xl border border-[#d8e8d4] bg-[#f4f8f2] p-4">
+            <div className="mt-4 rounded-xl border border-[#d8e8d4] bg-[#ffffff] p-4">
                 <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-[#3f6f3d]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#d6e4f2] text-[#3b6fa8]">
                         <CurrentStatusIcon status={status} />
                     </div>
                     <div>
@@ -1897,7 +1897,7 @@ function StatusBadge({ status }: { status: RequestStatus }) {
         'Needs Action': 'bg-[#fff0e5] text-[#a65316]',
         'For Payment': 'bg-[#f3ecff] text-[#6f42a5]',
         Processing: 'bg-[#eef3fb] text-[#416b9c]',
-        'Ready for Claim': 'bg-[#edf4ea] text-[#3f6f3d]',
+        'Ready for Claim': 'bg-[#eef1f5] text-[#3b6fa8]',
         Released: 'bg-gray-100 text-gray-600',
         Rejected: 'bg-[#fdecec] text-[#a33a3a]',
     };
@@ -1989,7 +1989,7 @@ function CertificateOutlineIcon({ small = false }: { small?: boolean }) {
         <svg
             viewBox="0 0 24 24"
             fill="none"
-            className={small ? 'h-4 w-4' : 'mx-auto h-10 w-10 text-[#3f6f3d]'}
+            className={small ? 'h-4 w-4' : 'mx-auto h-10 w-10 text-[#3b6fa8]'}
             stroke="currentColor"
             strokeWidth="1.8"
             strokeLinecap="round"

@@ -176,7 +176,7 @@ function EmergencyNumbersContent({
                     <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
                         <div className="flex items-center justify-between border-b border-gray-100 bg-[#fbfdfa] px-5 py-4">
                             <div className="flex items-center gap-3">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8f1e4] text-lg font-bold text-[#3f6f3d]">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf1f8] text-lg font-bold text-[#3b6fa8]">
                                     🛡️
                                 </span>
                                 <div>
@@ -192,7 +192,7 @@ function EmergencyNumbersContent({
                             <button
                                 type="button"
                                 onClick={openAddModal}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#3f6f3d] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#315b30] focus:ring-2 focus:ring-[#3f6f3d]/30 focus:outline-none"
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#3b6fa8] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#2a5279] focus:ring-2 focus:ring-[#3b6fa8]/30 focus:outline-none"
                             >
                                 <span className="text-sm">+</span> Add Hotline
                             </button>
@@ -211,7 +211,7 @@ function EmergencyNumbersContent({
                                     <button
                                         type="button"
                                         onClick={openAddModal}
-                                        className="mt-4 inline-flex items-center gap-1 rounded-lg border border-[#3f6f3d] px-3 py-1.5 text-xs font-semibold text-[#3f6f3d] hover:bg-[#edf5ea]"
+                                        className="mt-4 inline-flex items-center gap-1 rounded-lg border border-[#3b6fa8] px-3 py-1.5 text-xs font-semibold text-[#3b6fa8] hover:bg-[#eef1f5]"
                                     >
                                         + Add First Contact
                                     </button>
@@ -327,7 +327,7 @@ function EmergencyNumbersContent({
                                         setSubCategory(e.target.value)
                                     }
                                     placeholder="e.g. Official, Tanod, Desk"
-                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                                 />
                             </div>
 
@@ -340,7 +340,7 @@ function EmergencyNumbersContent({
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     placeholder="e.g. Barangay Tanod or Cenon Mabutin Bocacao"
-                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                                     required
                                 />
                                 {pageErrors?.name && (
@@ -359,7 +359,7 @@ function EmergencyNumbersContent({
                                     value={label}
                                     onChange={(e) => setLabel(e.target.value)}
                                     placeholder="e.g. Chief Tanod, Official Hotline"
-                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                                 />
                             </div>
 
@@ -374,7 +374,7 @@ function EmergencyNumbersContent({
                                         setPhoneNumber(e.target.value)
                                     }
                                     placeholder="e.g. 09394596081"
-                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-mono text-sm text-gray-800 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-mono text-sm text-gray-800 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                                     required
                                 />
                                 {pageErrors?.phone_number && (
@@ -392,7 +392,7 @@ function EmergencyNumbersContent({
                                         onChange={(e) =>
                                             setCanCall(e.target.checked)
                                         }
-                                        className="h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
+                                        className="h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
                                     />
                                     <span>
                                         Allow Call (confirm this number accepts
@@ -407,7 +407,7 @@ function EmergencyNumbersContent({
                                         onChange={(e) =>
                                             setCanSms(e.target.checked)
                                         }
-                                        className="h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
+                                        className="h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
                                     />
                                     <span>
                                         Allow Text/SMS (enable only after
@@ -422,7 +422,7 @@ function EmergencyNumbersContent({
                                         onChange={(e) =>
                                             setIsActive(e.target.checked)
                                         }
-                                        className="h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]"
+                                        className="h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
                                     />
                                     <span>Visible to Residents</span>
                                 </label>
@@ -455,7 +455,7 @@ function EmergencyNumbersContent({
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="rounded-xl bg-[#3f6f3d] px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#315b30] disabled:opacity-50"
+                                    className="rounded-xl bg-[#3b6fa8] px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#2a5279] disabled:opacity-50"
                                 >
                                     {isSubmitting
                                         ? 'Saving…'
@@ -543,7 +543,7 @@ function ContactRow({
                     </span>
                     {contact.sub_category && (
                         <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${theme === 'green' ? 'bg-[#edf5ea] text-[#3f6f3d]' : 'bg-red-100 text-red-700'}`}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${theme === 'green' ? 'bg-[#eef1f5] text-[#3b6fa8]' : 'bg-red-100 text-red-700'}`}
                         >
                             {contact.sub_category}
                         </span>
@@ -569,7 +569,7 @@ function ContactRow({
 
                 <div className="mt-1 flex flex-wrap items-center gap-3">
                     <span
-                        className={`font-mono text-xs font-bold tracking-wide ${theme === 'green' ? 'text-[#315b30]' : 'text-red-700'}`}
+                        className={`font-mono text-xs font-bold tracking-wide ${theme === 'green' ? 'text-[#2a5279]' : 'text-red-700'}`}
                     >
                         {formatPhoneNumber(contact.phone_number)}
                     </span>

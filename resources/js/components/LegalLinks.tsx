@@ -8,7 +8,7 @@ export default function LegalLinks() {
                 href="/privacy-policy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:text-[#3f6f3d]"
+                className="underline underline-offset-4 hover:text-[#3b6fa8]"
             >
                 Privacy Policy
                 <span className="sr-only"> (opens in a new tab)</span>
@@ -17,7 +17,7 @@ export default function LegalLinks() {
                 href="/terms-and-conditions"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:text-[#3f6f3d]"
+                className="underline underline-offset-4 hover:text-[#3b6fa8]"
             >
                 Terms and Conditions
                 <span className="sr-only"> (opens in a new tab)</span>

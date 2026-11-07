@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import LegalLinks from '@/components/LegalLinks';
+import AuthLayout from '@/layouts/AuthLayout';
 
 import { FormEvent, useEffect, useState } from 'react';
 
@@ -193,45 +194,8 @@ export default function Login() {
         <>
             <Head title="Resident Login" />
 
-            <div className="min-h-screen bg-[#f7f6f0]">
-                {/* ========================================================
-
-                    TOP BRAND
-
-                ======================================================== */}
-
-                <header className="border-b border-[#d8e4d5] bg-[#3f6f3d]">
-                    <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
-                        <Link
-                            href="/"
-
-                            className="inline-flex items-center gap-3 text-white"
-                        >
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-[#3f6f3d]">
-                                SJ
-                            </div>
-
-                            <div>
-                                <p className="text-base leading-tight font-bold sm:text-lg">
-                                    KaBarangay
-                                </p>
-
-                                <p className="text-xs text-white/80">
-                                    Barangay San Jose
-                                </p>
-                            </div>
-                        </Link>
-                    </div>
-                </header>
-
-                {/* ========================================================
-
-                    MAIN
-
-                ======================================================== */}
-
-                <main className="mx-auto flex min-h-[calc(100vh-64px)] w-full max-w-7xl items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-                    <div className="w-full max-w-md">
+            <AuthLayout variant="resident">
+                <div className="w-full">
                         {/* =================================================
 
                             LOGIN CARD
@@ -242,7 +206,7 @@ export default function Login() {
                             {/* HEADING */}
 
                             <div className="text-center">
-                                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f1e4] text-[#3f6f3d]">
+                                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf1f8] text-[#3b6fa8]">
                                     <ResidentIcon />
                                 </div>
 
@@ -275,7 +239,7 @@ export default function Login() {
                                         className={`flex min-h-11 items-center gap-3 rounded-xl border bg-white px-3.5 transition focus-within:ring-2 ${
                                             errors.barangay_id
                                                 ? 'border-red-400 focus-within:border-red-500 focus-within:ring-red-100'
-                                                : 'border-gray-300 focus-within:border-[#3f6f3d] focus-within:ring-[#3f6f3d]/15'
+                                                : 'border-gray-300 focus-within:border-[#3b6fa8] focus-within:ring-[#3b6fa8]/15'
                                         }`}
                                     >
                                         <div className="shrink-0 text-gray-400">
@@ -348,7 +312,7 @@ export default function Login() {
 
                                     error={errors.identifier}
                                 >
-                                    <div className="flex min-h-11 items-center gap-3 rounded-xl border border-gray-300 bg-white px-3.5 transition focus-within:border-[#3f6f3d] focus-within:ring-2 focus-within:ring-[#3f6f3d]/15">
+                                    <div className="flex min-h-11 items-center gap-3 rounded-xl border border-gray-300 bg-white px-3.5 transition focus-within:border-[#3b6fa8] focus-within:ring-2 focus-within:ring-[#3b6fa8]/15">
                                         <div className="shrink-0 text-gray-400">
                                             <UserIcon />
                                         </div>
@@ -391,7 +355,7 @@ export default function Login() {
 
                                     error={errors.password}
                                 >
-                                    <div className="flex min-h-11 items-center gap-3 rounded-xl border border-gray-300 bg-white px-3.5 transition focus-within:border-[#3f6f3d] focus-within:ring-2 focus-within:ring-[#3f6f3d]/15">
+                                    <div className="flex min-h-11 items-center gap-3 rounded-xl border border-gray-300 bg-white px-3.5 transition focus-within:border-[#3b6fa8] focus-within:ring-2 focus-within:ring-[#3b6fa8]/15">
                                         <div className="shrink-0 text-gray-400">
                                             <LockIcon />
                                         </div>
@@ -468,7 +432,7 @@ export default function Login() {
                                                 )
                                             }
 
-                                            className="h-4 w-4 rounded border-gray-300 accent-[#3f6f3d]"
+                                            className="h-4 w-4 rounded border-gray-300 accent-[#3b6fa8]"
                                         />
 
                                         <span className="text-sm text-gray-600">
@@ -479,7 +443,7 @@ export default function Login() {
                                     <Link
                                         href="/resident/forgot-password"
 
-                                        className="text-sm font-semibold text-[#3f6f3d] transition hover:text-[#315b30] hover:underline"
+                                        className="text-sm font-semibold text-[#3b6fa8] transition hover:text-[#2a5279] hover:underline"
                                     >
                                         Forgot Password?
                                     </Link>
@@ -500,7 +464,7 @@ export default function Login() {
 
                                     disabled={isSubmitting}
 
-                                    className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#3f6f3d] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#315b30] active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
+                                    className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#3b6fa8] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2a5279] active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
                                 >
                                     {isSubmitting ? 'Signing In...' : 'Sign In'}
                                 </button>
@@ -529,7 +493,7 @@ export default function Login() {
                                 <Link
                                     href="/resident/register"
 
-                                    className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-[#bcd2b6] bg-white px-4 py-2.5 text-sm font-bold text-[#3f6f3d] transition hover:bg-[#f2f7f0]"
+                                    className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-[#c2cbd4] bg-white px-4 py-2.5 text-sm font-bold text-[#3b6fa8] transition hover:bg-[#f2f7f0]"
                                 >
                                     Create Resident Account
                                 </Link>
@@ -542,9 +506,9 @@ export default function Login() {
 
                         ================================================= */}
 
-                        <div className="mt-4 rounded-xl border border-[#dce8d8] bg-[#f4f8f2] p-4">
+                        <div className="mt-4 rounded-xl border border-[#dfe4ea] bg-[#ffffff] p-4">
                             <div className="flex items-start gap-3">
-                                <div className="mt-0.5 shrink-0 text-[#3f6f3d]">
+                                <div className="mt-0.5 shrink-0 text-[#3b6fa8]">
                                     <InfoIcon />
                                 </div>
 
@@ -575,8 +539,7 @@ export default function Login() {
                             </p>
                         </div>
                     </div>
-                </main>
-            </div>
+        </AuthLayout>
         </>
     );
 }

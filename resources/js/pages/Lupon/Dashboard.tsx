@@ -90,7 +90,7 @@ function LuponDashboard({
             <Head title="Lupon Dashboard" />
 
             <div className="mx-auto max-w-7xl space-y-6">
-                <div className="flex flex-col justify-between gap-4 rounded-2xl bg-[#315b30] p-6 text-white shadow-sm sm:flex-row sm:items-end">
+                <div className="flex flex-col justify-between gap-4 rounded-2xl bg-[#2a5279] p-6 text-white shadow-sm sm:flex-row sm:items-end">
                     <div>
                         <p className="text-xs font-semibold tracking-[0.16em] text-white/70 uppercase">
                             Katarungang Pambarangay
@@ -107,7 +107,7 @@ function LuponDashboard({
                     <div className="flex gap-2">
                         <Link
                             href="/lupon/complaints"
-                            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#315b30]"
+                            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#2a5279]"
                         >
                             Review intake
                         </Link>
@@ -153,7 +153,7 @@ function LuponDashboard({
                             </div>
                             <Link
                                 href="/lupon/cases"
-                                className="text-sm font-semibold text-[#3f6f3d]"
+                                className="text-sm font-semibold text-[#3b6fa8]"
                             >
                                 All cases
                             </Link>
@@ -204,7 +204,7 @@ function LuponDashboard({
                             </div>
                             <Link
                                 href="/lupon/hearings"
-                                className="text-sm font-semibold text-[#3f6f3d]"
+                                className="text-sm font-semibold text-[#3b6fa8]"
                             >
                                 Calendar
                             </Link>

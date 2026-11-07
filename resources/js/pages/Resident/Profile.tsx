@@ -302,7 +302,7 @@ function ProfileContent() {
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#eaf1f8] text-[#3b6fa8]">
                                 <ProfileLargeIcon />
                             </div>
 
@@ -312,7 +312,7 @@ function ProfileContent() {
                                         {profile.fullName}
                                     </h2>
 
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f1e4] px-2.5 py-1 text-[11px] font-semibold text-[#3f6f3d]">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-[#eaf1f8] px-2.5 py-1 text-[11px] font-semibold text-[#3b6fa8]">
                                         <SmallCheckIcon />
                                         Verified
                                     </span>
@@ -326,7 +326,7 @@ function ProfileContent() {
                                     {profile.purok}, {profile.barangay}
                                 </p>
 
-                                <p className="mt-1 text-sm font-semibold text-[#3f6f3d]">
+                                <p className="mt-1 text-sm font-semibold text-[#3b6fa8]">
                                     {classification}
                                 </p>
                             </div>
@@ -337,7 +337,7 @@ function ProfileContent() {
                         <button
                             type="button"
                             onClick={() => setShowQrModal(true)}
-                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#315b30]"
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3b6fa8] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2a5279]"
                         >
                             <QrIcon />
                             Show My QR
@@ -410,7 +410,7 @@ function ProfileContent() {
                     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eaf1f8] text-[#3b6fa8]">
                                     <ContactIcon />
                                 </div>
 
@@ -429,7 +429,7 @@ function ProfileContent() {
                                 <button
                                     type="button"
                                     onClick={() => setEditingContact(true)}
-                                    className="text-sm font-semibold text-[#3f6f3d] hover:text-[#315b30]"
+                                    className="text-sm font-semibold text-[#3b6fa8] hover:text-[#2a5279]"
                                 >
                                     Edit
                                 </button>
@@ -466,7 +466,7 @@ function ProfileContent() {
                                                     resendEmailVerification
                                                 }
                                                 disabled={resendingVerification}
-                                                className="text-xs font-semibold text-[#3f6f3d] hover:underline disabled:opacity-60"
+                                                className="text-xs font-semibold text-[#3b6fa8] hover:underline disabled:opacity-60"
                                             >
                                                 {resendingVerification
                                                     ? 'Sending...'
@@ -518,7 +518,7 @@ function ProfileContent() {
                                     <button
                                         type="submit"
                                         disabled={savingContact}
-                                        className="min-h-10 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="min-h-10 rounded-xl bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {savingContact ? 'Saving...' : 'Save'}
                                     </button>
@@ -664,11 +664,11 @@ function ProfileContent() {
                                 {profile.residentId}
                             </p>
 
-                            <p className="mt-2 text-sm font-semibold text-[#3f6f3d]">
+                            <p className="mt-2 text-sm font-semibold text-[#3b6fa8]">
                                 {classification}
                             </p>
 
-                            <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-[#e8f1e4] px-2.5 py-1 text-xs font-semibold text-[#3f6f3d]">
+                            <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-[#eaf1f8] px-2.5 py-1 text-xs font-semibold text-[#3b6fa8]">
                                 <SmallCheckIcon />
                                 Verified Resident
                             </span>
@@ -781,7 +781,7 @@ function CompactCard({
     return (
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eaf1f8] text-[#3b6fa8]">
                     {icon}
                 </div>
 
@@ -849,9 +849,9 @@ const inputClass = `
     text-gray-800
     outline-none
     transition
-    focus:border-[#3f6f3d]
+    focus:border-[#3b6fa8]
     focus:ring-2
-    focus:ring-[#3f6f3d]/15
+    focus:ring-[#3b6fa8]/15
     disabled:bg-gray-50
     disabled:text-gray-400
     sm:text-sm

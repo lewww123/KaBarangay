@@ -88,9 +88,9 @@ export default function RegistrationApplication({ application }: Props) {
 
 
     return (
-        <div className="min-h-screen bg-[#f7f6f0]">
+        <div className="min-h-screen bg-[#eef1f5]">
             <Head title="Resident Application Status" />
-            <header className="border-b border-[#315b30] bg-[#3f6f3d]">
+            <header className="border-b border-[#2a5279] bg-[#3b6fa8]">
                 <div className="mx-auto flex min-h-16 w-full max-w-4xl items-center justify-between px-4 sm:px-6">
                     <div className="text-white">
                         <p className="text-base font-bold">KaBarangay</p>
@@ -167,7 +167,7 @@ export default function RegistrationApplication({ application }: Props) {
                         </div>
                     </dl>
 
-                    <section className="mt-6 rounded-xl border border-[#d7e5d2] bg-[#f8fbf6] p-4 sm:p-5">
+                    <section className="mt-6 rounded-xl border border-[#dfe4ea] bg-[#ffffff] p-4 sm:p-5">
                         <h2 className="text-sm font-semibold text-gray-800">Email notifications</h2>
                         <p className="mt-2 text-sm text-gray-600">
                             Email is optional. If supplied, it may receive the admin decision.
@@ -403,7 +403,7 @@ export default function RegistrationApplication({ application }: Props) {
                                     <button
                                         type="submit"
                                         disabled={correctionForm.processing}
-                                        className="min-h-11 rounded-lg bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="min-h-11 rounded-lg bg-[#3b6fa8] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {correctionForm.processing
                                             ? 'Submitting…'

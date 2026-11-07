@@ -14,12 +14,12 @@ export default function ForgotPassword() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#f7f6f0] px-4 py-10">
+        <div className="flex min-h-screen items-center justify-center bg-[#eef1f5] px-4 py-10">
             <Head title="Forgot Password" />
 
             <div className="w-full max-w-md">
                 <div className="mb-6 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-lg font-bold text-[#3f6f3d] shadow-sm">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-lg font-bold text-[#3b6fa8] shadow-sm">
                         SJ
                     </div>
                     <h1 className="mt-4 text-xl font-bold text-gray-900">
@@ -54,7 +54,7 @@ export default function ForgotPassword() {
                                 onChange={(e) =>
                                     setData('email', e.target.value)
                                 }
-                                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d]"
+                                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8]"
                                 placeholder="you@example.com"
                                 required
                             />
@@ -68,7 +68,7 @@ export default function ForgotPassword() {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full rounded-lg bg-[#3f6f3d] py-2.5 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-60"
+                            className="w-full rounded-lg bg-[#3b6fa8] py-2.5 text-sm font-semibold text-white transition hover:bg-[#2a5279] disabled:opacity-60"
                         >
                             {processing ? 'Sending...' : 'Send Reset Link'}
                         </button>
@@ -78,7 +78,7 @@ export default function ForgotPassword() {
                         Remembered your password?{' '}
                         <a
                             href="/resident/login"
-                            className="font-semibold text-[#3f6f3d] hover:underline"
+                            className="font-semibold text-[#3b6fa8] hover:underline"
                         >
                             Back to login
                         </a>

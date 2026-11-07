@@ -47,7 +47,7 @@ export default function DisbursementPreview({ document, csvPreview }: Props) {
 
                     <a
                         href={document.download_url}
-                        className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#3f6f3d] px-3 text-xs font-semibold text-white transition hover:bg-[#315b30]"
+                        className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#3b6fa8] px-3 text-xs font-semibold text-white transition hover:bg-[#2a5279]"
                     >
                         Download original
                     </a>

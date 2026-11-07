@@ -264,7 +264,7 @@ function LuponComplaints({
                 </div>
 
                 {complaints.data.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-gray-300 bg-[#fafaf7] p-10 text-center">
+                    <div className="rounded-2xl border border-dashed border-gray-300 bg-[#ffffff] p-10 text-center">
                         <h2 className="text-base font-semibold text-gray-800">
                             No complaints found
                         </h2>
@@ -443,7 +443,7 @@ function LuponComplaints({
                                         setNote(event.target.value)
                                     }
                                     placeholder="Optional note, or the reason when rejecting..."
-                                    className="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-800 transition outline-none placeholder:text-gray-400 focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15 sm:text-sm"
+                                    className="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-800 transition outline-none placeholder:text-gray-400 focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/15 sm:text-sm"
                                 />
                             </div>
 
@@ -535,7 +535,7 @@ function LuponComplaints({
                                 {selected.case && (
                                     <a
                                         href={`/lupon/cases/${selected.case.id}`}
-                                        className="inline-flex min-h-11 items-center rounded-xl border border-[#3f6f3d] bg-[#f0f6ee] px-5 py-2.5 text-sm font-semibold text-[#3f6f3d] hover:bg-[#e4efe1]"
+                                        className="inline-flex min-h-11 items-center rounded-xl border border-[#3b6fa8] bg-[#eef1f5] px-5 py-2.5 text-sm font-semibold text-[#3b6fa8] hover:bg-[#e4efe1]"
                                     >
                                         View Case {selected.case.caseNumber} →
                                     </a>
@@ -567,7 +567,7 @@ function ComplaintRow({
         <div
             className={`rounded-2xl border bg-white p-4 shadow-sm transition sm:p-5 ${
                 expanded
-                    ? 'border-[#3f6f3d]'
+                    ? 'border-[#3b6fa8]'
                     : 'border-gray-200 hover:border-gray-300'
             }`}
         >
@@ -607,7 +607,7 @@ function ComplaintRow({
                 <button
                     type="button"
                     onClick={onToggle}
-                    className="min-h-10 shrink-0 rounded-xl border border-[#bcd2b6] bg-white px-4 py-2 text-sm font-semibold text-[#3f6f3d] transition hover:bg-[#f0f6ee]"
+                    className="min-h-10 shrink-0 rounded-xl border border-[#c2cbd4] bg-white px-4 py-2 text-sm font-semibold text-[#3b6fa8] transition hover:bg-[#eef1f5]"
                 >
                     {expanded ? 'Close' : 'Review'}
                 </button>
@@ -631,7 +631,7 @@ function FilterChip({
             onClick={onClick}
             className={`min-h-10 rounded-full border px-4 py-2 text-sm font-semibold transition ${
                 active
-                    ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                    ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
                     : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
             }`}
         >

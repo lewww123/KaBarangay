@@ -550,7 +550,7 @@ function ClerkAttendanceSheet({
                 <div className="flex flex-col gap-4 rounded-xl border border-gray-200/80 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-[#3f6f3d] uppercase">
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-[#3b6fa8] uppercase">
                                 {announcement.category}
                             </span>
                             <span className="text-xs text-gray-400">•</span>
@@ -593,7 +593,7 @@ function ClerkAttendanceSheet({
                         <div className="space-y-4">
                             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                                 <div className="flex items-center gap-2.5">
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-sm text-[#3f6f3d]">
+                                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-sm text-[#3b6fa8]">
                                         📷
                                     </span>
                                     <div>
@@ -602,7 +602,7 @@ function ClerkAttendanceSheet({
                                         </h3>
                                         <p className="text-xs text-gray-500">
                                             Kasalukuyang mode:{' '}
-                                            <strong className="text-[#3f6f3d] uppercase">
+                                            <strong className="text-[#3b6fa8] uppercase">
                                                 {activeTab}
                                             </strong>
                                         </p>
@@ -642,7 +642,7 @@ function ClerkAttendanceSheet({
                                             isProcessingScan || manualProcessing
                                         }
                                         placeholder={`I-scan para itala bilang ${activeTab}...`}
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50/50 p-3 font-mono text-xs outline-none read-only:cursor-wait read-only:bg-gray-100 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d]"
+                                        className="w-full rounded-lg border border-gray-300 bg-gray-50/50 p-3 font-mono text-xs outline-none read-only:cursor-wait read-only:bg-gray-100 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8]"
                                         autoFocus
                                     />
                                     <p className="text-[11px] text-gray-500">
@@ -656,7 +656,7 @@ function ClerkAttendanceSheet({
                                     disabled={
                                         isProcessingScan || manualProcessing
                                     }
-                                    className="w-full rounded-lg bg-[#3f6f3d] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-wait disabled:opacity-70"
+                                    className="w-full rounded-lg bg-[#3b6fa8] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#2a5279] disabled:cursor-wait disabled:opacity-70"
                                 >
                                     {isProcessingScan
                                         ? 'Vine-verify at itinatala...'
@@ -678,7 +678,7 @@ function ClerkAttendanceSheet({
                                     </h3>
                                     <p className="text-xs text-gray-500">
                                         Mag-record para sa{' '}
-                                        <strong className="text-[#3f6f3d] uppercase">
+                                        <strong className="text-[#3b6fa8] uppercase">
                                             {activeTab}
                                         </strong>{' '}
                                         nang walang QR.
@@ -711,7 +711,7 @@ function ClerkAttendanceSheet({
                                         disabled={
                                             isProcessingScan || manualProcessing
                                         }
-                                        className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-xs outline-none focus:border-[#3f6f3d] disabled:cursor-wait disabled:bg-gray-100"
+                                        className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-xs outline-none focus:border-[#3b6fa8] disabled:cursor-wait disabled:bg-gray-100"
                                         required
                                     >
                                         <option value="">
@@ -736,7 +736,7 @@ function ClerkAttendanceSheet({
                                     disabled={
                                         isProcessingScan || manualProcessing
                                     }
-                                    className="w-full rounded-lg bg-[#3f6f3d] py-3 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-wait disabled:opacity-70"
+                                    className="w-full rounded-lg bg-[#3b6fa8] py-3 text-xs font-bold text-white shadow-sm transition hover:bg-[#2a5279] disabled:cursor-wait disabled:opacity-70"
                                 >
                                     {manualProcessing
                                         ? 'Itinatala...'
@@ -757,7 +757,7 @@ function ClerkAttendanceSheet({
                                 aria-pressed={activeTab === 'present'}
                                 className={`rounded-lg px-4 py-2 text-xs font-bold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'present'
-                                        ? 'bg-[#3f6f3d] text-white shadow-sm'
+                                        ? 'bg-[#3b6fa8] text-white shadow-sm'
                                         : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-100'
                                 }`}
                             >
@@ -777,7 +777,7 @@ function ClerkAttendanceSheet({
                                 aria-pressed={activeTab === 'claimed'}
                                 className={`rounded-lg px-4 py-2 text-xs font-bold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'claimed'
-                                        ? 'bg-[#3f6f3d] text-white shadow-sm'
+                                        ? 'bg-[#3b6fa8] text-white shadow-sm'
                                         : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-100'
                                 }`}
                             >
@@ -839,7 +839,7 @@ function ClerkAttendanceSheet({
                                                             ? 'bg-emerald-100 text-emerald-800'
                                                             : item.status ===
                                                                 'present'
-                                                              ? 'bg-[#edf4ea] text-[#3f6f3d]'
+                                                              ? 'bg-[#eef1f5] text-[#3b6fa8]'
                                                               : 'bg-red-100 text-red-800'
                                                     }`}
                                                 >

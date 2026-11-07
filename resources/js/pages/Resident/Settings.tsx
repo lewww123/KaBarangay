@@ -379,9 +379,9 @@ export default function Settings() {
                     LIVE ACCESSIBILITY STATUS
                 ======================================================== */}
 
-                <div className="mt-4 rounded-2xl border border-[#d8e6d3] bg-[#f4f8f2] p-4 sm:p-5">
+                <div className="mt-4 rounded-2xl border border-[#dfe4ea] bg-[#ffffff] p-4 sm:p-5">
                     <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-[#3f6f3d]">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#d6e4f2] text-[#3b6fa8]">
                             <EyeIcon />
                         </div>
 
@@ -684,7 +684,7 @@ export default function Settings() {
                             <button
                                 type="submit"
                                 disabled={passwordForm.processing}
-                                className="mt-5 min-h-11 w-full rounded-xl bg-[#3f6f3d] px-4 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                className="mt-5 min-h-11 w-full rounded-xl bg-[#3b6fa8] px-4 text-sm font-semibold text-white transition hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {passwordForm.processing
                                     ? 'Updating…'
@@ -718,7 +718,7 @@ function SettingCard({
     return (
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f1e4] text-[#3f6f3d]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eaf1f8] text-[#3b6fa8]">
                     {icon}
                 </div>
 
@@ -810,7 +810,7 @@ function SwitchRow({
                 onClick={() => onChange(!checked)}
                 className={`kb-setting-switch relative h-8 w-[54px] shrink-0 rounded-full border transition-all duration-200 ${
                     checked
-                        ? 'border-[#3f6f3d] bg-[#3f6f3d] shadow-sm'
+                        ? 'border-[#3b6fa8] bg-[#3b6fa8] shadow-sm'
                         : 'border-gray-300 bg-gray-200'
                 }`}
             >
@@ -820,7 +820,7 @@ function SwitchRow({
                     }`}
                 >
                     {checked && (
-                        <span className="text-[#3f6f3d]">
+                        <span className="text-[#3b6fa8]">
                             <CheckIcon />
                         </span>
                     )}
@@ -853,7 +853,7 @@ function ThemeButton({
             onClick={onClick}
             className={`min-h-[74px] rounded-xl border px-2 py-3 transition ${
                 selected
-                    ? 'border-[#6f9868] bg-[#edf4ea] text-[#315b30] ring-1 ring-[#6f9868]'
+                    ? 'border-[#6e747c] bg-[#eef1f5] text-[#2a5279] ring-1 ring-[#6e747c]'
                     : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
             }`}
         >
@@ -891,14 +891,14 @@ function TextSizeButton({
             onClick={onClick}
             className={`min-h-[74px] rounded-xl border p-2 transition ${
                 selected
-                    ? 'border-[#6f9868] bg-[#edf4ea] ring-1 ring-[#6f9868]'
+                    ? 'border-[#6e747c] bg-[#eef1f5] ring-1 ring-[#6e747c]'
                     : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
             }`}
         >
             <div className="flex flex-col items-center justify-center">
                 <span
                     className={`font-bold ${
-                        selected ? 'text-[#315b30]' : 'text-gray-700'
+                        selected ? 'text-[#2a5279]' : 'text-gray-700'
                     } ${sampleClass}`}
                 >
                     Aa
@@ -920,10 +920,10 @@ function TextSizeButton({
 
 function StatusChip({ label, value }: { label: string; value: string }) {
     return (
-        <span className="inline-flex items-center gap-1 rounded-lg border border-[#dce8d8] bg-white px-2.5 py-1.5 text-xs">
+        <span className="inline-flex items-center gap-1 rounded-lg border border-[#dfe4ea] bg-white px-2.5 py-1.5 text-xs">
             <span className="text-gray-400">{label}:</span>
 
-            <span className="font-semibold text-[#3f6f3d]">{value}</span>
+            <span className="font-semibold text-[#3b6fa8]">{value}</span>
         </span>
     );
 }
@@ -1019,7 +1019,7 @@ function PasswordField({
                 aria-describedby={
                     error ? `${id}-error` : hint ? `${id}-hint` : undefined
                 }
-                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 text-base text-gray-800 transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15 sm:text-sm"
+                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 text-base text-gray-800 transition outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/15 sm:text-sm"
             />
 
             {error ? (

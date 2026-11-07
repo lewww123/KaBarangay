@@ -218,7 +218,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                             clear();
                             setOpen(true);
                         }}
-                        className="min-h-11 rounded-lg bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white"
+                        className="min-h-11 rounded-lg bg-[#3b6fa8] px-5 py-2.5 text-sm font-semibold text-white"
                     >
                         Assign new staff
                     </button>
@@ -304,7 +304,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                             <button
                                                 type="button"
                                                 onClick={() => edit(assignment)}
-                                                className="mr-4 font-semibold text-[#3f6f3d]"
+                                                className="mr-4 font-semibold text-[#3b6fa8]"
                                             >
                                                 Edit
                                             </button>
@@ -497,7 +497,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                     setScanning(!scanning);
                                     setLookupError('');
                                 }}
-                                className="mt-3 rounded-lg border border-[#3f6f3d] px-3 py-2 text-sm font-semibold text-[#315b30]"
+                                className="mt-3 rounded-lg border border-[#3b6fa8] px-3 py-2 text-sm font-semibold text-[#2a5279]"
                             >
                                 {scanning
                                     ? 'Close scanner'
@@ -612,7 +612,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                         </button>
                         <button
                             disabled={form.processing}
-                            className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                            className="rounded-lg bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                         >
                             {form.processing
                                 ? 'Saving…'

@@ -101,7 +101,7 @@ export default function Reports({
             <Head title="Admin Reports" />
             <AdminLayout active="reports">
                 <div className="mb-6">
-                    <p className="text-sm font-medium text-[#3f6f3d]">
+                    <p className="text-sm font-medium text-[#3b6fa8]">
                         Management overview
                     </p>
                     <h1 className="mt-1 text-2xl font-semibold text-gray-800">
@@ -114,7 +114,7 @@ export default function Reports({
 
                 <form
                     onSubmit={applyFilters}
-                    className="mb-6 rounded-xl border border-[#e7e4d8] bg-[#fafaf7] p-4"
+                    className="mb-6 rounded-xl border border-[#dfe4ea] bg-[#ffffff] p-4"
                 >
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <label className="text-sm font-medium text-gray-700">
@@ -262,13 +262,13 @@ export default function Reports({
                         <button
                             type="submit"
                             disabled={loading}
-                            className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#345b32] disabled:opacity-60"
+                            className="rounded-lg bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#345b32] disabled:opacity-60"
                         >
                             {loading ? 'Generating…' : 'Generate report'}
                         </button>
                         <a
                             href={exportUrl}
-                            className="rounded-lg border border-[#3f6f3d] px-4 py-2 text-sm font-semibold text-[#3f6f3d] hover:bg-white"
+                            className="rounded-lg border border-[#3b6fa8] px-4 py-2 text-sm font-semibold text-[#3b6fa8] hover:bg-white"
                         >
                             Export aggregate CSV
                         </a>
@@ -429,8 +429,8 @@ export default function Reports({
                                 title="Programs & attendance reports"
                                 subtitle="Only approved, published Event or attendance-required announcements with an event date are included."
                             />
-                            <div className="mb-4 rounded-xl border border-[#e7e4d8] bg-white p-4 text-sm text-gray-700">
-                                <span className="font-semibold text-[#3f6f3d]">
+                            <div className="mb-4 rounded-xl border border-[#dfe4ea] bg-white p-4 text-sm text-gray-700">
+                                <span className="font-semibold text-[#3b6fa8]">
                                     {programs.count.toLocaleString()}
                                 </span>{' '}
                                 approved and published programs in the selected
@@ -489,7 +489,7 @@ function Metric({
     note: string;
 }) {
     return (
-        <div className="rounded-xl bg-[#3f6f3d] p-5 text-white shadow-sm">
+        <div className="rounded-xl bg-[#3b6fa8] p-5 text-white shadow-sm">
             <p className="text-xs font-medium text-white/80">{title}</p>
             <p className="mt-2 text-3xl font-semibold tabular-nums">
                 {value.toLocaleString()}
@@ -529,12 +529,12 @@ function Chart({
 }) {
     const maximum = Math.max(1, ...points.map((point) => point.count));
     return (
-        <div className="rounded-xl border border-[#e7e4d8] bg-white p-4">
+        <div className="rounded-xl border border-[#dfe4ea] bg-white p-4">
             <h3 className="mb-3 text-sm font-semibold text-gray-800">
                 {title}
             </h3>
             {points.every((point) => point.count === 0) ? (
-                <p className="rounded-lg bg-[#fafaf7] px-3 py-4 text-sm text-gray-500">
+                <p className="rounded-lg bg-[#ffffff] px-3 py-4 text-sm text-gray-500">
                     {empty}
                 </p>
             ) : (

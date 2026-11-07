@@ -55,7 +55,7 @@ function OrgChartContent({ tree, resident }: Props) {
 
                 {positions.length === 0 ? (
                     <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
-                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#eaf1f8] text-[#3b6fa8]">
                             <BuildingIcon className="h-8 w-8" />
                         </div>
                         <h2 className="mt-4 text-sm font-bold text-gray-800">
@@ -99,7 +99,7 @@ function OrgChartContent({ tree, resident }: Props) {
                                     </div>
 
                                     <div className="mt-4 text-center">
-                                        <p className="text-[10px] font-bold tracking-wider text-[#3f6f3d] uppercase">
+                                        <p className="text-[10px] font-bold tracking-wider text-[#3b6fa8] uppercase">
                                             Published Position
                                         </p>
                                         <h2 className="mt-1 text-base font-bold text-gray-900">
@@ -135,7 +135,7 @@ function OrgChartContent({ tree, resident }: Props) {
                                                             key={child.id}
                                                             className="flex items-start gap-2 text-xs text-gray-600"
                                                         >
-                                                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3f6f3d]" />
+                                                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3b6fa8]" />
                                                             <span>
                                                                 <span className="font-medium text-gray-900">
                                                                     {

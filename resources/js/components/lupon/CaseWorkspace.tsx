@@ -63,7 +63,7 @@ export default function CaseWorkspace({
                         aria-controls={`case-panel-${item.id}`}
                         tabIndex={section === item.id ? 0 : -1}
                         onClick={() => setSection(item.id)}
-                        className={`rounded-lg px-4 py-2.5 text-sm font-semibold ${section === item.id ? 'bg-[#3f6f3d] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
+                        className={`rounded-lg px-4 py-2.5 text-sm font-semibold ${section === item.id ? 'bg-[#3b6fa8] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
                     >
                         {item.label}
                     </button>

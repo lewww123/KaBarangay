@@ -547,7 +547,7 @@ function QrScanInput({
                 type="button"
                 onClick={submit}
                 disabled={loading}
-                className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm text-white disabled:opacity-50"
+                className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm text-white disabled:opacity-50"
             >
                 {loading ? 'Looking up...' : 'Look up resident'}
             </button>
@@ -3303,15 +3303,15 @@ function Dashboard({
                             reset();
                             setData('control_no', '');
                         }}
-                        className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#315b30]"
+                        className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#2a5279]"
                     >
                         + Issue New Certificate
                     </button>
                 </div>
 
                 {/* CERTIFICATE MANAGEMENT */}
-                <div className="rounded-lg border border-[#e6ddcd] bg-white shadow-sm">
-                    <div className="flex border-b border-[#e6ddcd] bg-[#f0ebe1]">
+                <div className="rounded-lg border border-[#c2cbd4] bg-white shadow-sm">
+                    <div className="flex border-b border-[#c2cbd4] bg-[#eef1f5]">
                         {(
                             [
                                 ['requests', 'Requests'],
@@ -3325,8 +3325,8 @@ function Dashboard({
                                 onClick={() => setActiveTab(tab)}
                                 className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                                     activeTab === tab
-                                        ? 'border-[#3f6f3d] bg-white text-[#3f6f3d]'
-                                        : 'border-transparent text-[#8a7f6a] hover:text-gray-700'
+                                        ? 'border-[#3b6fa8] bg-white text-[#3b6fa8]'
+                                        : 'border-transparent text-[#6e747c] hover:text-gray-700'
                                 }`}
                             >
                                 {label}
@@ -3335,10 +3335,10 @@ function Dashboard({
                     </div>
 
                     {/* SEARCH & FILTER BAR */}
-                    <div className="flex flex-col gap-3 border-b border-[#e6ddcd] p-4 sm:flex-row sm:items-center">
+                    <div className="flex flex-col gap-3 border-b border-[#c2cbd4] p-4 sm:flex-row sm:items-center">
                         <div className="relative flex-1">
                             <span
-                                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#8a7f6a]"
+                                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#6e747c]"
                                 aria-hidden="true"
                             >
                                 <svg
@@ -3387,7 +3387,7 @@ function Dashboard({
                                           ? 'Search all certificate records'
                                           : 'Search certificate requests'
                                 }
-                                className="w-full rounded-md border border-[#e6ddcd] py-2 pr-3 pl-9 text-sm focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                className="w-full rounded-md border border-[#c2cbd4] py-2 pr-3 pl-9 text-sm focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                             />
                         </div>
 
@@ -3399,7 +3399,7 @@ function Dashboard({
                                 aria-label="Open filters"
                                 aria-expanded={popoverOpen}
                                 aria-haspopup="true"
-                                className="flex w-full items-center justify-center gap-2 rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-[#faf8f2] sm:w-auto"
+                                className="flex w-full items-center justify-center gap-2 rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-[#ffffff] sm:w-auto"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -3412,7 +3412,7 @@ function Dashboard({
                                 </svg>
                                 Filters
                                 {activeFilterCount > 0 && (
-                                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#3f6f3d] px-1.5 text-xs font-semibold text-white">
+                                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#3b6fa8] px-1.5 text-xs font-semibold text-white">
                                         {activeFilterCount}
                                     </span>
                                 )}
@@ -3429,13 +3429,13 @@ function Dashboard({
                                               ? 'Filter all certificate records'
                                               : 'Filter certificate requests'
                                     }
-                                    className="absolute right-0 z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-[#e6ddcd] bg-white p-4 shadow-lg"
+                                    className="absolute right-0 z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-[#c2cbd4] bg-white p-4 shadow-lg"
                                 >
                                     <div className="space-y-3">
                                         {activeTab === 'issued' ? (
                                             <>
                                                 <div>
-                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                         Certificate Type
                                                     </label>
                                                     <select
@@ -3445,7 +3445,7 @@ function Dashboard({
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                        className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                     >
                                                         <option value="">
                                                             All types
@@ -3469,7 +3469,7 @@ function Dashboard({
 
                                                 {activeTab === 'issued' && (
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                             Record Type
                                                         </label>
                                                         <select
@@ -3480,7 +3480,7 @@ function Dashboard({
                                                                         .value as CertificateTab,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                            className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                         >
                                                             <option value="all">
                                                                 All Records
@@ -3498,7 +3498,7 @@ function Dashboard({
 
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                             From
                                                         </label>
                                                         <input
@@ -3512,11 +3512,11 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                             To
                                                         </label>
                                                         <input
@@ -3530,7 +3530,7 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                 </div>
@@ -3538,7 +3538,7 @@ function Dashboard({
                                         ) : activeTab === 'all' ? (
                                             <>
                                                 <div>
-                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                         Certificate Type
                                                     </label>
                                                     <select
@@ -3548,7 +3548,7 @@ function Dashboard({
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                        className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                     >
                                                         <option value="">
                                                             All types
@@ -3595,7 +3595,7 @@ function Dashboard({
 
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                             From
                                                         </label>
                                                         <input
@@ -3609,11 +3609,11 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                             To
                                                         </label>
                                                         <input
@@ -3627,7 +3627,7 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                 </div>
@@ -3635,7 +3635,7 @@ function Dashboard({
                                         ) : (
                                             <>
                                                 <div>
-                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                         Certificate Type
                                                     </label>
                                                     <select
@@ -3645,7 +3645,7 @@ function Dashboard({
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                        className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                     >
                                                         <option value="">
                                                             All types
@@ -3670,7 +3670,7 @@ function Dashboard({
                                                 </div>
 
                                                 <div>
-                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                         Record Type
                                                     </label>
                                                     <select
@@ -3681,7 +3681,7 @@ function Dashboard({
                                                                     .value as CertificateTab,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                        className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                     >
                                                         <option value="all">
                                                             All Records
@@ -3696,7 +3696,7 @@ function Dashboard({
                                                 </div>
 
                                                 <div>
-                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                    <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                         Status
                                                     </label>
                                                     <select
@@ -3706,7 +3706,7 @@ function Dashboard({
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#e6ddcd] bg-white px-3 py-2 text-sm"
+                                                        className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                     >
                                                         <option value="">
                                                             All statuses
@@ -3728,7 +3728,7 @@ function Dashboard({
 
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                             From
                                                         </label>
                                                         <input
@@ -3742,11 +3742,11 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        <label className="mb-1 block text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                             To
                                                         </label>
                                                         <input
@@ -3758,7 +3758,7 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#e6ddcd] px-3 py-2 text-sm"
+                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                 </div>
@@ -3766,18 +3766,18 @@ function Dashboard({
                                         )}
                                     </div>
 
-                                    <div className="mt-4 flex items-center justify-end gap-2 border-t border-[#e6ddcd] pt-3">
+                                    <div className="mt-4 flex items-center justify-end gap-2 border-t border-[#c2cbd4] pt-3">
                                         <button
                                             type="button"
                                             onClick={clearFilters}
-                                            className="rounded-md px-3 py-1.5 text-sm font-medium text-[#8a7f6a] hover:bg-[#faf8f2]"
+                                            className="rounded-md px-3 py-1.5 text-sm font-medium text-[#6e747c] hover:bg-[#ffffff]"
                                         >
                                             Clear
                                         </button>
                                         <button
                                             type="button"
                                             onClick={applyFilters}
-                                            className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#315b30]"
+                                            className="rounded-md bg-[#3b6fa8] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#2a5279]"
                                         >
                                             Apply Filters
                                         </button>
@@ -3788,7 +3788,7 @@ function Dashboard({
                     </div>
 
                     {activeTab === 'all' && (
-                        <div className="border-b border-[#e6ddcd] bg-blue-50 px-4 py-2 text-xs text-blue-800">
+                        <div className="border-b border-[#c2cbd4] bg-blue-50 px-4 py-2 text-xs text-blue-800">
                             Combined view of{' '}
                             <span className="font-semibold">requests</span> and{' '}
                             <span className="font-semibold">
@@ -3802,7 +3802,7 @@ function Dashboard({
                     <div className="overflow-x-auto">
                         {activeTab === 'issued' ? (
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#f0ebe1] text-[10px] tracking-wide text-[#8a7f6a] uppercase">
+                                <thead className="bg-[#eef1f5] text-[10px] tracking-wide text-[#6e747c] uppercase">
                                     <tr>
                                         <th className="px-4 py-3 font-semibold">
                                             Reference
@@ -3827,12 +3827,12 @@ function Dashboard({
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#f0ebe1]">
+                                <tbody className="divide-y divide-[#eef1f5]">
                                     {listLoading ? (
                                         <tr>
                                             <td
                                                 colSpan={7}
-                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                                className="px-4 py-10 text-center text-sm text-[#6e747c]"
                                             >
                                                 Loading…
                                             </td>
@@ -3841,7 +3841,7 @@ function Dashboard({
                                         <tr>
                                             <td
                                                 colSpan={7}
-                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                                className="px-4 py-10 text-center text-sm text-[#6e747c]"
                                             >
                                                 {hasFilters
                                                     ? 'No issued certificates match your search or filters.'
@@ -3857,7 +3857,7 @@ function Dashboard({
                                                         row.id,
                                                     )
                                                 }
-                                                className="cursor-pointer hover:bg-[#faf8f2]"
+                                                className="cursor-pointer hover:bg-[#ffffff]"
                                             >
                                                 <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">
                                                     {row.reference}
@@ -3866,7 +3866,7 @@ function Dashboard({
                                                     <p className="font-medium text-gray-800">
                                                         {row.resident.name}
                                                     </p>
-                                                    <p className="text-xs text-[#8a7f6a]">
+                                                    <p className="text-xs text-[#6e747c]">
                                                         {row.resident
                                                             .resident_number ??
                                                             '—'}
@@ -3893,7 +3893,7 @@ function Dashboard({
                                                                 row.id,
                                                             );
                                                         }}
-                                                        className="rounded-md border border-[#e6ddcd] bg-white px-3 py-1.5 text-xs font-semibold text-[#3f6f3d] hover:bg-[#faf8f2]"
+                                                        className="rounded-md border border-[#c2cbd4] bg-white px-3 py-1.5 text-xs font-semibold text-[#3b6fa8] hover:bg-[#ffffff]"
                                                     >
                                                         View
                                                     </button>
@@ -3905,7 +3905,7 @@ function Dashboard({
                             </table>
                         ) : activeTab === 'all' ? (
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#f0ebe1] text-[10px] tracking-wide text-[#8a7f6a] uppercase">
+                                <thead className="bg-[#eef1f5] text-[10px] tracking-wide text-[#6e747c] uppercase">
                                     <tr>
                                         <th className="px-4 py-3 font-semibold">
                                             Type
@@ -3930,12 +3930,12 @@ function Dashboard({
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#f0ebe1]">
+                                <tbody className="divide-y divide-[#eef1f5]">
                                     {listLoading ? (
                                         <tr>
                                             <td
                                                 colSpan={7}
-                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                                className="px-4 py-10 text-center text-sm text-[#6e747c]"
                                             >
                                                 Loading…
                                             </td>
@@ -3944,7 +3944,7 @@ function Dashboard({
                                         <tr>
                                             <td
                                                 colSpan={7}
-                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                                className="px-4 py-10 text-center text-sm text-[#6e747c]"
                                             >
                                                 {hasFilters
                                                     ? 'No records match your search or filters.'
@@ -3955,7 +3955,7 @@ function Dashboard({
                                         allRecords.data.map((row) => (
                                             <tr
                                                 key={`${row.record_type}-${row.id}`}
-                                                className="hover:bg-[#faf8f2]"
+                                                className="hover:bg-[#ffffff]"
                                             >
                                                 <td className="px-4 py-3">
                                                     {row.record_type ===
@@ -3964,7 +3964,7 @@ function Dashboard({
                                                             Issued
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex rounded-full border border-[#e6ddcd] bg-[#f0ebe1] px-2 py-0.5 text-xs font-semibold text-[#8a7f6a]">
+                                                        <span className="inline-flex rounded-full border border-[#c2cbd4] bg-[#eef1f5] px-2 py-0.5 text-xs font-semibold text-[#6e747c]">
                                                             Request
                                                         </span>
                                                     )}
@@ -3976,7 +3976,7 @@ function Dashboard({
                                                     <p className="font-medium text-gray-800">
                                                         {row.resident.name}
                                                     </p>
-                                                    <p className="text-xs text-[#8a7f6a]">
+                                                    <p className="text-xs text-[#6e747c]">
                                                         {row.resident
                                                             .resident_number ??
                                                             '—'}
@@ -4013,7 +4013,7 @@ function Dashboard({
                             </table>
                         ) : (
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#f0ebe1] text-[10px] tracking-wide text-[#8a7f6a] uppercase">
+                                <thead className="bg-[#eef1f5] text-[10px] tracking-wide text-[#6e747c] uppercase">
                                     <tr>
                                         <th className="px-4 py-3 font-semibold">
                                             Reference
@@ -4035,12 +4035,12 @@ function Dashboard({
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#f0ebe1]">
+                                <tbody className="divide-y divide-[#eef1f5]">
                                     {listLoading ? (
                                         <tr>
                                             <td
                                                 colSpan={6}
-                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                                className="px-4 py-10 text-center text-sm text-[#6e747c]"
                                             >
                                                 Loading…
                                             </td>
@@ -4049,7 +4049,7 @@ function Dashboard({
                                         <tr>
                                             <td
                                                 colSpan={6}
-                                                className="px-4 py-10 text-center text-sm text-[#8a7f6a]"
+                                                className="px-4 py-10 text-center text-sm text-[#6e747c]"
                                             >
                                                 {hasFilters
                                                     ? 'No requests match your search or filters.'
@@ -4060,7 +4060,7 @@ function Dashboard({
                                         requests.data.map((row) => (
                                             <tr
                                                 key={row.id}
-                                                className="hover:bg-[#faf8f2]"
+                                                className="hover:bg-[#ffffff]"
                                             >
                                                 <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">
                                                     {row.reference}
@@ -4069,7 +4069,7 @@ function Dashboard({
                                                     <p className="font-medium text-gray-800">
                                                         {row.resident.name}
                                                     </p>
-                                                    <p className="text-xs text-[#8a7f6a]">
+                                                    <p className="text-xs text-[#6e747c]">
                                                         {row.resident
                                                             .resident_number ??
                                                             '—'}
@@ -4096,7 +4096,7 @@ function Dashboard({
                                                                 row.id,
                                                             )
                                                         }
-                                                        className="rounded-md border border-[#e6ddcd] px-2.5 py-1 text-xs font-medium text-[#3f6f3d] hover:bg-[#f0ebe1]"
+                                                        className="rounded-md border border-[#c2cbd4] px-2.5 py-1 text-xs font-medium text-[#3b6fa8] hover:bg-[#eef1f5]"
                                                     >
                                                         Details
                                                     </button>
@@ -4120,7 +4120,7 @@ function Dashboard({
                         // Row count is a paginator controller value, not a
                         // generated/printed/released claim about the document.
                         return (
-                            <div className="flex flex-col items-center justify-between gap-3 border-t border-[#e6ddcd] px-4 py-3 text-xs text-[#8a7f6a] sm:flex-row">
+                            <div className="flex flex-col items-center justify-between gap-3 border-t border-[#c2cbd4] px-4 py-3 text-xs text-[#6e747c] sm:flex-row">
                                 <span>
                                     {page.total === 0
                                         ? 'No records'
@@ -4140,7 +4140,7 @@ function Dashboard({
                                                     Number(e.target.value),
                                                 )
                                             }
-                                            className="rounded-md border border-[#e6ddcd] bg-white px-2 py-1 text-xs text-gray-700"
+                                            className="rounded-md border border-[#c2cbd4] bg-white px-2 py-1 text-xs text-gray-700"
                                         >
                                             {[10, 25, 50].map((size) => (
                                                 <option key={size} value={size}>
@@ -4188,7 +4188,7 @@ function Dashboard({
                             <div
                                 className={`flex max-h-[92vh] ${formStep === 2 ? 'w-[calc(100vw-2rem)] max-w-6xl' : 'w-[calc(100vw-2rem)] max-w-7xl'} flex-col overflow-hidden rounded-lg bg-white shadow-xl`}
                             >
-                                <div className="flex shrink-0 items-center justify-between bg-[#3f6f3d] px-6 py-4 text-white">
+                                <div className="flex shrink-0 items-center justify-between bg-[#3b6fa8] px-6 py-4 text-white">
                                     <h3 className="text-lg font-bold">
                                         {formStep === 1
                                             ? 'Issue New Certificate'
@@ -4215,7 +4215,7 @@ function Dashboard({
                                                     onClick={() =>
                                                         switchMode('qr')
                                                     }
-                                                    className={`flex-1 border-b-2 py-3 text-sm font-medium ${modalMode === 'qr' ? 'border-[#3f6f3d] bg-white text-[#3f6f3d]' : 'border-transparent text-gray-500'}`}
+                                                    className={`flex-1 border-b-2 py-3 text-sm font-medium ${modalMode === 'qr' ? 'border-[#3b6fa8] bg-white text-[#3b6fa8]' : 'border-transparent text-gray-500'}`}
                                                 >
                                                     Scan QR
                                                 </button>
@@ -4224,7 +4224,7 @@ function Dashboard({
                                                     onClick={() =>
                                                         switchMode('manual')
                                                     }
-                                                    className={`flex-1 border-b-2 py-3 text-sm font-medium ${modalMode === 'manual' ? 'border-[#3f6f3d] bg-white text-[#3f6f3d]' : 'border-transparent text-gray-500'}`}
+                                                    className={`flex-1 border-b-2 py-3 text-sm font-medium ${modalMode === 'manual' ? 'border-[#3b6fa8] bg-white text-[#3b6fa8]' : 'border-transparent text-gray-500'}`}
                                                 >
                                                     Manual Entry
                                                 </button>
@@ -5719,7 +5719,7 @@ function Dashboard({
                                                     <div className="mt-4 flex justify-end border-t pt-4">
                                                         <button
                                                             type="submit"
-                                                            className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#315b30]"
+                                                            className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#2a5279]"
                                                         >
                                                             Preview Certificate
                                                             Design &rarr;
@@ -5902,7 +5902,7 @@ function Dashboard({
                 {requestDetailsOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                         <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
-                            <div className="flex shrink-0 items-center justify-between bg-[#3f6f3d] px-6 py-4 text-white">
+                            <div className="flex shrink-0 items-center justify-between bg-[#3b6fa8] px-6 py-4 text-white">
                                 <h3 className="text-lg font-bold">
                                     Certificate Request Details
                                 </h3>
@@ -5917,7 +5917,7 @@ function Dashboard({
 
                             <div className="flex-1 overflow-y-auto p-6">
                                 {requestDetailsLoading ? (
-                                    <p className="py-8 text-center text-sm text-[#8a7f6a]">
+                                    <p className="py-8 text-center text-sm text-[#6e747c]">
                                         Loading request details...
                                     </p>
                                 ) : requestDetailsError ? (
@@ -5928,7 +5928,7 @@ function Dashboard({
                                     <div className="space-y-5">
                                         <div className="grid gap-3 text-sm sm:grid-cols-2">
                                             <div>
-                                                <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Reference
                                                 </p>
                                                 <p className="font-mono font-medium text-gray-800">
@@ -5936,7 +5936,7 @@ function Dashboard({
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Certificate
                                                 </p>
                                                 <p className="font-medium text-gray-800">
@@ -5953,7 +5953,7 @@ function Dashboard({
                                                 )}
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Resident
                                                 </p>
                                                 <p className="font-medium text-gray-800">
@@ -5962,13 +5962,13 @@ function Dashboard({
                                                             .name
                                                     }
                                                 </p>
-                                                <p className="text-xs text-[#8a7f6a]">
+                                                <p className="text-xs text-[#6e747c]">
                                                     {requestDetails.resident
                                                         .resident_number ?? '—'}
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Purpose
                                                 </p>
                                                 <p className="text-gray-800">
@@ -5977,7 +5977,7 @@ function Dashboard({
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Fee
                                                 </p>
                                                 <p className="text-gray-800">
@@ -6014,8 +6014,8 @@ function Dashboard({
 
                                         {(requestDetails.business_name ||
                                             requestDetails.business_address) && (
-                                            <div className="rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-3">
-                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                            <div className="rounded-md border border-[#c2cbd4] bg-[#ffffff] p-3">
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Business Details
                                                 </p>
                                                 <p className="text-sm text-gray-800">
@@ -6042,8 +6042,8 @@ function Dashboard({
                                         )}
 
                                         {/* WORKFLOW ACTIONS */}
-                                        <div className="rounded-md border border-[#3f6f3d]/30 bg-[#f7f5ee] p-3.5 shadow-sm">
-                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#3f6f3d] uppercase">
+                                        <div className="rounded-md border border-[#3b6fa8]/30 bg-[#f7f5ee] p-3.5 shadow-sm">
+                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#3b6fa8] uppercase">
                                                 Workflow Action
                                             </p>
 
@@ -6062,7 +6062,7 @@ function Dashboard({
                                                             void handleStartProcessing()
                                                         }
                                                         disabled={actionLoading}
-                                                        className="inline-flex shrink-0 items-center justify-center rounded-md bg-[#3f6f3d] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                                        className="inline-flex shrink-0 items-center justify-center rounded-md bg-[#3b6fa8] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                                                     >
                                                         {actionLoading
                                                             ? 'Updating...'
@@ -6145,7 +6145,7 @@ function Dashboard({
                                                                     true,
                                                                 )
                                                             }
-                                                            className="inline-flex items-center justify-center rounded-md bg-[#3f6f3d] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#315b30]"
+                                                            className="inline-flex items-center justify-center rounded-md bg-[#3b6fa8] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#2a5279]"
                                                         >
                                                             Confirm Physical
                                                             Handover (Release)
@@ -6209,8 +6209,8 @@ function Dashboard({
                                             )}
                                         </div>
 
-                                        <div className="rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-3">
-                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                        <div className="rounded-md border border-[#c2cbd4] bg-[#ffffff] p-3">
+                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                 Processing Status
                                             </p>
                                             <div className="space-y-2">
@@ -6222,7 +6222,7 @@ function Dashboard({
                                                             event.target.value,
                                                         )
                                                     }
-                                                    className="w-full rounded-md border border-[#d8cdb8] bg-white px-3 py-2 text-sm outline-none focus:border-[#3f6f3d]"
+                                                    className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm outline-none focus:border-[#3b6fa8]"
                                                 >
                                                     {requestDetails.allowed_statuses.map(
                                                         (status) => (
@@ -6250,7 +6250,7 @@ function Dashboard({
                                                             ? 'Reason for rejection (required)'
                                                             : 'Optional note shown to the resident'
                                                     }
-                                                    className="w-full rounded-md border border-[#d8cdb8] bg-white px-3 py-2 text-sm outline-none focus:border-[#3f6f3d]"
+                                                    className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm outline-none focus:border-[#3b6fa8]"
                                                 />
                                                 <button
                                                     type="button"
@@ -6261,7 +6261,7 @@ function Dashboard({
                                                         savingStatus ||
                                                         statusDraft === ''
                                                     }
-                                                    className="rounded-md bg-[#3f6f3d] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                                    className="rounded-md bg-[#3b6fa8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                                                 >
                                                     {savingStatus
                                                         ? 'Saving...'
@@ -6273,15 +6273,15 @@ function Dashboard({
                                         {requestDetails.details_fields.length >
                                         0 ? (
                                             <div>
-                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Reviewed Certificate Details
                                                 </p>
-                                                <div className="grid gap-3 rounded-md border border-[#e6ddcd] p-3 sm:grid-cols-2">
+                                                <div className="grid gap-3 rounded-md border border-[#c2cbd4] p-3 sm:grid-cols-2">
                                                     {requestDetails.details_fields.map(
                                                         (field) => (
                                                             <label
                                                                 key={field.key}
-                                                                className="text-xs font-medium text-[#8a7f6a]"
+                                                                className="text-xs font-medium text-[#6e747c]"
                                                             >
                                                                 {field.label}
                                                                 <input
@@ -6315,7 +6315,7 @@ function Dashboard({
                                                                             }),
                                                                         )
                                                                     }
-                                                                    className="mt-1 w-full rounded-md border border-[#d8cdb8] bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#3f6f3d]"
+                                                                    className="mt-1 w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#3b6fa8]"
                                                                 />
                                                             </label>
                                                         ),
@@ -6327,7 +6327,7 @@ function Dashboard({
                                                         void saveRequestDetails()
                                                     }
                                                     disabled={savingDetails}
-                                                    className="mt-2 rounded-md bg-[#3f6f3d] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                                    className="mt-2 rounded-md bg-[#3b6fa8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                                                 >
                                                     {savingDetails
                                                         ? 'Saving...'
@@ -6338,12 +6338,12 @@ function Dashboard({
                                                     requestDetails
                                                         .original_details
                                                         .length > 0 && (
-                                                        <div className="mt-3 rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-3">
-                                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                        <div className="mt-3 rounded-md border border-[#c2cbd4] bg-[#ffffff] p-3">
+                                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                                 Originally
                                                                 Submitted
                                                             </p>
-                                                            <div className="divide-y divide-[#f0ebe1]">
+                                                            <div className="divide-y divide-[#eef1f5]">
                                                                 {requestDetails.original_details.map(
                                                                     (
                                                                         detail,
@@ -6354,7 +6354,7 @@ function Dashboard({
                                                                             }
                                                                             className="grid gap-1 py-1.5 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]"
                                                                         >
-                                                                            <span className="text-[#8a7f6a]">
+                                                                            <span className="text-[#6e747c]">
                                                                                 {
                                                                                     detail.label
                                                                                 }
@@ -6374,10 +6374,10 @@ function Dashboard({
                                         ) : requestDetails.details.length >
                                           0 ? (
                                             <div>
-                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Certificate Details
                                                 </p>
-                                                <div className="divide-y divide-[#f0ebe1] rounded-md border border-[#e6ddcd]">
+                                                <div className="divide-y divide-[#eef1f5] rounded-md border border-[#c2cbd4]">
                                                     {requestDetails.details.map(
                                                         (detail) => (
                                                             <div
@@ -6386,7 +6386,7 @@ function Dashboard({
                                                                 }
                                                                 className="grid gap-1 px-3 py-2 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]"
                                                             >
-                                                                <span className="text-[#8a7f6a]">
+                                                                <span className="text-[#6e747c]">
                                                                     {
                                                                         detail.label
                                                                     }
@@ -6405,10 +6405,10 @@ function Dashboard({
 
                                         {requestDetails.notes && (
                                             <div>
-                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Resident Notes
                                                 </p>
-                                                <p className="rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-3 text-sm whitespace-pre-wrap text-gray-700">
+                                                <p className="rounded-md border border-[#c2cbd4] bg-[#ffffff] p-3 text-sm whitespace-pre-wrap text-gray-700">
                                                     {requestDetails.notes}
                                                 </p>
                                             </div>
@@ -6428,7 +6428,7 @@ function Dashboard({
                         aria-labelledby="issuance-details-title"
                     >
                         <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
-                            <div className="flex shrink-0 items-center justify-between bg-[#3f6f3d] px-6 py-4 text-white">
+                            <div className="flex shrink-0 items-center justify-between bg-[#3b6fa8] px-6 py-4 text-white">
                                 <div>
                                     <h3
                                         id="issuance-details-title"
@@ -6453,7 +6453,7 @@ function Dashboard({
 
                             <div className="min-h-0 flex-1 overflow-y-auto p-5">
                                 {issuanceDetailsLoading ? (
-                                    <p className="py-10 text-center text-sm text-[#8a7f6a]">
+                                    <p className="py-10 text-center text-sm text-[#6e747c]">
                                         Loading issued certificate…
                                     </p>
                                 ) : issuanceDetailsError ? (
@@ -6485,7 +6485,7 @@ function Dashboard({
                                             </span>
                                         </div>
 
-                                        <div className="grid gap-3 rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-4 text-sm sm:grid-cols-2">
+                                        <div className="grid gap-3 rounded-md border border-[#c2cbd4] bg-[#ffffff] p-4 text-sm sm:grid-cols-2">
                                             <ReadOnlyField
                                                 label="Certificate Type"
                                                 value={
@@ -6524,17 +6524,17 @@ function Dashboard({
                                         </div>
 
                                         <div>
-                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                 Resident
                                             </p>
-                                            <div className="rounded-md border border-[#e6ddcd] p-3 text-sm">
+                                            <div className="rounded-md border border-[#c2cbd4] p-3 text-sm">
                                                 <p className="font-medium text-gray-800">
                                                     {
                                                         issuanceDetails.resident
                                                             .name
                                                     }
                                                 </p>
-                                                <p className="text-xs text-[#8a7f6a]">
+                                                <p className="text-xs text-[#6e747c]">
                                                     {issuanceDetails.resident
                                                         .resident_number ?? '—'}
                                                 </p>
@@ -6545,10 +6545,10 @@ function Dashboard({
                                             issuanceDetails.business_name ||
                                             issuanceDetails.business_address) && (
                                             <div>
-                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Request Details
                                                 </p>
-                                                <div className="grid gap-3 rounded-md border border-[#e6ddcd] p-3 text-sm sm:grid-cols-2">
+                                                <div className="grid gap-3 rounded-md border border-[#c2cbd4] p-3 text-sm sm:grid-cols-2">
                                                     {issuanceDetails.purpose && (
                                                         <ReadOnlyField
                                                             label="Purpose"
@@ -6579,10 +6579,10 @@ function Dashboard({
 
                                         {issuanceDetails.linked_request && (
                                             <div>
-                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Linked Request
                                                 </p>
-                                                <div className="rounded-md border border-[#e6ddcd] p-3 text-sm">
+                                                <div className="rounded-md border border-[#c2cbd4] p-3 text-sm">
                                                     <p className="font-mono text-xs font-medium text-gray-800">
                                                         {
                                                             issuanceDetails
@@ -6590,7 +6590,7 @@ function Dashboard({
                                                                 .reference
                                                         }
                                                     </p>
-                                                    <p className="mt-1 text-xs text-[#8a7f6a]">
+                                                    <p className="mt-1 text-xs text-[#6e747c]">
                                                         Submitted{' '}
                                                         {
                                                             issuanceDetails
@@ -6604,10 +6604,10 @@ function Dashboard({
 
                                         {issuanceDetails.details.length > 0 && (
                                             <div>
-                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Certificate Details
                                                 </p>
-                                                <div className="divide-y divide-[#f0ebe1] rounded-md border border-[#e6ddcd]">
+                                                <div className="divide-y divide-[#eef1f5] rounded-md border border-[#c2cbd4]">
                                                     {issuanceDetails.details.map(
                                                         (detail) => (
                                                             <div
@@ -6616,7 +6616,7 @@ function Dashboard({
                                                                 }
                                                                 className="grid gap-1 px-3 py-2 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]"
                                                             >
-                                                                <span className="text-[#8a7f6a]">
+                                                                <span className="text-[#6e747c]">
                                                                     {
                                                                         detail.label
                                                                     }
@@ -6635,10 +6635,10 @@ function Dashboard({
 
                                         {issuanceDetails.notes && (
                                             <div>
-                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+                                                <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Resident Notes
                                                 </p>
-                                                <p className="rounded-md border border-[#e6ddcd] bg-[#faf8f2] p-3 text-sm whitespace-pre-wrap text-gray-700">
+                                                <p className="rounded-md border border-[#c2cbd4] bg-[#ffffff] p-3 text-sm whitespace-pre-wrap text-gray-700">
                                                     {issuanceDetails.notes}
                                                 </p>
                                             </div>
@@ -6656,8 +6656,8 @@ function Dashboard({
                                 ) : null}
                             </div>
 
-                            <div className="flex shrink-0 flex-col gap-2 border-t border-[#e6ddcd] bg-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="text-xs text-[#8a7f6a]">
+                            <div className="flex shrink-0 flex-col gap-2 border-t border-[#c2cbd4] bg-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-xs text-[#6e747c]">
                                     Re-printing never creates a new issuance or
                                     changes the stored record.
                                 </p>
@@ -6677,7 +6677,7 @@ function Dashboard({
                                             !issuanceDetails ||
                                             !issuanceDetails.template_available
                                         }
-                                        className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {reprintLoading
                                             ? 'Preparing reprint...'
@@ -6696,7 +6696,7 @@ function Dashboard({
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <p className="text-[10px] font-semibold tracking-wide text-[#8a7f6a] uppercase">
+            <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                 {label}
             </p>
             <p className="mt-0.5 font-medium break-words text-gray-800">

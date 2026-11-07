@@ -96,7 +96,7 @@ export default function SectorApplicationList({
                     className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white shadow-sm transition ${
                         sector === 'senior'
                             ? 'bg-amber-800 hover:bg-amber-900'
-                            : 'bg-[#3f6f3d] hover:bg-[#315b30]'
+                            : 'bg-[#3b6fa8] hover:bg-[#2a5279]'
                     }`}
                 >
                     <span className="text-base leading-none">+</span>
@@ -191,7 +191,7 @@ export default function SectorApplicationList({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Search applicant name, resident ID, or tracking number..."
-                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#3b6fa8] focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                         />
                         {search && (
                             <button
@@ -208,7 +208,7 @@ export default function SectorApplicationList({
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3b6fa8] focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                         >
                             <option value="all">All Statuses</option>
                             <option value="pending_staff_review">

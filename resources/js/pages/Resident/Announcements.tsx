@@ -216,13 +216,13 @@ function AnnouncementsContent({
                     <nav aria-label="Update history" className="flex gap-2">
                         <Link
                             href="/resident/updates?period=current"
-                            className={`rounded-full px-4 py-2 text-sm font-semibold ${period === 'current' ? 'bg-[#2f5e3a] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                            className={`rounded-full px-4 py-2 text-sm font-semibold ${period === 'current' ? 'bg-[#2a5279] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
                         >
                             Current Updates
                         </Link>
                         <Link
                             href="/resident/updates?period=past"
-                            className={`rounded-full px-4 py-2 text-sm font-semibold ${period === 'past' ? 'bg-[#2f5e3a] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                            className={`rounded-full px-4 py-2 text-sm font-semibold ${period === 'past' ? 'bg-[#2a5279] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
                         >
                             Past Updates
                         </Link>
@@ -264,7 +264,7 @@ function AnnouncementsContent({
                                             setQuery(event.target.value)
                                         }
                                         placeholder="Search by title or content"
-                                        className="h-11 w-full rounded-xl border border-gray-300 bg-white py-2 pr-3 pl-10 text-sm text-gray-800 transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15"
+                                        className="h-11 w-full rounded-xl border border-gray-300 bg-white py-2 pr-3 pl-10 text-sm text-gray-800 transition outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/15"
                                     />
                                 </div>
                             </div>
@@ -286,7 +286,7 @@ function AnnouncementsContent({
                                                 event.target.value,
                                             )
                                         }
-                                        className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-800 transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15"
+                                        className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-800 transition outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/15"
                                     >
                                         <option value="">All categories</option>
 
@@ -314,7 +314,7 @@ function AnnouncementsContent({
                                                 event.target.value,
                                             )
                                         }
-                                        className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-800 transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15"
+                                        className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-800 transition outline-none focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/15"
                                     >
                                         <option value="">All importance</option>
 
@@ -334,7 +334,7 @@ function AnnouncementsContent({
                                 <button
                                     type="submit"
                                     disabled={filtering}
-                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-[#3f6f3d] px-4 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-[#3b6fa8] px-4 text-sm font-semibold text-white transition hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {filtering ? 'Searching…' : 'Search'}
                                 </button>
@@ -366,7 +366,7 @@ function AnnouncementsContent({
                         <button
                             type="button"
                             onClick={clearFilters}
-                            className="text-xs font-semibold text-[#3f6f3d] hover:text-[#315b30] sm:text-sm"
+                            className="text-xs font-semibold text-[#3b6fa8] hover:text-[#2a5279] sm:text-sm"
                         >
                             Reset search and filters
                         </button>
@@ -377,7 +377,7 @@ function AnnouncementsContent({
                 <div className="space-y-4">
                     {announcements.data.length === 0 ? (
                         <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#edf4ea] text-[#3f6f3d]">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eef1f5] text-[#3b6fa8]">
                                 {hasActiveFilters ? (
                                     <SearchIcon />
                                 ) : (
@@ -403,7 +403,7 @@ function AnnouncementsContent({
                                 <button
                                     type="button"
                                     onClick={clearFilters}
-                                    className="mt-4 rounded-lg bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#315b30]"
+                                    className="mt-4 rounded-lg bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2a5279]"
                                 >
                                     Clear search and filters
                                 </button>
@@ -413,7 +413,7 @@ function AnnouncementsContent({
                         announcements.data.map((item) => (
                             <article
                                 key={item.id}
-                                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#cfddca] hover:shadow-md sm:p-6"
+                                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#c2cbd4] hover:shadow-md sm:p-6"
                             >
                                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                                     <div className="flex flex-wrap items-center gap-2">
@@ -452,7 +452,7 @@ function AnnouncementsContent({
                                 <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
                                     <Link
                                         href={`${basePath}/${item.id}${isUpdates ? `?period=${period}` : ''}`}
-                                        className="hover:text-[#3f6f3d]"
+                                        className="hover:text-[#3b6fa8]"
                                     >
                                         {item.title}
                                     </Link>
@@ -463,8 +463,8 @@ function AnnouncementsContent({
                                 </p>
 
                                 {item.event_start_at && (
-                                    <div className="mt-4 flex flex-col gap-2 rounded-xl border border-[#d6e3d2] bg-[#f7faf6] p-3.5 text-xs font-medium text-gray-700 sm:flex-row sm:items-center sm:gap-6 sm:text-sm">
-                                        <div className="flex items-center gap-2 text-[#315b30]">
+                                    <div className="mt-4 flex flex-col gap-2 rounded-xl border border-[#dfe4ea] bg-[#ffffff] p-3.5 text-xs font-medium text-gray-700 sm:flex-row sm:items-center sm:gap-6 sm:text-sm">
+                                        <div className="flex items-center gap-2 text-[#2a5279]">
                                             <CalendarIcon />
                                             <span>
                                                 <strong>Schedule:</strong>{' '}
@@ -475,7 +475,7 @@ function AnnouncementsContent({
                                         </div>
 
                                         {item.location && (
-                                            <div className="flex items-center gap-2 text-[#315b30]">
+                                            <div className="flex items-center gap-2 text-[#2a5279]">
                                                 <LocationIcon />
                                                 <span>
                                                     <strong>Venue:</strong>{' '}
@@ -500,7 +500,7 @@ function AnnouncementsContent({
 
                                     <Link
                                         href={`${basePath}/${item.id}${isUpdates ? `?period=${period}` : ''}`}
-                                        className="shrink-0 text-xs font-semibold text-[#3f6f3d] hover:text-[#315b30]"
+                                        className="shrink-0 text-xs font-semibold text-[#3b6fa8] hover:text-[#2a5279]"
                                     >
                                         View details
                                     </Link>
@@ -545,7 +545,7 @@ function getCategoryBadgeStyle(category: string) {
         return 'bg-amber-100 text-amber-800';
     }
 
-    return 'bg-[#e8f1e4] text-[#3f6f3d]';
+    return 'bg-[#eaf1f8] text-[#3b6fa8]';
 }
 
 function getImportanceBadgeStyle(importance: string) {
@@ -557,7 +557,7 @@ function getImportanceBadgeStyle(importance: string) {
         case 'low':
             return 'bg-gray-100 text-gray-600';
         default:
-            return 'bg-[#e8f1e4] text-[#3f6f3d]';
+            return 'bg-[#eaf1f8] text-[#3b6fa8]';
     }
 }
 

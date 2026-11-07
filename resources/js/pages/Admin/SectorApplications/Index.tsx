@@ -62,7 +62,7 @@ function SectorApplicationsContent({
 
                     <div className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm">
                         <span>Total Queue:</span>
-                        <span className="font-extrabold text-[#3f6f3d]">
+                        <span className="font-extrabold text-[#3b6fa8]">
                             {stats.total ?? 0}
                         </span>
                     </div>
@@ -130,7 +130,7 @@ function SectorApplicationsContent({
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search by resident name, resident ID, or tracking number..."
-                                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#3b6fa8] focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                             />
                         </div>
 
@@ -140,7 +140,7 @@ function SectorApplicationsContent({
                                 onChange={(e) =>
                                     setSectorFilter(e.target.value)
                                 }
-                                className="rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                className="rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3b6fa8] focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                             >
                                 <option value="all">All Sectors</option>
                                 <option value="senior">Senior Citizens</option>
@@ -152,7 +152,7 @@ function SectorApplicationsContent({
                                 onChange={(e) =>
                                     setStatusFilter(e.target.value)
                                 }
-                                className="rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                className="rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3b6fa8] focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                             >
                                 <option value="all">All Statuses</option>
                                 <option value="under_admin_review">
@@ -169,7 +169,7 @@ function SectorApplicationsContent({
                             </select>
                             <button
                                 type="submit"
-                                className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white"
+                                className="rounded-xl bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white"
                             >
                                 Apply
                             </button>
@@ -275,7 +275,7 @@ function SectorApplicationsContent({
                                             <td className="px-4 py-3.5 text-right">
                                                 <Link
                                                     href={`/admin/sector-applications/${app.id}`}
-                                                    className="inline-flex rounded-lg bg-[#3f6f3d] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30]"
+                                                    className="inline-flex rounded-lg bg-[#3b6fa8] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#2a5279]"
                                                 >
                                                     Review & Decide →
                                                 </Link>

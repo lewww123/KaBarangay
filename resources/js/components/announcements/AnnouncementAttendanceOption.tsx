@@ -25,7 +25,7 @@ export default function AnnouncementAttendanceOption({
                 disabled={disabled}
                 aria-describedby={helpId}
                 className={cn(
-                    'mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]',
+                    'mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]',
                     disabled && 'opacity-60',
                 )}
             />

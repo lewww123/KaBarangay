@@ -329,7 +329,7 @@ export default function Sectors({
                             onClick={() => setActiveTab('applications')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'applications'
-                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
                                     : 'border-gray-200 bg-white hover:border-gray-300'
                             }`}
                         >
@@ -350,7 +350,7 @@ export default function Sectors({
                             onClick={() => setActiveTab('general')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'general'
-                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
                                     : 'border-gray-200 bg-white hover:border-gray-300'
                             }`}
                         >
@@ -371,7 +371,7 @@ export default function Sectors({
                             onClick={() => setActiveTab('pwd')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'pwd'
-                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
                                     : 'border-gray-200 bg-white hover:border-gray-300'
                             }`}
                         >
@@ -392,7 +392,7 @@ export default function Sectors({
                             onClick={() => setActiveTab('senior')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'senior'
-                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
                                     : 'border-gray-200 bg-white hover:border-gray-300'
                             }`}
                         >
@@ -413,7 +413,7 @@ export default function Sectors({
                             onClick={() => setActiveTab('certificates')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'certificates'
-                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
                                     : 'border-gray-200 bg-white hover:border-gray-300'
                             }`}
                         >
@@ -434,7 +434,7 @@ export default function Sectors({
                             onClick={() => setActiveTab('lupon')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'lupon'
-                                    ? 'border-[#3f6f3d] bg-[#3f6f3d]/5 ring-1 ring-[#3f6f3d]'
+                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
                                     : 'border-gray-200 bg-white hover:border-gray-300'
                             }`}
                         >
@@ -490,7 +490,7 @@ export default function Sectors({
                     {activeTab === 'applications' && (
                         <div className="space-y-4">
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                                <div className="rounded-lg bg-[#3b6fa8] p-5 text-white sm:max-w-xs">
                                     <p className="text-xs text-white/80 uppercase">
                                         Applications Under Review
                                     </p>
@@ -505,7 +505,7 @@ export default function Sectors({
 
                                 <Link
                                     href="/admin/sector-applications"
-                                    className="inline-flex items-center gap-2 rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#345d33]"
+                                    className="inline-flex items-center gap-2 rounded-lg bg-[#3b6fa8] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#2a5279]"
                                 >
                                     Open Full Review Queue &rarr;
                                 </Link>
@@ -524,7 +524,7 @@ export default function Sectors({
                                 <div className="mt-4 flex items-center gap-3">
                                     <Link
                                         href="/admin/sector-applications"
-                                        className="text-sm font-medium text-[#3f6f3d] hover:underline"
+                                        className="text-sm font-medium text-[#3b6fa8] hover:underline"
                                     >
                                         Go to Sector Applications page to review
                                         and process submissions &rarr;
@@ -537,7 +537,7 @@ export default function Sectors({
                     {/* 2. GENERAL RESIDENT TAB */}
                     {activeTab === 'general' && (
                         <div className="space-y-4">
-                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                            <div className="rounded-lg bg-[#3b6fa8] p-5 text-white sm:max-w-xs">
                                 <p className="text-xs text-white/80 uppercase">
                                     General Residents
                                 </p>
@@ -567,7 +567,7 @@ export default function Sectors({
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[720px]">
-                                        <thead className="bg-[#fafaf7]">
+                                        <thead className="bg-[#ffffff]">
                                             <tr className="border-b border-gray-200">
                                                 <th className="px-5 py-3 text-left text-xs text-gray-400">
                                                     RESIDENT NO.
@@ -607,7 +607,7 @@ export default function Sectors({
                                                         </td>
 
                                                         <td className="px-5 py-4">
-                                                            <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs text-[#3f6f3d]">
+                                                            <span className="rounded-full bg-[#eef1f5] px-3 py-1 text-xs text-[#3b6fa8]">
                                                                 {member.status}
                                                             </span>
                                                         </td>
@@ -645,7 +645,7 @@ export default function Sectors({
                     {/* 3. PWD MEMBERS TAB */}
                     {activeTab === 'pwd' && (
                         <div className="space-y-4">
-                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                            <div className="rounded-lg bg-[#3b6fa8] p-5 text-white sm:max-w-xs">
                                 <p className="text-xs text-white/80 uppercase">
                                     PWD Members
                                 </p>
@@ -677,7 +677,7 @@ export default function Sectors({
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[720px]">
-                                        <thead className="bg-[#fafaf7]">
+                                        <thead className="bg-[#ffffff]">
                                             <tr className="border-b border-gray-200">
                                                 <th className="px-5 py-3 text-left text-xs text-gray-400">
                                                     RESIDENT NO.
@@ -713,7 +713,7 @@ export default function Sectors({
                                                     </td>
 
                                                     <td className="px-5 py-4">
-                                                        <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs text-[#3f6f3d]">
+                                                        <span className="rounded-full bg-[#eef1f5] px-3 py-1 text-xs text-[#3b6fa8]">
                                                             {member.status}
                                                         </span>
                                                     </td>
@@ -751,7 +751,7 @@ export default function Sectors({
                     {/* 4. SENIOR CITIZENS TAB */}
                     {activeTab === 'senior' && (
                         <div className="space-y-4">
-                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                            <div className="rounded-lg bg-[#3b6fa8] p-5 text-white sm:max-w-xs">
                                 <p className="text-xs text-white/80 uppercase">
                                     Senior Citizens
                                 </p>
@@ -783,7 +783,7 @@ export default function Sectors({
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[720px]">
-                                        <thead className="bg-[#fafaf7]">
+                                        <thead className="bg-[#ffffff]">
                                             <tr className="border-b border-gray-200">
                                                 <th className="px-5 py-3 text-left text-xs text-gray-400">
                                                     RESIDENT NO.
@@ -823,7 +823,7 @@ export default function Sectors({
                                                         </td>
 
                                                         <td className="px-5 py-4">
-                                                            <span className="rounded-full bg-[#edf4ea] px-3 py-1 text-xs text-[#3f6f3d]">
+                                                            <span className="rounded-full bg-[#eef1f5] px-3 py-1 text-xs text-[#3b6fa8]">
                                                                 {member.status}
                                                             </span>
                                                         </td>
@@ -862,7 +862,7 @@ export default function Sectors({
                     {/* 5. CERTIFICATES TAB */}
                     {activeTab === 'certificates' && (
                         <div className="space-y-4">
-                            <div className="rounded-lg bg-[#3f6f3d] p-5 text-white sm:max-w-xs">
+                            <div className="rounded-lg bg-[#3b6fa8] p-5 text-white sm:max-w-xs">
                                 <p className="text-xs text-white/80 uppercase">
                                     Processed Certificates
                                 </p>
@@ -898,13 +898,13 @@ export default function Sectors({
                                         setCertificateSearch(event.target.value)
                                     }
                                     placeholder="Search reference, resident, or certificate type..."
-                                    className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                                    className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3b6fa8]"
                                 />
 
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="submit"
-                                        className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#345d33]"
+                                        className="rounded-md bg-[#3b6fa8] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#2a5279]"
                                     >
                                         Search
                                     </button>
@@ -924,7 +924,7 @@ export default function Sectors({
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[900px]">
-                                        <thead className="bg-[#fafaf7]">
+                                        <thead className="bg-[#ffffff]">
                                             <tr className="border-b border-gray-200">
                                                 <th className="px-5 py-3 text-left text-xs text-gray-400">
                                                     REFERENCE
@@ -1002,7 +1002,7 @@ export default function Sectors({
                                                                 className={`rounded-full px-3 py-1 text-xs ${
                                                                     request.status ===
                                                                     'Released'
-                                                                        ? 'bg-[#edf4ea] text-[#3f6f3d]'
+                                                                        ? 'bg-[#eef1f5] text-[#3b6fa8]'
                                                                         : 'bg-[#fdecec] text-[#a33a3a]'
                                                                 }`}
                                                             >
@@ -1047,7 +1047,7 @@ export default function Sectors({
                     {activeTab === 'lupon' && (
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                <div className="rounded-lg bg-[#3f6f3d] p-5 text-white">
+                                <div className="rounded-lg bg-[#3b6fa8] p-5 text-white">
                                     <p className="text-xs text-white/80 uppercase">
                                         Open / Active Cases
                                     </p>
@@ -1135,7 +1135,7 @@ function SectionTab({
             onClick={onClick}
             className={`border-b-2 pb-3 text-sm font-medium whitespace-nowrap transition-colors ${
                 active
-                    ? 'border-[#3f6f3d] text-[#3f6f3d]'
+                    ? 'border-[#3b6fa8] text-[#3b6fa8]'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
             }`}
         >
@@ -1181,14 +1181,14 @@ function MembersToolbar({
                     value={searchValue}
                     onChange={(event) => onSearchChange(event.target.value)}
                     placeholder="Search resident number, name, or purok..."
-                    className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                    className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3b6fa8]"
                 />
 
                 <select
                     aria-label="Filter by purok"
                     value={purokValue}
                     onChange={onPurokChange}
-                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-700 outline-none focus:border-[#3f6f3d]"
+                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-700 outline-none focus:border-[#3b6fa8]"
                 >
                     <option value="">All Puroks</option>
 
@@ -1203,7 +1203,7 @@ function MembersToolbar({
             <div className="flex items-center gap-2">
                 <button
                     type="submit"
-                    className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#345d33]"
+                    className="rounded-md bg-[#3b6fa8] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#2a5279]"
                 >
                     Search
                 </button>

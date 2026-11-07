@@ -29,7 +29,7 @@ export default function AnnouncementLifecycleTabs({
                         className={cn(
                             'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
                             active
-                                ? 'bg-[#2f5e3a] text-white'
+                                ? 'bg-[#2a5279] text-white'
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
                         )}
                     >

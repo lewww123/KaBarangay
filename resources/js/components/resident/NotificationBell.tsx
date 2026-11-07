@@ -131,7 +131,7 @@ export default function NotificationBell() {
                             type="button"
                             disabled={busy || unread === 0}
                             onClick={() => void read()}
-                            className="text-xs font-semibold text-[#315b30] disabled:opacity-40"
+                            className="text-xs font-semibold text-[#2a5279] disabled:opacity-40"
                         >
                             Mark all as read
                         </button>
@@ -202,7 +202,7 @@ export default function NotificationBell() {
                                 setOpen(false);
                                 button.current?.focus();
                             }}
-                            className="font-semibold text-[#315b30]"
+                            className="font-semibold text-[#2a5279]"
                         >
                             Close
                         </button>
