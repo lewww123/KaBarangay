@@ -1,0 +1,637 @@
+name: database-backup
+
+# Nightly encrypted backup of the Supabase PostgreSQL database to Cloudflare R2.
+#
+# STATUS: TESTING MODE. `workflow_dispatch` is the only active trigger.
+# The nightly schedule below stays commented out until a manual run has been
+# verified end to end AND the owner has confirmed a successful decrypt/restore
+# into a throwaway database. See the "Activation checklist" comment at the bottom.
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_retention:
+        description: Skip the 30-day retention cleanup for this run
+        type: boolean
+        default: false
+
+  # ENABLE ONLY AFTER RESTORE VERIFICATION IS APPROVED.
+  # 18:00 Asia/Manila (UTC+8, no DST) == 10:00 UTC.
+  # schedule:
+  #   - cron: '0 10 * * *'
+
+# Nothing in this workflow touches the repository or the GitHub API.
+permissions: {}
+
+# Serialize runs: a second backup must never start while one is mid-upload or
+# mid-retention, otherwise the cleanup step could race another run's object.
+concurrency:
+  group: database-backup
+  cancel-in-progress: false
+
+env:
+  # Every object is written under this prefix, and retention only ever looks here.
+  BACKUP_PREFIX: backups/
+  RETENTION_DAYS: '30'
+  # Must be >= the Supabase server major version. Supabase platform runs PG 17.
+  PG_MAJOR: '17'
+  # Pinned tooling. The SHA-256 is verified before the binary is executed.
+  AGE_VERSION: v1.3.2
+  AGE_TARBALL_SHA256: cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10
+  AWS_REGION: auto
+  AWS_DEFAULT_OUTPUT: json
+  AWS_EC2_METADATA_DISABLED: 'true'
+  # Cloudflare R2 rejects the AWS CLI's default integrity checksums. Without
+  # these, `s3 cp` goes out as aws-chunked with an x-amz-checksum-crc64nvme
+  # trailer and a Content-Length larger than the real object, and anything big
+  # enough to go multipart needs a COMPOSITE CRC64NVME checksum R2 does not
+  # implement. Declared at workflow level so upload, head-object verification,
+  # retention listing and deletion all inherit them. Confirmed on AWS CLI 2.39.3
+  # (the version the ubuntu-24.04 runner ships): the trailer and aws-chunked
+  # encoding disappear and Content-Length reverts to the true object size.
+  AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+  AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+  # Floor for TLS. Connection-string parameters override this, so Preflight also
+  # validates the effective sslmode in SUPABASE_DB_URL and rejects anything weaker.
+  PGSSLMODE: require
+  PGCONNECT_TIMEOUT: '30'
+
+jobs:
+  backup:
+    name: Dump, encrypt and upload
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Preflight — required configuration present
+        shell: bash
+        # Secrets are NOT automatically exported as env vars; each step maps only
+        # what it needs, so credentials never reach steps that do not use them.
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_DB_URL R2_ENDPOINT R2_BUCKET R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY AGE_RECIPIENT; do
+            if [ -n "${!name:-}" ]; then
+              echo "ok: $name is set"
+            else
+              echo "MISSING: $name"
+              missing=1
+            fi
+          done
+
+          # Only the name is ever printed; values stay in the secret store.
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::One or more required secrets are not configured. Add them under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          case "$AGE_RECIPIENT" in
+            age1[ac-hj-np-z02-9]*) echo "ok: AGE_RECIPIENT looks like an age X25519 recipient" ;;
+            *)
+              echo "::error::AGE_RECIPIENT must be an age public recipient starting with 'age1'."
+              exit 1
+              ;;
+          esac
+
+          # Cloudflare R2 naming rules: 3-63 characters, lowercase letters,
+          # digits and hyphens only, starting and ending with a letter or digit.
+          if ! printf '%s' "$R2_BUCKET" | grep -qE '^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$'; then
+            echo "::error::R2_BUCKET is not a valid R2 bucket name. Use 3-63 lowercase letters, digits or hyphens, starting and ending with a letter or digit."
+            exit 1
+          fi
+
+          # The endpoint must be bare HTTPS on a Cloudflare R2 hostname: no
+          # path, query, fragment, port or trailing slash. Jurisdiction hosts
+          # like <account>.eu.r2.cloudflarestorage.com keep the same suffix.
+          case "$R2_ENDPOINT" in
+            https://*) ;;
+            *)
+              echo "::error::R2_ENDPOINT must start with https://."
+              exit 1
+              ;;
+          esac
+          r2_host="$(printf '%s' "${R2_ENDPOINT#https://}" | tr 'A-Z' 'a-z')"
+          case "$r2_host" in
+            *[!a-z0-9.-]*|'')
+              echo "::error::R2_ENDPOINT must be a bare hostname: no path, query, fragment, port or trailing slash."
+              exit 1
+              ;;
+          esac
+          case "$r2_host" in
+            ?*.r2.cloudflarestorage.com) ;;
+            *)
+              echo "::error::R2_ENDPOINT host must end in .r2.cloudflarestorage.com."
+              exit 1
+              ;;
+          esac
+          case "$r2_host" in
+            .*|-*)
+              echo "::error::R2_ENDPOINT hostname is malformed."
+              exit 1
+              ;;
+          esac
+
+          # Connection-string parameters override PGSSLMODE, so the env floor on
+          # its own cannot guarantee TLS. libpq also honours only the LAST
+          # sslmode it finds, so "?sslmode=require&sslmode=disable" connects in
+          # plaintext while looking safe to a first-match check. Require exactly
+          # one well-formed, lowercase assignment whose value enforces TLS.
+          # Covers the URI form (?sslmode=...) and libpq's keyword/value form
+          # (sslmode=...), including quoted values and padding around "=".
+          # Values are never echoed; only the parsed mode name is printed.
+          ssl_seen="$(printf '%s' "$SUPABASE_DB_URL" | { grep -oiE 'sslmode' || true; } | wc -l | tr -d ' ')"
+          ssl_assigned="$(printf '%s' "$SUPABASE_DB_URL" \
+            | grep -oiE "sslmode[[:space:]]*=[[:space:]]*('[^']*'|[^[:space:]&#]+)" || true)"
+          ssl_parsed="$(printf '%s\n' "$ssl_assigned" | sed '/^$/d' | wc -l | tr -d ' ')"
+          ssl_mode="$(printf '%s\n' "$ssl_assigned" | sed -nE "1s/^[^=]*=[[:space:]]*//p" | tr -d "'")"
+
+          if [ "$ssl_seen" -eq 0 ]; then
+            echo "ok: SUPABASE_DB_URL sets no sslmode, so PGSSLMODE=require applies"
+          elif [ "$ssl_parsed" -ne "$ssl_seen" ]; then
+            echo "::error::SUPABASE_DB_URL contains a malformed sslmode parameter. Use sslmode=require."
+            exit 1
+          elif [ "$ssl_parsed" -gt 1 ]; then
+            echo "::error::SUPABASE_DB_URL sets sslmode ${ssl_parsed} times. libpq would use only the last, so the effective mode is ambiguous."
+            exit 1
+          else
+            case "$ssl_assigned" in
+              sslmode*=*) ;;
+              *)
+                echo "::error::SUPABASE_DB_URL must spell the parameter exactly 'sslmode', in lowercase."
+                exit 1
+                ;;
+            esac
+            case "$ssl_mode" in
+              require|verify-ca|verify-full)
+                echo "ok: sslmode=${ssl_mode} enforces TLS"
+                ;;
+              *)
+                echo "::error::SUPABASE_DB_URL sslmode does not enforce TLS. Use require, verify-ca or verify-full."
+                exit 1
+                ;;
+            esac
+          fi
+
+          # Fail before touching the database if the runner image ever drops a tool.
+          for tool in jq aws curl tar gzip sha256sum shred stat sed grep date; do
+            if ! command -v "$tool" >/dev/null 2>&1; then
+              echo "::error::Required runner tool is missing: $tool"
+              exit 1
+            fi
+          done
+          echo "ok: required runner tooling present"
+
+          WORKDIR="$RUNNER_TEMP/kabarangay-backup"
+          rm -rf "$WORKDIR"
+          install -d -m 700 "$WORKDIR"
+          echo "WORKDIR=$WORKDIR" >> "$GITHUB_ENV"
+
+      - name: Install PostgreSQL ${{ env.PG_MAJOR }} client from PGDG
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The runner image ships a PG 16 client, which refuses to dump a PG 17
+          # server, so install the matching major from the official PGDG repo.
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-common ca-certificates curl wget
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends "postgresql-client-${PG_MAJOR}"
+
+          PG_BIN="/usr/lib/postgresql/${PG_MAJOR}/bin"
+          if [ ! -x "$PG_BIN/pg_dump" ]; then
+            echo "::error::pg_dump was not installed at $PG_BIN"
+            exit 1
+          fi
+          echo "PG_BIN=$PG_BIN" >> "$GITHUB_ENV"
+          "$PG_BIN/pg_dump" --version
+          "$PG_BIN/pg_restore" --version
+
+      - name: Install age (pinned release, checksum verified)
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="age-${AGE_VERSION}-linux-amd64.tar.gz"
+          url="https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/${asset}"
+
+          curl --fail --silent --show-error --location --retry 3 -o "$RUNNER_TEMP/$asset" "$url"
+
+          actual="$(sha256sum "$RUNNER_TEMP/$asset" | cut -d' ' -f1)"
+          if [ "$actual" != "$AGE_TARBALL_SHA256" ]; then
+            echo "::error::age checksum mismatch. expected=$AGE_TARBALL_SHA256 actual=$actual"
+            rm -f "$RUNNER_TEMP/$asset"
+            exit 1
+          fi
+          echo "ok: age ${AGE_VERSION} checksum verified"
+
+          tar -xzf "$RUNNER_TEMP/$asset" -C "$RUNNER_TEMP"
+          install -D -m 0755 "$RUNNER_TEMP/age/age" "$RUNNER_TEMP/bin/age"
+          rm -rf "${RUNNER_TEMP:?}/$asset" "${RUNNER_TEMP:?}/age"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/age" --version
+
+      - name: Validate database connection
+        shell: bash
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+
+          # Strip credentials out of any libpq diagnostic before it reaches the log.
+          sanitize() { sed -E 's#://[^@/[:space:]]+@#://***@#g; s#[Pp]assword=[^[:space:]]+#[Pp]assword=***#g'; }
+
+          # pg_dump cannot run through the transaction-mode pooler (port 6543);
+          # it needs the session-mode pooler or the direct connection on 5432.
+          # libpq takes the port from three places, and one connection string can
+          # name it in more than one of them:
+          #   URI authority  postgresql://user:pw@host:PORT/db
+          #   URI query      postgresql://user:pw@host/db?port=PORT
+          #   keyword/value  host=... port=PORT ...
+          # Measured against PostgreSQL 17: a "?port=" overrides the authority
+          # port, and when a parameter repeats the LAST occurrence wins. Rather
+          # than emulate that precedence, every candidate is collected and the
+          # string is rejected unless they all name the same port -- nobody
+          # should need libpq's tie-breaking rules to read their own secret.
+          # Only digits are ever printed, never the host, user or password.
+          port_assignments="$(
+            {
+              # Keyword/value and URI-query assignments, including libpq's
+              # padding ("port = 6543") and quoting ("port='6543'"). The leading
+              # (^|[&?[:space:]]) anchor keeps keys like "sslport" from matching.
+              printf '%s' "$SUPABASE_DB_URL" \
+                | grep -oiE "(^|[&?[:space:]])port[[:space:]]*=[[:space:]]*('[^']*'|[^[:space:]&#]+)" || true
+              # URI authority port: everything from the FIRST ":" of
+              # "//user@host:port". Cutting at the last "@" first stops a colon
+              # inside the password from being read as the port separator;
+              # neutralising a bracketed IPv6 literal stops its own colons from
+              # being read as one. A non-numeric tail is kept rather than
+              # dropped, so the malformed check below fails closed on it instead
+              # of reporting "no port". libpq splits here the same way: it takes
+              # "host:5432:6543" as the single invalid value "5432:6543".
+              printf '%s' "$SUPABASE_DB_URL" \
+                | sed -nE 's#^[a-z0-9+.-]+://([^/?#]*).*#\1#p' \
+                | sed -E 's#^.*@##' \
+                | sed -E 's#^\[[^]]*\]#IPV6#' \
+                | sed -nE 's#^[^:]*(:.*)$#\1#p' || true
+            } | sed -E 's/^[&?[:space:]]+//'
+          )"
+
+          # libpq rejects a mis-spelled "PORT" outright in both formats, so this
+          # reports it as a bad secret instead of letting it look like an outage.
+          port_keys="$(printf '%s\n' "$port_assignments" | grep -ciE 'port[[:space:]]*=' || true)"
+          port_keys_lower="$(printf '%s\n' "$port_assignments" | grep -cE '^port[[:space:]]*=' || true)"
+
+          port_values="$(printf '%s\n' "$port_assignments" \
+            | sed -E 's/^port[[:space:]]*=[[:space:]]*//' \
+            | sed -E "s/^'//; s/'\$//; s/^://" \
+            | sed -E '/^$/d')"
+          port_total="$(printf '%s\n' "$port_values" | sed -E '/^$/d' | wc -l | tr -d ' ')"
+          port_distinct="$(printf '%s\n' "$port_values" | sed -E '/^$/d' | sort -u | wc -l | tr -d ' ')"
+          port_value="$(printf '%s\n' "$port_values" | sed -E '/^$/d' | sort -u | sed -nE '1p')"
+
+          if [ "$port_total" -eq 0 ]; then
+            echo "ok: SUPABASE_DB_URL names no port, so libpq will use the default 5432"
+          elif [ "$port_keys" -ne "$port_keys_lower" ]; then
+            echo "::error::SUPABASE_DB_URL must spell the port parameter exactly 'port', in lowercase."
+            exit 1
+          elif [ "$port_distinct" -ne 1 ]; then
+            echo "::error::SUPABASE_DB_URL names ${port_total} ports with ${port_distinct} different values. libpq would silently pick one, so the effective port is ambiguous."
+            exit 1
+          else
+            case "$port_value" in
+              ''|*[!0-9]*)
+                echo "::error::SUPABASE_DB_URL contains a malformed port value. Use port=5432."
+                exit 1
+                ;;
+              ??????*)
+                echo "::error::SUPABASE_DB_URL port value is out of range. Use port=5432."
+                exit 1
+                ;;
+            esac
+            if [ "$port_value" -lt 1 ] || [ "$port_value" -gt 65535 ]; then
+              echo "::error::SUPABASE_DB_URL port ${port_value} is outside the range 1-65535."
+              exit 1
+            fi
+            if [ "$port_value" -eq 6543 ]; then
+              echo "::error::SUPABASE_DB_URL points at port 6543 (transaction-mode pooler). pg_dump needs the session-mode pooler or direct connection on port 5432."
+              exit 1
+            fi
+            echo "ok: port=${port_value}"
+          fi
+
+          if ! server_version="$("$PG_BIN/psql" "$SUPABASE_DB_URL" -X -qtA -c 'SHOW server_version' 2>"$WORKDIR/psql.err")"; then
+            echo "::error::Database connection check failed."
+            sanitize < "$WORKDIR/psql.err"
+            rm -f "$WORKDIR/psql.err"
+            exit 1
+          fi
+          rm -f "$WORKDIR/psql.err"
+
+          echo "ok: connected, server_version=${server_version}"
+
+          server_major="$(printf '%s' "$server_version" | grep -oE '^[0-9]+' || true)"
+          if [ -z "$server_major" ]; then
+            echo "::error::Could not parse a numeric major version from server_version."
+            exit 1
+          fi
+          if [ "$server_major" -gt "$PG_MAJOR" ]; then
+            echo "::error::Server is PostgreSQL ${server_major} but the installed client is ${PG_MAJOR}. Raise env.PG_MAJOR."
+            exit 1
+          fi
+          echo "ok: client ${PG_MAJOR} >= server ${server_major}"
+
+      - name: Create encrypted backup
+        shell: bash
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          object_key="${BACKUP_PREFIX}kabarangay-${stamp}-r${GITHUB_RUN_ID}.dump.age"
+          dump_file="$WORKDIR/kabarangay-${stamp}.dump"
+          age_file="$WORKDIR/kabarangay-${stamp}.dump.age"
+
+          {
+            echo "OBJECT_KEY=$object_key"
+            echo "DUMP_FILE=$dump_file"
+            echo "AGE_FILE=$age_file"
+          } >> "$GITHUB_ENV"
+
+          echo "==> pg_dump (custom format, gzip level 6)"
+          # --no-owner/--no-privileges keep the archive restorable into a database
+          # where the original Supabase roles do not exist.
+          if ! "$PG_BIN/pg_dump" \
+                 --dbname="$SUPABASE_DB_URL" \
+                 --format=custom \
+                 --compress=gzip:6 \
+                 --no-owner \
+                 --no-privileges \
+                 --file="$dump_file"; then
+            echo "::error::pg_dump failed. No backup was produced and nothing was uploaded."
+            exit 1
+          fi
+
+          echo "==> Verifying dump integrity before encryption"
+          if [ ! -s "$dump_file" ]; then
+            echo "::error::Dump file is missing or empty."
+            exit 1
+          fi
+          # A readable table of contents proves the archive is well formed and complete.
+          if ! "$PG_BIN/pg_restore" --list "$dump_file" > "$WORKDIR/toc.txt"; then
+            echo "::error::pg_restore --list could not read the archive; treating the dump as corrupt."
+            exit 1
+          fi
+          toc_entries="$(grep -cE '^[0-9]+;' "$WORKDIR/toc.txt" || true)"
+          if [ "${toc_entries:-0}" -lt 1 ]; then
+            echo "::error::Archive table of contents is empty."
+            exit 1
+          fi
+
+          plain_size="$(stat -c %s "$dump_file")"
+          plain_sha="$(sha256sum "$dump_file" | cut -d' ' -f1)"
+          echo "ok: dump is ${plain_size} bytes, ${toc_entries} archive entries"
+          echo "dump sha256: ${plain_sha}"
+
+          echo "==> Encrypting with age"
+          if ! age --recipient "$AGE_RECIPIENT" --output "$age_file" "$dump_file"; then
+            echo "::error::age encryption failed."
+            exit 1
+          fi
+
+          echo "==> Verifying ciphertext"
+          if [ ! -s "$age_file" ]; then
+            echo "::error::Encrypted file is missing or empty."
+            exit 1
+          fi
+          magic="$(head -c 19 "$age_file")"
+          case "$magic" in
+            'age-encryption.org/'*) : ;;
+            *)
+              echo "::error::Encrypted file does not carry an age header."
+              exit 1
+              ;;
+          esac
+          age_size="$(stat -c %s "$age_file")"
+          if [ "$age_size" -le "$plain_size" ] || [ "$age_size" -gt $(( plain_size * 2 + 65536 )) ]; then
+            echo "::error::Ciphertext size ${age_size} is implausible for a ${plain_size} byte dump; possible truncation."
+            exit 1
+          fi
+          age_sha="$(sha256sum "$age_file" | cut -d' ' -f1)"
+          echo "ok: ciphertext is ${age_size} bytes, sha256 ${age_sha}"
+          {
+            echo "AGE_SHA256_LOCAL=$age_sha"
+            echo "AGE_SIZE_LOCAL=$age_size"
+          } >> "$GITHUB_ENV"
+
+          # The plaintext is destroyed before any network call, so a partial or
+          # failed upload can never leave an unencrypted dump on the runner.
+          echo "==> Destroying plaintext dump"
+          # shred cannot overwrite on every filesystem; fall back to unlink, then
+          # assert removal so the job still fails closed if the file survives.
+          shred -u --zero "$dump_file" 2>/dev/null || rm -f "$dump_file"
+          rm -f "$WORKDIR/toc.txt"
+          if [ -e "$dump_file" ]; then
+            echo "::error::Plaintext dump still present after shred."
+            exit 1
+          fi
+          echo "ok: plaintext removed"
+
+      - name: Upload encrypted backup to R2
+        id: upload
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+
+          if ! command -v aws >/dev/null 2>&1; then
+            echo "::error::AWS CLI is not available on the runner."
+            exit 1
+          fi
+
+          echo "==> Uploading ${OBJECT_KEY} to the R2 bucket"
+          aws s3 cp "$AGE_FILE" "s3://${R2_BUCKET}/${OBJECT_KEY}" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --only-show-errors \
+            --metadata "sha256=${AGE_SHA256_LOCAL}"
+
+          echo "==> Verifying the uploaded object"
+          head_json="$(aws s3api head-object \
+            --bucket "$R2_BUCKET" \
+            --key "$OBJECT_KEY" \
+            --endpoint-url "$R2_ENDPOINT")"
+
+          remote_size="$(printf '%s' "$head_json" | jq -r '.ContentLength // 0')"
+          if [ "$remote_size" -le 0 ]; then
+            echo "::error::Uploaded object is missing or zero bytes."
+            exit 1
+          fi
+          if [ "$remote_size" != "$AGE_SIZE_LOCAL" ]; then
+            echo "::error::Size mismatch. local=${AGE_SIZE_LOCAL} remote=${remote_size}"
+            exit 1
+          fi
+
+          # S3 lowercases user metadata keys; compare case-insensitively.
+          remote_sha="$(printf '%s' "$head_json" | jq -r '(.metadata // .Metadata // {}) | to_entries | map(select(.key|ascii_downcase=="sha256")) | .[0].value // empty')"
+          if [ -n "$remote_sha" ] && [ "${remote_sha,,}" != "${AGE_SHA256_LOCAL,,}" ]; then
+            echo "::error::Stored sha256 metadata does not match the local ciphertext."
+            exit 1
+          fi
+
+          echo "ok: object exists, ${remote_size} bytes, integrity confirmed"
+
+      - name: Destroy local ciphertext
+        shell: bash
+        if: always()
+        run: |
+          set -uo pipefail
+          # Never fail the job from cleanup; the upload result is what matters.
+          for f in "${AGE_FILE:-}" "${DUMP_FILE:-}"; do
+            if [ -n "$f" ] && [ -e "$f" ]; then
+              shred -u --zero "$f" 2>/dev/null || rm -f "$f"
+              echo "removed: $(basename "$f")"
+            fi
+          done
+          if [ -n "${WORKDIR:-}" ] && [ -d "$WORKDIR" ]; then
+            rm -rf "$WORKDIR"
+            echo "removed: working directory"
+          fi
+
+      - name: Apply 30-day retention
+        shell: bash
+        # Only runs when a backup actually landed, so a failed dump can never
+        # shrink the set of available restore points.
+        if: steps.upload.outcome == 'success' && !inputs.skip_retention
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "::error::jq is required for retention filtering."
+            exit 1
+          fi
+
+          cutoff_epoch="$(date -u -d "-${RETENTION_DAYS} days" +%s)"
+          echo "cutoff: $(date -u -d "@$cutoff_epoch" +%Y-%m-%dT%H:%M:%SZ) (objects older than ${RETENTION_DAYS} days)"
+
+          listing="$(aws s3api list-objects-v2 \
+            --bucket "$R2_BUCKET" \
+            --prefix "$BACKUP_PREFIX" \
+            --endpoint-url "$R2_ENDPOINT")"
+
+          if [ "$(printf '%s' "$listing" | jq -r '.IsTruncated // false')" = "true" ]; then
+            echo "::warning::Object listing is truncated; retention only considered the first page."
+          fi
+
+          # Timestamps come back as either ...Z or ...+00:00; normalise before parsing.
+          candidates="$(printf '%s' "$listing" | jq -r --argjson cutoff "$cutoff_epoch" '
+            .Contents[]?
+            | (.LastModified | sub("\\.[0-9]+";"") | sub("\\+00:00$";"Z") | fromdateiso8601) as $t
+            | select($t < $cutoff)
+            | .Key')"
+
+          # Belt and braces: a key is only deletable if it sits under the backup
+          # prefix, matches our exact naming scheme, and is not this run's object.
+          pattern="^${BACKUP_PREFIX}kabarangay-[0-9]{8}T[0-9]{6}Z-r[0-9]+\.dump\.age$"
+          to_delete=""
+          while IFS= read -r key; do
+            [ -n "$key" ] || continue
+            if [ "$key" = "${OBJECT_KEY:-}" ]; then
+              echo "skip (current run): $key"
+              continue
+            fi
+            if ! printf '%s' "$key" | grep -qE "$pattern"; then
+              echo "skip (does not match backup naming): $key"
+              continue
+            fi
+            to_delete="${to_delete}${key}"$'\n'
+          done <<< "$candidates"
+
+          to_delete="$(printf '%s' "$to_delete" | sed '/^$/d')"
+          if [ -z "$to_delete" ]; then
+            echo "ok: nothing older than ${RETENTION_DAYS} days under ${BACKUP_PREFIX}"
+            exit 0
+          fi
+
+          count="$(printf '%s\n' "$to_delete" | wc -l)"
+          echo "==> Deleting ${count} expired backup(s):"
+          printf '%s\n' "$to_delete" | sed 's/^/    /'
+
+          payload="$RUNNER_TEMP/retention-delete.json"
+          printf '%s\n' "$to_delete" \
+            | jq -Rsc '{Objects: (split("\n") | map(select(length > 0)) | map({Key: .})), Quiet: true}' \
+            > "$payload"
+
+          delete_response="$RUNNER_TEMP/retention-delete-response.json"
+          if ! aws s3api delete-objects \
+            --bucket "$R2_BUCKET" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --delete "file://$payload" \
+            > "$delete_response"; then
+            shred -u "$payload" 2>/dev/null || rm -f "$payload"
+            rm -f "$delete_response"
+            echo "::error::DeleteObjects request failed; expired backups were not removed."
+            exit 1
+          fi
+          shred -u "$payload" 2>/dev/null || rm -f "$payload"
+
+          jq -r '.Deleted[]?.Key | "deleted: \(.)"' "$delete_response"
+
+          # S3/R2 answer partial failures with HTTP 200 plus an Errors array,
+          # and the CLI still exits 0, so the body is the only place they show.
+          error_count="$(jq -r '(.Errors // []) | length' "$delete_response")"
+          if [ "$error_count" -gt 0 ]; then
+            echo "::error::DeleteObjects returned ${error_count} per-object error(s); some expired backups were not removed."
+            jq -r '.Errors[] | "delete error: \(.Key): \(.Code) - \(.Message)"' "$delete_response"
+            rm -f "$delete_response"
+            exit 1
+          fi
+          rm -f "$delete_response"
+          echo "ok: ${count} expired backup(s) deleted without errors"
+
+      - name: Summary
+        shell: bash
+        if: always()
+        # Deliberately maps no secrets: R2_BUCKET would render as *** in the
+        # summary anyway, and an unmapped var would trip `set -u`.
+        env:
+          SKIP_RETENTION: ${{ inputs.skip_retention }}
+        run: |
+          set -uo pipefail
+          {
+            echo "### Database backup"
+            echo ""
+            echo "- Object key: \`${OBJECT_KEY:-<not created>}\`"
+            echo "- Prefix: \`${BACKUP_PREFIX}\`"
+            echo "- Retention: ${RETENTION_DAYS} days (skipped: ${SKIP_RETENTION:-false})"
+            echo "- Plaintext dump destroyed before upload: yes"
+            echo "- Uploaded artefact: age-encrypted only"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+# ---------------------------------------------------------------------------
+# Activation checklist — do NOT uncomment the schedule until all are true:
+#   1. A workflow_dispatch run completed green, including the post-upload
+#      existence + size + sha256 verification.
+#   2. The owner downloaded the object, decrypted it with the offline age
+#      identity, and confirmed `pg_restore --list` succeeds.
+#   3. The owner restored it into a THROWAWAY PostgreSQL instance (never
+#      production) and sanity-checked schema + row counts.
+#   4. The age identity is stored offline and the runner never sees it.
+# Then change `on:` to include the schedule block above.
+# ---------------------------------------------------------------------------
