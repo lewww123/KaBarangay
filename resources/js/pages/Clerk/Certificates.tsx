@@ -539,7 +539,7 @@ function QrScanInput({
                 }}
                 placeholder="Scan QR code here…"
                 aria-label="Scan resident QR code"
-                className="w-full flex-1 rounded-md border px-3 py-2 text-sm"
+                className="w-full flex-1 rounded-lg border px-3 py-2 text-sm"
                 autoFocus
                 autoComplete="off"
             />
@@ -547,7 +547,7 @@ function QrScanInput({
                 type="button"
                 onClick={submit}
                 disabled={loading}
-                className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm text-white disabled:opacity-50"
+                className="rounded-lg bg-brand px-4 py-2 text-sm text-white disabled:opacity-50"
             >
                 {loading ? 'Looking up...' : 'Look up resident'}
             </button>
@@ -1325,7 +1325,7 @@ function Dashboard({
                 onChange={(event) =>
                     setData('acting_captain_id', event.target.value)
                 }
-                className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="w-full rounded-lg border bg-white px-3 py-2 text-sm"
             >
                 <option value="">Use default Punong Barangay</option>
                 {active_kagawads.map((member) => (
@@ -2070,7 +2070,7 @@ function Dashboard({
                     required
                     maxLength={255}
                     placeholder="e.g. Sari-sari Store or Retailer – Fruits & Vegetables"
-                    className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm"
                 />
             </label>
             <label className="text-xs font-semibold">
@@ -2080,7 +2080,7 @@ function Dashboard({
                     value={data.or_number}
                     onChange={(e) => setData('or_number', e.target.value)}
                     maxLength={100}
-                    className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm"
                 />
             </label>
             <label className="text-xs font-semibold">
@@ -2089,7 +2089,7 @@ function Dashboard({
                     type="date"
                     value={data.receipt_date}
                     onChange={(e) => setData('receipt_date', e.target.value)}
-                    className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm"
                 />
             </label>
             <label className="text-xs font-semibold">
@@ -2101,7 +2101,7 @@ function Dashboard({
                     value={data.amount_paid}
                     onChange={(e) => setData('amount_paid', e.target.value)}
                     placeholder={data.fee}
-                    className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm"
                 />
             </label>
         </div>
@@ -2109,7 +2109,7 @@ function Dashboard({
 
     const renderDelayedPsaFields = () => (
         <div className="space-y-3 rounded-lg border border-sky-100 bg-sky-50 p-4">
-            <h4 className="text-xs font-bold text-sky-800 uppercase">
+            <h4 className="text-xs font-semibold text-sky-800 uppercase">
                 Delayed PSA Registration Details
             </h4>
 
@@ -2121,7 +2121,7 @@ function Dashboard({
 
             {profileError && (
                 <div
-                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
                     role="alert"
                 >
                     {profileError}
@@ -2130,7 +2130,7 @@ function Dashboard({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Date of Birth
                     </label>
                     <input
@@ -2140,18 +2140,18 @@ function Dashboard({
                             setData('date_of_birth', e.target.value)
                         }
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
                 <div>
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Sex
                     </label>
                     <select
                         value={data.sex}
                         onChange={(e) => setData('sex', e.target.value)}
                         required
-                        className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                        className="w-full rounded-lg border bg-white px-3 py-2 text-sm"
                     >
                         <option value="">Select Sex...</option>
                         {SEX_OPTIONS.map((option) => (
@@ -2162,7 +2162,7 @@ function Dashboard({
                     </select>
                 </div>
                 <div>
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Nationality
                     </label>
                     <input
@@ -2170,11 +2170,11 @@ function Dashboard({
                         value={data.nationality}
                         onChange={(e) => setData('nationality', e.target.value)}
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
                 <div>
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Birth Place
                     </label>
                     <input
@@ -2182,11 +2182,11 @@ function Dashboard({
                         value={data.birth_place}
                         onChange={(e) => setData('birth_place', e.target.value)}
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
                 <div>
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Purok
                     </label>
                     <input
@@ -2194,11 +2194,11 @@ function Dashboard({
                         value={data.purok}
                         onChange={(e) => setData('purok', e.target.value)}
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
                 <div>
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Residency Start Year
                     </label>
                     <input
@@ -2212,11 +2212,11 @@ function Dashboard({
                             setData('residency_start_year', e.target.value)
                         }
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
                 <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Full Name of the Father
                     </label>
                     <input
@@ -2224,11 +2224,11 @@ function Dashboard({
                         value={data.father_name}
                         onChange={(e) => setData('father_name', e.target.value)}
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
                 <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Maiden Name of the Mother
                     </label>
                     <input
@@ -2238,11 +2238,11 @@ function Dashboard({
                             setData('mother_maiden_name', e.target.value)
                         }
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
                 <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Date and Place of Marriage of Parents
                     </label>
                     <input
@@ -2254,9 +2254,9 @@ function Dashboard({
                         required
                         placeholder="e.g. 12 June 1985, Puerto Princesa City; or Not married"
                         maxLength={255}
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-ink-muted">
                         Enter the marriage date and place, or alternative text
                         such as Not married or Unknown.
                     </p>
@@ -2272,7 +2272,7 @@ function Dashboard({
                 </div>
             </div>
 
-            <label className="flex items-start gap-2 text-xs text-gray-700">
+            <label className="flex items-start gap-2 text-xs text-ink">
                 <input
                     type="checkbox"
                     checked={detailsConfirmed}
@@ -2289,7 +2289,7 @@ function Dashboard({
 
     const renderMarriageFields = () => (
         <div className="space-y-3 rounded-lg border border-rose-100 bg-rose-50 p-4">
-            <h4 className="text-xs font-bold text-rose-800 uppercase">
+            <h4 className="text-xs font-semibold text-rose-800 uppercase">
                 Partner Details
             </h4>
 
@@ -2301,7 +2301,7 @@ function Dashboard({
 
             {profileError && (
                 <div
-                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
                     role="alert"
                 >
                     The resident record could not be loaded. The age and purok
@@ -2312,7 +2312,7 @@ function Dashboard({
 
             {data.resident_id.trim() === '' && (
                 <div
-                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
                     role="alert"
                 >
                     This certificate names the resident from the resident
@@ -2323,7 +2323,7 @@ function Dashboard({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Partner Full Name
                     </label>
                     <input
@@ -2333,11 +2333,11 @@ function Dashboard({
                             setData('partner_full_name', e.target.value)
                         }
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
                 <div>
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Partner Age ({MARRIAGE_PARTNER_AGE_MIN}-
                         {MARRIAGE_PARTNER_AGE_MAX})
                     </label>
@@ -2350,11 +2350,11 @@ function Dashboard({
                         value={data.partner_age}
                         onChange={(e) => setData('partner_age', e.target.value)}
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
                 <div>
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Years Living Together ({MARRIAGE_YEARS_MIN}-
                         {MARRIAGE_YEARS_MAX})
                     </label>
@@ -2369,7 +2369,7 @@ function Dashboard({
                             setData('years_living_together', e.target.value)
                         }
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
             </div>
@@ -2378,7 +2378,7 @@ function Dashboard({
 
     const renderResidencyFields = () => (
         <div className="space-y-3 rounded-lg border border-teal-100 bg-teal-50 p-4">
-            <h4 className="text-xs font-bold text-teal-800 uppercase">
+            <h4 className="text-xs font-semibold text-teal-800 uppercase">
                 Residency Details
             </h4>
 
@@ -2390,7 +2390,7 @@ function Dashboard({
 
             {profileError && (
                 <div
-                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
                     role="alert"
                 >
                     The resident record could not be loaded. The name and purok
@@ -2401,7 +2401,7 @@ function Dashboard({
 
             {data.resident_id.trim() === '' && (
                 <div
-                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
                     role="alert"
                 >
                     This certificate names the resident from the resident
@@ -2412,7 +2412,7 @@ function Dashboard({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    <label className="mb-1 block text-xs font-semibold text-ink-muted">
                         Years of Residency ({RESIDENCY_YEARS_MIN}-
                         {RESIDENCY_YEARS_MAX})
                     </label>
@@ -2427,12 +2427,12 @@ function Dashboard({
                             setData('years_of_residency', e.target.value)
                         }
                         required
-                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                 </div>
             </div>
 
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-ink-muted">
                 The name and purok are taken from the linked resident record.
                 The number of years is recorded on the certificate only.
             </p>
@@ -2538,7 +2538,7 @@ function Dashboard({
                     <div className="certificate-authority">
                         <p>By the Authority of the Punong Barangay,</p>
                         <div>
-                            <p className="font-bold">
+                            <p className="font-semibold">
                                 {data.signatory_name.toUpperCase() ||
                                     '___________________'}
                             </p>
@@ -2614,7 +2614,7 @@ function Dashboard({
                             By the Authority of the Punong Barangay,
                         </p>
                         <div className="mt-6 text-right">
-                            <p className="text-sm font-bold">
+                            <p className="text-sm font-semibold">
                                 {data.signatory_name || '___________________'}
                             </p>
                             <p className="text-xs italic">Officer on duty</p>
@@ -2649,16 +2649,16 @@ function Dashboard({
             return (
                 <div className="certificate-copy certificate-residency-copy text-left">
                     <p className="residency-intro">This is to certify that</p>
-                    <p className="residency-name font-bold underline">
+                    <p className="residency-name font-semibold underline">
                         {residentName}
                     </p>
                     <p className="residency-bona-fide">
                         A bona fide resident of
                     </p>
-                    <p className="residency-purok font-bold underline">
+                    <p className="residency-purok font-semibold underline">
                         {purok}
                     </p>
-                    <p className="residency-address font-bold">
+                    <p className="residency-address font-semibold">
                         Brgy. San Jose, Puerto Princesa City.
                     </p>
 
@@ -2690,7 +2690,7 @@ function Dashboard({
                     </p>
 
                     <div className="certificate-purpose">
-                        <span className="font-bold text-blue-800 uppercase">
+                        <span className="font-semibold text-blue-800 uppercase">
                             Purpose:{' '}
                         </span>
                         <strong>
@@ -2705,7 +2705,7 @@ function Dashboard({
                             By the Authority of the Punong Barangay,
                         </p>
                         <div className="mt-6 text-right">
-                            <p className="text-sm font-bold">
+                            <p className="text-sm font-semibold">
                                 {data.signatory_name || '___________________'}
                             </p>
                             <p className="text-xs italic">Officer on duty</p>
@@ -2866,7 +2866,7 @@ function Dashboard({
                     <div className="certificate-authority">
                         <p>By the Authority of the Punong Barangay,</p>
                         <div>
-                            <p className="font-bold">
+                            <p className="font-semibold">
                                 {data.signatory_name.toUpperCase() ||
                                     '___________________'}
                             </p>
@@ -3032,7 +3032,7 @@ function Dashboard({
                     <div className="certificate-authority">
                         <p>By the Authority of the Punong Barangay,</p>
                         <div>
-                            <p className="font-bold">
+                            <p className="font-semibold">
                                 {data.signatory_name.toUpperCase() ||
                                     '___________________'}
                             </p>
@@ -3079,7 +3079,7 @@ function Dashboard({
                                 '___________________'}
                         </strong>{' '}
                         (
-                        <em className="font-bold">
+                        <em className="font-semibold">
                             {data.father_occupation.toUpperCase() ||
                                 '____________'}
                         </em>
@@ -3096,7 +3096,7 @@ function Dashboard({
                                 '___________________'}
                         </strong>{' '}
                         (
-                        <em className="font-bold">
+                        <em className="font-semibold">
                             {data.mother_occupation.toUpperCase() ||
                                 '____________'}
                         </em>
@@ -3108,7 +3108,7 @@ function Dashboard({
                         </strong>
                     </p>
 
-                    <p className="certificate-indigent-statement font-bold">
+                    <p className="certificate-indigent-statement font-semibold">
                         THIS FURTHER CERTIFIES THAT THEY BELONG TO THE INDIGENT
                         FAMILY.
                     </p>
@@ -3118,7 +3118,7 @@ function Dashboard({
                         the above-named person for declaration of his/her
                         residency and family income status./ for{' '}
                         <strong>
-                            <em className="font-bold">
+                            <em className="font-semibold">
                                 <u>
                                     {data.purpose.toUpperCase() ||
                                         '___________________'}
@@ -3140,7 +3140,7 @@ function Dashboard({
                             By the Authority of the Punong Barangay,
                         </p>
                         <div className="certificate-signature">
-                            <p className="text-sm font-bold">
+                            <p className="text-sm font-semibold">
                                 {data.signatory_name || '___________________'}
                             </p>
                             <p className="text-xs italic">Officer on duty</p>
@@ -3208,7 +3208,7 @@ function Dashboard({
                             By the Authority of the Punong Barangay,
                         </p>
                         <div className="certificate-signature">
-                            <p className="text-sm font-bold">
+                            <p className="text-sm font-semibold">
                                 {data.signatory_name || '___________________'}
                             </p>
                             <p className="text-xs italic">Officer on duty</p>
@@ -3246,7 +3246,7 @@ function Dashboard({
                 </p>
 
                 <div className="certificate-purpose">
-                    <span className="font-bold text-blue-800 uppercase">
+                    <span className="font-semibold text-blue-800 uppercase">
                         Purpose:{' '}
                     </span>
                     {data.purpose.toUpperCase() || '___________________'}
@@ -3260,7 +3260,7 @@ function Dashboard({
                 <div className="certificate-authority">
                     <p>By the Authority of the Punong Barangay,</p>
                     <div>
-                        <p className="font-bold">
+                        <p className="font-semibold">
                             {data.signatory_name || '___________________'}
                         </p>
                         <p>Officer on duty</p>
@@ -3285,7 +3285,7 @@ function Dashboard({
             <div className="mx-auto max-w-7xl space-y-6">
                 <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                     <div>
-                        <h1 className="text-xl font-bold text-gray-800 md:text-2xl">
+                        <h1 className="text-xl font-semibold text-ink-strong md:text-2xl">
                             Certificate Issuance
                         </h1>
                     </div>
@@ -3303,15 +3303,15 @@ function Dashboard({
                             reset();
                             setData('control_no', '');
                         }}
-                        className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#2a5279]"
+                        className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white shadow-card transition-colors hover:bg-brand-deep"
                     >
                         + Issue New Certificate
                     </button>
                 </div>
 
                 {/* CERTIFICATE MANAGEMENT */}
-                <div className="rounded-lg border border-[#c2cbd4] bg-white shadow-sm">
-                    <div className="flex border-b border-[#c2cbd4] bg-[#eef1f5]">
+                <div className="rounded-lg border border-[#c2cbd4] bg-white shadow-card">
+                    <div className="flex border-b border-[#c2cbd4] bg-canvas">
                         {(
                             [
                                 ['requests', 'Requests'],
@@ -3325,8 +3325,8 @@ function Dashboard({
                                 onClick={() => setActiveTab(tab)}
                                 className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                                     activeTab === tab
-                                        ? 'border-[#3b6fa8] bg-white text-[#3b6fa8]'
-                                        : 'border-transparent text-[#6e747c] hover:text-gray-700'
+                                        ? 'border-brand bg-white text-brand'
+                                        : 'border-transparent text-[#6e747c] hover:text-ink'
                                 }`}
                             >
                                 {label}
@@ -3387,7 +3387,7 @@ function Dashboard({
                                           ? 'Search all certificate records'
                                           : 'Search certificate requests'
                                 }
-                                className="w-full rounded-md border border-[#c2cbd4] py-2 pr-3 pl-9 text-sm focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
+                                className="w-full rounded-lg border border-[#c2cbd4] py-2 pr-3 pl-9 text-sm focus:border-brand focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                             />
                         </div>
 
@@ -3399,7 +3399,7 @@ function Dashboard({
                                 aria-label="Open filters"
                                 aria-expanded={popoverOpen}
                                 aria-haspopup="true"
-                                className="flex w-full items-center justify-center gap-2 rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-[#ffffff] sm:w-auto"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#c2cbd4] bg-white px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface sm:w-auto"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -3412,7 +3412,7 @@ function Dashboard({
                                 </svg>
                                 Filters
                                 {activeFilterCount > 0 && (
-                                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#3b6fa8] px-1.5 text-xs font-semibold text-white">
+                                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-xs font-semibold text-white">
                                         {activeFilterCount}
                                     </span>
                                 )}
@@ -3445,7 +3445,7 @@ function Dashboard({
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
+                                                        className="w-full rounded-lg border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                     >
                                                         <option value="">
                                                             All types
@@ -3480,7 +3480,7 @@ function Dashboard({
                                                                         .value as CertificateTab,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
+                                                            className="w-full rounded-lg border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                         >
                                                             <option value="all">
                                                                 All Records
@@ -3512,7 +3512,7 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
+                                                            className="w-full rounded-lg border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                     <div>
@@ -3530,7 +3530,7 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
+                                                            className="w-full rounded-lg border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                 </div>
@@ -3548,7 +3548,7 @@ function Dashboard({
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
+                                                        className="w-full rounded-lg border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                     >
                                                         <option value="">
                                                             All types
@@ -3609,7 +3609,7 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
+                                                            className="w-full rounded-lg border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                     <div>
@@ -3627,7 +3627,7 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
+                                                            className="w-full rounded-lg border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                 </div>
@@ -3645,7 +3645,7 @@ function Dashboard({
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
+                                                        className="w-full rounded-lg border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                     >
                                                         <option value="">
                                                             All types
@@ -3681,7 +3681,7 @@ function Dashboard({
                                                                     .value as CertificateTab,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
+                                                        className="w-full rounded-lg border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                     >
                                                         <option value="all">
                                                             All Records
@@ -3706,7 +3706,7 @@ function Dashboard({
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
+                                                        className="w-full rounded-lg border border-[#c2cbd4] bg-white px-3 py-2 text-sm"
                                                     >
                                                         <option value="">
                                                             All statuses
@@ -3742,7 +3742,7 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
+                                                            className="w-full rounded-lg border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                     <div>
@@ -3758,7 +3758,7 @@ function Dashboard({
                                                                         .value,
                                                                 )
                                                             }
-                                                            className="w-full rounded-md border border-[#c2cbd4] px-3 py-2 text-sm"
+                                                            className="w-full rounded-lg border border-[#c2cbd4] px-3 py-2 text-sm"
                                                         />
                                                     </div>
                                                 </div>
@@ -3770,14 +3770,14 @@ function Dashboard({
                                         <button
                                             type="button"
                                             onClick={clearFilters}
-                                            className="rounded-md px-3 py-1.5 text-sm font-medium text-[#6e747c] hover:bg-[#ffffff]"
+                                            className="rounded-lg px-3 py-1.5 text-sm font-medium text-[#6e747c] hover:bg-surface"
                                         >
                                             Clear
                                         </button>
                                         <button
                                             type="button"
                                             onClick={applyFilters}
-                                            className="rounded-md bg-[#3b6fa8] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#2a5279]"
+                                            className="rounded-lg bg-brand px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-deep"
                                         >
                                             Apply Filters
                                         </button>
@@ -3802,7 +3802,7 @@ function Dashboard({
                     <div className="overflow-x-auto">
                         {activeTab === 'issued' ? (
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#eef1f5] text-[10px] tracking-wide text-[#6e747c] uppercase">
+                                <thead className="bg-canvas text-[10px] tracking-wide text-[#6e747c] uppercase">
                                     <tr>
                                         <th className="px-4 py-3 font-semibold">
                                             Reference
@@ -3857,13 +3857,13 @@ function Dashboard({
                                                         row.id,
                                                     )
                                                 }
-                                                className="cursor-pointer hover:bg-[#ffffff]"
+                                                className="cursor-pointer hover:bg-surface"
                                             >
-                                                <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">
+                                                <td className="px-4 py-3 font-mono text-xs font-medium text-ink-strong">
                                                     {row.reference}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <p className="font-medium text-gray-800">
+                                                    <p className="font-medium text-ink-strong">
                                                         {row.resident.name}
                                                     </p>
                                                     <p className="text-xs text-[#6e747c]">
@@ -3872,16 +3872,16 @@ function Dashboard({
                                                             '—'}
                                                     </p>
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-700">
+                                                <td className="px-4 py-3 text-ink">
                                                     {row.certificate_type}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">
+                                                <td className="px-4 py-3 text-ink-muted">
                                                     {row.purok ?? '—'}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">
+                                                <td className="px-4 py-3 text-ink-muted">
                                                     {row.issued_at}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">
+                                                <td className="px-4 py-3 text-ink-muted">
                                                     {row.issued_by}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
@@ -3893,7 +3893,7 @@ function Dashboard({
                                                                 row.id,
                                                             );
                                                         }}
-                                                        className="rounded-md border border-[#c2cbd4] bg-white px-3 py-1.5 text-xs font-semibold text-[#3b6fa8] hover:bg-[#ffffff]"
+                                                        className="rounded-lg border border-[#c2cbd4] bg-white px-3 py-1.5 text-xs font-semibold text-brand hover:bg-surface"
                                                     >
                                                         View
                                                     </button>
@@ -3905,7 +3905,7 @@ function Dashboard({
                             </table>
                         ) : activeTab === 'all' ? (
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#eef1f5] text-[10px] tracking-wide text-[#6e747c] uppercase">
+                                <thead className="bg-canvas text-[10px] tracking-wide text-[#6e747c] uppercase">
                                     <tr>
                                         <th className="px-4 py-3 font-semibold">
                                             Type
@@ -3955,7 +3955,7 @@ function Dashboard({
                                         allRecords.data.map((row) => (
                                             <tr
                                                 key={`${row.record_type}-${row.id}`}
-                                                className="hover:bg-[#ffffff]"
+                                                className="hover:bg-surface"
                                             >
                                                 <td className="px-4 py-3">
                                                     {row.record_type ===
@@ -3964,16 +3964,16 @@ function Dashboard({
                                                             Issued
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex rounded-full border border-[#c2cbd4] bg-[#eef1f5] px-2 py-0.5 text-xs font-semibold text-[#6e747c]">
+                                                        <span className="inline-flex rounded-full border border-[#c2cbd4] bg-canvas px-2 py-0.5 text-xs font-semibold text-[#6e747c]">
                                                             Request
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">
+                                                <td className="px-4 py-3 font-mono text-xs font-medium text-ink-strong">
                                                     {row.reference}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <p className="font-medium text-gray-800">
+                                                    <p className="font-medium text-ink-strong">
                                                         {row.resident.name}
                                                     </p>
                                                     <p className="text-xs text-[#6e747c]">
@@ -3982,10 +3982,10 @@ function Dashboard({
                                                             '—'}
                                                     </p>
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-700">
+                                                <td className="px-4 py-3 text-ink">
                                                     {row.certificate}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">
+                                                <td className="px-4 py-3 text-ink-muted">
                                                     {row.purok ?? '—'}
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -3997,13 +3997,13 @@ function Dashboard({
                                                         </span>
                                                     ) : (
                                                         <span
-                                                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[row.status] ?? 'bg-gray-100 text-gray-700'}`}
+                                                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[row.status] ?? 'bg-secondary text-ink'}`}
                                                         >
                                                             {row.status}
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">
+                                                <td className="px-4 py-3 text-ink-muted">
                                                     {row.occurred_at}
                                                 </td>
                                             </tr>
@@ -4013,7 +4013,7 @@ function Dashboard({
                             </table>
                         ) : (
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#eef1f5] text-[10px] tracking-wide text-[#6e747c] uppercase">
+                                <thead className="bg-canvas text-[10px] tracking-wide text-[#6e747c] uppercase">
                                     <tr>
                                         <th className="px-4 py-3 font-semibold">
                                             Reference
@@ -4060,13 +4060,13 @@ function Dashboard({
                                         requests.data.map((row) => (
                                             <tr
                                                 key={row.id}
-                                                className="hover:bg-[#ffffff]"
+                                                className="hover:bg-surface"
                                             >
-                                                <td className="px-4 py-3 font-mono text-xs font-medium text-gray-800">
+                                                <td className="px-4 py-3 font-mono text-xs font-medium text-ink-strong">
                                                     {row.reference}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <p className="font-medium text-gray-800">
+                                                    <p className="font-medium text-ink-strong">
                                                         {row.resident.name}
                                                     </p>
                                                     <p className="text-xs text-[#6e747c]">
@@ -4075,17 +4075,17 @@ function Dashboard({
                                                             '—'}
                                                     </p>
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-700">
+                                                <td className="px-4 py-3 text-ink">
                                                     {row.certificate}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span
-                                                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[row.status] ?? 'bg-gray-100 text-gray-700'}`}
+                                                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[row.status] ?? 'bg-secondary text-ink'}`}
                                                     >
                                                         {row.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">
+                                                <td className="px-4 py-3 text-ink-muted">
                                                     {row.submitted_at}
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -4096,7 +4096,7 @@ function Dashboard({
                                                                 row.id,
                                                             )
                                                         }
-                                                        className="rounded-md border border-[#c2cbd4] px-2.5 py-1 text-xs font-medium text-[#3b6fa8] hover:bg-[#eef1f5]"
+                                                        className="rounded-lg border border-[#c2cbd4] px-2.5 py-1 text-xs font-medium text-brand hover:bg-canvas"
                                                     >
                                                         Details
                                                     </button>
@@ -4140,7 +4140,7 @@ function Dashboard({
                                                     Number(e.target.value),
                                                 )
                                             }
-                                            className="rounded-md border border-[#c2cbd4] bg-white px-2 py-1 text-xs text-gray-700"
+                                            className="rounded-lg border border-[#c2cbd4] bg-white px-2 py-1 text-xs text-ink"
                                         >
                                             {[10, 25, 50].map((size) => (
                                                 <option key={size} value={size}>
@@ -4156,7 +4156,7 @@ function Dashboard({
                                             onClick={() =>
                                                 goToPage(page.prev_page_url)
                                             }
-                                            className="rounded-md border px-3 py-1.5 font-medium text-gray-700 disabled:opacity-40"
+                                            className="rounded-lg border px-3 py-1.5 font-medium text-ink disabled:opacity-40"
                                         >
                                             Previous
                                         </button>
@@ -4170,7 +4170,7 @@ function Dashboard({
                                             onClick={() =>
                                                 goToPage(page.next_page_url)
                                             }
-                                            className="rounded-md border px-3 py-1.5 font-medium text-gray-700 disabled:opacity-40"
+                                            className="rounded-lg border px-3 py-1.5 font-medium text-ink disabled:opacity-40"
                                         >
                                             Next
                                         </button>
@@ -4188,8 +4188,8 @@ function Dashboard({
                             <div
                                 className={`flex max-h-[92vh] ${formStep === 2 ? 'w-[calc(100vw-2rem)] max-w-6xl' : 'w-[calc(100vw-2rem)] max-w-7xl'} flex-col overflow-hidden rounded-lg bg-white shadow-xl`}
                             >
-                                <div className="flex shrink-0 items-center justify-between bg-[#3b6fa8] px-6 py-4 text-white">
-                                    <h3 className="text-lg font-bold">
+                                <div className="flex shrink-0 items-center justify-between bg-brand px-6 py-4 text-white">
+                                    <h3 className="text-lg font-semibold">
                                         {formStep === 1
                                             ? 'Issue New Certificate'
                                             : 'Full-Design Certificate Preview'}
@@ -4199,7 +4199,7 @@ function Dashboard({
                                             setIsModalOpen(false);
                                             setScanError(null);
                                         }}
-                                        className="text-xl font-bold text-white/80 hover:text-white"
+                                        className="text-xl font-semibold text-white/80 hover:text-white"
                                     >
                                         &times;
                                     </button>
@@ -4209,13 +4209,13 @@ function Dashboard({
                                     {formStep === 1 ? (
                                         /* STEP 1: FORM ENTRY */
                                         <>
-                                            <div className="flex border-b bg-gray-50">
+                                            <div className="flex border-b bg-canvas">
                                                 <button
                                                     type="button"
                                                     onClick={() =>
                                                         switchMode('qr')
                                                     }
-                                                    className={`flex-1 border-b-2 py-3 text-sm font-medium ${modalMode === 'qr' ? 'border-[#3b6fa8] bg-white text-[#3b6fa8]' : 'border-transparent text-gray-500'}`}
+                                                    className={`flex-1 border-b-2 py-3 text-sm font-medium ${modalMode === 'qr' ? 'border-brand bg-white text-brand' : 'border-transparent text-ink-muted'}`}
                                                 >
                                                     Scan QR
                                                 </button>
@@ -4224,7 +4224,7 @@ function Dashboard({
                                                     onClick={() =>
                                                         switchMode('manual')
                                                     }
-                                                    className={`flex-1 border-b-2 py-3 text-sm font-medium ${modalMode === 'manual' ? 'border-[#3b6fa8] bg-white text-[#3b6fa8]' : 'border-transparent text-gray-500'}`}
+                                                    className={`flex-1 border-b-2 py-3 text-sm font-medium ${modalMode === 'manual' ? 'border-brand bg-white text-brand' : 'border-transparent text-ink-muted'}`}
                                                 >
                                                     Manual Entry
                                                 </button>
@@ -4237,8 +4237,8 @@ function Dashboard({
                                                 <div className="min-w-0 space-y-4 lg:max-h-[calc(92vh-11rem)] lg:overflow-y-auto lg:pr-4">
                                                     {modalMode === 'qr' ? (
                                                         <div className="space-y-4">
-                                                            <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6">
-                                                                <p className="mb-1 text-center text-sm text-gray-600">
+                                                            <div className="rounded-lg border-2 border-dashed border-line bg-canvas px-4 py-6">
+                                                                <p className="mb-1 text-center text-sm text-ink-muted">
                                                                     Point the
                                                                     handheld 2D
                                                                     QR scanner
@@ -4251,7 +4251,7 @@ function Dashboard({
                                                                     code
                                                                     automatically.
                                                                 </p>
-                                                                <p className="mb-3 text-center text-xs text-gray-500">
+                                                                <p className="mb-3 text-center text-xs text-ink-muted">
                                                                     Scan the QR
                                                                     code — do
                                                                     not type or
@@ -4276,7 +4276,7 @@ function Dashboard({
 
                                                             {scanError && (
                                                                 <div
-                                                                    className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                                                                    className="flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
                                                                     role="alert"
                                                                 >
                                                                     <span>
@@ -4298,7 +4298,7 @@ function Dashboard({
                                                                                     1,
                                                                             );
                                                                         }}
-                                                                        className="shrink-0 rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                                                                        className="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
                                                                     >
                                                                         Try
                                                                         again
@@ -4310,7 +4310,7 @@ function Dashboard({
                                                                 'qr' &&
                                                                 data.resident_name !==
                                                                     '' && (
-                                                                    <div className="rounded-md border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-800">
+                                                                    <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-800">
                                                                         <div className="flex items-center justify-between gap-3">
                                                                             <div>
                                                                                 <span className="inline-flex items-center rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">
@@ -4345,7 +4345,7 @@ function Dashboard({
                                                                                             1,
                                                                                     );
                                                                                 }}
-                                                                                className="shrink-0 rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-800 hover:bg-green-100"
+                                                                                className="shrink-0 rounded-lg border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-800 hover:bg-green-100"
                                                                             >
                                                                                 {
                                                                                     'Scan another'
@@ -4362,7 +4362,7 @@ function Dashboard({
                                                                 {data.certificate_type !==
                                                                     RESIDENCY_TYPE && (
                                                                     <div>
-                                                                        <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                        <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                                                             Control
                                                                             No.
                                                                         </label>
@@ -4372,12 +4372,12 @@ function Dashboard({
                                                                                 data.control_no
                                                                             }
                                                                             readOnly
-                                                                            className="w-full rounded-md border bg-gray-100 px-3 py-2 text-sm"
+                                                                            className="w-full rounded-lg border bg-secondary px-3 py-2 text-sm"
                                                                         />
                                                                     </div>
                                                                 )}
                                                                 <div>
-                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                    <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                                                         Resident
                                                                         Name
                                                                     </label>
@@ -4388,13 +4388,13 @@ function Dashboard({
                                                                         }
                                                                         readOnly
                                                                         placeholder="Scan a resident QR code to fill this"
-                                                                        className="w-full rounded-md border bg-gray-100 px-3 py-2 text-sm"
+                                                                        className="w-full rounded-lg border bg-secondary px-3 py-2 text-sm"
                                                                     />
                                                                 </div>
                                                             </div>
 
                                                             <div>
-                                                                <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                                                     Certificate
                                                                     Type
                                                                 </label>
@@ -4411,7 +4411,7 @@ function Dashboard({
                                                                                 .value,
                                                                         )
                                                                     }
-                                                                    className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                                                                    className="w-full rounded-lg border bg-white px-3 py-2 text-sm"
                                                                 >
                                                                     {certificateTypes.length ===
                                                                         0 && (
@@ -4459,14 +4459,14 @@ function Dashboard({
                                                                 renderResidencyFields()}
                                                             {['Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'].includes(data.certificate_type) && (
                                                                 <label className="block text-sm font-semibold">Sex
-                                                                    <select value={data.sex} onChange={e => setData('sex', e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2">
+                                                                    <select value={data.sex} onChange={e => setData('sex', e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2">
                                                                         <option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option>
                                                                     </select>
                                                                 </label>
                                                             )}
                                                             {data.certificate_type === 'Barangay Certification' && (
                                                                 <label className="block text-sm font-semibold">Years of Residency
-                                                                    <input type="number" min="0" max="120" step="1" required value={data.years_of_residency} onChange={e => setData('years_of_residency', e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" />
+                                                                    <input type="number" min="0" max="120" step="1" required value={data.years_of_residency} onChange={e => setData('years_of_residency', e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" />
                                                                 </label>
                                                             )}
 
@@ -4480,7 +4480,7 @@ function Dashboard({
                                                                 data.certificate_type ===
                                                                     'Business Clearance') && (
                                                                 <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50 p-4">
-                                                                    <h4 className="text-xs font-bold text-orange-800 uppercase">
+                                                                    <h4 className="text-xs font-semibold text-orange-800 uppercase">
                                                                         Business
                                                                         &
                                                                         Franchise
@@ -4489,7 +4489,7 @@ function Dashboard({
                                                                     {data.certificate_type ===
                                                                         'Tricycle' && (
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Franchise
                                                                                 No.
                                                                             </label>
@@ -4509,12 +4509,12 @@ function Dashboard({
                                                                                     )
                                                                                 }
                                                                                 required
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                     )}
                                                                     <div>
-                                                                        <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                             Business
                                                                             Name
                                                                         </label>
@@ -4534,11 +4534,11 @@ function Dashboard({
                                                                                 )
                                                                             }
                                                                             required
-                                                                            className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                            className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                         />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                             Business
                                                                             Address
                                                                         </label>
@@ -4558,7 +4558,7 @@ function Dashboard({
                                                                                 )
                                                                             }
                                                                             required
-                                                                            className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                            className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                         />
                                                                     </div>
                                                                 </div>
@@ -4567,14 +4567,14 @@ function Dashboard({
                                                             {data.certificate_type ===
                                                                 'Scholarship Certificate' && (
                                                                 <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
-                                                                    <h4 className="text-xs font-bold text-emerald-800 uppercase">
+                                                                    <h4 className="text-xs font-semibold text-emerald-800 uppercase">
                                                                         Scholarship
                                                                         & Family
                                                                         Details
                                                                     </h4>
                                                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                                                         <div className="sm:col-span-2">
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 School
                                                                                 /
                                                                                 Institution
@@ -4594,11 +4594,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Father's
                                                                                 Name
                                                                             </label>
@@ -4617,11 +4617,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Father's
                                                                                 Occupation
                                                                             </label>
@@ -4640,11 +4640,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Father's
                                                                                 Monthly
                                                                                 Income
@@ -4667,11 +4667,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Mother's
                                                                                 Name
                                                                             </label>
@@ -4690,11 +4690,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Mother's
                                                                                 Occupation
                                                                             </label>
@@ -4713,11 +4713,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Mother's
                                                                                 Monthly
                                                                                 Income
@@ -4740,7 +4740,7 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                     </div>
@@ -4749,7 +4749,7 @@ function Dashboard({
 
                                                             <div className="grid grid-cols-2 gap-4">
                                                                 <div>
-                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                    <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                                                         Fee (₱)
                                                                     </label>
                                                                     <input
@@ -4758,7 +4758,7 @@ function Dashboard({
                                                                             data.fee
                                                                         }
                                                                         readOnly
-                                                                        className="w-full rounded-md border bg-gray-100 px-3 py-2 text-sm"
+                                                                        className="w-full rounded-lg border bg-secondary px-3 py-2 text-sm"
                                                                     />
                                                                 </div>
                                                                 {data.certificate_type !==
@@ -4772,7 +4772,7 @@ function Dashboard({
                                                                             MARRIAGE_TYPE &&
                                                                             !isResidency && (
                                                                                 <>
-                                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                                    <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                                                                         Purpose
                                                                                     </label>
                                                                                     <input
@@ -4791,7 +4791,7 @@ function Dashboard({
                                                                                             )
                                                                                         }
                                                                                         required
-                                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                        className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                                     />
                                                                                 </>
                                                                             )}
@@ -4801,7 +4801,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 DELAYED_PSA_TYPE && (
-                                                                <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+                                                                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
                                                                     The purpose
                                                                     of this
                                                                     certificate
@@ -4819,7 +4819,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 MARRIAGE_TYPE && (
-                                                                <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
+                                                                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
                                                                     The purpose
                                                                     of this
                                                                     certificate
@@ -4837,7 +4837,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE && (
-                                                                <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+                                                                <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
                                                                     The purpose
                                                                     of this
                                                                     certificate
@@ -4875,7 +4875,7 @@ function Dashboard({
                                                                                         .value,
                                                                                 )
                                                                             }
-                                                                            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                                                                            className="w-full rounded-lg border bg-white px-3 py-2 text-sm"
                                                                         >
                                                                             <option value="">
                                                                                 Select
@@ -4912,7 +4912,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 DELAYED_PSA_TYPE && (
-                                                                <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+                                                                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
                                                                     Select the
                                                                     signatory
                                                                     for this
@@ -4927,7 +4927,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 MARRIAGE_TYPE && (
-                                                                <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
+                                                                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
                                                                     Select the
                                                                     signatory
                                                                     for this
@@ -4942,7 +4942,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE && (
-                                                                <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+                                                                <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
                                                                     Select the
                                                                     signatory
                                                                     for this
@@ -4957,7 +4957,7 @@ function Dashboard({
                                                         </div>
                                                     ) : (
                                                         <div className="space-y-4">
-                                                            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                                                            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                                                                 <span className="inline-flex items-center rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
                                                                     MANUAL ENTRY
                                                                 </span>
@@ -4978,7 +4978,7 @@ function Dashboard({
                                                                 {data.certificate_type !==
                                                                     RESIDENCY_TYPE && (
                                                                     <div>
-                                                                        <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                        <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                                                             Control
                                                                             No.
                                                                         </label>
@@ -4988,7 +4988,7 @@ function Dashboard({
                                                                                 data.control_no
                                                                             }
                                                                             readOnly
-                                                                            className="w-full rounded-md border bg-gray-100 px-3 py-2 text-sm"
+                                                                            className="w-full rounded-lg border bg-secondary px-3 py-2 text-sm"
                                                                         />
                                                                     </div>
                                                                 )}
@@ -5103,7 +5103,7 @@ function Dashboard({
                                                             </div>
 
                                                             <div>
-                                                                <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                                                     Certificate
                                                                     Type
                                                                 </label>
@@ -5120,7 +5120,7 @@ function Dashboard({
                                                                                 .value,
                                                                         )
                                                                     }
-                                                                    className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                                                                    className="w-full rounded-lg border bg-white px-3 py-2 text-sm"
                                                                 >
                                                                     {certificateTypes.length ===
                                                                         0 && (
@@ -5168,14 +5168,14 @@ function Dashboard({
                                                                 renderResidencyFields()}
                                                             {['Barangay Certification', 'Sicsican Indigency', 'Sicsican Clearance'].includes(data.certificate_type) && (
                                                                 <label className="block text-sm font-semibold">Sex
-                                                                    <select value={data.sex} onChange={e => setData('sex', e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2">
+                                                                    <select value={data.sex} onChange={e => setData('sex', e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2">
                                                                         <option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option>
                                                                     </select>
                                                                 </label>
                                                             )}
                                                             {data.certificate_type === 'Barangay Certification' && (
                                                                 <label className="block text-sm font-semibold">Years of Residency
-                                                                    <input type="number" min="0" max="120" step="1" required value={data.years_of_residency} onChange={e => setData('years_of_residency', e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" />
+                                                                    <input type="number" min="0" max="120" step="1" required value={data.years_of_residency} onChange={e => setData('years_of_residency', e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" />
                                                                 </label>
                                                             )}
 
@@ -5189,7 +5189,7 @@ function Dashboard({
                                                                 data.certificate_type ===
                                                                     'Business Clearance') && (
                                                                 <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50 p-4">
-                                                                    <h4 className="text-xs font-bold text-orange-800 uppercase">
+                                                                    <h4 className="text-xs font-semibold text-orange-800 uppercase">
                                                                         Business
                                                                         &
                                                                         Franchise
@@ -5198,7 +5198,7 @@ function Dashboard({
                                                                     {data.certificate_type ===
                                                                         'Tricycle' && (
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Franchise
                                                                                 No.
                                                                             </label>
@@ -5218,12 +5218,12 @@ function Dashboard({
                                                                                     )
                                                                                 }
                                                                                 required
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                     )}
                                                                     <div>
-                                                                        <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                             Business
                                                                             Name
                                                                         </label>
@@ -5243,11 +5243,11 @@ function Dashboard({
                                                                                 )
                                                                             }
                                                                             required
-                                                                            className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                            className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                         />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                        <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                             Business
                                                                             Address
                                                                         </label>
@@ -5267,7 +5267,7 @@ function Dashboard({
                                                                                 )
                                                                             }
                                                                             required
-                                                                            className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                            className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                         />
                                                                     </div>
                                                                 </div>
@@ -5276,14 +5276,14 @@ function Dashboard({
                                                             {data.certificate_type ===
                                                                 'Scholarship Certificate' && (
                                                                 <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
-                                                                    <h4 className="text-xs font-bold text-emerald-800 uppercase">
+                                                                    <h4 className="text-xs font-semibold text-emerald-800 uppercase">
                                                                         Scholarship
                                                                         & Family
                                                                         Details
                                                                     </h4>
                                                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                                                         <div className="sm:col-span-2">
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 School
                                                                                 /
                                                                                 Institution
@@ -5303,11 +5303,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Father's
                                                                                 Name
                                                                             </label>
@@ -5326,11 +5326,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Father's
                                                                                 Occupation
                                                                             </label>
@@ -5349,11 +5349,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Father's
                                                                                 Monthly
                                                                                 Income
@@ -5376,11 +5376,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Mother's
                                                                                 Name
                                                                             </label>
@@ -5399,11 +5399,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Mother's
                                                                                 Occupation
                                                                             </label>
@@ -5422,11 +5422,11 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="mb-1 block text-xs font-semibold text-gray-600">
+                                                                            <label className="mb-1 block text-xs font-semibold text-ink-muted">
                                                                                 Mother's
                                                                                 Monthly
                                                                                 Income
@@ -5449,7 +5449,7 @@ function Dashboard({
                                                                                             .value,
                                                                                     )
                                                                                 }
-                                                                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                             />
                                                                         </div>
                                                                     </div>
@@ -5458,7 +5458,7 @@ function Dashboard({
 
                                                             <div className="grid grid-cols-2 gap-4">
                                                                 <div>
-                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                    <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                                                         Fee (₱)
                                                                     </label>
                                                                     <input
@@ -5467,7 +5467,7 @@ function Dashboard({
                                                                             data.fee
                                                                         }
                                                                         readOnly
-                                                                        className="w-full rounded-md border bg-gray-100 px-3 py-2 text-sm"
+                                                                        className="w-full rounded-lg border bg-secondary px-3 py-2 text-sm"
                                                                     />
                                                                 </div>
                                                                 {data.certificate_type !==
@@ -5481,7 +5481,7 @@ function Dashboard({
                                                                             MARRIAGE_TYPE &&
                                                                             !isResidency && (
                                                                                 <>
-                                                                                    <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+                                                                                    <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                                                                         Purpose
                                                                                     </label>
                                                                                     <input
@@ -5500,7 +5500,7 @@ function Dashboard({
                                                                                             )
                                                                                         }
                                                                                         required
-                                                                                        className="w-full rounded-md border px-3 py-2 text-sm"
+                                                                                        className="w-full rounded-lg border px-3 py-2 text-sm"
                                                                                     />
                                                                                 </>
                                                                             )}
@@ -5510,7 +5510,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 DELAYED_PSA_TYPE && (
-                                                                <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+                                                                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
                                                                     The purpose
                                                                     of this
                                                                     certificate
@@ -5528,7 +5528,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 MARRIAGE_TYPE && (
-                                                                <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
+                                                                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
                                                                     The purpose
                                                                     of this
                                                                     certificate
@@ -5546,7 +5546,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE && (
-                                                                <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+                                                                <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
                                                                     The purpose
                                                                     of this
                                                                     certificate
@@ -5584,7 +5584,7 @@ function Dashboard({
                                                                                         .value,
                                                                                 )
                                                                             }
-                                                                            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+                                                                            className="w-full rounded-lg border bg-white px-3 py-2 text-sm"
                                                                         >
                                                                             <option value="">
                                                                                 Select
@@ -5621,7 +5621,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 DELAYED_PSA_TYPE && (
-                                                                <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+                                                                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
                                                                     Select the
                                                                     signatory
                                                                     for this
@@ -5636,7 +5636,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 MARRIAGE_TYPE && (
-                                                                <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
+                                                                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
                                                                     Select the
                                                                     signatory
                                                                     for this
@@ -5651,7 +5651,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE && (
-                                                                <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+                                                                <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
                                                                     Select the
                                                                     signatory
                                                                     for this
@@ -5670,7 +5670,7 @@ function Dashboard({
                                                         <div>
                                                             <label
                                                                 htmlFor="certificate-purok"
-                                                                className="mb-1 block text-xs font-semibold text-gray-600 uppercase"
+                                                                className="mb-1 block text-xs font-semibold text-ink-muted uppercase"
                                                             >
                                                                 Purok
                                                             </label>
@@ -5697,9 +5697,9 @@ function Dashboard({
                                                                 }
                                                                 placeholder="e.g. Purok Bagong Pag-asa"
                                                                 maxLength={255}
-                                                                className="w-full rounded-md border px-3 py-2 text-sm read-only:bg-gray-100"
+                                                                className="w-full rounded-lg border px-3 py-2 text-sm read-only:bg-secondary"
                                                             />
-                                                            <p className="mt-1 text-xs text-gray-500">
+                                                            <p className="mt-1 text-xs text-ink-muted">
                                                                 Saved with the
                                                                 issued
                                                                 certificate.
@@ -5719,7 +5719,7 @@ function Dashboard({
                                                     <div className="mt-4 flex justify-end border-t pt-4">
                                                         <button
                                                             type="submit"
-                                                            className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#2a5279]"
+                                                            className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white shadow-card hover:bg-brand-deep"
                                                         >
                                                             Preview Certificate
                                                             Design &rarr;
@@ -5727,17 +5727,17 @@ function Dashboard({
                                                     </div>
                                                 </div>
 
-                                                <aside className="min-w-0 border-t border-gray-200 pt-5 lg:sticky lg:top-0 lg:self-start lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
+                                                <aside className="min-w-0 border-t border-line-soft pt-5 lg:sticky lg:top-0 lg:self-start lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
                                                     <div className="mb-3 flex items-center justify-between">
-                                                        <h4 className="text-sm font-semibold text-gray-800">
+                                                        <h4 className="text-sm font-semibold text-ink-strong">
                                                             Live Certificate
                                                             Preview
                                                         </h4>
-                                                        <span className="text-xs text-gray-500">
+                                                        <span className="text-xs text-ink-muted">
                                                             Updates as you edit
                                                         </span>
                                                     </div>
-                                                    <div className="max-h-[calc(92vh-13rem)] min-h-0 overflow-auto rounded-lg bg-gray-100 p-2 sm:p-3">
+                                                    <div className="max-h-[calc(92vh-13rem)] min-h-0 overflow-auto rounded-lg bg-secondary p-2 sm:p-3">
                                                         <div className="flex min-h-full items-center justify-center">
                                                             <BrandedCertificatePreview
                                                                 body={
@@ -5770,10 +5770,10 @@ function Dashboard({
                                         </>
                                     ) : (
                                         /* STEP 2: REVIEW THE SAME PAGE USED FOR PRINT AND PDF EXPORT */
-                                        <div className="bg-gray-100 p-6">
+                                        <div className="bg-secondary p-6">
                                             <div className="mx-auto mb-4 max-w-[500px]">
                                                 {residentSource === 'qr' ? (
-                                                    <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+                                                    <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
                                                         <span className="inline-flex items-center rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">
                                                             QR VERIFIED
                                                         </span>
@@ -5785,7 +5785,7 @@ function Dashboard({
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                                                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                                                         <span className="inline-flex items-center rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
                                                             MANUAL ENTRY
                                                         </span>
@@ -5828,7 +5828,7 @@ function Dashboard({
                                                         setFormStep(1)
                                                     }
                                                     disabled={generationLoading}
-                                                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50"
+                                                    className="rounded-lg border border-line bg-white px-4 py-2 text-sm text-ink shadow-card hover:bg-canvas"
                                                 >
                                                     &larr; Back to Edit
                                                 </button>
@@ -5848,7 +5848,7 @@ function Dashboard({
                                                             controlNumberLoading ||
                                                             !data.control_no
                                                         }
-                                                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+                                                        className="rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink shadow-card hover:bg-canvas disabled:opacity-50"
                                                     >
                                                         Print Certificate
                                                     </button>
@@ -5867,7 +5867,7 @@ function Dashboard({
                                                             controlNumberLoading ||
                                                             !data.control_no
                                                         }
-                                                        className={`rounded-md bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:bg-blue-700 ${processing || generationLoading || generationOutcomeUnknown || !canIssueCertificate || controlNumberLoading || !data.control_no ? 'cursor-not-allowed opacity-50' : ''}`}
+                                                        className={`rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-blue-700 ${processing || generationLoading || generationOutcomeUnknown || !canIssueCertificate || controlNumberLoading || !data.control_no ? 'cursor-not-allowed opacity-50' : ''}`}
                                                     >
                                                         {generationLoading
                                                             ? 'Generating & downloading...'
@@ -5886,7 +5886,7 @@ function Dashboard({
                                             {generationError && (
                                                 <p
                                                     role="alert"
-                                                    className={`mt-3 rounded-md border px-3 py-2 text-sm ${generationOutcomeUnknown ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800'}`}
+                                                    className={`mt-3 rounded-lg border px-3 py-2 text-sm ${generationOutcomeUnknown ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800'}`}
                                                 >
                                                     {generationError}
                                                 </p>
@@ -5902,13 +5902,13 @@ function Dashboard({
                 {requestDetailsOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                         <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
-                            <div className="flex shrink-0 items-center justify-between bg-[#3b6fa8] px-6 py-4 text-white">
-                                <h3 className="text-lg font-bold">
+                            <div className="flex shrink-0 items-center justify-between bg-brand px-6 py-4 text-white">
+                                <h3 className="text-lg font-semibold">
                                     Certificate Request Details
                                 </h3>
                                 <button
                                     onClick={closeRequestDetails}
-                                    className="text-xl font-bold text-white/80 hover:text-white"
+                                    className="text-xl font-semibold text-white/80 hover:text-white"
                                     aria-label="Close request details"
                                 >
                                     &times;
@@ -5921,7 +5921,7 @@ function Dashboard({
                                         Loading request details...
                                     </p>
                                 ) : requestDetailsError ? (
-                                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                                         {requestDetailsError}
                                     </div>
                                 ) : requestDetails ? (
@@ -5931,7 +5931,7 @@ function Dashboard({
                                                 <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Reference
                                                 </p>
-                                                <p className="font-mono font-medium text-gray-800">
+                                                <p className="font-mono font-medium text-ink-strong">
                                                     {requestDetails.reference}
                                                 </p>
                                             </div>
@@ -5939,11 +5939,11 @@ function Dashboard({
                                                 <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Certificate
                                                 </p>
-                                                <p className="font-medium text-gray-800">
+                                                <p className="font-medium text-ink-strong">
                                                     {requestDetails.certificate}
                                                 </p>
                                                 {!requestDetails.template_available && (
-                                                    <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                                                    <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
                                                         This service does not
                                                         yet have a supported
                                                         certificate layout. The
@@ -5956,7 +5956,7 @@ function Dashboard({
                                                 <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Resident
                                                 </p>
-                                                <p className="font-medium text-gray-800">
+                                                <p className="font-medium text-ink-strong">
                                                     {
                                                         requestDetails.resident
                                                             .name
@@ -5971,7 +5971,7 @@ function Dashboard({
                                                 <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Purpose
                                                 </p>
-                                                <p className="text-gray-800">
+                                                <p className="text-ink-strong">
                                                     {requestDetails.purpose ||
                                                         '—'}
                                                 </p>
@@ -5980,13 +5980,13 @@ function Dashboard({
                                                 <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Fee
                                                 </p>
-                                                <p className="text-gray-800">
+                                                <p className="text-ink-strong">
                                                     ₱{requestDetails.fee}
                                                 </p>
                                             </div>
 
                                             {requestDetails.issuance && (
-                                                <div className="rounded-md border border-teal-200 bg-teal-50 p-2.5 sm:col-span-2">
+                                                <div className="rounded-lg border border-teal-200 bg-teal-50 p-2.5 sm:col-span-2">
                                                     <p className="text-[10px] font-semibold tracking-wide text-teal-800 uppercase">
                                                         Certificate Issued
                                                     </p>
@@ -6014,15 +6014,15 @@ function Dashboard({
 
                                         {(requestDetails.business_name ||
                                             requestDetails.business_address) && (
-                                            <div className="rounded-md border border-[#c2cbd4] bg-[#ffffff] p-3">
+                                            <div className="rounded-lg border border-[#c2cbd4] bg-surface p-3">
                                                 <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Business Details
                                                 </p>
-                                                <p className="text-sm text-gray-800">
+                                                <p className="text-sm text-ink-strong">
                                                     {requestDetails.business_name ||
                                                         '—'}
                                                 </p>
-                                                <p className="text-sm text-gray-600">
+                                                <p className="text-sm text-ink-muted">
                                                     {requestDetails.business_address ||
                                                         '—'}
                                                 </p>
@@ -6030,27 +6030,27 @@ function Dashboard({
                                         )}
 
                                         {requestActionError && (
-                                            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                                                 {requestActionError}
                                             </div>
                                         )}
 
                                         {requestActionSuccess && (
-                                            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                                            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                                                 {requestActionSuccess}
                                             </div>
                                         )}
 
                                         {/* WORKFLOW ACTIONS */}
-                                        <div className="rounded-md border border-[#3b6fa8]/30 bg-[#f7f5ee] p-3.5 shadow-sm">
-                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#3b6fa8] uppercase">
+                                        <div className="rounded-lg border border-brand/30 bg-[#f7f5ee] p-3.5 shadow-card">
+                                            <p className="mb-2 text-[10px] font-semibold tracking-wide text-brand uppercase">
                                                 Workflow Action
                                             </p>
 
                                             {requestDetails.status ===
                                                 'Pending' && (
                                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                                    <p className="text-xs text-gray-700">
+                                                    <p className="text-xs text-ink">
                                                         This request is pending
                                                         review. Start processing
                                                         to review details and
@@ -6062,7 +6062,7 @@ function Dashboard({
                                                             void handleStartProcessing()
                                                         }
                                                         disabled={actionLoading}
-                                                        className="inline-flex shrink-0 items-center justify-center rounded-md bg-[#3b6fa8] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
+                                                        className="inline-flex shrink-0 items-center justify-center rounded-lg bg-brand px-3.5 py-1.5 text-xs font-semibold text-white shadow-card hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                                                     >
                                                         {actionLoading
                                                             ? 'Updating...'
@@ -6077,7 +6077,7 @@ function Dashboard({
                                                     'Needs Action') &&
                                                 !requestDetails.issuance && (
                                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                                        <p className="text-xs text-gray-700">
+                                                        <p className="text-xs text-ink">
                                                             Review certificate
                                                             details below, then
                                                             generate and issue
@@ -6091,7 +6091,7 @@ function Dashboard({
                                                                     requestDetails,
                                                                 )
                                                             }
-                                                            className="inline-flex shrink-0 items-center justify-center rounded-md bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700"
+                                                            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-card hover:bg-blue-700"
                                                         >
                                                             Issue Certificate
                                                         </button>
@@ -6102,11 +6102,11 @@ function Dashboard({
                                                 'For Payment' && (
                                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                                     <div>
-                                                        <p className="text-xs font-medium text-gray-800">
+                                                        <p className="text-xs font-medium text-ink-strong">
                                                             Fee Due: ₱
                                                             {requestDetails.fee}
                                                         </p>
-                                                        <p className="text-[11px] text-gray-600">
+                                                        <p className="text-[11px] text-ink-muted">
                                                             Confirm payment once
                                                             collected from
                                                             resident to mark
@@ -6119,7 +6119,7 @@ function Dashboard({
                                                             void handleConfirmPayment()
                                                         }
                                                         disabled={actionLoading}
-                                                        className="inline-flex shrink-0 items-center justify-center rounded-md bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        className="inline-flex shrink-0 items-center justify-center rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-card hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                                                     >
                                                         {actionLoading
                                                             ? 'Confirming...'
@@ -6131,7 +6131,7 @@ function Dashboard({
                                             {requestDetails.status ===
                                                 'Ready for Claim' && (
                                                 <div className="space-y-2">
-                                                    <p className="text-xs text-gray-700">
+                                                    <p className="text-xs text-ink">
                                                         Certificate has been
                                                         issued and is ready for
                                                         physical release to
@@ -6145,13 +6145,13 @@ function Dashboard({
                                                                     true,
                                                                 )
                                                             }
-                                                            className="inline-flex items-center justify-center rounded-md bg-[#3b6fa8] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#2a5279]"
+                                                            className="inline-flex items-center justify-center rounded-lg bg-brand px-3.5 py-1.5 text-xs font-semibold text-white shadow-card hover:bg-brand-deep"
                                                         >
                                                             Confirm Physical
                                                             Handover (Release)
                                                         </button>
                                                     ) : (
-                                                        <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-2.5">
+                                                        <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5">
                                                             <p className="text-xs font-medium text-amber-900">
                                                                 Confirm that the
                                                                 physical
@@ -6181,7 +6181,7 @@ function Dashboard({
                                                                             false,
                                                                         )
                                                                     }
-                                                                    className="rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                                                    className="rounded border border-line bg-white px-3 py-1 text-xs font-medium text-ink hover:bg-canvas"
                                                                 >
                                                                     Cancel
                                                                 </button>
@@ -6194,7 +6194,7 @@ function Dashboard({
                                             {requestDetails.status ===
                                                 'Released' && (
                                                 <p className="text-xs font-medium text-green-800">
-                                                    ✓ Certificate released and
+                                                    Certificate released and
                                                     handed over to resident.
                                                     Lifecycle is complete.
                                                 </p>
@@ -6203,13 +6203,13 @@ function Dashboard({
                                             {requestDetails.status ===
                                                 'Rejected' && (
                                                 <p className="text-xs font-medium text-red-800">
-                                                    ✕ This certificate request
+                                                    This certificate request
                                                     was rejected.
                                                 </p>
                                             )}
                                         </div>
 
-                                        <div className="rounded-md border border-[#c2cbd4] bg-[#ffffff] p-3">
+                                        <div className="rounded-lg border border-[#c2cbd4] bg-surface p-3">
                                             <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                 Processing Status
                                             </p>
@@ -6222,7 +6222,7 @@ function Dashboard({
                                                             event.target.value,
                                                         )
                                                     }
-                                                    className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm outline-none focus:border-[#3b6fa8]"
+                                                    className="w-full rounded-lg border border-[#c2cbd4] bg-white px-3 py-2 text-sm outline-none focus:border-brand"
                                                 >
                                                     {requestDetails.allowed_statuses.map(
                                                         (status) => (
@@ -6250,7 +6250,7 @@ function Dashboard({
                                                             ? 'Reason for rejection (required)'
                                                             : 'Optional note shown to the resident'
                                                     }
-                                                    className="w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm outline-none focus:border-[#3b6fa8]"
+                                                    className="w-full rounded-lg border border-[#c2cbd4] bg-white px-3 py-2 text-sm outline-none focus:border-brand"
                                                 />
                                                 <button
                                                     type="button"
@@ -6261,7 +6261,7 @@ function Dashboard({
                                                         savingStatus ||
                                                         statusDraft === ''
                                                     }
-                                                    className="rounded-md bg-[#3b6fa8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
+                                                    className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                                                 >
                                                     {savingStatus
                                                         ? 'Saving...'
@@ -6276,7 +6276,7 @@ function Dashboard({
                                                 <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Reviewed Certificate Details
                                                 </p>
-                                                <div className="grid gap-3 rounded-md border border-[#c2cbd4] p-3 sm:grid-cols-2">
+                                                <div className="grid gap-3 rounded-lg border border-[#c2cbd4] p-3 sm:grid-cols-2">
                                                     {requestDetails.details_fields.map(
                                                         (field) => (
                                                             <label
@@ -6315,7 +6315,7 @@ function Dashboard({
                                                                             }),
                                                                         )
                                                                     }
-                                                                    className="mt-1 w-full rounded-md border border-[#c2cbd4] bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#3b6fa8]"
+                                                                    className="mt-1 w-full rounded-lg border border-[#c2cbd4] bg-white px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand"
                                                                 />
                                                             </label>
                                                         ),
@@ -6327,7 +6327,7 @@ function Dashboard({
                                                         void saveRequestDetails()
                                                     }
                                                     disabled={savingDetails}
-                                                    className="mt-2 rounded-md bg-[#3b6fa8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
+                                                    className="mt-2 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                                                 >
                                                     {savingDetails
                                                         ? 'Saving...'
@@ -6338,7 +6338,7 @@ function Dashboard({
                                                     requestDetails
                                                         .original_details
                                                         .length > 0 && (
-                                                        <div className="mt-3 rounded-md border border-[#c2cbd4] bg-[#ffffff] p-3">
+                                                        <div className="mt-3 rounded-lg border border-[#c2cbd4] bg-surface p-3">
                                                             <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                                 Originally
                                                                 Submitted
@@ -6359,7 +6359,7 @@ function Dashboard({
                                                                                     detail.label
                                                                                 }
                                                                             </span>
-                                                                            <span className="text-gray-800">
+                                                                            <span className="text-ink-strong">
                                                                                 {
                                                                                     detail.value
                                                                                 }
@@ -6377,7 +6377,7 @@ function Dashboard({
                                                 <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Certificate Details
                                                 </p>
-                                                <div className="divide-y divide-[#eef1f5] rounded-md border border-[#c2cbd4]">
+                                                <div className="divide-y divide-[#eef1f5] rounded-lg border border-[#c2cbd4]">
                                                     {requestDetails.details.map(
                                                         (detail) => (
                                                             <div
@@ -6391,7 +6391,7 @@ function Dashboard({
                                                                         detail.label
                                                                     }
                                                                 </span>
-                                                                <span className="font-medium text-gray-800">
+                                                                <span className="font-medium text-ink-strong">
                                                                     {
                                                                         detail.value
                                                                     }
@@ -6408,7 +6408,7 @@ function Dashboard({
                                                 <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Resident Notes
                                                 </p>
-                                                <p className="rounded-md border border-[#c2cbd4] bg-[#ffffff] p-3 text-sm whitespace-pre-wrap text-gray-700">
+                                                <p className="rounded-lg border border-[#c2cbd4] bg-surface p-3 text-sm whitespace-pre-wrap text-ink">
                                                     {requestDetails.notes}
                                                 </p>
                                             </div>
@@ -6428,11 +6428,11 @@ function Dashboard({
                         aria-labelledby="issuance-details-title"
                     >
                         <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
-                            <div className="flex shrink-0 items-center justify-between bg-[#3b6fa8] px-6 py-4 text-white">
+                            <div className="flex shrink-0 items-center justify-between bg-brand px-6 py-4 text-white">
                                 <div>
                                     <h3
                                         id="issuance-details-title"
-                                        className="text-lg font-bold"
+                                        className="text-lg font-semibold"
                                     >
                                         Issued Certificate
                                     </h3>
@@ -6445,7 +6445,7 @@ function Dashboard({
                                     type="button"
                                     onClick={closeIssuanceDetails}
                                     aria-label="Close issued certificate details"
-                                    className="text-xl font-bold text-white/80 hover:text-white"
+                                    className="text-xl font-semibold text-white/80 hover:text-white"
                                 >
                                     &times;
                                 </button>
@@ -6460,7 +6460,7 @@ function Dashboard({
                                     <div className="space-y-3">
                                         <p
                                             role="alert"
-                                            className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                                            className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
                                         >
                                             {issuanceDetailsError}
                                         </p>
@@ -6468,7 +6468,7 @@ function Dashboard({
                                             <button
                                                 type="button"
                                                 onClick={closeIssuanceDetails}
-                                                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                                className="rounded-lg border border-line bg-white px-3 py-1.5 text-sm font-medium text-ink hover:bg-canvas"
                                             >
                                                 Close
                                             </button>
@@ -6480,12 +6480,12 @@ function Dashboard({
                                             <span className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-800">
                                                 Issued
                                             </span>
-                                            <span className="font-mono text-sm font-semibold text-gray-800">
+                                            <span className="font-mono text-sm font-semibold text-ink-strong">
                                                 {issuanceDetails.reference}
                                             </span>
                                         </div>
 
-                                        <div className="grid gap-3 rounded-md border border-[#c2cbd4] bg-[#ffffff] p-4 text-sm sm:grid-cols-2">
+                                        <div className="grid gap-3 rounded-lg border border-[#c2cbd4] bg-surface p-4 text-sm sm:grid-cols-2">
                                             <ReadOnlyField
                                                 label="Certificate Type"
                                                 value={
@@ -6527,8 +6527,8 @@ function Dashboard({
                                             <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                 Resident
                                             </p>
-                                            <div className="rounded-md border border-[#c2cbd4] p-3 text-sm">
-                                                <p className="font-medium text-gray-800">
+                                            <div className="rounded-lg border border-[#c2cbd4] p-3 text-sm">
+                                                <p className="font-medium text-ink-strong">
                                                     {
                                                         issuanceDetails.resident
                                                             .name
@@ -6548,7 +6548,7 @@ function Dashboard({
                                                 <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Request Details
                                                 </p>
-                                                <div className="grid gap-3 rounded-md border border-[#c2cbd4] p-3 text-sm sm:grid-cols-2">
+                                                <div className="grid gap-3 rounded-lg border border-[#c2cbd4] p-3 text-sm sm:grid-cols-2">
                                                     {issuanceDetails.purpose && (
                                                         <ReadOnlyField
                                                             label="Purpose"
@@ -6582,8 +6582,8 @@ function Dashboard({
                                                 <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Linked Request
                                                 </p>
-                                                <div className="rounded-md border border-[#c2cbd4] p-3 text-sm">
-                                                    <p className="font-mono text-xs font-medium text-gray-800">
+                                                <div className="rounded-lg border border-[#c2cbd4] p-3 text-sm">
+                                                    <p className="font-mono text-xs font-medium text-ink-strong">
                                                         {
                                                             issuanceDetails
                                                                 .linked_request
@@ -6607,7 +6607,7 @@ function Dashboard({
                                                 <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Certificate Details
                                                 </p>
-                                                <div className="divide-y divide-[#eef1f5] rounded-md border border-[#c2cbd4]">
+                                                <div className="divide-y divide-[#eef1f5] rounded-lg border border-[#c2cbd4]">
                                                     {issuanceDetails.details.map(
                                                         (detail) => (
                                                             <div
@@ -6621,7 +6621,7 @@ function Dashboard({
                                                                         detail.label
                                                                     }
                                                                 </span>
-                                                                <span className="font-medium text-gray-800">
+                                                                <span className="font-medium text-ink-strong">
                                                                     {
                                                                         detail.value
                                                                     }
@@ -6638,14 +6638,14 @@ function Dashboard({
                                                 <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                                                     Resident Notes
                                                 </p>
-                                                <p className="rounded-md border border-[#c2cbd4] bg-[#ffffff] p-3 text-sm whitespace-pre-wrap text-gray-700">
+                                                <p className="rounded-lg border border-[#c2cbd4] bg-surface p-3 text-sm whitespace-pre-wrap text-ink">
                                                     {issuanceDetails.notes}
                                                 </p>
                                             </div>
                                         )}
 
                                         {!issuanceDetails.template_available && (
-                                            <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                                            <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                                                 The original template for this
                                                 certificate is not available in
                                                 this environment, so a reprint
@@ -6665,7 +6665,7 @@ function Dashboard({
                                     <button
                                         type="button"
                                         onClick={closeIssuanceDetails}
-                                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                        className="rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-canvas"
                                     >
                                         Close
                                     </button>
@@ -6677,7 +6677,7 @@ function Dashboard({
                                             !issuanceDetails ||
                                             !issuanceDetails.template_available
                                         }
-                                        className="rounded-md bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#2a5279] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-card hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {reprintLoading
                                             ? 'Preparing reprint...'
@@ -6699,7 +6699,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
             <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
                 {label}
             </p>
-            <p className="mt-0.5 font-medium break-words text-gray-800">
+            <p className="mt-0.5 font-medium break-words text-ink-strong">
                 {value}
             </p>
         </div>

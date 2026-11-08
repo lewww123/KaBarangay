@@ -289,11 +289,11 @@ export default function Sectors({
             <AdminLayout active="sectors">
                 <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-gray-800">
+                        <h1 className="text-2xl font-semibold text-ink-strong">
                             Sectors
                         </h1>
 
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             Consolidated resident sector rosters and community
                             records
                         </p>
@@ -329,17 +329,17 @@ export default function Sectors({
                             onClick={() => setActiveTab('applications')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'applications'
-                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
-                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                    ? 'border-brand bg-brand/5 ring-1 ring-[#3b6fa8]'
+                                    : 'border-line-soft bg-white hover:border-line'
                             }`}
                         >
-                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                            <p className="text-[11px] font-medium text-ink-faint uppercase">
                                 Applications
                             </p>
-                            <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            <p className="mt-2 text-2xl font-semibold text-ink-strong">
                                 {stats.sectorApplications}
                             </p>
-                            <p className="mt-0.5 text-[11px] text-gray-500">
+                            <p className="mt-0.5 text-[11px] text-ink-muted">
                                 Under Admin Review
                             </p>
                         </button>
@@ -350,17 +350,17 @@ export default function Sectors({
                             onClick={() => setActiveTab('general')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'general'
-                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
-                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                    ? 'border-brand bg-brand/5 ring-1 ring-[#3b6fa8]'
+                                    : 'border-line-soft bg-white hover:border-line'
                             }`}
                         >
-                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                            <p className="text-[11px] font-medium text-ink-faint uppercase">
                                 General Resident
                             </p>
-                            <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            <p className="mt-2 text-2xl font-semibold text-ink-strong">
                                 {stats.generalMembers}
                             </p>
-                            <p className="mt-0.5 text-[11px] text-gray-500">
+                            <p className="mt-0.5 text-[11px] text-ink-muted">
                                 No sector affiliation
                             </p>
                         </button>
@@ -371,17 +371,17 @@ export default function Sectors({
                             onClick={() => setActiveTab('pwd')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'pwd'
-                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
-                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                    ? 'border-brand bg-brand/5 ring-1 ring-[#3b6fa8]'
+                                    : 'border-line-soft bg-white hover:border-line'
                             }`}
                         >
-                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                            <p className="text-[11px] font-medium text-ink-faint uppercase">
                                 PWD Members
                             </p>
-                            <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            <p className="mt-2 text-2xl font-semibold text-ink-strong">
                                 {stats.pwdMembers}
                             </p>
-                            <p className="mt-0.5 text-[11px] text-gray-500">
+                            <p className="mt-0.5 text-[11px] text-ink-muted">
                                 Verified PWD roster
                             </p>
                         </button>
@@ -392,17 +392,17 @@ export default function Sectors({
                             onClick={() => setActiveTab('senior')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'senior'
-                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
-                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                    ? 'border-brand bg-brand/5 ring-1 ring-[#3b6fa8]'
+                                    : 'border-line-soft bg-white hover:border-line'
                             }`}
                         >
-                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                            <p className="text-[11px] font-medium text-ink-faint uppercase">
                                 Senior Citizen
                             </p>
-                            <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            <p className="mt-2 text-2xl font-semibold text-ink-strong">
                                 {stats.seniorMembers}
                             </p>
-                            <p className="mt-0.5 text-[11px] text-gray-500">
+                            <p className="mt-0.5 text-[11px] text-ink-muted">
                                 Verified senior roster
                             </p>
                         </button>
@@ -413,17 +413,17 @@ export default function Sectors({
                             onClick={() => setActiveTab('certificates')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'certificates'
-                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
-                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                    ? 'border-brand bg-brand/5 ring-1 ring-[#3b6fa8]'
+                                    : 'border-line-soft bg-white hover:border-line'
                             }`}
                         >
-                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                            <p className="text-[11px] font-medium text-ink-faint uppercase">
                                 Certificates
                             </p>
-                            <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            <p className="mt-2 text-2xl font-semibold text-ink-strong">
                                 {stats.certificates}
                             </p>
-                            <p className="mt-0.5 text-[11px] text-gray-500">
+                            <p className="mt-0.5 text-[11px] text-ink-muted">
                                 Released & Completed
                             </p>
                         </button>
@@ -434,24 +434,24 @@ export default function Sectors({
                             onClick={() => setActiveTab('lupon')}
                             className={`rounded-lg border p-4 text-left transition-colors ${
                                 activeTab === 'lupon'
-                                    ? 'border-[#3b6fa8] bg-[#3b6fa8]/5 ring-1 ring-[#3b6fa8]'
-                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                    ? 'border-brand bg-brand/5 ring-1 ring-[#3b6fa8]'
+                                    : 'border-line-soft bg-white hover:border-line'
                             }`}
                         >
-                            <p className="text-[11px] font-medium text-gray-400 uppercase">
+                            <p className="text-[11px] font-medium text-ink-faint uppercase">
                                 Lupon Cases
                             </p>
-                            <p className="mt-2 text-2xl font-semibold text-gray-800">
+                            <p className="mt-2 text-2xl font-semibold text-ink-strong">
                                 {stats.openCases}
                             </p>
-                            <p className="mt-0.5 text-[11px] text-gray-500">
+                            <p className="mt-0.5 text-[11px] text-ink-muted">
                                 Active disputes
                             </p>
                         </button>
                     </div>
 
                     {/* SECTION TABS */}
-                    <div className="mb-6 border-b border-gray-200">
+                    <div className="mb-6 border-b border-line-soft">
                         <nav className="-mb-px flex gap-6 overflow-x-auto">
                             <SectionTab
                                 label="Sector Applications"
@@ -490,7 +490,7 @@ export default function Sectors({
                     {activeTab === 'applications' && (
                         <div className="space-y-4">
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="rounded-lg bg-[#3b6fa8] p-5 text-white sm:max-w-xs">
+                                <div className="rounded-lg bg-brand p-5 text-white sm:max-w-xs">
                                     <p className="text-xs text-white/80 uppercase">
                                         Applications Under Review
                                     </p>
@@ -505,17 +505,17 @@ export default function Sectors({
 
                                 <Link
                                     href="/admin/sector-applications"
-                                    className="inline-flex items-center gap-2 rounded-lg bg-[#3b6fa8] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#2a5279]"
+                                    className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-deep"
                                 >
                                     Open Full Review Queue &rarr;
                                 </Link>
                             </div>
 
-                            <div className="rounded-lg border border-gray-200 bg-white p-6">
-                                <h2 className="text-base font-semibold text-gray-800">
+                            <div className="rounded-lg border border-line-soft bg-white p-6">
+                                <h2 className="text-base font-semibold text-ink-strong">
                                     Sector Application Processing
                                 </h2>
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-ink-muted">
                                     Resident applications for sector
                                     classification (Senior Citizen, PWD, Solo
                                     Parent, etc.) undergo desk review before
@@ -524,7 +524,7 @@ export default function Sectors({
                                 <div className="mt-4 flex items-center gap-3">
                                     <Link
                                         href="/admin/sector-applications"
-                                        className="text-sm font-medium text-[#3b6fa8] hover:underline"
+                                        className="text-sm font-medium text-brand hover:underline"
                                     >
                                         Go to Sector Applications page to review
                                         and process submissions &rarr;
@@ -537,7 +537,7 @@ export default function Sectors({
                     {/* 2. GENERAL RESIDENT TAB */}
                     {activeTab === 'general' && (
                         <div className="space-y-4">
-                            <div className="rounded-lg bg-[#3b6fa8] p-5 text-white sm:max-w-xs">
+                            <div className="rounded-lg bg-brand p-5 text-white sm:max-w-xs">
                                 <p className="text-xs text-white/80 uppercase">
                                     General Residents
                                 </p>
@@ -564,21 +564,21 @@ export default function Sectors({
                                 onClear={clearMemberFilters}
                             />
 
-                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                            <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[720px]">
-                                        <thead className="bg-[#ffffff]">
-                                            <tr className="border-b border-gray-200">
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                        <thead className="bg-surface">
+                                            <tr className="border-b border-line-soft">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     RESIDENT NO.
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     NAME
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     PUROK
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     STATUS
                                                 </th>
                                             </tr>
@@ -589,9 +589,9 @@ export default function Sectors({
                                                 (member) => (
                                                     <tr
                                                         key={member.id}
-                                                        className="border-b border-gray-100 last:border-0"
+                                                        className="border-b border-line-soft last:border-0"
                                                     >
-                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                        <td className="px-5 py-4 text-sm text-ink-muted">
                                                             {
                                                                 member.resident_number
                                                             }
@@ -601,13 +601,13 @@ export default function Sectors({
                                                             {member.name}
                                                         </td>
 
-                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                        <td className="px-5 py-4 text-sm text-ink-muted">
                                                             {member.purok ||
                                                                 '-'}
                                                         </td>
 
                                                         <td className="px-5 py-4">
-                                                            <span className="rounded-full bg-[#eef1f5] px-3 py-1 text-xs text-[#3b6fa8]">
+                                                            <span className="rounded-full bg-canvas px-3 py-1 text-xs text-brand">
                                                                 {member.status}
                                                             </span>
                                                         </td>
@@ -619,7 +619,7 @@ export default function Sectors({
                                 </div>
 
                                 {generalMembers.data.length === 0 && (
-                                    <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                    <p className="px-5 py-10 text-center text-sm text-ink-faint">
                                         {memberSearch.trim() !== '' ||
                                         memberPurok !== ''
                                             ? 'No general residents match the current filters.'
@@ -634,7 +634,7 @@ export default function Sectors({
                                 />
                             </div>
 
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-ink-faint">
                                 Read-only list of verified residents who do not
                                 belong to any designated sector (such as Senior
                                 Citizen or PWD) in your barangay.
@@ -645,7 +645,7 @@ export default function Sectors({
                     {/* 3. PWD MEMBERS TAB */}
                     {activeTab === 'pwd' && (
                         <div className="space-y-4">
-                            <div className="rounded-lg bg-[#3b6fa8] p-5 text-white sm:max-w-xs">
+                            <div className="rounded-lg bg-brand p-5 text-white sm:max-w-xs">
                                 <p className="text-xs text-white/80 uppercase">
                                     PWD Members
                                 </p>
@@ -674,21 +674,21 @@ export default function Sectors({
                                 onClear={clearMemberFilters}
                             />
 
-                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                            <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[720px]">
-                                        <thead className="bg-[#ffffff]">
-                                            <tr className="border-b border-gray-200">
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                        <thead className="bg-surface">
+                                            <tr className="border-b border-line-soft">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     RESIDENT NO.
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     NAME
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     PUROK
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     STATUS
                                                 </th>
                                             </tr>
@@ -698,9 +698,9 @@ export default function Sectors({
                                             {pwdMembers.data.map((member) => (
                                                 <tr
                                                     key={member.id}
-                                                    className="border-b border-gray-100 last:border-0"
+                                                    className="border-b border-line-soft last:border-0"
                                                 >
-                                                    <td className="px-5 py-4 text-sm text-gray-600">
+                                                    <td className="px-5 py-4 text-sm text-ink-muted">
                                                         {member.resident_number}
                                                     </td>
 
@@ -708,12 +708,12 @@ export default function Sectors({
                                                         {member.name}
                                                     </td>
 
-                                                    <td className="px-5 py-4 text-sm text-gray-600">
+                                                    <td className="px-5 py-4 text-sm text-ink-muted">
                                                         {member.purok || '-'}
                                                     </td>
 
                                                     <td className="px-5 py-4">
-                                                        <span className="rounded-full bg-[#eef1f5] px-3 py-1 text-xs text-[#3b6fa8]">
+                                                        <span className="rounded-full bg-canvas px-3 py-1 text-xs text-brand">
                                                             {member.status}
                                                         </span>
                                                     </td>
@@ -724,7 +724,7 @@ export default function Sectors({
                                 </div>
 
                                 {pwdMembers.data.length === 0 && (
-                                    <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                    <p className="px-5 py-10 text-center text-sm text-ink-faint">
                                         {memberSearch.trim() !== '' ||
                                         memberPurok !== ''
                                             ? 'No PWD members match the current filters.'
@@ -739,7 +739,7 @@ export default function Sectors({
                                 />
                             </div>
 
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-ink-faint">
                                 Read-only list of residents tagged with the PWD
                                 sector in your barangay, including inactive
                                 accounts. Contact details and documents are not
@@ -751,7 +751,7 @@ export default function Sectors({
                     {/* 4. SENIOR CITIZENS TAB */}
                     {activeTab === 'senior' && (
                         <div className="space-y-4">
-                            <div className="rounded-lg bg-[#3b6fa8] p-5 text-white sm:max-w-xs">
+                            <div className="rounded-lg bg-brand p-5 text-white sm:max-w-xs">
                                 <p className="text-xs text-white/80 uppercase">
                                     Senior Citizens
                                 </p>
@@ -780,21 +780,21 @@ export default function Sectors({
                                 onClear={clearMemberFilters}
                             />
 
-                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                            <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[720px]">
-                                        <thead className="bg-[#ffffff]">
-                                            <tr className="border-b border-gray-200">
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                        <thead className="bg-surface">
+                                            <tr className="border-b border-line-soft">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     RESIDENT NO.
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     NAME
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     PUROK
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     STATUS
                                                 </th>
                                             </tr>
@@ -805,9 +805,9 @@ export default function Sectors({
                                                 (member) => (
                                                     <tr
                                                         key={member.id}
-                                                        className="border-b border-gray-100 last:border-0"
+                                                        className="border-b border-line-soft last:border-0"
                                                     >
-                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                        <td className="px-5 py-4 text-sm text-ink-muted">
                                                             {
                                                                 member.resident_number
                                                             }
@@ -817,13 +817,13 @@ export default function Sectors({
                                                             {member.name}
                                                         </td>
 
-                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                        <td className="px-5 py-4 text-sm text-ink-muted">
                                                             {member.purok ||
                                                                 '-'}
                                                         </td>
 
                                                         <td className="px-5 py-4">
-                                                            <span className="rounded-full bg-[#eef1f5] px-3 py-1 text-xs text-[#3b6fa8]">
+                                                            <span className="rounded-full bg-canvas px-3 py-1 text-xs text-brand">
                                                                 {member.status}
                                                             </span>
                                                         </td>
@@ -835,7 +835,7 @@ export default function Sectors({
                                 </div>
 
                                 {seniorMembers.data.length === 0 && (
-                                    <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                    <p className="px-5 py-10 text-center text-sm text-ink-faint">
                                         {memberSearch.trim() !== '' ||
                                         memberPurok !== ''
                                             ? 'No senior citizens match the current filters.'
@@ -850,7 +850,7 @@ export default function Sectors({
                                 />
                             </div>
 
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-ink-faint">
                                 Read-only list of residents tagged with the
                                 senior sector in your barangay, including
                                 inactive accounts. Contact details and documents
@@ -862,7 +862,7 @@ export default function Sectors({
                     {/* 5. CERTIFICATES TAB */}
                     {activeTab === 'certificates' && (
                         <div className="space-y-4">
-                            <div className="rounded-lg bg-[#3b6fa8] p-5 text-white sm:max-w-xs">
+                            <div className="rounded-lg bg-brand p-5 text-white sm:max-w-xs">
                                 <p className="text-xs text-white/80 uppercase">
                                     Processed Certificates
                                 </p>
@@ -877,7 +877,7 @@ export default function Sectors({
                                 </p>
                             </div>
 
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-ink-faint">
                                 Read-only monitoring of certificate requests
                                 whose status is Released or Rejected. Processed
                                 and Completed share the same approved
@@ -888,7 +888,7 @@ export default function Sectors({
 
                             <form
                                 onSubmit={submitCertificateSearch}
-                                className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm lg:flex-row lg:items-center lg:justify-between"
+                                className="flex flex-col gap-3 rounded-lg border border-line-soft bg-white p-3.5 shadow-card lg:flex-row lg:items-center lg:justify-between"
                             >
                                 <input
                                     type="search"
@@ -898,13 +898,13 @@ export default function Sectors({
                                         setCertificateSearch(event.target.value)
                                     }
                                     placeholder="Search reference, resident, or certificate type..."
-                                    className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3b6fa8]"
+                                    className="min-w-0 flex-1 rounded-lg border border-line px-3 py-1.5 text-xs outline-none focus:border-brand"
                                 />
 
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="submit"
-                                        className="rounded-md bg-[#3b6fa8] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#2a5279]"
+                                        className="rounded-lg bg-brand px-4 py-1.5 text-xs font-medium text-white hover:bg-brand-deep"
                                     >
                                         Search
                                     </button>
@@ -913,7 +913,7 @@ export default function Sectors({
                                         <button
                                             type="button"
                                             onClick={clearCertificateFilters}
-                                            className="rounded-md border border-gray-300 px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                                            className="rounded-lg border border-line px-4 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas"
                                         >
                                             Clear
                                         </button>
@@ -921,33 +921,33 @@ export default function Sectors({
                                 </div>
                             </form>
 
-                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                            <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[900px]">
-                                        <thead className="bg-[#ffffff]">
-                                            <tr className="border-b border-gray-200">
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                        <thead className="bg-surface">
+                                            <tr className="border-b border-line-soft">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     REFERENCE
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     CERTIFICATE
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     RESIDENT
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     PURPOSE
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     FEE
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     STATUS
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     SUBMITTED
                                                 </th>
-                                                <th className="px-5 py-3 text-left text-xs text-gray-400">
+                                                <th className="px-5 py-3 text-left text-xs text-ink-faint">
                                                     RELEASED / REJECTED
                                                 </th>
                                             </tr>
@@ -958,13 +958,13 @@ export default function Sectors({
                                                 (request) => (
                                                     <tr
                                                         key={request.id}
-                                                        className="border-b border-gray-100 last:border-0"
+                                                        className="border-b border-line-soft last:border-0"
                                                     >
                                                         <td className="px-5 py-4 text-sm font-medium">
                                                             {request.reference}
                                                         </td>
 
-                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                        <td className="px-5 py-4 text-sm text-ink-muted">
                                                             {
                                                                 request.certificate
                                                             }
@@ -978,7 +978,7 @@ export default function Sectors({
                                                             </span>
 
                                                             {request.resident_number && (
-                                                                <span className="block text-xs text-gray-400">
+                                                                <span className="block text-xs text-ink-faint">
                                                                     {
                                                                         request.resident_number
                                                                     }
@@ -986,11 +986,11 @@ export default function Sectors({
                                                             )}
                                                         </td>
 
-                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                        <td className="px-5 py-4 text-sm text-ink-muted">
                                                             {request.purpose}
                                                         </td>
 
-                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                        <td className="px-5 py-4 text-sm text-ink-muted">
                                                             ₱
                                                             {request.fee.toFixed(
                                                                 2,
@@ -1002,7 +1002,7 @@ export default function Sectors({
                                                                 className={`rounded-full px-3 py-1 text-xs ${
                                                                     request.status ===
                                                                     'Released'
-                                                                        ? 'bg-[#eef1f5] text-[#3b6fa8]'
+                                                                        ? 'bg-canvas text-brand'
                                                                         : 'bg-[#fdecec] text-[#a33a3a]'
                                                                 }`}
                                                             >
@@ -1010,12 +1010,12 @@ export default function Sectors({
                                                             </span>
                                                         </td>
 
-                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                        <td className="px-5 py-4 text-sm text-ink-muted">
                                                             {request.submitted_at ||
                                                                 '-'}
                                                         </td>
 
-                                                        <td className="px-5 py-4 text-sm text-gray-600">
+                                                        <td className="px-5 py-4 text-sm text-ink-muted">
                                                             {request.status_at ||
                                                                 '-'}
                                                         </td>
@@ -1027,7 +1027,7 @@ export default function Sectors({
                                 </div>
 
                                 {certificateRequests.data.length === 0 && (
-                                    <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                    <p className="px-5 py-10 text-center text-sm text-ink-faint">
                                         {certificateSearch.trim() !== ''
                                             ? 'No released or rejected requests match the current search.'
                                             : 'No released or rejected certificate requests have been recorded for this barangay yet.'}
@@ -1047,7 +1047,7 @@ export default function Sectors({
                     {activeTab === 'lupon' && (
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                <div className="rounded-lg bg-[#3b6fa8] p-5 text-white">
+                                <div className="rounded-lg bg-brand p-5 text-white">
                                     <p className="text-xs text-white/80 uppercase">
                                         Open / Active Cases
                                     </p>
@@ -1059,37 +1059,37 @@ export default function Sectors({
                                     </p>
                                 </div>
 
-                                <div className="rounded-lg border border-gray-200 bg-white p-5">
-                                    <p className="text-xs text-gray-400 uppercase">
+                                <div className="rounded-lg border border-line-soft bg-white p-5">
+                                    <p className="text-xs text-ink-faint uppercase">
                                         Resolved Cases
                                     </p>
-                                    <p className="mt-3 text-3xl font-semibold text-gray-800">
+                                    <p className="mt-3 text-3xl font-semibold text-ink-strong">
                                         {luponSummary.closed}
                                     </p>
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-ink-muted">
                                         Settled, Dismissed, or Unresolved
                                     </p>
                                 </div>
 
-                                <div className="rounded-lg border border-gray-200 bg-white p-5">
-                                    <p className="text-xs text-gray-400 uppercase">
+                                <div className="rounded-lg border border-line-soft bg-white p-5">
+                                    <p className="text-xs text-ink-faint uppercase">
                                         Total Filed Cases
                                     </p>
-                                    <p className="mt-3 text-3xl font-semibold text-gray-800">
+                                    <p className="mt-3 text-3xl font-semibold text-ink-strong">
                                         {luponSummary.total}
                                     </p>
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-ink-muted">
                                         All Lupon cases recorded for this
                                         barangay
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="rounded-lg border border-gray-200 bg-white p-6">
-                                <h2 className="text-base font-semibold text-gray-800">
+                            <div className="rounded-lg border border-line-soft bg-white p-6">
+                                <h2 className="text-base font-semibold text-ink-strong">
                                     Lupong Tagapamayapa Confidentiality Notice
                                 </h2>
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-ink-muted">
                                     Under Republic Act No. 7160 (Local
                                     Government Code), Katarungang Pambarangay
                                     proceedings and case details are
@@ -1099,7 +1099,7 @@ export default function Sectors({
                                     accessible only to authorized Lupon desk
                                     officers.
                                 </p>
-                                <p className="mt-3 text-xs text-gray-400">
+                                <p className="mt-3 text-xs text-ink-faint">
                                     The Admin dashboard displays aggregate case
                                     statistics only. Direct mediation records
                                     are restricted to the Lupong Tagapamayapa
@@ -1135,8 +1135,8 @@ function SectionTab({
             onClick={onClick}
             className={`border-b-2 pb-3 text-sm font-medium whitespace-nowrap transition-colors ${
                 active
-                    ? 'border-[#3b6fa8] text-[#3b6fa8]'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    ? 'border-brand text-brand'
+                    : 'border-transparent text-ink-muted hover:border-line hover:text-ink'
             }`}
         >
             {label}
@@ -1172,7 +1172,7 @@ function MembersToolbar({
     return (
         <form
             onSubmit={onSearchSubmit}
-            className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm lg:flex-row lg:items-center lg:justify-between"
+            className="flex flex-col gap-3 rounded-lg border border-line-soft bg-white p-3.5 shadow-card lg:flex-row lg:items-center lg:justify-between"
         >
             <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
                 <input
@@ -1181,14 +1181,14 @@ function MembersToolbar({
                     value={searchValue}
                     onChange={(event) => onSearchChange(event.target.value)}
                     placeholder="Search resident number, name, or purok..."
-                    className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3b6fa8]"
+                    className="min-w-0 flex-1 rounded-lg border border-line px-3 py-1.5 text-xs outline-none focus:border-brand"
                 />
 
                 <select
                     aria-label="Filter by purok"
                     value={purokValue}
                     onChange={onPurokChange}
-                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-700 outline-none focus:border-[#3b6fa8]"
+                    className="rounded-lg border border-line px-3 py-1.5 text-xs text-ink outline-none focus:border-brand"
                 >
                     <option value="">All Puroks</option>
 
@@ -1203,7 +1203,7 @@ function MembersToolbar({
             <div className="flex items-center gap-2">
                 <button
                     type="submit"
-                    className="rounded-md bg-[#3b6fa8] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#2a5279]"
+                    className="rounded-lg bg-brand px-4 py-1.5 text-xs font-medium text-white hover:bg-brand-deep"
                 >
                     Search
                 </button>
@@ -1212,7 +1212,7 @@ function MembersToolbar({
                     <button
                         type="button"
                         onClick={onClear}
-                        className="rounded-md border border-gray-300 px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                        className="rounded-lg border border-line px-4 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas"
                     >
                         Clear
                     </button>
@@ -1242,8 +1242,8 @@ function MembersPagination<T>({
     }
 
     return (
-        <div className="flex flex-col gap-3 border-t border-gray-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-gray-500">
+        <div className="flex flex-col gap-3 border-t border-line-soft px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-ink-muted">
                 Showing {paginator.from ?? 0}&ndash;{paginator.to ?? 0} of{' '}
                 {paginator.total} {label}
             </p>
@@ -1253,12 +1253,12 @@ function MembersPagination<T>({
                     type="button"
                     disabled={!paginator.prev_page_url}
                     onClick={() => onNavigate(paginator.current_page - 1)}
-                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     Previous
                 </button>
 
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-ink-muted">
                     Page {paginator.current_page} of {paginator.last_page}
                 </span>
 
@@ -1266,7 +1266,7 @@ function MembersPagination<T>({
                     type="button"
                     disabled={!paginator.next_page_url}
                     onClick={() => onNavigate(paginator.current_page + 1)}
-                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     Next
                 </button>

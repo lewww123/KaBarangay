@@ -196,7 +196,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
         setOpen(true);
     };
     const inputClass =
-        'mt-1 min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:bg-gray-100';
+        'mt-1 min-h-11 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm disabled:bg-secondary';
 
     return (
         <AdminLayout active="staff">
@@ -204,10 +204,10 @@ export default function Staff({ assignments, filters, departments }: Props) {
             <div className="mx-auto max-w-7xl space-y-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-semibold text-gray-900">
+                        <h1 className="text-2xl font-semibold text-ink-strong">
                             Barangay Staff
                         </h1>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             Staff members, positions, and department assignments
                             in your barangay.
                         </p>
@@ -218,7 +218,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                             clear();
                             setOpen(true);
                         }}
-                        className="min-h-11 rounded-lg bg-[#3b6fa8] px-5 py-2.5 text-sm font-semibold text-white"
+                        className="min-h-11 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white"
                     >
                         Assign new staff
                     </button>
@@ -246,16 +246,16 @@ export default function Staff({ assignments, filters, departments }: Props) {
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Search staff, position, or department…"
-                        className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                        className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2 text-sm"
                     />
-                    <button className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold">
+                    <button className="rounded-lg border border-line bg-white px-4 py-2 text-sm font-semibold">
                         Search
                     </button>
                 </form>
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <div className="overflow-hidden rounded-xl border border-line-soft bg-white">
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[760px] text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-600">
+                            <thead className="bg-canvas text-ink-muted">
                                 <tr>
                                     <th className="p-4">Staff member</th>
                                     <th className="p-4">Position</th>
@@ -268,16 +268,16 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                 {assignments.data.map((assignment) => (
                                     <tr
                                         key={assignment.id}
-                                        className="border-t border-gray-100"
+                                        className="border-t border-line-soft"
                                     >
                                         <td className="p-4">
-                                            <p className="font-semibold text-gray-900">
+                                            <p className="font-semibold text-ink-strong">
                                                 {assignment.resident.name}
                                             </p>
-                                            <p className="mt-1 text-xs text-gray-500">
+                                            <p className="mt-1 text-xs text-ink-muted">
                                                 {assignment.user_email}
                                             </p>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-xs text-ink-muted">
                                                 {
                                                     assignment.resident
                                                         .resident_number
@@ -293,7 +293,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                         </td>
                                         <td className="p-4">
                                             <span
-                                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${assignment.is_active ? 'bg-green-50 text-green-800' : 'bg-gray-100 text-gray-600'}`}
+                                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${assignment.is_active ? 'bg-green-50 text-green-800' : 'bg-secondary text-ink-muted'}`}
                                             >
                                                 {assignment.is_active
                                                     ? 'Active'
@@ -304,7 +304,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                             <button
                                                 type="button"
                                                 onClick={() => edit(assignment)}
-                                                className="mr-4 font-semibold text-[#3b6fa8]"
+                                                className="mr-4 font-semibold text-brand"
                                             >
                                                 Edit
                                             </button>
@@ -332,11 +332,11 @@ export default function Staff({ assignments, filters, departments }: Props) {
                         </table>
                     </div>
                     {assignments.data.length === 0 && (
-                        <p className="p-8 text-center text-sm text-gray-500">
+                        <p className="p-8 text-center text-sm text-ink-muted">
                             No staff assignments found.
                         </p>
                     )}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft px-4 py-3 text-sm text-ink-muted">
                         <span>
                             {assignments.total
                                 ? `Showing ${assignments.from}–${assignments.to} of ${assignments.total} assignments`
@@ -392,10 +392,10 @@ export default function Staff({ assignments, filters, departments }: Props) {
                     close();
                 }}
                 aria-labelledby="staff-dialog-title"
-                className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-2xl border-0 bg-white p-0 shadow-xl backdrop:bg-black/40"
+                className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-xl border-0 bg-white p-0 shadow-xl backdrop:bg-black/40"
             >
-                <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                    <h2 id="staff-dialog-title" className="text-lg font-bold">
+                <div className="flex items-center justify-between border-b border-line-soft px-6 py-4">
+                    <h2 id="staff-dialog-title" className="text-lg font-semibold">
                         {editing ? 'Edit staff assignment' : 'Assign new staff'}
                     </h2>
                     <button
@@ -403,9 +403,9 @@ export default function Staff({ assignments, filters, departments }: Props) {
                         onClick={close}
                         disabled={form.processing}
                         aria-label="Close staff form"
-                        className="rounded p-2 text-gray-500"
+                        className="rounded p-2 text-ink-muted"
                     >
-                        ✕
+                        
                     </button>
                 </div>
                 <form onSubmit={submit} className="space-y-5 p-6">
@@ -438,7 +438,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                         {!selectedResident && searching && (
                             <p
                                 role="status"
-                                className="mt-2 text-xs text-gray-500"
+                                className="mt-2 text-xs text-ink-muted"
                             >
                                 Searching residents…
                             </p>
@@ -446,19 +446,19 @@ export default function Staff({ assignments, filters, departments }: Props) {
                         {!selectedResident && residents.length > 0 && (
                             <div
                                 aria-label="Resident suggestions"
-                                className="mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200"
+                                className="mt-1 max-h-48 overflow-y-auto rounded-lg border border-line-soft"
                             >
                                 {residents.map((resident) => (
                                     <button
                                         type="button"
                                         key={resident.id}
                                         onClick={() => selectResident(resident)}
-                                        className="block w-full border-b border-gray-100 px-3 py-2 text-left text-sm hover:bg-green-50"
+                                        className="block w-full border-b border-line-soft px-3 py-2 text-left text-sm hover:bg-green-50"
                                     >
                                         <span className="block font-medium">
                                             {resident.name}
                                         </span>
-                                        <span className="text-xs text-gray-500">
+                                        <span className="text-xs text-ink-muted">
                                             {resident.resident_number}
                                         </span>
                                     </button>
@@ -469,7 +469,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                             searched &&
                             !searching &&
                             residents.length === 0 && (
-                                <p className="mt-2 text-xs text-gray-500">
+                                <p className="mt-2 text-xs text-ink-muted">
                                     No eligible resident found. An active
                                     resident account and linked user are
                                     required.
@@ -497,7 +497,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                     setScanning(!scanning);
                                     setLookupError('');
                                 }}
-                                className="mt-3 rounded-lg border border-[#3b6fa8] px-3 py-2 text-sm font-semibold text-[#2a5279]"
+                                className="mt-3 rounded-lg border border-brand px-3 py-2 text-sm font-semibold text-brand-deep"
                             >
                                 {scanning
                                     ? 'Close scanner'
@@ -601,18 +601,18 @@ export default function Staff({ assignments, filters, departments }: Props) {
                             </p>
                         )}
                     </div>
-                    <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+                    <div className="flex justify-end gap-3 border-t border-line-soft pt-4">
                         <button
                             type="button"
                             onClick={close}
                             disabled={form.processing}
-                            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold"
+                            className="rounded-lg border border-line px-4 py-2 text-sm font-semibold"
                         >
                             Cancel
                         </button>
                         <button
                             disabled={form.processing}
-                            className="rounded-lg bg-[#3b6fa8] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                         >
                             {form.processing
                                 ? 'Saving…'

@@ -12,15 +12,15 @@ export default function EvidencePanel({
 }) {
     const form = useForm({ evidence: [] as File[] });
     return (
-        <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-            <h2 className="font-bold text-slate-900">Evidence</h2>
+        <section className="space-y-4 rounded-xl border border-line-soft bg-white p-4 sm:p-5">
+            <h2 className="font-semibold text-ink-strong">Evidence</h2>
             <EvidenceList files={files} />
             {files.length > 0 && (
                 <div className="space-y-2 border-t pt-3">
                     {files.map((file) => (
                         <label
                             key={file.id}
-                            className="flex items-start gap-2 text-xs text-slate-600"
+                            className="flex items-start gap-2 text-xs text-ink-muted"
                         >
                             <input
                                 type="checkbox"

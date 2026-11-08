@@ -29,38 +29,38 @@ export default function AnnouncementReviewSummary({
           : 'Admin approval is required before this announcement is published.';
 
     return (
-        <div className="rounded-md border border-[#dfe4ea] bg-[#ffffff] p-3">
-            <h3 className="text-[10px] font-bold tracking-wide text-[#2a5279] uppercase">
+        <div className="rounded-lg border border-[#dfe4ea] bg-surface p-3">
+            <h3 className="text-[10px] font-semibold tracking-wide text-brand-deep uppercase">
                 Review
             </h3>
             <dl className="mt-2 space-y-1.5 text-xs">
                 <div className="flex gap-2">
-                    <dt className="w-24 shrink-0 font-semibold text-gray-500">
+                    <dt className="w-24 shrink-0 font-semibold text-ink-muted">
                         Type
                     </dt>
-                    <dd className="text-gray-800">
+                    <dd className="text-ink-strong">
                         {isEvent ? 'Event' : 'Informational Update'}
                     </dd>
                 </div>
                 <div className="flex gap-2">
-                    <dt className="w-24 shrink-0 font-semibold text-gray-500">
+                    <dt className="w-24 shrink-0 font-semibold text-ink-muted">
                         Audience
                     </dt>
-                    <dd className="text-gray-800">
+                    <dd className="text-ink-strong">
                         {formatAudienceLabel(audience)}
                     </dd>
                 </div>
                 <div className="flex gap-2">
-                    <dt className="w-24 shrink-0 font-semibold text-gray-500">
+                    <dt className="w-24 shrink-0 font-semibold text-ink-muted">
                         Attendance
                     </dt>
-                    <dd className="text-gray-800">{attendanceLabel}</dd>
+                    <dd className="text-ink-strong">{attendanceLabel}</dd>
                 </div>
                 <div className="flex gap-2">
-                    <dt className="w-24 shrink-0 font-semibold text-gray-500">
+                    <dt className="w-24 shrink-0 font-semibold text-ink-muted">
                         Publication
                     </dt>
-                    <dd className="text-gray-800">{approvalLabel}</dd>
+                    <dd className="text-ink-strong">{approvalLabel}</dd>
                 </div>
             </dl>
         </div>

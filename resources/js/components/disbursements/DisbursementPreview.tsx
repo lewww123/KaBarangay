@@ -22,7 +22,7 @@ export default function DisbursementPreview({ document, csvPreview }: Props) {
             <div className="flex flex-col gap-3 border-b border-line-soft px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-md border border-line-soft bg-canvas px-2 py-1 text-[11px] font-semibold text-ink-muted">
+                        <span className="rounded-lg border border-line-soft bg-canvas px-2 py-1 text-[11px] font-semibold text-ink-muted">
                             {disbursementFileType(document)}
                         </span>
                         <span className="text-xs text-ink-muted">

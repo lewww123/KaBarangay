@@ -10,7 +10,7 @@ import { Logo } from '@/components/Logo';
 export default function DesktopOnly() {
     return (
         <main className="flex min-h-screen items-center justify-center bg-canvas px-6 py-12">
-            <div className="w-full max-w-md rounded-2xl border border-line-soft bg-surface p-8 text-center shadow-card">
+            <div className="w-full max-w-md rounded-xl border border-line-soft bg-surface p-8 text-center shadow-card">
                 <Logo className="justify-center" />
 
                 <span className="mx-auto mt-8 grid size-12 place-items-center rounded-xl bg-brand-soft text-brand">

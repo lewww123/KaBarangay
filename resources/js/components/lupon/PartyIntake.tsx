@@ -89,8 +89,8 @@ export default function PartyIntake({
         });
     };
     return (
-        <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-            <h2 className="font-bold text-slate-900">{label}</h2>
+        <section className="space-y-4 rounded-xl border border-line-soft bg-white p-4 sm:p-5">
+            <h2 className="font-semibold text-ink-strong">{label}</h2>
             <div className="flex flex-wrap gap-2">
                 <input
                     ref={input}
@@ -104,7 +104,7 @@ export default function PartyIntake({
                     }}
                     placeholder="Scan QR / enter resident number"
                     aria-label={`${label} QR or resident reference`}
-                    className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2 text-sm"
                 />
                 <button
                     type="button"
@@ -117,7 +117,7 @@ export default function PartyIntake({
                 <button
                     type="button"
                     onClick={() => onCamera(!cameraOpen)}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold"
+                    className="rounded-lg border border-line px-3 py-2 text-xs font-semibold"
                 >
                     Camera
                 </button>
@@ -147,7 +147,7 @@ export default function PartyIntake({
                 </p>
             )}
             <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-slate-700">
+                <label className="text-xs font-semibold text-ink">
                     Address
                     <input
                         value={value.address}
@@ -155,10 +155,10 @@ export default function PartyIntake({
                         onChange={(event) =>
                             onChange({ ...value, address: event.target.value })
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm read-only:bg-slate-50"
+                        className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm read-only:bg-canvas"
                     />
                 </label>
-                <label className="text-xs font-semibold text-slate-700">
+                <label className="text-xs font-semibold text-ink">
                     Contact number
                     <input
                         value={value.contact}
@@ -166,12 +166,12 @@ export default function PartyIntake({
                         onChange={(event) =>
                             onChange({ ...value, contact: event.target.value })
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm read-only:bg-slate-50"
+                        className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm read-only:bg-canvas"
                     />
                 </label>
             </div>
             {!value.residentId && (
-                <label className="flex items-center gap-2 text-xs text-slate-600">
+                <label className="flex items-center gap-2 text-xs text-ink-muted">
                     <input
                         type="checkbox"
                         checked={value.isResident}

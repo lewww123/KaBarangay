@@ -35,9 +35,9 @@ export default function CaseTimeline({
                     {workflow.deadlines.map((deadline) => (
                         <div
                             key={deadline.label}
-                            className={`rounded-lg border p-3 ${deadline.active !== false && deadline.daysRemaining < 0 ? 'border-red-200 bg-red-50' : 'border-line-soft bg-slate-50'}`}
+                            className={`rounded-lg border p-3 ${deadline.active !== false && deadline.daysRemaining < 0 ? 'border-red-200 bg-red-50' : 'border-line-soft bg-canvas'}`}
                         >
-                            <p className="text-xs font-semibold text-slate-700">
+                            <p className="text-xs font-semibold text-ink">
                                 {deadline.label}
                             </p>
                             <p className="mt-1 text-sm font-semibold">
@@ -71,7 +71,7 @@ export default function CaseTimeline({
                                 aria-hidden="true"
                                 className="absolute top-1.5 -left-[21px] h-2 w-2 rounded-full bg-emerald-600"
                             />
-                            <p className="text-sm font-semibold text-slate-800">
+                            <p className="text-sm font-semibold text-ink-strong">
                                 {luponStatusLabel(event.to)}
                             </p>
                             <time

@@ -176,11 +176,11 @@ export default function QrScanner() {
             <AdminLayout active="qr-scanner">
                 {/* PAGE HEADER */}
                 <div className="mb-6">
-                    <h1 className="text-2xl font-semibold text-gray-800">
+                    <h1 className="text-2xl font-semibold text-ink-strong">
                         Resident QR Scanner
                     </h1>
 
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                         Scan a KaBarangay resident QR code to verify the
                         resident.
                     </p>
@@ -188,7 +188,7 @@ export default function QrScanner() {
 
                 {/* SCANNER CARD */}
                 <div className="mx-auto max-w-2xl">
-                    <div className="overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-gray-200">
+                    <div className="overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-gray-200">
                         {/* Scanner */}
                         <div className="p-4 sm:p-6">
                             <div
@@ -198,18 +198,18 @@ export default function QrScanner() {
                         </div>
 
                         {/* Status */}
-                        <div className="border-t border-gray-100 px-5 py-5 text-center">
+                        <div className="border-t border-line-soft px-5 py-5 text-center">
                             {isScanning && !error && (
                                 <>
                                     <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
                                         <span className="h-3 w-3 animate-pulse rounded-full bg-green-600" />
                                     </div>
 
-                                    <p className="font-semibold text-gray-900">
+                                    <p className="font-semibold text-ink-strong">
                                         Scanner is ready
                                     </p>
 
-                                    <p className="mt-1 text-sm text-gray-500">
+                                    <p className="mt-1 text-sm text-ink-muted">
                                         Point the camera at the resident's QR
                                         code.
                                     </p>
@@ -245,7 +245,7 @@ export default function QrScanner() {
                     </div>
 
                     {/* SECURITY NOTICE */}
-                    <p className="mt-5 text-center text-xs leading-5 text-gray-500">
+                    <p className="mt-5 text-center text-xs leading-5 text-ink-muted">
                         Do not share or photograph resident information
                         unnecessarily. Use resident verification only for
                         authorized barangay purposes.

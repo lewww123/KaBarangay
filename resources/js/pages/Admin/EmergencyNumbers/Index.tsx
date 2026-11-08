@@ -148,12 +148,12 @@ function EmergencyNumbersContent({
             <Head title="Emergency Numbers Management" />
 
             <div className="mx-auto max-w-7xl space-y-6 p-4 font-sans sm:p-6 lg:p-8">
-                <div className="flex flex-col gap-2 border-b border-gray-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 border-b border-line-soft pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+                        <h1 className="text-2xl font-semibold tracking-tight text-ink-strong sm:text-3xl">
                             Emergency Numbers
                         </h1>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             Manage your barangay hotlines and Tanod contacts.
                             Verified emergency service contacts are maintained
                             centrally and are read-only here.
@@ -162,28 +162,28 @@ function EmergencyNumbersContent({
                 </div>
 
                 {flash?.success && (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800 shadow-sm">
-                        ✓ {flash.success}
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800 shadow-card">
+                        {flash.success}
                     </div>
                 )}
                 {flash?.error && (
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800 shadow-sm">
-                        ✕ {flash.error}
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800 shadow-card">
+                        {flash.error}
                     </div>
                 )}
 
                 <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-                    <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                        <div className="flex items-center justify-between border-b border-gray-100 bg-[#fbfdfa] px-5 py-4">
+                    <div className="flex flex-col overflow-hidden rounded-xl border border-line-soft bg-white shadow-card">
+                        <div className="flex items-center justify-between border-b border-line-soft bg-[#fbfdfa] px-5 py-4">
                             <div className="flex items-center gap-3">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf1f8] text-lg font-bold text-[#3b6fa8]">
-                                    🛡️
+                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-soft text-lg font-semibold text-brand">
+                                    
                                 </span>
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900">
+                                    <h2 className="text-lg font-semibold text-ink-strong">
                                         Barangay Hotlines
                                     </h2>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-ink-muted">
                                         Official Tanod and barangay contacts (
                                         {barangayHotlines.length})
                                     </p>
@@ -192,7 +192,7 @@ function EmergencyNumbersContent({
                             <button
                                 type="button"
                                 onClick={openAddModal}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#3b6fa8] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#2a5279] focus:ring-2 focus:ring-[#3b6fa8]/30 focus:outline-none"
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3.5 py-2 text-xs font-semibold text-white shadow-card transition hover:bg-brand-deep focus:ring-2 focus:ring-[#3b6fa8]/30 focus:outline-none"
                             >
                                 <span className="text-sm">+</span> Add Hotline
                             </button>
@@ -200,18 +200,18 @@ function EmergencyNumbersContent({
 
                         <div className="space-y-3 p-4 sm:p-5">
                             {barangayHotlines.length === 0 ? (
-                                <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center">
-                                    <p className="text-sm font-semibold text-gray-700">
+                                <div className="rounded-xl border border-dashed border-line p-8 text-center">
+                                    <p className="text-sm font-semibold text-ink">
                                         No barangay hotlines added yet.
                                     </p>
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-ink-muted">
                                         Add the official hotline or Tanod
                                         personnel numbers.
                                     </p>
                                     <button
                                         type="button"
                                         onClick={openAddModal}
-                                        className="mt-4 inline-flex items-center gap-1 rounded-lg border border-[#3b6fa8] px-3 py-1.5 text-xs font-semibold text-[#3b6fa8] hover:bg-[#eef1f5]"
+                                        className="mt-4 inline-flex items-center gap-1 rounded-lg border border-brand px-3 py-1.5 text-xs font-semibold text-brand hover:bg-canvas"
                                     >
                                         + Add First Contact
                                     </button>
@@ -232,23 +232,23 @@ function EmergencyNumbersContent({
                         </div>
                     </div>
 
-                    <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                        <div className="flex items-center justify-between border-b border-gray-100 bg-[#fdfafb] px-5 py-4">
+                    <div className="flex flex-col overflow-hidden rounded-xl border border-line-soft bg-white shadow-card">
+                        <div className="flex items-center justify-between border-b border-line-soft bg-[#fdfafb] px-5 py-4">
                             <div className="flex items-center gap-3">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 text-lg font-bold text-red-700">
-                                    🚨
+                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 text-lg font-semibold text-red-700">
+                                    
                                 </span>
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900">
+                                    <h2 className="text-lg font-semibold text-ink-strong">
                                         Emergency Services
                                     </h2>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-ink-muted">
                                         Verified shared directory (
                                         {sharedEmergencyContacts.length})
                                     </p>
                                 </div>
                             </div>
-                            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-gray-500 uppercase">
+                            <span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-semibold tracking-wide text-ink-muted uppercase">
                                 Read-only
                             </span>
                         </div>
@@ -262,12 +262,12 @@ function EmergencyNumbersContent({
                             </div>
 
                             {sharedEmergencyContacts.length === 0 ? (
-                                <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center">
-                                    <p className="text-sm font-semibold text-gray-700">
+                                <div className="rounded-xl border border-dashed border-line p-8 text-center">
+                                    <p className="text-sm font-semibold text-ink">
                                         No verified emergency contacts
                                         available.
                                     </p>
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-ink-muted">
                                         Shared emergency services have not been
                                         added yet.
                                     </p>
@@ -293,11 +293,11 @@ function EmergencyNumbersContent({
                     aria-modal="true"
                     aria-labelledby="contact-modal-title"
                 >
-                    <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
-                        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                    <div className="w-full max-w-lg overflow-hidden rounded-xl border border-line-soft bg-white shadow-xl">
+                        <div className="flex items-center justify-between border-b border-line-soft px-6 py-4">
                             <h3
                                 id="contact-modal-title"
-                                className="text-lg font-bold text-gray-900"
+                                className="text-lg font-semibold text-ink-strong"
                             >
                                 {editingContact
                                     ? 'Edit Barangay Hotline'
@@ -306,9 +306,9 @@ function EmergencyNumbersContent({
                             <button
                                 type="button"
                                 onClick={() => setIsFormOpen(false)}
-                                className="rounded-lg p-1 font-bold text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                className="rounded-lg p-1 font-semibold text-ink-faint hover:bg-secondary hover:text-ink-muted"
                             >
-                                ✕
+                                
                             </button>
                         </div>
 
@@ -317,7 +317,7 @@ function EmergencyNumbersContent({
                             className="space-y-4 p-6"
                         >
                             <div>
-                                <label className="mb-1 block text-xs font-semibold tracking-wider text-gray-700 uppercase">
+                                <label className="mb-1 block text-xs font-semibold tracking-wider text-ink uppercase">
                                     Subcategory / Group
                                 </label>
                                 <input
@@ -327,12 +327,12 @@ function EmergencyNumbersContent({
                                         setSubCategory(e.target.value)
                                     }
                                     placeholder="e.g. Official, Tanod, Desk"
-                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
+                                    className="w-full rounded-xl border border-line px-3.5 py-2.5 text-sm text-ink-strong focus:border-brand focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-xs font-semibold tracking-wider text-gray-700 uppercase">
+                                <label className="mb-1 block text-xs font-semibold tracking-wider text-ink uppercase">
                                     Contact / Personnel Name *
                                 </label>
                                 <input
@@ -340,7 +340,7 @@ function EmergencyNumbersContent({
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     placeholder="e.g. Barangay Tanod or Cenon Mabutin Bocacao"
-                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
+                                    className="w-full rounded-xl border border-line px-3.5 py-2.5 text-sm text-ink-strong focus:border-brand focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                                     required
                                 />
                                 {pageErrors?.name && (
@@ -351,7 +351,7 @@ function EmergencyNumbersContent({
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-xs font-semibold tracking-wider text-gray-700 uppercase">
+                                <label className="mb-1 block text-xs font-semibold tracking-wider text-ink uppercase">
                                     Label / Position (Optional)
                                 </label>
                                 <input
@@ -359,12 +359,12 @@ function EmergencyNumbersContent({
                                     value={label}
                                     onChange={(e) => setLabel(e.target.value)}
                                     placeholder="e.g. Chief Tanod, Official Hotline"
-                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
+                                    className="w-full rounded-xl border border-line px-3.5 py-2.5 text-sm text-ink-strong focus:border-brand focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-xs font-semibold tracking-wider text-gray-700 uppercase">
+                                <label className="mb-1 block text-xs font-semibold tracking-wider text-ink uppercase">
                                     Phone Number *
                                 </label>
                                 <input
@@ -374,7 +374,7 @@ function EmergencyNumbersContent({
                                         setPhoneNumber(e.target.value)
                                     }
                                     placeholder="e.g. 09394596081"
-                                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-mono text-sm text-gray-800 focus:border-[#3b6fa8] focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
+                                    className="w-full rounded-xl border border-line px-3.5 py-2.5 font-mono text-sm text-ink-strong focus:border-brand focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                                     required
                                 />
                                 {pageErrors?.phone_number && (
@@ -384,15 +384,15 @@ function EmergencyNumbersContent({
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 rounded-xl border border-gray-200 bg-gray-50/70 p-3.5">
-                                <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-700">
+                            <div className="grid grid-cols-2 gap-4 rounded-xl border border-line-soft bg-canvas/70 p-3.5">
+                                <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-ink">
                                     <input
                                         type="checkbox"
                                         checked={canCall}
                                         onChange={(e) =>
                                             setCanCall(e.target.checked)
                                         }
-                                        className="h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
+                                        className="h-4 w-4 rounded border-line text-brand focus:ring-[#3b6fa8]"
                                     />
                                     <span>
                                         Allow Call (confirm this number accepts
@@ -400,14 +400,14 @@ function EmergencyNumbersContent({
                                     </span>
                                 </label>
 
-                                <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-700">
+                                <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-ink">
                                     <input
                                         type="checkbox"
                                         checked={canSms}
                                         onChange={(e) =>
                                             setCanSms(e.target.checked)
                                         }
-                                        className="h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
+                                        className="h-4 w-4 rounded border-line text-brand focus:ring-[#3b6fa8]"
                                     />
                                     <span>
                                         Allow Text/SMS (enable only after
@@ -415,19 +415,19 @@ function EmergencyNumbersContent({
                                     </span>
                                 </label>
 
-                                <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-700">
+                                <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-ink">
                                     <input
                                         type="checkbox"
                                         checked={isActive}
                                         onChange={(e) =>
                                             setIsActive(e.target.checked)
                                         }
-                                        className="h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
+                                        className="h-4 w-4 rounded border-line text-brand focus:ring-[#3b6fa8]"
                                     />
                                     <span>Visible to Residents</span>
                                 </label>
 
-                                <div className="flex items-center gap-2 text-xs font-medium text-gray-700">
+                                <div className="flex items-center gap-2 text-xs font-medium text-ink">
                                     <span>Sort Order:</span>
                                     <input
                                         type="number"
@@ -439,23 +439,23 @@ function EmergencyNumbersContent({
                                                     0,
                                             )
                                         }
-                                        className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-xs"
+                                        className="w-16 rounded border border-line px-2 py-1 text-center text-xs"
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-3">
+                            <div className="flex items-center justify-end gap-3 border-t border-line-soft pt-3">
                                 <button
                                     type="button"
                                     onClick={() => setIsFormOpen(false)}
-                                    className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                    className="rounded-xl border border-line bg-white px-4 py-2 text-xs font-semibold text-ink hover:bg-canvas"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="rounded-xl bg-[#3b6fa8] px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#2a5279] disabled:opacity-50"
+                                    className="rounded-xl bg-brand px-5 py-2 text-xs font-semibold text-white shadow-card hover:bg-brand-deep disabled:opacity-50"
                                 >
                                     {isSubmitting
                                         ? 'Saving…'
@@ -476,22 +476,22 @@ function EmergencyNumbersContent({
                     aria-modal="true"
                     aria-labelledby="delete-dialog-title"
                 >
-                    <div className="w-full max-w-md space-y-4 overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+                    <div className="w-full max-w-md space-y-4 overflow-hidden rounded-xl border border-line-soft bg-white p-6 shadow-xl">
                         <div className="flex items-center gap-3 text-red-600">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 text-xl font-bold">
-                                ⚠
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 text-xl font-semibold">
+                                
                             </span>
                             <h3
                                 id="delete-dialog-title"
-                                className="text-base font-bold text-gray-900"
+                                className="text-base font-semibold text-ink-strong"
                             >
                                 Delete Barangay Hotline
                             </h3>
                         </div>
 
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-ink-muted">
                             Are you sure you want to delete{' '}
-                            <strong className="text-gray-900">
+                            <strong className="text-ink-strong">
                                 {contactToDelete.name}
                             </strong>{' '}
                             ({contactToDelete.phone_number})? Residents will no
@@ -503,7 +503,7 @@ function EmergencyNumbersContent({
                                 type="button"
                                 onClick={() => setContactToDelete(null)}
                                 disabled={isDeleting}
-                                className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                className="rounded-xl border border-line bg-white px-4 py-2 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-50"
                             >
                                 Cancel
                             </button>
@@ -511,7 +511,7 @@ function EmergencyNumbersContent({
                                 type="button"
                                 onClick={confirmDelete}
                                 disabled={isDeleting}
-                                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-red-700 disabled:opacity-50"
+                                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-card hover:bg-red-700 disabled:opacity-50"
                             >
                                 {isDeleting ? 'Deleting…' : 'Yes, Delete'}
                             </button>
@@ -535,63 +535,63 @@ function ContactRow({
     onDelete?: () => void;
 }) {
     return (
-        <div className="flex flex-col justify-between gap-3 rounded-xl border border-gray-200 bg-white p-3.5 transition hover:border-gray-300 hover:shadow-sm sm:flex-row sm:items-center">
+        <div className="flex flex-col justify-between gap-3 rounded-xl border border-line-soft bg-white p-3.5 transition hover:border-line hover:shadow-card sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate text-sm font-bold text-gray-900">
+                    <span className="truncate text-sm font-semibold text-ink-strong">
                         {contact.name}
                     </span>
                     {contact.sub_category && (
                         <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${theme === 'green' ? 'bg-[#eef1f5] text-[#3b6fa8]' : 'bg-red-100 text-red-700'}`}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${theme === 'green' ? 'bg-canvas text-brand' : 'bg-red-100 text-red-700'}`}
                         >
                             {contact.sub_category}
                         </span>
                     )}
                     {!contact.is_active && (
-                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 uppercase">
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-ink-muted uppercase">
                             Inactive
                         </span>
                     )}
                 </div>
 
                 {contact.label && (
-                    <p className="mt-0.5 text-xs text-gray-500">
+                    <p className="mt-0.5 text-xs text-ink-muted">
                         {contact.label}
                     </p>
                 )}
 
                 {contact.coverage_area && (
-                    <p className="mt-0.5 text-xs text-gray-500">
+                    <p className="mt-0.5 text-xs text-ink-muted">
                         Coverage: {contact.coverage_area}
                     </p>
                 )}
 
                 <div className="mt-1 flex flex-wrap items-center gap-3">
                     <span
-                        className={`font-mono text-xs font-bold tracking-wide ${theme === 'green' ? 'text-[#2a5279]' : 'text-red-700'}`}
+                        className={`font-mono text-xs font-semibold tracking-wide ${theme === 'green' ? 'text-brand-deep' : 'text-red-700'}`}
                     >
                         {formatPhoneNumber(contact.phone_number)}
                     </span>
 
-                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <div className="flex items-center gap-1.5 text-[11px] text-ink-faint">
                         {contact.can_call && (
-                            <span title="Call action enabled">📞 Call</span>
+                            <span title="Call action enabled">Call</span>
                         )}
                         {contact.can_call && contact.can_sms && <span>•</span>}
                         {contact.can_sms && (
-                            <span title="SMS action enabled">💬 SMS</span>
+                            <span title="SMS action enabled">SMS</span>
                         )}
                     </div>
                 </div>
             </div>
 
             {onEdit && onDelete ? (
-                <div className="flex shrink-0 items-center gap-2 border-t border-gray-100 pt-2 sm:border-t-0 sm:pt-0">
+                <div className="flex shrink-0 items-center gap-2 border-t border-line-soft pt-2 sm:border-t-0 sm:pt-0">
                     <button
                         type="button"
                         onClick={onEdit}
-                        className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
+                        className="rounded-lg border border-line-soft bg-canvas px-2.5 py-1 text-xs font-medium text-ink transition hover:bg-secondary"
                         title="Edit contact"
                     >
                         Edit
@@ -606,7 +606,7 @@ function ContactRow({
                     </button>
                 </div>
             ) : (
-                <span className="shrink-0 pt-2 text-[11px] font-medium text-gray-400 sm:pt-0">
+                <span className="shrink-0 pt-2 text-[11px] font-medium text-ink-faint sm:pt-0">
                     Read-only
                 </span>
             )}

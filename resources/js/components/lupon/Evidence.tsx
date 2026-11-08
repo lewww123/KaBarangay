@@ -10,7 +10,7 @@ export function EvidenceInput({
 }) {
     return (
         <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-800">
+            <label className="block text-sm font-semibold text-ink-strong">
                 Supporting evidence (optional)
                 <input
                     type="file"

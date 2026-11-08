@@ -139,15 +139,15 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
 
             <div className="mx-auto max-w-6xl space-y-6">
                 {/* BREADCRUMB */}
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-ink-muted">
                     <Link
                         href="/clerk/citizen-charter"
-                        className="hover:text-[#3b6fa8]"
+                        className="hover:text-brand"
                     >
                         Citizen&apos;s Charter
                     </Link>
                     <span>/</span>
-                    <span className="font-semibold text-gray-800">
+                    <span className="font-semibold text-ink-strong">
                         {service.title}
                     </span>
                 </div>
@@ -165,46 +165,46 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                 )}
 
                 {/* HEADER CARD */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
                                 <span
-                                    className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-bold ${badge.classes}`}
+                                    className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${badge.classes}`}
                                 >
                                     {badge.label}
                                 </span>
                                 {service.category && (
-                                    <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                                    <span className="inline-flex rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-ink">
                                         {service.category}
                                     </span>
                                 )}
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-ink-faint">
                                     Display Order: {service.display_order}
                                 </span>
                             </div>
 
-                            <h1 className="text-2xl font-bold text-gray-900">
+                            <h1 className="text-2xl font-semibold text-ink-strong">
                                 {service.title}
                             </h1>
 
                             {service.description && (
-                                <p className="text-sm leading-relaxed text-gray-600">
+                                <p className="text-sm leading-relaxed text-ink-muted">
                                     {service.description}
                                 </p>
                             )}
 
-                            <div className="flex flex-wrap gap-4 pt-2 text-xs text-gray-500">
+                            <div className="flex flex-wrap gap-4 pt-2 text-xs text-ink-muted">
                                 <div>
                                     Created:{' '}
-                                    <span className="font-semibold text-gray-700">
+                                    <span className="font-semibold text-ink">
                                         {formatCharterDate(service.created_at)}
                                     </span>
                                 </div>
                                 {service.published_at && (
                                     <div>
                                         Published:{' '}
-                                        <span className="font-semibold text-gray-700">
+                                        <span className="font-semibold text-ink">
                                             {formatCharterDate(
                                                 service.published_at,
                                             )}
@@ -214,7 +214,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                 {service.creator_name && (
                                     <div>
                                         Encoded By:{' '}
-                                        <span className="font-semibold text-gray-700">
+                                        <span className="font-semibold text-ink">
                                             {service.creator_name}
                                         </span>
                                     </div>
@@ -229,7 +229,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                     <button
                                         type="button"
                                         onClick={() => setIsEditing(!isEditing)}
-                                        className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
+                                        className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-ink transition hover:bg-secondary"
                                     >
                                         {isEditing
                                             ? 'Cancel Edit'
@@ -249,7 +249,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                     <button
                                         type="button"
                                         onClick={handlePublish}
-                                        className="rounded-lg bg-[#3b6fa8] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#2a5279]"
+                                        className="rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-brand-deep"
                                     >
                                         {service.is_published
                                             ? 'Re-Publish'
@@ -272,14 +272,14 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                     {isEditing && (
                         <form
                             onSubmit={handleEditSubmit}
-                            className="mt-6 space-y-4 border-t border-gray-200 pt-5"
+                            className="mt-6 space-y-4 border-t border-line-soft pt-5"
                         >
-                            <h3 className="text-sm font-bold text-gray-800">
+                            <h3 className="text-sm font-semibold text-ink-strong">
                                 Edit Service Information
                             </h3>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Service Title{' '}
                                     <span className="text-red-500">*</span>
                                 </label>
@@ -293,7 +293,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                             e.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                 />
                                 {editForm.errors.title && (
                                     <p className="mt-1 text-xs text-red-600">
@@ -304,7 +304,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
 
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Category
                                     </label>
                                     <input
@@ -316,11 +316,11 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                                 e.target.value,
                                             )
                                         }
-                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
+                                        className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Display Order
                                     </label>
                                     <input
@@ -333,13 +333,13 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                                 parseInt(e.target.value) || 0,
                                             )
                                         }
-                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
+                                        className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Description / Summary
                                 </label>
                                 <textarea
@@ -351,7 +351,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                             e.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                 />
                             </div>
 
@@ -359,7 +359,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                 <button
                                     type="submit"
                                     disabled={editForm.processing}
-                                    className="rounded-lg bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white hover:bg-[#2a5279] disabled:opacity-50"
+                                    className="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white hover:bg-brand-deep disabled:opacity-50"
                                 >
                                     {editForm.processing
                                         ? 'Saving...'
@@ -368,7 +368,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                 <button
                                     type="button"
                                     onClick={() => setIsEditing(false)}
-                                    className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+                                    className="rounded-lg border border-line px-4 py-2 text-xs font-semibold text-ink hover:bg-secondary"
                                 >
                                     Cancel
                                 </button>
@@ -382,7 +382,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                     {/* PREVIEW CONTAINER */}
                     <div className="space-y-3 lg:col-span-2">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-sm font-bold text-gray-900">
+                            <h2 className="text-sm font-semibold text-ink-strong">
                                 Document Preview{' '}
                                 {previewVersion &&
                                     `(Version ${previewVersion.version_number})`}
@@ -394,22 +394,22 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                             href={previewVersion.file_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="rounded-md border border-gray-300 px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+                                            className="rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-ink hover:bg-secondary"
                                         >
-                                            Open in New Tab ↗
+                                            Open in New Tab 
                                         </a>
                                     )}
                                     <a
                                         href={previewVersion.download_url}
-                                        className="rounded-md bg-[#3b6fa8] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#2a5279]"
+                                        className="rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-deep"
                                     >
-                                        Download PDF ↓
+                                        Download PDF 
                                     </a>
                                 </div>
                             )}
                         </div>
 
-                        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                        <div className="overflow-hidden rounded-xl border border-line-soft bg-white shadow-card">
                             {previewVersion?.file_url ? (
                                 <iframe
                                     src={previewVersion.file_url}
@@ -417,7 +417,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                     title={`Citizen's Charter PDF - ${service.title}`}
                                 />
                             ) : (
-                                <div className="p-12 text-center text-xs text-gray-400">
+                                <div className="p-12 text-center text-xs text-ink-faint">
                                     No document version selected for preview.
                                 </div>
                             )}
@@ -426,7 +426,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
 
                     {/* VERSION HISTORY SIDEBAR */}
                     <div className="space-y-3">
-                        <h2 className="text-sm font-bold text-gray-900">
+                        <h2 className="text-sm font-semibold text-ink-strong">
                             Version History ({service.versions?.length || 0})
                         </h2>
 
@@ -445,17 +445,17 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                         onClick={() => setPreviewVersion(ver)}
                                         className={`cursor-pointer rounded-xl border p-3.5 transition ${
                                             isCurrentActive
-                                                ? 'border-[#3b6fa8] bg-[#f0f6ef] shadow-xs'
-                                                : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                                                ? 'border-brand bg-[#f0f6ef] shadow-xs'
+                                                : 'border-line-soft bg-white hover:border-line hover:bg-canvas'
                                         }`}
                                     >
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900">
+                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-strong">
                                                 <span>
                                                     Version {ver.version_number}
                                                 </span>
                                                 {isLivePublished && (
-                                                    <span className="py-0.2 rounded-full bg-emerald-100 px-1.5 text-[9px] font-bold text-emerald-800">
+                                                    <span className="py-0.2 rounded-full bg-emerald-100 px-1.5 text-[9px] font-semibold text-emerald-800">
                                                         LIVE
                                                     </span>
                                                 )}
@@ -468,12 +468,12 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                             </span>
                                         </div>
 
-                                        <p className="mt-1 truncate text-[11px] text-gray-500">
+                                        <p className="mt-1 truncate text-[11px] text-ink-muted">
                                             {ver.original_name} (
                                             {formatFileSize(ver.file_size)})
                                         </p>
 
-                                        <div className="mt-2 flex items-center justify-between text-[10px] text-gray-400">
+                                        <div className="mt-2 flex items-center justify-between text-[10px] text-ink-faint">
                                             <span>
                                                 {formatCharterDate(
                                                     ver.created_at,
@@ -496,17 +496,17 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
             {/* UPLOAD REVISION MODAL */}
             {showVersionModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-                        <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                            <h2 className="text-base font-bold text-gray-900">
+                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                        <div className="flex items-center justify-between border-b border-line-soft pb-3">
+                            <h2 className="text-base font-semibold text-ink-strong">
                                 Upload Replacement Document
                             </h2>
                             <button
                                 type="button"
                                 onClick={() => setShowVersionModal(false)}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="text-ink-faint hover:text-ink-muted"
                             >
-                                ✕
+                                
                             </button>
                         </div>
 
@@ -523,7 +523,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     New PDF Document{' '}
                                     <span className="text-red-500">*</span>
                                 </label>
@@ -538,9 +538,9 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                             e.target.files?.[0] || null,
                                         )
                                     }
-                                    className="mt-1 block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#eaf1f8] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#3b6fa8] hover:file:bg-[#d6e4f2]"
+                                    className="mt-1 block w-full text-xs text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-brand-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand hover:file:bg-[#d6e4f2]"
                                 />
-                                <p className="mt-1 text-[11px] text-gray-400">
+                                <p className="mt-1 text-[11px] text-ink-faint">
                                     PDF only. Max 2 MB per runtime limit.
                                 </p>
                                 {versionForm.errors.document && (
@@ -550,18 +550,18 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                 )}
                             </div>
 
-                            <div className="flex items-center justify-end gap-2 border-t border-gray-200 pt-4">
+                            <div className="flex items-center justify-end gap-2 border-t border-line-soft pt-4">
                                 <button
                                     type="button"
                                     onClick={() => setShowVersionModal(false)}
-                                    className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
+                                    className="rounded-lg border border-line px-4 py-2 text-xs font-semibold text-ink transition hover:bg-secondary"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={versionForm.processing}
-                                    className="rounded-lg bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2a5279] disabled:opacity-50"
+                                    className="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-deep disabled:opacity-50"
                                 >
                                     {versionForm.processing
                                         ? 'Uploading...'

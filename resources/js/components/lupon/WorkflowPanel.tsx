@@ -67,8 +67,8 @@ export default function WorkflowPanel({
         (workflow.status === 'conciliation_active' &&
             !workflow.milestones.conciliation_started_at);
     return (
-        <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-            <h2 className="font-bold text-slate-900">
+        <section className="space-y-4 rounded-xl border border-line-soft bg-white p-4 sm:p-5">
+            <h2 className="font-semibold text-ink-strong">
                 Itala ang pag-usad ng kaso
             </h2>
             <p className="text-xs text-stone-600">
@@ -77,14 +77,14 @@ export default function WorkflowPanel({
                 requirements are met.
             </p>
             {!workflow.transitions.length ? (
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-muted">
                     No case transition options were supplied. Recorded
                     information remains available.
                 </p>
             ) : (
                 <form onSubmit={submit} className="space-y-3">
                     <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="text-xs font-semibold text-slate-700">
+                        <label className="text-xs font-semibold text-ink">
                             Ano ang nangyari sa kaso?
                             <select
                                 required
@@ -110,7 +110,7 @@ export default function WorkflowPanel({
                             </select>
                         </label>
                         {form.data.status && (
-                            <label className="text-xs font-semibold text-slate-700">
+                            <label className="text-xs font-semibold text-ink">
                                 {form.data.status === 'mediation_active'
                                     ? 'Petsa ng unang mediation meeting'
                                     : 'Petsa ng aktuwal na pangyayari'}
@@ -132,7 +132,7 @@ export default function WorkflowPanel({
                     </div>
                     {form.data.status && (
                         <fieldset className="space-y-3">
-                            <p className="text-xs leading-5 text-slate-600">
+                            <p className="text-xs leading-5 text-ink-muted">
                                 Ilagay ang totoong petsa at maikling tala ng
                                 nangyari. Ang karagdagang fields sa ibaba ay
                                 para sa napili mong action.
@@ -230,7 +230,7 @@ export default function WorkflowPanel({
                                     alone is not sufficient.
                                 </label>
                             )}
-                            <label className="block text-xs font-semibold text-slate-700">
+                            <label className="block text-xs font-semibold text-ink">
                                 Tala ng nangyari / dahilan / pinagbatayan{' '}
                                 {needsNotes ? '(kailangan)' : '(opsyonal)'}
                                 <textarea
@@ -256,7 +256,7 @@ export default function WorkflowPanel({
                                     ? 'Saving…'
                                     : 'I-save ang case action'}
                             </button>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-ink-muted">
                                 Use the written-settlement form to record an
                                 agreement. Status and phase cannot be changed
                                 independently.
@@ -269,7 +269,7 @@ export default function WorkflowPanel({
                 !workflow.deadlines.some((deadline) =>
                     deadline.label.includes('approved extension'),
                 ) && (
-                    <details className="rounded-lg border border-slate-200 p-3">
+                    <details className="rounded-lg border border-line-soft p-3">
                         <summary className="cursor-pointer text-sm font-semibold">
                             Record a Pangkat-approved extension
                         </summary>
@@ -377,7 +377,7 @@ function HistoryForm({
                     });
                 }}
             >
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-ink-muted">
                     Use verified case records. Existing dates cannot be silently
                     replaced.
                 </p>

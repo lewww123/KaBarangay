@@ -90,12 +90,12 @@ function LuponDashboard({
             <Head title="Lupon Dashboard" />
 
             <div className="mx-auto max-w-7xl space-y-6">
-                <div className="flex flex-col justify-between gap-4 rounded-2xl bg-[#2a5279] p-6 text-white shadow-sm sm:flex-row sm:items-end">
+                <div className="flex flex-col justify-between gap-4 rounded-xl bg-brand-deep p-6 text-white shadow-card sm:flex-row sm:items-end">
                     <div>
                         <p className="text-xs font-semibold tracking-[0.16em] text-white/70 uppercase">
                             Katarungang Pambarangay
                         </p>
-                        <h1 className="mt-2 text-2xl font-bold">
+                        <h1 className="mt-2 text-2xl font-semibold">
                             Case Desk Overview
                         </h1>
                         <p className="mt-1 text-sm text-white/75">
@@ -107,7 +107,7 @@ function LuponDashboard({
                     <div className="flex gap-2">
                         <Link
                             href="/lupon/complaints"
-                            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#2a5279]"
+                            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-deep"
                         >
                             Review intake
                         </Link>
@@ -124,12 +124,12 @@ function LuponDashboard({
                     {cards.map(([label, value, hint]) => (
                         <div
                             key={label}
-                            className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+                            className="rounded-xl border border-stone-200 bg-white p-4 shadow-card"
                         >
                             <p className="text-xs font-semibold tracking-wide text-stone-500 uppercase">
                                 {label}
                             </p>
-                            <p className="mt-2 text-3xl font-bold text-stone-900">
+                            <p className="mt-2 text-3xl font-semibold text-stone-900">
                                 {value}
                             </p>
                             <p className="mt-1 text-xs text-stone-500">
@@ -140,10 +140,10 @@ function LuponDashboard({
                 </section>
 
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+                    <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-card">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="font-bold text-stone-900">
+                                <h2 className="font-semibold text-stone-900">
                                     Urgent attention
                                 </h2>
                                 <p className="mt-1 text-sm text-stone-500">
@@ -153,7 +153,7 @@ function LuponDashboard({
                             </div>
                             <Link
                                 href="/lupon/cases"
-                                className="text-sm font-semibold text-[#3b6fa8]"
+                                className="text-sm font-semibold text-brand"
                             >
                                 All cases
                             </Link>
@@ -180,7 +180,7 @@ function LuponDashboard({
                                             </p>
                                         </div>
                                         <span
-                                            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${deadline.overdue ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}
+                                            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${deadline.overdue ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}
                                         >
                                             {deadline.overdue
                                                 ? 'Overdue'
@@ -192,10 +192,10 @@ function LuponDashboard({
                         </div>
                     </section>
 
-                    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+                    <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-card">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="font-bold text-stone-900">
+                                <h2 className="font-semibold text-stone-900">
                                     This week&apos;s hearings
                                 </h2>
                                 <p className="mt-1 text-sm text-stone-500">
@@ -204,7 +204,7 @@ function LuponDashboard({
                             </div>
                             <Link
                                 href="/lupon/hearings"
-                                className="text-sm font-semibold text-[#3b6fa8]"
+                                className="text-sm font-semibold text-brand"
                             >
                                 Calendar
                             </Link>

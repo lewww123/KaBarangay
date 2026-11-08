@@ -173,46 +173,46 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
             {/* BREADCRUMB / HEADER */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">
-                        <Link href={cancelUrl} className="hover:text-gray-800">
+                    <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-ink-muted uppercase">
+                        <Link href={cancelUrl} className="hover:text-ink-strong">
                             {sectorTitle} Desk
                         </Link>
                         <span>/</span>
-                        <span className="font-bold text-gray-800">
+                        <span className="font-semibold text-ink-strong">
                             New Application
                         </span>
                     </div>
-                    <h1 className="mt-1 text-2xl font-black tracking-tight text-gray-900">
+                    <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink-strong">
                         Staff-Assisted {sectorTitle} Application
                     </h1>
                 </div>
 
                 <Link
                     href={cancelUrl}
-                    className="inline-flex items-center text-xs font-bold text-gray-500 hover:text-gray-800"
+                    className="inline-flex items-center text-xs font-semibold text-ink-muted hover:text-ink-strong"
                 >
                     ← Back to Applications
                 </Link>
             </div>
 
             {submissionError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-900 shadow-sm">
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-900 shadow-card">
                     ⚠️ {submissionError}
                 </div>
             )}
 
             {submittedSuccess ? (
                 /* SUCCESS STATE */
-                <div className="space-y-4 rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-sm">
+                <div className="space-y-4 rounded-xl border border-emerald-200 bg-white p-8 text-center shadow-card">
                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700">
                         ✓
                     </div>
-                    <h2 className="text-xl font-black text-gray-900">
+                    <h2 className="text-xl font-semibold text-ink-strong">
                         Application Intake Completed
                     </h2>
-                    <p className="mx-auto max-w-md text-sm text-gray-600">
+                    <p className="mx-auto max-w-md text-sm text-ink-muted">
                         {sectorTitle} application for{' '}
-                        <strong className="text-gray-800">
+                        <strong className="text-ink-strong">
                             {matchedResident?.full_name}
                         </strong>{' '}
                         ({matchedResident?.resident_number}) has been prepared
@@ -228,13 +228,13 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                 setLookupQuery('');
                                 setSubmittedSuccess(false);
                             }}
-                            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 shadow-sm hover:bg-gray-50"
+                            className="rounded-xl border border-line bg-white px-4 py-2 text-xs font-semibold text-ink shadow-card hover:bg-canvas"
                         >
                             + Process Another Resident
                         </button>
                         <Link
                             href={cancelUrl}
-                            className="rounded-xl bg-[#3b6fa8] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#2a5279]"
+                            className="rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-white shadow-card hover:bg-brand-deep"
                         >
                             View Applications Queue →
                         </Link>
@@ -243,21 +243,21 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
             ) : (
                 <div className="space-y-6">
                     {/* STEP 1: SCAN QR CODE / SEARCH RESIDENT */}
-                    <div className="space-y-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                            <h2 className="flex items-center gap-2 text-base font-bold text-gray-900">
+                    <div className="space-y-5 rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                        <div className="flex items-center justify-between border-b border-line-soft pb-3">
+                            <h2 className="flex items-center gap-2 text-base font-semibold text-ink-strong">
                                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-xs text-white">
                                     1
                                 </span>
                                 Resident Identification & Verification
                             </h2>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-ink-faint">
                                 USB / Bluetooth Scanner Ready
                             </span>
                         </div>
 
                         <div className="space-y-3">
-                            <label className="block text-xs font-bold tracking-wider text-gray-600 uppercase">
+                            <label className="block text-xs font-semibold tracking-wider text-ink-muted uppercase">
                                 Scan Resident QR Code or Type Resident ID
                             </label>
                             <div className="flex gap-2">
@@ -276,7 +276,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                             }
                                         }}
                                         placeholder="Scan QR or enter BSJ-RES-000001 / raw token..."
-                                        className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 font-mono text-sm text-gray-800 placeholder-gray-400 focus:border-[#3b6fa8] focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
+                                        className="w-full rounded-xl border border-line bg-canvas/50 px-4 py-2.5 font-mono text-sm text-ink-strong placeholder-gray-400 focus:border-brand focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                                     />
                                     {lookupQuery && (
                                         <button
@@ -287,7 +287,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                                 setIsConfirmedResident(false);
                                                 setLookupError(null);
                                             }}
-                                            className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-gray-600"
+                                            className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-ink-faint hover:text-ink-muted"
                                         >
                                             ✕
                                         </button>
@@ -297,14 +297,14 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                     type="button"
                                     onClick={() => handleResidentLookup()}
                                     disabled={lookupLoading}
-                                    className="rounded-xl bg-[#3b6fa8] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#2a5279] disabled:opacity-50"
+                                    className="rounded-xl bg-brand px-5 py-2.5 text-xs font-semibold text-white shadow-card transition hover:bg-brand-deep disabled:opacity-50"
                                 >
                                     {lookupLoading
                                         ? 'Verifying...'
                                         : 'Verify Resident'}
                                 </button>
                             </div>
-                            <p className="text-[11px] text-gray-400">
+                            <p className="text-[11px] text-ink-faint">
                                 Compatible with physical 2D barcode scanners,
                                 keyboard-wedge devices, and manual lookup.
                             </p>
@@ -329,22 +329,22 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
-                                            <span className="rounded border border-gray-200 bg-white px-2 py-0.5 font-mono text-xs font-bold text-gray-600">
+                                            <span className="rounded border border-line-soft bg-white px-2 py-0.5 font-mono text-xs font-semibold text-ink-muted">
                                                 {
                                                     matchedResident.resident_number
                                                 }
                                             </span>
-                                            <h3 className="text-base font-extrabold text-gray-900">
+                                            <h3 className="text-base font-semibold text-ink-strong">
                                                 {matchedResident.full_name}
                                             </h3>
                                         </div>
-                                        <p className="text-xs text-gray-600">
+                                        <p className="text-xs text-ink-muted">
                                             Barangay San Jose • Purok:{' '}
-                                            <strong className="text-gray-800">
+                                            <strong className="text-ink-strong">
                                                 {matchedResident.purok}
                                             </strong>{' '}
                                             • Sex:{' '}
-                                            <strong className="text-gray-800">
+                                            <strong className="text-ink-strong">
                                                 {matchedResident.sex}
                                             </strong>
                                         </p>
@@ -352,11 +352,11 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
 
                                     <div>
                                         {isAlreadyMember ? (
-                                            <span className="inline-flex rounded-lg border border-amber-300 bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">
+                                            <span className="inline-flex rounded-lg border border-amber-300 bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800">
                                                 Already Active {sectorTitle}
                                             </span>
                                         ) : (
-                                            <span className="inline-flex rounded-lg border border-emerald-300 bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800">
+                                            <span className="inline-flex rounded-lg border border-emerald-300 bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-800">
                                                 Active Resident Verified
                                             </span>
                                         )}
@@ -380,11 +380,11 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                                     e.target.checked,
                                                 )
                                             }
-                                            className="h-4 w-4 rounded border-gray-300 text-[#3b6fa8] focus:ring-[#3b6fa8]"
+                                            className="h-4 w-4 rounded border-line text-brand focus:ring-[#3b6fa8]"
                                         />
                                         <label
                                             htmlFor="confirm_identity"
-                                            className="cursor-pointer text-xs font-bold text-gray-700"
+                                            className="cursor-pointer text-xs font-semibold text-ink"
                                         >
                                             I confirm this is the resident
                                             requesting staff-assisted{' '}
@@ -399,16 +399,16 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                     {/* STEP 2: APPLICATION FORM & DOCUMENTS */}
                     <form
                         onSubmit={handleSubmitApplication}
-                        className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+                        className="space-y-6 rounded-xl border border-line-soft bg-white p-6 shadow-card"
                     >
-                        <div className="border-b border-gray-100 pb-3">
-                            <h2 className="flex items-center gap-2 text-base font-bold text-gray-900">
+                        <div className="border-b border-line-soft pb-3">
+                            <h2 className="flex items-center gap-2 text-base font-semibold text-ink-strong">
                                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-xs text-white">
                                     2
                                 </span>
                                 Application Details & Supporting Documents
                             </h2>
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="mt-1 text-xs text-ink-muted">
                                 Attach required proofs for completeness review
                                 prior to forwarding to the Barangay Admin.
                             </p>
@@ -416,7 +416,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
 
                         {/* SUPPORTING DOCUMENTS UPLOAD */}
                         <div className="space-y-4">
-                            <label className="block text-xs font-bold tracking-wider text-gray-700 uppercase">
+                            <label className="block text-xs font-semibold tracking-wider text-ink uppercase">
                                 Required Sector Documentation
                             </label>
 
@@ -424,13 +424,13 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                 {documents.map((doc, idx) => (
                                     <div
                                         key={doc.type}
-                                        className="space-y-2.5 rounded-xl border border-gray-200 bg-gray-50/50 p-4"
+                                        className="space-y-2.5 rounded-xl border border-line-soft bg-canvas/50 p-4"
                                     >
                                         <div className="flex items-center justify-between">
-                                            <span className="text-xs font-bold text-gray-800">
+                                            <span className="text-xs font-semibold text-ink-strong">
                                                 {doc.name}
                                             </span>
-                                            <span className="text-[10px] font-semibold text-gray-400 uppercase">
+                                            <span className="text-[10px] font-semibold text-ink-faint uppercase">
                                                 Required
                                             </span>
                                         </div>
@@ -448,7 +448,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                                     e.target.files?.[0] || null,
                                                 )
                                             }
-                                            className="block w-full text-xs text-gray-500 file:mr-2 file:rounded-lg file:border-0 file:bg-gray-200 file:px-2.5 file:py-1.5 file:text-xs file:font-semibold file:text-gray-700 hover:file:bg-gray-300 disabled:opacity-50"
+                                            className="block w-full text-xs text-ink-muted file:mr-2 file:rounded-lg file:border-0 file:bg-line-soft file:px-2.5 file:py-1.5 file:text-xs file:font-semibold file:text-ink hover:file:bg-gray-300 disabled:opacity-50"
                                         />
 
                                         {doc.file && (
@@ -467,7 +467,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
 
                         {/* STAFF NOTES / REMARKS */}
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold tracking-wider text-gray-700 uppercase">
+                            <label className="block text-xs font-semibold tracking-wider text-ink uppercase">
                                 Staff Intake Notes & Initial Remarks (Optional)
                             </label>
                             <textarea
@@ -480,15 +480,15 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                     !isConfirmedResident || isAlreadyMember
                                 }
                                 placeholder="Add observations on submitted proofs, physical presence, or special accommodation requirements..."
-                                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 p-3 text-xs text-gray-800 placeholder-gray-400 focus:border-[#3b6fa8] focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none disabled:opacity-50"
+                                className="w-full rounded-xl border border-line bg-canvas/50 p-3 text-xs text-ink-strong placeholder-gray-400 focus:border-brand focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none disabled:opacity-50"
                             />
                         </div>
 
                         {/* SUBMIT BUTTON */}
-                        <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
+                        <div className="flex items-center justify-end gap-3 border-t border-line-soft pt-4">
                             <Link
                                 href={cancelUrl}
-                                className="rounded-xl border border-gray-300 px-4 py-2.5 text-xs font-bold text-gray-700 transition hover:bg-gray-50"
+                                className="rounded-xl border border-line px-4 py-2.5 text-xs font-semibold text-ink transition hover:bg-canvas"
                             >
                                 Cancel
                             </Link>
@@ -499,7 +499,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                     isAlreadyMember ||
                                     isSubmitting
                                 }
-                                className="inline-flex items-center gap-2 rounded-xl bg-[#3b6fa8] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#2a5279] disabled:opacity-50"
+                                className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-xs font-semibold text-white shadow-card transition hover:bg-brand-deep disabled:opacity-50"
                             >
                                 {isSubmitting
                                     ? 'Processing Application...'

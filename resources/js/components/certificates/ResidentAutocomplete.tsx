@@ -102,7 +102,7 @@ export default function ResidentAutocomplete({
         >
             <label
                 htmlFor={id}
-                className="mb-1 block text-xs font-semibold text-gray-600 uppercase"
+                className="mb-1 block text-xs font-semibold text-ink-muted uppercase"
             >
                 {label}
             </label>
@@ -121,7 +121,7 @@ export default function ResidentAutocomplete({
                     open && active >= 0 ? `${id}-option-${active}` : undefined
                 }
                 placeholder="Search resident or type a walk-in name"
-                className="w-full rounded-md border px-3 py-2 text-sm"
+                className="w-full rounded-lg border px-3 py-2 text-sm"
                 onFocus={() => setOpen(true)}
                 onChange={(event) => {
                     version.current++;
@@ -169,7 +169,7 @@ export default function ResidentAutocomplete({
                     id={`${id}-list`}
                     role="listbox"
                     aria-label="Matching residents"
-                    className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-white py-1 shadow-lg"
+                    className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-lg border bg-white py-1 shadow-lg"
                 >
                     {matches.map((resident, index) => (
                         <li
@@ -177,13 +177,13 @@ export default function ResidentAutocomplete({
                             id={`${id}-option-${index}`}
                             role="option"
                             aria-selected={index === active}
-                            className={`cursor-pointer px-3 py-2 text-sm ${index === active ? 'bg-green-100' : 'hover:bg-gray-100'}`}
+                            className={`cursor-pointer px-3 py-2 text-sm ${index === active ? 'bg-green-100' : 'hover:bg-secondary'}`}
                             onMouseDown={(event) => event.preventDefault()}
                             onMouseEnter={() => setActive(index)}
                             onClick={() => select(resident)}
                         >
                             {resident.full_name}{' '}
-                            <span className="text-gray-500">
+                            <span className="text-ink-muted">
                                 • {resident.purok || 'No purok listed'}
                             </span>
                         </li>

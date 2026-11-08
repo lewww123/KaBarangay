@@ -65,7 +65,7 @@ export default function MarkAnnouncementDoneButton({
                     setOpen(true);
                 }}
                 className={cn(
-                    'inline-flex items-center justify-center rounded-lg bg-[#2a5279] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2a5279]',
+                    'inline-flex items-center justify-center rounded-lg bg-brand-deep px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-deep',
                     className,
                 )}
             >
@@ -84,12 +84,12 @@ export default function MarkAnnouncementDoneButton({
                     }
                 >
                     <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-                        <h2 className="text-lg font-semibold text-gray-900">
+                        <h2 className="text-lg font-semibold text-ink-strong">
                             {kind === 'update'
                                 ? 'Mark Update Completed'
                                 : 'Mark as Done'}
                         </h2>
-                        <p className="mt-2 text-sm text-gray-600">
+                        <p className="mt-2 text-sm text-ink-muted">
                             {kind === 'update' ? (
                                 <>
                                     Mark &ldquo;{title}&rdquo; as completed? It
@@ -116,7 +116,7 @@ export default function MarkAnnouncementDoneButton({
                                 type="button"
                                 onClick={() => setOpen(false)}
                                 disabled={processing}
-                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                                className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink hover:bg-canvas disabled:opacity-60"
                             >
                                 Cancel
                             </button>
@@ -124,7 +124,7 @@ export default function MarkAnnouncementDoneButton({
                                 type="button"
                                 onClick={confirmCompletion}
                                 disabled={processing}
-                                className="rounded-lg bg-[#2a5279] px-4 py-2 text-sm font-medium text-white hover:bg-[#2a5279] disabled:opacity-60"
+                                className="rounded-lg bg-brand-deep px-4 py-2 text-sm font-medium text-white hover:bg-brand-deep disabled:opacity-60"
                             >
                                 {processing
                                     ? 'Saving...'

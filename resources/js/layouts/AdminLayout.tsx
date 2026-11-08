@@ -1,5 +1,20 @@
 import { Link, router } from '@inertiajs/react';
 import type { ReactNode } from 'react';
+import DesktopOnly from '@/components/DesktopOnly';
+import { LogoMark } from '@/components/Logo';
+import {
+    BarChart3,
+    Building2,
+    ClipboardList,
+    FileBarChart,
+    LayoutDashboard,
+    LogOut,
+    Network,
+    Phone,
+    Settings,
+    UserCog,
+    Users,
+} from 'lucide-react';
 
 type AdminPage =
     | 'overview'
@@ -21,172 +36,107 @@ type AdminLayoutProps = {
     active: AdminPage;
 };
 
+type NavItem = {
+    label: string;
+    to: string;
+    icon: typeof LayoutDashboard;
+    active: boolean;
+};
+
 export default function AdminLayout({ children, active }: AdminLayoutProps) {
     const handleLogout = () => {
         router.post('/logout');
     };
 
+    const navItems: NavItem[] = [
+        { label: 'Overview', to: '/admin', icon: LayoutDashboard, active: active === 'overview' },
+        { label: 'Residents', to: '/admin/residents', icon: Users, active: active === 'residents' },
+        { label: 'Sectors', to: '/admin/sectors', icon: Building2, active: active === 'sectors' || active === 'sector-applications' },
+        { label: 'Staff', to: '/admin/staff', icon: UserCog, active: active === 'staff' },
+        { label: 'Population', to: '/admin/population', icon: BarChart3, active: active === 'population' },
+        { label: 'Audit Log', to: '/admin/audit-log', icon: ClipboardList, active: active === 'audit-log' },
+        { label: 'Reports', to: '/admin/reports', icon: FileBarChart, active: active === 'reports' },
+        { label: 'Org Chart', to: '/admin/org-chart', icon: Network, active: active === 'org-chart' },
+        { label: 'Emergency Numbers', to: '/admin/emergency-numbers', icon: Phone, active: active === 'emergency-numbers' },
+        { label: 'Settings', to: '/admin/settings', icon: Settings, active: active === 'settings' },
+    ];
+
     return (
-        <div className="min-h-screen bg-[#eef1f5] text-gray-800">
-            {/* TOP HEADER */}
-            <header className="flex min-h-14 items-center justify-between bg-[#3b6fa8] px-4 py-3 text-white sm:px-5">
-                <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-[#3b6fa8]">
-                        SJ
+        <div className="min-h-screen bg-canvas text-ink">
+            <div className="hidden lg:block">
+                <header className="flex min-h-14 items-center justify-between border-b border-line-soft bg-surface px-5 py-3">
+                    <div className="flex items-center gap-3">
+                        <LogoMark tone="onBrand" size="sm" />
+                        <div className="leading-tight">
+                            <p className="text-sm font-semibold text-ink-strong">
+                                Barangay San Jose
+                            </p>
+                            <p className="text-xs text-ink-muted">
+                                Admin / Superuser
+                            </p>
+                        </div>
                     </div>
 
-                    <span className="text-sm font-semibold">
-                        Barangay San Jose
-                    </span>
+                    <div className="flex items-center gap-3">
+                        <span className="hidden text-sm text-ink-muted sm:inline">
+                            Admin / Superuser
+                        </span>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand">
+                            A
+                        </div>
+                    </div>
+                </header>
+
+                <div className="flex min-h-[calc(100vh-57px)]">
+                    <aside className="flex w-60 shrink-0 flex-col border-r border-line-soft bg-surface px-3 py-5">
+                        <p className="mb-3 px-3 text-[10px] font-semibold tracking-wide text-ink-faint uppercase">
+                            Admin Access
+                        </p>
+
+                        <nav className="space-y-1">
+                            {navItems.map((item) => (
+                                <SidebarLink key={item.to} {...item} />
+                            ))}
+                        </nav>
+
+                        <div className="mt-auto border-t border-line-soft pt-4">
+                            <button
+                                type="button"
+                                onClick={handleLogout}
+                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-danger-soft"
+                            >
+                                <LogOut className="size-4" />
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </aside>
+
+                    <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-7">
+                        {children}
+                    </main>
                 </div>
+            </div>
 
-                <div className="flex items-center gap-2 sm:gap-3">
-                    <span className="hidden text-sm sm:inline">
-                        Admin / Superuser
-                    </span>
-
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2a5279] font-semibold">
-                        A
-                    </div>
-                </div>
-            </header>
-
-            <div className="flex flex-col lg:flex-row">
-                {/* SIDEBAR */}
-                <aside className="flex min-h-0 w-full flex-col border-b border-gray-200 bg-white px-3 py-4 lg:min-h-[calc(100vh-56px)] lg:w-52 lg:border-r lg:border-b-0 lg:py-5">
-                    <p className="mb-3 px-3 text-[10px] font-semibold tracking-wide text-gray-400 uppercase">
-                        Admin Access
-                    </p>
-
-                    {/* MAIN NAVIGATION */}
-                    <nav className="grid grid-cols-2 gap-1 lg:block lg:space-y-1">
-                        <SidebarLink
-                            href="/admin"
-                            icon="⌂"
-                            label="Overview"
-                            active={active === 'overview'}
-                        />
-
-                        <SidebarLink
-                            href="/admin/residents"
-                            icon="♙"
-                            label="Residents"
-                            active={active === 'residents'}
-                        />
-
-                        <SidebarLink
-                            href="/admin/sectors"
-                            icon="▣"
-                            label="Sectors"
-                            active={
-                                active === 'sectors' ||
-                                active === 'sector-applications'
-                            }
-                        />
-
-                        <SidebarLink
-                            href="/admin/staff"
-                            icon="♟"
-                            label="Staff"
-                            active={active === 'staff'}
-                        />
-
-                        <SidebarLink
-                            href="/admin/population"
-                            icon="♙"
-                            label="Population"
-                            active={active === 'population'}
-                        />
-
-                        <SidebarLink
-                            href="/admin/audit-log"
-                            icon="◷"
-                            label="Audit Log"
-                            active={active === 'audit-log'}
-                        />
-
-                        <SidebarLink
-                            href="/admin/reports"
-                            icon="▤"
-                            label="Reports"
-                            active={active === 'reports'}
-                        />
-
-                        <SidebarLink
-                            href="/admin/org-chart"
-                            icon="▥"
-                            label="Org Chart"
-                            active={active === 'org-chart'}
-                        />
-
-                        <SidebarLink
-                            href="/admin/emergency-numbers"
-                            icon="☎"
-                            label="Emergency Numbers"
-                            active={active === 'emergency-numbers'}
-                        />
-
-                        <SidebarLink
-                            href="/admin/settings"
-                            icon="⚙"
-                            label="Settings"
-                            active={active === 'settings'}
-                        />
-                    </nav>
-
-                    {/* LOGOUT */}
-                    <div className="mt-4 border-t border-gray-200 pt-4 lg:mt-auto">
-                        <button
-                            type="button"
-                            onClick={handleLogout}
-                            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
-                        >
-                            <span className="w-4 text-center">↪</span>
-
-                            <span>Logout</span>
-                        </button>
-                    </div>
-                </aside>
-
-                {/* PAGE CONTENT */}
-                <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-7">
-                    {children}
-                </main>
+            <div className="lg:hidden">
+                <DesktopOnly />
             </div>
         </div>
     );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Sidebar Link
-|--------------------------------------------------------------------------
-*/
-
-function SidebarLink({
-    href,
-    icon,
-    label,
-    active = false,
-}: {
-    href: string;
-    icon: string;
-    label: string;
-    active?: boolean;
-}) {
+function SidebarLink({ label, to, icon: Icon, active }: NavItem) {
     return (
         <Link
             prefetch="hover"
             cacheFor="10s"
-            href={href}
-            className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition ${
+            href={to}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                 active
-                    ? 'bg-[#eaf1f8] text-[#3b6fa8]'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                    ? 'bg-brand-soft text-brand'
+                    : 'text-ink-muted hover:bg-canvas hover:text-ink'
             }`}
         >
-            <span className="w-4 text-center">{icon}</span>
-
+            <Icon className="size-4 shrink-0" />
             <span>{label}</span>
         </Link>
     );

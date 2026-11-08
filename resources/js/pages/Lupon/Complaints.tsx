@@ -198,11 +198,11 @@ function LuponComplaints({
             <Head title="Lupon Complaints" />
 
             <div className="mx-auto max-w-7xl space-y-6 p-2 font-sans sm:p-4">
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h1 className="text-2xl font-semibold text-gray-800">
+                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                    <h1 className="text-2xl font-semibold text-ink-strong">
                         Complaints
                     </h1>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                         Review complaints, request payment, and record the OR
                         before creating a case
                         {userName ? ` — signed in as ${userName}` : ''}.
@@ -228,7 +228,7 @@ function LuponComplaints({
                     <div
                         role="status"
                         aria-live="polite"
-                        className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"
+                        className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"
                     >
                         {flash.success}
                     </div>
@@ -238,13 +238,13 @@ function LuponComplaints({
                     <p
                         role="status"
                         aria-live="polite"
-                        className="text-sm text-gray-600"
+                        className="text-sm text-ink-muted"
                     >
                         Saving complaint action…
                     </p>
                 )}
 
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                <div className="rounded-xl border border-line-soft bg-white p-4 shadow-card sm:p-5">
                     <div className="flex flex-wrap items-center gap-2">
                         <FilterChip
                             label="All"
@@ -264,11 +264,11 @@ function LuponComplaints({
                 </div>
 
                 {complaints.data.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-gray-300 bg-[#ffffff] p-10 text-center">
-                        <h2 className="text-base font-semibold text-gray-800">
+                    <div className="rounded-xl border border-dashed border-line bg-surface p-10 text-center">
+                        <h2 className="text-base font-semibold text-ink-strong">
                             No complaints found
                         </h2>
-                        <p className="mx-auto mt-2 max-w-xl text-sm text-gray-500">
+                        <p className="mx-auto mt-2 max-w-xl text-sm text-ink-muted">
                             {activeStatusFilter
                                 ? `There are no complaints with the status "${activeStatusFilter}" in this barangay.`
                                 : 'No complaints have been submitted in this barangay yet.'}
@@ -297,7 +297,7 @@ function LuponComplaints({
                 )}
 
                 {complaints.last_page > 1 && (
-                    <div className="flex items-center justify-between border-t border-gray-200 pt-4 text-sm">
+                    <div className="flex items-center justify-between border-t border-line-soft pt-4 text-sm">
                         <button
                             type="button"
                             disabled={!complaints.prev_page_url}
@@ -307,11 +307,11 @@ function LuponComplaints({
                                     preserveScroll: true,
                                 })
                             }
-                            className="rounded-md border border-gray-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-lg border border-line px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                             Previous
                         </button>
-                        <span className="text-gray-600">
+                        <span className="text-ink-muted">
                             Page {complaints.current_page} of{' '}
                             {complaints.last_page}
                         </span>
@@ -324,7 +324,7 @@ function LuponComplaints({
                                     preserveScroll: true,
                                 })
                             }
-                            className="rounded-md border border-gray-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-lg border border-line px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                             Next
                         </button>
@@ -332,16 +332,16 @@ function LuponComplaints({
                 )}
 
                 {selected && (
-                    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                    <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-6">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div>
-                                <p className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                                <p className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
                                     Reviewing
                                 </p>
-                                <h2 className="mt-1 text-xl font-bold text-gray-900">
+                                <h2 className="mt-1 text-xl font-semibold text-ink-strong">
                                     {selected.reference}
                                 </h2>
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-ink-muted">
                                     {selected.complaintType} — submitted{' '}
                                     {selected.submittedDate}
                                 </p>
@@ -394,44 +394,44 @@ function LuponComplaints({
                         </div>
 
                         <div className="mt-5">
-                            <p className="text-sm font-bold text-gray-900">
+                            <p className="text-sm font-semibold text-ink-strong">
                                 Complaint narrative
                             </p>
-                            <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-700">
+                            <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink">
                                 {selected.narrative}
                             </p>
                         </div>
 
                         <div className="mt-5">
-                            <p className="text-sm font-bold text-gray-900">
+                            <p className="text-sm font-semibold text-ink-strong">
                                 Requested action
                             </p>
-                            <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-700">
+                            <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink">
                                 {selected.requestedAction}
                             </p>
                         </div>
 
                         {selected.luponNote && (
-                            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                                <p className="text-sm font-bold text-gray-900">
+                            <div className="mt-5 rounded-xl border border-line-soft bg-canvas p-4">
+                                <p className="text-sm font-semibold text-ink-strong">
                                     Note on this complaint
                                 </p>
-                                <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-700">
+                                <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink">
                                     {selected.luponNote}
                                 </p>
                             </div>
                         )}
 
-                        <div className="mt-6 border-t border-gray-100 pt-5">
+                        <div className="mt-6 border-t border-line-soft pt-5">
                             <EvidenceList files={selected.evidence ?? []} />
-                            <p className="text-sm font-bold text-gray-900">
+                            <p className="text-sm font-semibold text-ink-strong">
                                 Review and payment
                             </p>
 
                             <div className="mt-3">
-                                <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+                                <label className="mb-1.5 block text-sm font-semibold text-ink">
                                     Note
-                                    <span className="ml-1 text-xs font-normal text-gray-400">
+                                    <span className="ml-1 text-xs font-normal text-ink-faint">
                                         (Required when rejecting)
                                     </span>
                                 </label>
@@ -443,7 +443,7 @@ function LuponComplaints({
                                         setNote(event.target.value)
                                     }
                                     placeholder="Optional note, or the reason when rejecting..."
-                                    className="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-800 transition outline-none placeholder:text-gray-400 focus:border-[#3b6fa8] focus:ring-2 focus:ring-[#3b6fa8]/15 sm:text-sm"
+                                    className="min-h-11 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-base text-ink-strong transition outline-none placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-[#3b6fa8]/15 sm:text-sm"
                                 />
                             </div>
 
@@ -460,7 +460,7 @@ function LuponComplaints({
                                     'Accepted',
                                 ].includes(selected.status) && (
                                     <div className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                                        <label className="block text-sm font-semibold text-gray-800">
+                                        <label className="block text-sm font-semibold text-ink-strong">
                                             Assessed filing fee (₱)
                                             <input
                                                 type="number"
@@ -476,7 +476,7 @@ function LuponComplaints({
                                                 className="mt-1 block w-full rounded-lg border bg-white p-2"
                                             />
                                         </label>
-                                        <p className="text-xs text-gray-600">
+                                        <p className="text-xs text-ink-muted">
                                             Complete the review and enter the
                                             assessed fee. The resident will be
                                             asked to pay at the barangay office.
@@ -535,13 +535,13 @@ function LuponComplaints({
                                 {selected.case && (
                                     <a
                                         href={`/lupon/cases/${selected.case.id}`}
-                                        className="inline-flex min-h-11 items-center rounded-xl border border-[#3b6fa8] bg-[#eef1f5] px-5 py-2.5 text-sm font-semibold text-[#3b6fa8] hover:bg-[#e4efe1]"
+                                        className="inline-flex min-h-11 items-center rounded-xl border border-brand bg-canvas px-5 py-2.5 text-sm font-semibold text-brand hover:bg-[#e4efe1]"
                                     >
-                                        View Case {selected.case.caseNumber} →
+                                        View Case {selected.case.caseNumber} 
                                     </a>
                                 )}
                             </div>
-                            <p className="mt-3 text-xs leading-5 text-gray-400">
+                            <p className="mt-3 text-xs leading-5 text-ink-faint">
                                 Statuses follow recorded review and payment
                                 actions. Open the docketed case to manage
                                 hearings, outcomes, evidence and documents.
@@ -565,40 +565,40 @@ function ComplaintRow({
 }) {
     return (
         <div
-            className={`rounded-2xl border bg-white p-4 shadow-sm transition sm:p-5 ${
+            className={`rounded-xl border bg-white p-4 shadow-card transition sm:p-5 ${
                 expanded
-                    ? 'border-[#3b6fa8]'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-brand'
+                    : 'border-line-soft hover:border-line'
             }`}
         >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-bold text-gray-900">
+                        <p className="font-semibold text-ink-strong">
                             {complaint.reference}
                         </p>
                         <StatusBadge status={complaint.status} />
                     </div>
 
-                    <p className="mt-2 text-sm font-semibold text-gray-800">
+                    <p className="mt-2 text-sm font-semibold text-ink-strong">
                         {complaint.complaintType}
                     </p>
 
-                    <div className="mt-3 grid gap-2 text-sm text-gray-500 sm:grid-cols-2 sm:gap-x-8">
+                    <div className="mt-3 grid gap-2 text-sm text-ink-muted sm:grid-cols-2 sm:gap-x-8">
                         <p>
-                            <span className="text-gray-400">Complainant:</span>{' '}
+                            <span className="text-ink-faint">Complainant:</span>{' '}
                             {complaint.resident.name}
                         </p>
                         <p>
-                            <span className="text-gray-400">Respondent:</span>{' '}
+                            <span className="text-ink-faint">Respondent:</span>{' '}
                             {complaint.respondentName}
                         </p>
                         <p>
-                            <span className="text-gray-400">Incident:</span>{' '}
+                            <span className="text-ink-faint">Incident:</span>{' '}
                             {complaint.incidentDate}
                         </p>
                         <p>
-                            <span className="text-gray-400">Submitted:</span>{' '}
+                            <span className="text-ink-faint">Submitted:</span>{' '}
                             {complaint.submittedDate}
                         </p>
                     </div>
@@ -607,7 +607,7 @@ function ComplaintRow({
                 <button
                     type="button"
                     onClick={onToggle}
-                    className="min-h-10 shrink-0 rounded-xl border border-[#c2cbd4] bg-white px-4 py-2 text-sm font-semibold text-[#3b6fa8] transition hover:bg-[#eef1f5]"
+                    className="min-h-10 shrink-0 rounded-xl border border-[#c2cbd4] bg-white px-4 py-2 text-sm font-semibold text-brand transition hover:bg-canvas"
                 >
                     {expanded ? 'Close' : 'Review'}
                 </button>
@@ -631,8 +631,8 @@ function FilterChip({
             onClick={onClick}
             className={`min-h-10 rounded-full border px-4 py-2 text-sm font-semibold transition ${
                 active
-                    ? 'border-[#3b6fa8] bg-[#3b6fa8] text-white'
-                    : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                    ? 'border-brand bg-brand text-white'
+                    : 'border-line bg-white text-ink-muted hover:bg-canvas'
             }`}
         >
             {label}
@@ -642,9 +642,9 @@ function FilterChip({
 
 function StatPill({ label, value }: { label: string; value: number }) {
     return (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
-            <p className="text-xs text-gray-500">{label}</p>
-            <p className="text-lg font-semibold text-gray-800">{value}</p>
+        <div className="rounded-xl border border-line-soft bg-canvas px-3 py-2">
+            <p className="text-xs text-ink-muted">{label}</p>
+            <p className="text-lg font-semibold text-ink-strong">{value}</p>
         </div>
     );
 }
@@ -652,8 +652,8 @@ function StatPill({ label, value }: { label: string; value: number }) {
 function Detail({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <p className="text-xs text-gray-400">{label}</p>
-            <p className="mt-1 text-sm leading-5 font-medium break-words text-gray-700">
+            <p className="text-xs text-ink-faint">{label}</p>
+            <p className="mt-1 text-sm leading-5 font-medium break-words text-ink">
                 {value}
             </p>
         </div>
@@ -671,7 +671,7 @@ function StatusBadge({ status }: { status: ComplaintStatus }) {
 
     return (
         <span
-            className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-bold ${styles[status]}`}
+            className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${styles[status]}`}
         >
             {status}
         </span>

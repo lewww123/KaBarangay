@@ -76,7 +76,7 @@ export default function PortalPageSkeleton({
                     {Array.from({ length: rows }).map((_, rowIndex) => (
                         <div
                             key={rowIndex}
-                            className="flex gap-4 border-b border-gray-100 px-5 py-4 last:border-0"
+                            className="flex gap-4 border-b border-line-soft px-5 py-4 last:border-0"
                         >
                             {Array.from({ length: columns }).map(
                                 (_, columnIndex) => (

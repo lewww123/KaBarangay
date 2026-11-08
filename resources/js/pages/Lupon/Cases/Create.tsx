@@ -70,10 +70,10 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
             <main className="mx-auto max-w-6xl space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">
+                        <h1 className="text-2xl font-semibold text-ink-strong">
                             Walk-in case intake
                         </h1>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             Scan or search both parties, record the dispute, and
                             prepare the first hearing notices.
                         </p>
@@ -121,8 +121,8 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
                             }
                         />
                     </div>
-                    <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-                        <h2 className="font-bold text-slate-900">
+                    <section className="space-y-4 rounded-xl border border-line-soft bg-white p-4 sm:p-5">
+                        <h2 className="font-semibold text-ink-strong">
                             Dispute details
                         </h2>
                         <div className="grid gap-4 sm:grid-cols-2">
@@ -231,11 +231,11 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
                             error={form.errors.evidence}
                         />
                     </section>
-                    <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-                        <h2 className="font-bold text-slate-900">
+                    <section className="space-y-4 rounded-xl border border-line-soft bg-white p-4 sm:p-5">
+                        <h2 className="font-semibold text-ink-strong">
                             First hearing & presiding official
                         </h2>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-ink-muted">
                             Enter the first hearing date, time and venue so the
                             summons can include the saved case and party
                             details. After saving the case, open Summons in
@@ -311,7 +311,7 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
                                 ))}
                             </select>
                         </label>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-ink-muted">
                             Notices are prepared from this schedule. Verify any
                             filing fee or waiver and record actual service
                             separately. The mediation clock starts at the

@@ -76,18 +76,18 @@ export default function Settings({ barangay }: Props) {
             <AdminLayout active="settings">
                 {/* PAGE HEADER */}
                 <div className="mb-6">
-                    <h1 className="text-2xl font-semibold text-gray-800">
+                    <h1 className="text-2xl font-semibold text-ink-strong">
                         Settings
                     </h1>
 
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                         Manage barangay information, administrator account, and
                         system security
                     </p>
                 </div>
 
                 {profileMessage && (
-                    <div className="mb-5 rounded-lg border border-[#c2cbd4] bg-[#edf7ea] px-4 py-3 text-sm font-medium text-[#2a5279]">
+                    <div className="mb-5 rounded-lg border border-[#c2cbd4] bg-[#edf7ea] px-4 py-3 text-sm font-medium text-brand-deep">
                         {profileMessage}
                     </div>
                 )}
@@ -95,32 +95,32 @@ export default function Settings({ barangay }: Props) {
                 {/* BARANGAY INFORMATION */}
                 <section className="mb-6">
                     <div className="mb-4">
-                        <h2 className="text-base font-semibold text-gray-800">
+                        <h2 className="text-base font-semibold text-ink-strong">
                             Barangay Information
                         </h2>
 
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-ink-muted">
                             Basic information displayed throughout the system
                         </p>
                     </div>
 
-                    <div className="rounded-lg border border-gray-200 bg-white">
+                    <div className="rounded-lg border border-line-soft bg-white">
                         <div className="grid grid-cols-1 gap-5 p-5 md:grid-cols-2">
                             <div>
-                                <p className="mb-1.5 text-xs font-medium text-gray-700">
+                                <p className="mb-1.5 text-xs font-medium text-ink">
                                     Barangay Name
                                 </p>
 
-                                <div className="flex min-h-[42px] items-center rounded-md border border-gray-200 bg-[#ffffff] px-3">
-                                    <span className="text-sm text-gray-800">
+                                <div className="flex min-h-[42px] items-center rounded-lg border border-line-soft bg-surface px-3">
+                                    <span className="text-sm text-ink-strong">
                                         {barangayName ?? 'Not available'}
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="border-t border-gray-100 px-5 py-3">
-                            <p className="text-[11px] leading-5 text-gray-400">
+                        <div className="border-t border-line-soft px-5 py-3">
+                            <p className="text-[11px] leading-5 text-ink-faint">
                                 Barangay information is managed by the system
                                 and cannot be edited here.
                             </p>
@@ -131,18 +131,18 @@ export default function Settings({ barangay }: Props) {
                 {/* ADMIN ACCOUNT */}
                 <section className="mb-6">
                     <div className="mb-4">
-                        <h2 className="text-base font-semibold text-gray-800">
+                        <h2 className="text-base font-semibold text-ink-strong">
                             Administrator Account
                         </h2>
 
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-ink-muted">
                             Account information for the current administrator
                         </p>
                     </div>
 
                     <form
                         onSubmit={handleAccountSave}
-                        className="rounded-lg border border-gray-200 bg-white"
+                        className="rounded-lg border border-line-soft bg-white"
                     >
                         <div className="grid grid-cols-1 gap-5 p-5 md:grid-cols-2">
                             <FormField label="Administrator Name" htmlFor="admin-settings-name">
@@ -176,34 +176,34 @@ export default function Settings({ barangay }: Props) {
                             </FormField>
 
                             <div>
-                                <p className="mb-1.5 text-xs font-medium text-gray-700">
+                                <p className="mb-1.5 text-xs font-medium text-ink">
                                     Role
                                 </p>
 
-                                <div className="flex min-h-[42px] items-center rounded-md border border-gray-200 bg-[#ffffff] px-3">
-                                    <span className="rounded-full bg-[#eef1f5] px-3 py-1 text-xs font-medium text-[#3b6fa8]">
+                                <div className="flex min-h-[42px] items-center rounded-lg border border-line-soft bg-surface px-3">
+                                    <span className="rounded-full bg-canvas px-3 py-1 text-xs font-medium text-brand">
                                         Admin / Superuser
                                     </span>
                                 </div>
                             </div>
 
                             <div>
-                                <p className="mb-1.5 text-xs font-medium text-gray-700">
+                                <p className="mb-1.5 text-xs font-medium text-ink">
                                     Account Status
                                 </p>
 
-                                <div className="flex min-h-[42px] items-center rounded-md border border-gray-200 bg-[#ffffff] px-3">
-                                    <span className="rounded-full bg-[#eef1f5] px-3 py-1 text-xs font-medium text-[#3b6fa8]">
+                                <div className="flex min-h-[42px] items-center rounded-lg border border-line-soft bg-surface px-3">
+                                    <span className="rounded-full bg-canvas px-3 py-1 text-xs font-medium text-brand">
                                         Active
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex justify-end border-t border-gray-100 px-5 py-4">
+                        <div className="flex justify-end border-t border-line-soft px-5 py-4">
                             <button
                                 type="submit"
-                                className="rounded-md bg-[#3b6fa8] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#2a5279]"
+                                className="rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-deep"
                             >
                                 Save Account Information
                             </button>
@@ -214,11 +214,11 @@ export default function Settings({ barangay }: Props) {
                 {/* PASSWORD */}
                 <section className="mb-6">
                     <div className="mb-4">
-                        <h2 className="text-base font-semibold text-gray-800">
+                        <h2 className="text-base font-semibold text-ink-strong">
                             Change Password
                         </h2>
 
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-ink-muted">
                             Update the password used for this administrator
                             account
                         </p>
@@ -226,14 +226,14 @@ export default function Settings({ barangay }: Props) {
 
                     <form
                         onSubmit={handlePasswordChange}
-                        className="rounded-lg border border-gray-200 bg-white"
+                        className="rounded-lg border border-line-soft bg-white"
                     >
                         <div className="space-y-5 p-5">
                             {passwordMessage && (
                                 <div
-                                    className={`rounded-md px-4 py-3 text-xs font-medium ${
+                                    className={`rounded-lg px-4 py-3 text-xs font-medium ${
                                         passwordMessage.includes('successfully')
-                                            ? 'bg-[#eef1f5] text-[#2a5279]'
+                                            ? 'bg-canvas text-brand-deep'
                                             : 'bg-[#fff1f0] text-[#a33b3b]'
                                     }`}
                                 >
@@ -290,17 +290,17 @@ export default function Settings({ barangay }: Props) {
                                 </FormField>
                             </div>
 
-                            <p className="text-[11px] leading-5 text-gray-400">
+                            <p className="text-[11px] leading-5 text-ink-faint">
                                 Use at least 8 characters. For production, the
                                 backend should enforce stronger password
                                 validation and securely hash all passwords.
                             </p>
                         </div>
 
-                        <div className="flex justify-end border-t border-gray-100 px-5 py-4">
+                        <div className="flex justify-end border-t border-line-soft px-5 py-4">
                             <button
                                 type="submit"
-                                className="rounded-md bg-[#3b6fa8] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#2a5279]"
+                                className="rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-deep"
                             >
                                 Change Password
                             </button>
@@ -311,16 +311,16 @@ export default function Settings({ barangay }: Props) {
                 {/* SECURITY */}
                 <section>
                     <div className="mb-4">
-                        <h2 className="text-base font-semibold text-gray-800">
+                        <h2 className="text-base font-semibold text-ink-strong">
                             Security & Activity
                         </h2>
 
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-ink-muted">
                             Configure administrative security monitoring
                         </p>
                     </div>
 
-                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
                         <SettingToggle
                             title="Login Security Alerts"
                             description="Show security alerts for failed and suspicious login attempts."
@@ -354,16 +354,16 @@ export default function Settings({ barangay }: Props) {
                 {/* DATA EXPORT */}
                 <section className="mt-6">
                     <div className="mb-4">
-                        <h2 className="text-base font-semibold text-gray-800">
+                        <h2 className="text-base font-semibold text-ink-strong">
                             Data Export
                         </h2>
 
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-ink-muted">
                             Download a CSV copy of your barangay records
                         </p>
                     </div>
 
-                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
                         <ExportRow
                             title="Residents List"
                             description="Registered residents of this barangay as a CSV file."
@@ -412,7 +412,7 @@ function FormField({
 }) {
     return (
         <div>
-            <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-medium text-gray-700">
+            <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-medium text-ink">
                 {label}
             </label>
 
@@ -441,13 +441,13 @@ function ExportRow({
     return (
         <div
             className={`flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
-                !last ? 'border-b border-gray-100' : ''
+                !last ? 'border-b border-line-soft' : ''
             }`}
         >
             <div>
-                <p className="text-sm font-medium text-gray-800">{title}</p>
+                <p className="text-sm font-medium text-ink-strong">{title}</p>
 
-                <p className="mt-1 max-w-2xl text-xs leading-5 text-gray-500">
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-ink-muted">
                     {description}
                 </p>
             </div>
@@ -455,7 +455,7 @@ function ExportRow({
             <a
                 href={href}
                 download
-                className="shrink-0 rounded-md border border-[#3b6fa8] px-4 py-2 text-sm font-medium text-[#3b6fa8] transition hover:bg-[#eef1f5]"
+                className="shrink-0 rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand transition hover:bg-canvas"
             >
                 {actionLabel}
             </a>
@@ -483,13 +483,13 @@ function SettingToggle({
     return (
         <div
             className={`flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
-                !last ? 'border-b border-gray-100' : ''
+                !last ? 'border-b border-line-soft' : ''
             }`}
         >
             <div>
-                <p className="text-sm font-medium text-gray-800">{title}</p>
+                <p className="text-sm font-medium text-ink-strong">{title}</p>
 
-                <p className="mt-1 max-w-2xl text-xs leading-5 text-gray-500">
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-ink-muted">
                     {description}
                 </p>
             </div>
@@ -498,7 +498,7 @@ function SettingToggle({
                 type="button"
                 onClick={onChange}
                 className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                    enabled ? 'bg-[#3b6fa8]' : 'bg-gray-300'
+                    enabled ? 'bg-brand' : 'bg-gray-300'
                 }`}
                 aria-pressed={enabled}
             >

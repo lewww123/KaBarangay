@@ -131,16 +131,16 @@ export default function DocumentPanel({
     if (status === 'certified_to_file_action')
         kinds.push({ value: 'cfa', label: 'Certificate to File Action' });
     return (
-        <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+        <section className="space-y-4 rounded-xl border border-line-soft bg-white p-4 sm:p-5">
             <div className="flex flex-wrap justify-between gap-2">
-                <h2 className="font-bold text-slate-900">
+                <h2 className="font-semibold text-ink-strong">
                     Mga dokumento at pag-abot
                 </h2>
-                <span className="text-xs font-semibold text-slate-500">
+                <span className="text-xs font-semibold text-ink-muted">
                     Fee: {paymentStatus}
                 </span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-ink-muted">
                 Prepared files are unsigned copies. Review the details and
                 required signatures before release; record actual notice service
                 separately.
@@ -218,13 +218,13 @@ export default function DocumentPanel({
                 </details>
             )}
             {kinds.length > 0 && (
-                <h3 className="text-sm font-semibold text-slate-800">
+                <h3 className="text-sm font-semibold text-ink-strong">
                     2. Ihanda ang kaukulang dokumento
                 </h3>
             )}
             {kinds.length > 0 && (
                 <form
-                    className="space-y-3 rounded-lg bg-slate-50 p-3"
+                    className="space-y-3 rounded-lg bg-canvas p-3"
                     onSubmit={(event) => {
                         event.preventDefault();
                         generate.post(`/lupon/cases/${caseId}/documents`, {
@@ -352,13 +352,13 @@ export default function DocumentPanel({
                                 .map((document) => (
                                     <li
                                         key={document.id}
-                                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3"
+                                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line-soft p-3"
                                     >
                                         <div>
                                             <p className="text-sm font-semibold">
                                                 {document.label}
                                             </p>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="text-xs text-ink-muted">
                                                 {document.status === 'ready'
                                                     ? 'Prepared file · review/signatures still required'
                                                     : document.status ===
@@ -433,7 +433,7 @@ export default function DocumentPanel({
                 ),
             )}
             {!documents.length && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-ink-muted">
                     No documents have been prepared yet.
                 </p>
             )}
@@ -446,7 +446,7 @@ export default function DocumentPanel({
                         className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-xl bg-white shadow-xl"
                     >
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
-                            <h3 className="font-bold">{preview.label}</h3>
+                            <h3 className="font-semibold">{preview.label}</h3>
                             <button
                                 type="button"
                                 disabled={!previewReady || printing}
@@ -474,7 +474,7 @@ export default function DocumentPanel({
                                 {printError}
                             </p>
                         )}
-                        <div className="overflow-auto bg-slate-100 p-3">
+                        <div className="overflow-auto bg-secondary p-3">
                             <DocxPreview
                                 url={`/lupon/documents/${preview.id}/preview`}
                                 onReady={setPreviewReady}
@@ -507,7 +507,7 @@ export default function DocumentPanel({
                             );
                         }}
                     >
-                        <h3 className="font-bold">
+                        <h3 className="font-semibold">
                             Record service — {serving.label}
                         </h3>
                         <label className="block text-xs font-semibold">

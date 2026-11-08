@@ -321,8 +321,8 @@ export default function BarangayChatbot({
                                 <h1
                                     className={
                                         floating
-                                            ? 'text-sm font-bold'
-                                            : 'font-bold'
+                                            ? 'text-sm font-semibold'
+                                            : 'font-semibold'
                                     }
                                 >
                                     Kabarangay AI
@@ -374,9 +374,9 @@ export default function BarangayChatbot({
                                     className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div
-                                        className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap ${item.role === 'user' ? 'bg-brand text-white' : 'border border-line-soft bg-white text-ink shadow-card'}`}
+                                        className={`max-w-[90%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap ${item.role === 'user' ? 'bg-brand text-white' : 'border border-line-soft bg-white text-ink shadow-card'}`}
                                     >
-                                        <span className="mb-1 block text-[10px] font-bold opacity-70">
+                                        <span className="mb-1 block text-[10px] font-semibold opacity-70">
                                             {item.role === 'user' ? (
                                                 'Ikaw'
                                             ) : (
@@ -400,7 +400,7 @@ export default function BarangayChatbot({
                                                 key={record.reference + index}
                                                 className="mt-3 space-y-2 rounded-xl border border-brand-muted bg-brand-soft/60 p-3 text-ink"
                                             >
-                                                <p className="text-xs font-bold">
+                                                <p className="text-xs font-semibold">
                                                     {record.label}
                                                 </p>
                                                 <p className="font-mono text-[11px] text-ink-muted">

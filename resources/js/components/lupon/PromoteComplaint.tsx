@@ -30,10 +30,10 @@ export default function PromoteComplaint({
                 });
             }}
         >
-            <h3 className="font-bold text-emerald-950">
+            <h3 className="font-semibold text-emerald-950">
                 Record payment and create case
             </h3>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-ink-muted">
                 Confirm the actual barangay payment and official receipt, then
                 schedule Kapitan hearing #1. The case is created only when this
                 is saved.

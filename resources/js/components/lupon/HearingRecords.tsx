@@ -131,7 +131,7 @@ export default function HearingRecords({
                                     ? 'Next scheduled hearing'
                                     : 'Latest recorded hearing'}
                             </p>
-                            <h3 className="mt-1 font-bold">
+                            <h3 className="mt-1 font-semibold">
                                 Hearing #{summary.hearingNumber} ·{' '}
                                 {summary.phase}
                             </h3>
@@ -162,7 +162,7 @@ export default function HearingRecords({
                     </p>
                 </section>
             ) : (
-                <p className="py-5 text-center text-sm text-slate-500">
+                <p className="py-5 text-center text-sm text-ink-muted">
                     No hearings scheduled yet.
                     <button
                         type="button"
@@ -186,13 +186,13 @@ export default function HearingRecords({
                     )
                         closeRecords();
                 }}
-                className="m-auto max-h-[92vh] w-[calc(100%-1.5rem)] max-w-6xl overflow-auto rounded-2xl border-0 bg-white p-0 text-stone-900 shadow-xl backdrop:bg-black/50"
+                className="m-auto max-h-[92vh] w-[calc(100%-1.5rem)] max-w-6xl overflow-auto rounded-xl border-0 bg-white p-0 text-stone-900 shadow-xl backdrop:bg-black/50"
             >
                 {isOpen && (
                     <>
                         <header className="flex items-center justify-between gap-3 border-b p-4">
                             <div>
-                                <h2 className="font-bold">
+                                <h2 className="font-semibold">
                                     Case hearing records
                                 </h2>
                                 <p className="text-xs text-stone-500">
@@ -228,7 +228,7 @@ export default function HearingRecords({
                                     )
                                     .map((phase) => (
                                         <section key={phase}>
-                                            <h3 className="mb-2 text-xs font-bold text-stone-500 uppercase">
+                                            <h3 className="mb-2 text-xs font-semibold text-stone-500 uppercase">
                                                 {phase} ·{' '}
                                                 {phase === currentPhase
                                                     ? 'Current phase'
@@ -271,7 +271,7 @@ export default function HearingRecords({
                                                                     : 'border-stone-200 hover:bg-stone-50')
                                                             }
                                                         >
-                                                            <span className="block text-sm font-bold">
+                                                            <span className="block text-sm font-semibold">
                                                                 Hearing #
                                                                 {
                                                                     hearing.hearingNumber
@@ -303,7 +303,7 @@ export default function HearingRecords({
                                 {selected?.phase === 'Lupon' &&
                                     pangkat?.pangkat_members?.length === 3 && (
                                         <section className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                                            <h3 className="font-bold">
+                                            <h3 className="font-semibold">
                                                 Pangkat assigned to conciliation
                                             </h3>
                                             <ol className="list-inside list-decimal text-sm">
@@ -344,7 +344,7 @@ export default function HearingRecords({
                                 {selected && (
                                     <>
                                         <div className="space-y-2 rounded-xl border border-stone-200 p-4">
-                                            <h3 className="font-bold">
+                                            <h3 className="font-semibold">
                                                 Hearing #
                                                 {selected.hearingNumber} ·{' '}
                                                 {selected.phase}
@@ -496,7 +496,7 @@ export default function HearingRecords({
                                                             );
                                                         }}
                                                     >
-                                                        <h3 className="font-bold">
+                                                        <h3 className="font-semibold">
                                                             Hearing #
                                                             {
                                                                 selected.hearingNumber

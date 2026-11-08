@@ -55,7 +55,7 @@ export default function PangkatFormation({
                 });
             }}
         >
-            <h2 className="text-lg font-bold">
+            <h2 className="text-lg font-semibold">
                 Proceed to Lupon — Pangkat conciliation
             </h2>
             <p className="text-sm text-stone-600">

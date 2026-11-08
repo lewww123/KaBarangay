@@ -260,7 +260,7 @@ export default function AnnouncementDetails({
                         {attendanceHref && (
                             <Link
                                 href={attendanceHref}
-                                className="inline-flex w-full items-center justify-center rounded-md bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-[#2a5279]"
+                                className="inline-flex w-full items-center justify-center rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-brand-deep"
                             >
                                 Open attendance sheet
                             </Link>
