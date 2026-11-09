@@ -249,6 +249,9 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         (async () => {
             const requestEpoch = authEpoch;
+            // The health check needs the actual response or network failure.
+            const sessionProbe =
+                request.method === 'GET' && url.pathname === '/offline/session';
             try {
                 const isLogout =
                     request.method === 'POST' &&
@@ -305,7 +308,8 @@ self.addEventListener('fetch', (event) => {
                     );
                 }
                 return response;
-            } catch {
+            } catch (error) {
+                if (sessionProbe) throw error;
                 return fallback(request);
             }
         })(),

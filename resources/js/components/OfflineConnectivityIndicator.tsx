@@ -28,15 +28,20 @@ export default function OfflineConnectivityIndicator({
         let observer: ResizeObserver | undefined;
         const measure = () =>
             setOffset(
-                header
-                    ? Math.round(header.getBoundingClientRect().bottom)
-                    : 64,
+                header ? Math.round(header.getBoundingClientRect().bottom) : 64,
             );
         const attach = () => {
-            const next = document.querySelector('header');
-            if (next === header) return;
+            const next =
+                Array.from(
+                    document.querySelectorAll<HTMLElement>('header'),
+                ).find((element) => element.getClientRects().length > 0) ??
+                null;
+            if (next === header) {
+                measure();
+                return;
+            }
             observer?.disconnect();
-            header = next as HTMLElement | null;
+            header = next;
             if (header && typeof ResizeObserver !== 'undefined') {
                 observer = new ResizeObserver(measure);
                 observer.observe(header);
@@ -45,11 +50,11 @@ export default function OfflineConnectivityIndicator({
         };
         attach();
         const stopFinish = router.on('finish', attach);
-        window.addEventListener('resize', measure);
+        window.addEventListener('resize', attach);
         return () => {
             stopFinish();
             observer?.disconnect();
-            window.removeEventListener('resize', measure);
+            window.removeEventListener('resize', attach);
         };
     }, []);
 
@@ -101,8 +106,8 @@ export default function OfflineConnectivityIndicator({
                     </p>
                     {state.stale && (
                         <p className="mt-1 text-xs leading-5 text-sky-900">
-                            Showing information saved on this device. It may
-                            not be current.
+                            Showing information saved on this device. It may not
+                            be current.
                         </p>
                     )}
                     {state.pending > 0 && (

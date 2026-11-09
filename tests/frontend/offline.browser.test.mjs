@@ -78,7 +78,7 @@ let slowResponse;
 const appScript = `import {offlineSnapshot} from '/snapshot.js';
 window.appBooted=true;
 window.rpc=async(message)=>{const registration=await navigator.serviceWorker.ready;return new Promise(resolve=>{const c=new MessageChannel();c.port1.onmessage=e=>resolve(e.data);(navigator.serviceWorker.controller||registration.active).postMessage(message,[c.port2])})};
-window.prepare=async()=>{for(let i=0;i<150;i++){if(document.querySelector('[data-kb-offline-control]')?.textContent.includes('Saved for offline'))return {ok:true};await new Promise(resolve=>setTimeout(resolve,100));}throw Error('Automatic offline preparation did not finish: '+document.querySelector('[data-kb-offline-control]')?.textContent)};`;
+window.prepare=async()=>{const here=location.pathname+location.search;for(let i=0;i<150;i++){const saved=await window.rpc({type:'KB_LIST'});if(saved?.pages?.some((page)=>page.path===here))return {ok:true};await new Promise(resolve=>setTimeout(resolve,100));}throw Error('Automatic offline preparation did not finish for '+here);};`;
 const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     res.setHeader('Cache-Control', 'no-store');
@@ -199,7 +199,22 @@ try {
     assert.equal((await page.evaluate(() => window.prepare())).ok, true);
     assert.equal((await talk(page, { type: 'KB_LIST' })).pages.length, 2);
 
+    // A stale worker hint must not mark a reachable server offline. The
+    // fixture returns the original scope-only session response.
+    const confirmation = page.waitForResponse((response) =>
+        response.url().endsWith('/offline/session'),
+    );
+    await page.evaluate(() => {
+        navigator.serviceWorker.dispatchEvent(
+            new MessageEvent('message', { data: { type: 'KB_NETWORK_OFFLINE' } }),
+        );
+    });
+    await (await confirmation).finished();
+    await page.getByText('Offline Mode', { exact: true }).waitFor({ state: 'hidden' });
+    await page.getByText('Barangay data unavailable', { exact: true }).waitFor({ state: 'hidden' });
+
     await context.setOffline(true);
+    await page.getByText('Offline Mode', { exact: true }).waitFor();
     await page.goto(origin + '/resident/certificates');
     await page.getByText('Ready for Claim', { exact: true }).waitFor();
     assert.equal(await page.locator('#kb-offline-notice').count(), 1);
