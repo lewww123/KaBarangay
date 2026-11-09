@@ -10,6 +10,12 @@
         'Noto Color Emoji';
 }
 
+/* Desktop/laptop screens that are shorter than the reference layout.
+   Compacts vertical rhythm only, so cards and their hierarchy stay intact. */
+@custom-variant short (@media (min-width: 1024px) and (max-height: 980px));
+@custom-variant shorter (@media (min-width: 1024px) and (max-height: 800px));
+@custom-variant tiny (@media (min-width: 1024px) and (max-height: 720px));
+
 /* ==========================================================================
    KaBarangay design tokens
    Palette: #FFFFFF / #EEF1F5 / #C2CBD4 / #3B6FA8 / #444A52

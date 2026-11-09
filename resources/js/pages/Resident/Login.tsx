@@ -157,20 +157,20 @@ export default function Login() {
         <AuthLayout variant="resident">
             <Head title="Resident Login" />
 
-            <div className="mb-6 lg:mb-4">
+            <div className="mb-6 short:mb-4 shorter:mb-2 tiny:mb-1">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">
                     Resident portal
                 </p>
-                <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-ink-strong">
+                <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-ink-strong shorter:mt-1 shorter:text-lg">
                     Resident Login
                 </h1>
-                <p className="mt-1 text-sm text-ink-muted">
+                <p className="mt-1 text-sm text-ink-muted shorter:mt-0.5 shorter:text-xs shorter:leading-4">
                     Sign in to access your barangay services, requests,
                     announcements, QR code, and resident account.
                 </p>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-line-soft bg-surface p-5 shadow-card sm:p-6 lg:p-5">
+            <div className="overflow-hidden rounded-xl border border-line-soft bg-surface p-5 shadow-card sm:p-6 short:p-4 shorter:p-3 tiny:p-2.5">
                 {flash && (
                     <div className="mb-4 flex items-start gap-2.5 rounded-lg bg-success-soft px-4 py-3 text-sm text-success">
                         <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
@@ -178,8 +178,8 @@ export default function Login() {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="grid gap-4 lg:gap-3">
-                    <div className="grid gap-2">
+                <form onSubmit={handleSubmit} className="grid gap-4 short:gap-3 shorter:gap-2 tiny:gap-1.5">
+                    <div className="grid gap-2 shorter:gap-1">
                         <label
                             htmlFor="barangayId"
                             className="text-sm font-medium text-ink"
@@ -199,7 +199,7 @@ export default function Login() {
                                     }));
                                 }
                             }}
-                            className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink-strong outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/15 disabled:cursor-wait disabled:text-ink-faint lg:h-10"
+                            className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink-strong outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/15 disabled:cursor-wait disabled:text-ink-faint short:h-10 shorter:h-9"
                         >
                             <option value="">
                                 {barangaysLoading
@@ -234,7 +234,7 @@ export default function Login() {
                         )}
                     </div>
 
-                    <div className="grid gap-2">
+                    <div className="grid gap-2 shorter:gap-1">
                         <label
                             htmlFor="identifier"
                             className="text-sm font-medium text-ink"
@@ -257,7 +257,7 @@ export default function Login() {
                                     }));
                                 }
                             }}
-                            className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15 lg:h-10"
+                            className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15 short:h-10 shorter:h-9"
                         />
                         {errors.identifier && (
                             <p className="text-sm text-destructive">
@@ -266,7 +266,7 @@ export default function Login() {
                         )}
                     </div>
 
-                    <div className="grid gap-2">
+                    <div className="grid gap-2 shorter:gap-1">
                         <label
                             htmlFor="password"
                             className="text-sm font-medium text-ink"
@@ -290,7 +290,7 @@ export default function Login() {
                                         }));
                                     }
                                 }}
-                                className="h-11 w-full rounded-lg border border-line bg-surface px-3 pr-11 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15 lg:h-10 lg:pr-10"
+                                className="h-11 w-full rounded-lg border border-line bg-surface px-3 pr-11 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15 short:h-10 shorter:h-9 short:pr-10 shorter:pr-9"
                             />
                             <button
                                 type="button"
@@ -302,7 +302,7 @@ export default function Login() {
                                         ? 'Hide password'
                                         : 'Show password'
                                 }
-                                className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-faint transition hover:bg-secondary hover:text-ink-muted lg:h-7 lg:w-7"
+                                className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-faint transition hover:bg-secondary hover:text-ink-muted short:h-7 short:w-7 shorter:h-6 shorter:w-6"
                             >
                                 {showPassword ? (
                                     <EyeOff className="size-4" />
@@ -318,7 +318,7 @@ export default function Login() {
                         )}
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-3 lg:gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3 short:gap-2 shorter:gap-1.5">
                         <label
                             htmlFor="remember"
                             className="flex cursor-pointer items-center gap-2 text-sm text-ink-muted"
@@ -355,7 +355,7 @@ export default function Login() {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60 lg:h-10"
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60 short:h-10 shorter:h-9"
                     >
                         {isSubmitting ? (
                             <>
@@ -371,7 +371,7 @@ export default function Login() {
                     </button>
                 </form>
 
-                <div className="my-5 flex items-center gap-3 lg:my-4">
+                <div className="my-5 flex items-center gap-3 short:my-4 shorter:my-2 tiny:my-1">
                     <span className="h-px flex-1 bg-line" />
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
                         New resident account
@@ -384,19 +384,19 @@ export default function Login() {
                 </p>
                 <Link
                     href="/resident/register"
-                    className="mt-3 flex h-11 w-full items-center justify-center rounded-lg border border-line bg-surface px-4 text-sm font-semibold text-brand transition-colors hover:bg-brand-soft lg:mt-2 lg:h-10"
+                    className="mt-3 flex h-11 w-full items-center justify-center rounded-lg border border-line bg-surface px-4 text-sm font-semibold text-brand transition-colors hover:bg-brand-soft short:mt-2 short:h-10 shorter:mt-1 shorter:h-9 tiny:mt-0.5"
                 >
                     Create Resident Account
                 </Link>
 
-                <div className="mt-5 grid gap-3 lg:mt-4 lg:grid-cols-2 lg:gap-3">
-                    <div className="flex items-start gap-3 rounded-xl border border-dashed border-line bg-surface/60 p-4 lg:p-3">
+                <div className="mt-5 grid gap-3 short:mt-4 shorter:mt-2 shorter:gap-2 tiny:mt-1 tiny:gap-1.5">
+                    <div className="flex items-start gap-3 rounded-xl border border-dashed border-line bg-surface/60 p-4 short:p-3 shorter:p-2.5 tiny:p-2">
                         <Info className="mt-0.5 size-4 shrink-0 text-brand" />
                         <div>
                             <p className="text-sm font-semibold text-ink-strong">
                                 New account approval
                             </p>
-                            <p className="mt-1 text-xs leading-5 text-ink-muted lg:leading-4">
+                            <p className="mt-1 text-xs leading-5 text-ink-muted short:leading-4">
                                 New resident accounts must be reviewed and
                                 approved by the barangay before they can sign
                                 in.
@@ -404,11 +404,11 @@ export default function Login() {
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-line-soft bg-surface p-4 lg:p-3">
+                    <div className="rounded-xl border border-line-soft bg-surface p-4 short:p-3 shorter:p-2.5 tiny:p-2">
                         <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
                             Demo — sign in as
                         </p>
-                        <dl className="mt-2.5 grid gap-1.5 text-sm lg:mt-2">
+                        <dl className="mt-2.5 grid gap-1.5 text-sm short:mt-2 shorter:mt-1">
                             <div className="flex items-center justify-between gap-3">
                                 <dt className="text-ink-muted">Resident ID</dt>
                                 <dd className="font-mono tnum text-ink-strong">
@@ -428,7 +428,7 @@ export default function Login() {
                 </div>
             </div>
 
-            <p className="mt-5 text-center text-xs text-ink-faint lg:mt-3">
+            <p className="mt-5 text-center text-xs text-ink-faint short:mt-3 shorter:mt-2 tiny:mt-1">
                 Need assistance? Please contact the{' '}
                 {selectedBarangay?.name ?? 'Barangay San Jose'} office.
             </p>
