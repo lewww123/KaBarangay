@@ -139,7 +139,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
 
                 {/* FLASH NOTICES */}
                 {flash?.success && (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                    <div className="rounded-xl border border-brand-muted bg-brand-soft px-4 py-3 text-sm font-medium text-brand-deep">
                         {flash.success}
                     </div>
                 )}
@@ -167,11 +167,11 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                             {stats.draft}
                         </div>
                     </div>
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-card">
-                        <div className="text-xs font-medium tracking-wider text-emerald-600 uppercase">
+                    <div className="rounded-xl border border-brand-muted bg-brand-soft/50 p-4 shadow-card">
+                        <div className="text-xs font-medium tracking-wider text-brand uppercase">
                             Published Live
                         </div>
-                        <div className="mt-2 text-2xl font-semibold text-emerald-900">
+                        <div className="mt-2 text-2xl font-semibold text-brand-deep">
                             {stats.published}
                         </div>
                     </div>

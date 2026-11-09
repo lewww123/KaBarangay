@@ -671,7 +671,7 @@ function StatCard({
     const tones = {
         slate: 'border-line-soft bg-white text-ink-strong',
         amber: 'border-amber-200 bg-amber-50 text-amber-900',
-        emerald: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+        emerald: 'border-brand-muted bg-brand-soft text-brand-deep',
         gray: 'border-line-soft bg-canvas text-ink',
     };
 

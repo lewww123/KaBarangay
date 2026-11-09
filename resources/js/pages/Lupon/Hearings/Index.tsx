@@ -350,7 +350,7 @@ function StatusPill({ value }: { value: string }) {
     const settled = value === 'Settled';
     const warning = value === 'Scheduled' || value === 'Ongoing';
     const style = settled
-        ? 'border-green-200 bg-green-50 text-green-700'
+        ? 'border-brand-muted bg-brand-soft text-brand-deep'
         : warning
           ? 'border-amber-200 bg-amber-50 text-amber-700'
           : 'border-line-soft bg-canvas text-ink';

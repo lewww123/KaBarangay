@@ -184,7 +184,7 @@ export default function AttendanceResidentSelect({
                                 tabIndex={-1}
                                 className={`cursor-pointer px-3 py-2 text-xs ${
                                     index === active
-                                        ? 'bg-green-100'
+                                        ? 'bg-brand-soft'
                                         : 'hover:bg-secondary'
                                 }`}
                                 onMouseDown={(event) => event.preventDefault()}

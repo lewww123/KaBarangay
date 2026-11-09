@@ -243,7 +243,7 @@ export default function AnnouncementDetails({
                         </div>
 
                         {showCompletion && announcement.completed_at && (
-                            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800">
+                            <div className="rounded-lg border border-brand-muted bg-brand-soft p-4 text-xs text-brand-deep">
                                 <p className="font-semibold uppercase">Done</p>
                                 <p className="mt-1">
                                     Completed{' '}
@@ -274,7 +274,7 @@ export default function AnnouncementDetails({
 
 function approvalStatusStyle(status: string) {
     if (status === 'approved') {
-        return 'bg-emerald-100 text-emerald-800';
+        return 'bg-brand-soft text-brand-deep';
     }
 
     if (status === 'rejected') {

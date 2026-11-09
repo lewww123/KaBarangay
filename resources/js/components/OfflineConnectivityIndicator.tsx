@@ -75,7 +75,7 @@ export default function OfflineConnectivityIndicator({
                 <p
                     className={`pointer-events-auto rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-md sm:text-sm ${
                         state.notice.tone === 'success'
-                            ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                            ? 'border-brand-muted bg-brand-soft text-brand-deep'
                             : 'border-rose-300 bg-rose-50 text-rose-900'
                     }`}
                 >

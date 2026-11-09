@@ -104,11 +104,11 @@ function PwdDashboard({
                             </p>
                         </div>
 
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-card">
-                            <span className="text-xs font-semibold tracking-wider text-emerald-700 uppercase">
+                        <div className="rounded-xl border border-brand-muted bg-brand-soft/50 p-5 shadow-card">
+                            <span className="text-xs font-semibold tracking-wider text-brand-deep uppercase">
                                 Published Updates & Programs
                             </span>
-                            <p className="mt-2 text-3xl font-semibold text-emerald-800">
+                            <p className="mt-2 text-3xl font-semibold text-brand-deep">
                                 {stats.approvedAnnouncements}
                             </p>
                         </div>
@@ -178,7 +178,7 @@ function PwdDashboard({
                                                         className={`rounded-lg px-2.5 py-1 text-xs font-semibold uppercase ${
                                                             item.approval_status ===
                                                             'approved'
-                                                                ? 'bg-emerald-100 text-emerald-800'
+                                                                ? 'bg-brand-soft text-brand-deep'
                                                                 : item.approval_status ===
                                                                     'rejected'
                                                                   ? 'bg-red-100 text-red-800'

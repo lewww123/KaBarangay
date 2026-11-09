@@ -114,14 +114,14 @@ function SectorApplicationsContent({ resident, applications }: Props) {
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         {/* GENERAL RESIDENT (ALWAYS ACTIVE) */}
-                        <div className="space-y-1 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
-                            <span className="text-[10px] font-semibold tracking-wider text-emerald-800 uppercase">
+                        <div className="space-y-1 rounded-xl border border-brand-muted bg-brand-soft/50 p-4">
+                            <span className="text-[10px] font-semibold tracking-wider text-brand-deep uppercase">
                                 Primary Status
                             </span>
-                            <h3 className="text-base font-semibold text-emerald-950">
+                            <h3 className="text-base font-semibold text-brand-deep">
                                 General Resident
                             </h3>
-                            <p className="text-xs text-emerald-800">
+                            <p className="text-xs text-brand-deep">
                                 Active citizen in Barangay San Jose (
                                 {resident.resident_number})
                             </p>
@@ -229,7 +229,7 @@ function SectorApplicationsContent({ resident, applications }: Props) {
                                             <span
                                                 className={`rounded-lg px-2.5 py-1 text-xs font-semibold uppercase ${
                                                     app.status === 'approved'
-                                                        ? 'bg-emerald-100 text-emerald-800'
+                                                        ? 'bg-brand-soft text-brand-deep'
                                                         : app.status ===
                                                             'under_admin_review'
                                                           ? 'bg-blue-100 text-blue-800'

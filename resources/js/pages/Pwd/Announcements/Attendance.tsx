@@ -72,14 +72,14 @@ interface Props {
 }
 
 const feedbackToneClasses: Record<FeedbackTone, string> = {
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    success: 'border-brand-muted bg-brand-soft text-brand-deep',
     warning: 'border-amber-200 bg-amber-50 text-amber-900',
     error: 'border-red-200 bg-red-50 text-red-800',
     info: 'border-sky-200 bg-sky-50 text-sky-800',
 };
 
 const feedbackDotClasses: Record<FeedbackTone, string> = {
-    success: 'bg-emerald-500',
+    success: 'bg-brand-soft0',
     warning: 'bg-amber-500',
     error: 'bg-red-500',
     info: 'bg-sky-500',
@@ -584,7 +584,7 @@ function PwdAttendanceSheet({
                 <div className="flex flex-col gap-4 rounded-xl border border-line-soft/80 bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-brand uppercase">
+                            <span className="rounded-full border border-brand-muted bg-brand-soft px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-brand uppercase">
                                 {announcement.category}
                             </span>
                             <span className="text-xs text-ink-faint">•</span>
@@ -627,7 +627,7 @@ function PwdAttendanceSheet({
                         <div className="space-y-4">
                             <div className="flex items-center justify-between border-b border-line-soft pb-3">
                                 <div className="flex items-center gap-2.5">
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-sm text-brand">
+                                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-sm text-brand">
                                         
                                     </span>
                                     <div>
@@ -845,7 +845,7 @@ function PwdAttendanceSheet({
                                                     className={`rounded px-2.5 py-1 text-xs font-semibold uppercase ${
                                                         item.status ===
                                                         'claimed'
-                                                            ? 'bg-emerald-100 text-emerald-800'
+                                                            ? 'bg-brand-soft text-brand-deep'
                                                             : item.status ===
                                                                 'present'
                                                               ? 'bg-[#edf4ea] text-brand'

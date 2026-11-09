@@ -226,7 +226,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                 {success && (
                     <p
                         role="status"
-                        className="rounded-lg bg-green-50 p-3 text-sm text-green-800"
+                        className="rounded-lg bg-brand-soft p-3 text-sm text-brand-deep"
                     >
                         {success}
                     </p>
@@ -293,7 +293,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                         </td>
                                         <td className="p-4">
                                             <span
-                                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${assignment.is_active ? 'bg-green-50 text-green-800' : 'bg-secondary text-ink-muted'}`}
+                                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${assignment.is_active ? 'bg-brand-soft text-brand-deep' : 'bg-secondary text-ink-muted'}`}
                                             >
                                                 {assignment.is_active
                                                     ? 'Active'
@@ -469,7 +469,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                         type="button"
                                         key={resident.id}
                                         onClick={() => selectResident(resident)}
-                                        className="block w-full border-b border-line-soft px-3 py-2 text-left text-sm hover:bg-green-50"
+                                        className="block w-full border-b border-line-soft px-3 py-2 text-left text-sm hover:bg-brand-soft"
                                     >
                                         <span className="block font-medium">
                                             {resident.name}
@@ -492,7 +492,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                 </p>
                             )}
                         {selectedResident && (
-                            <p className="mt-2 text-xs font-medium text-green-800">
+                            <p className="mt-2 text-xs font-medium text-brand-deep">
                                 Selected: {selectedResident.name} ·{' '}
                                 {selectedResident.resident_number}
                             </p>

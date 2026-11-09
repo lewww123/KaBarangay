@@ -595,7 +595,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                     </span>
                                                                     {r.associationStatus ===
                                                                     'verified' ? (
-                                                                        <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                                                                        <span className="inline-flex items-center gap-1 rounded-full border border-brand-muted bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand-deep">
                                                                             
                                                                             Staff-Verified
                                                                         </span>

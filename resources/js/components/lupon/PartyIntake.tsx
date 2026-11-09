@@ -110,7 +110,7 @@ export default function PartyIntake({
                     type="button"
                     disabled={loading}
                     onClick={() => void resolve(query)}
-                    className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                    className="rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
                 >
                     {loading ? 'Looking up…' : 'Look up'}
                 </button>
@@ -141,7 +141,7 @@ export default function PartyIntake({
                 onSelect={(resident) => void resolve('', resident.id)}
             />
             {value.residentId && (
-                <p className="text-xs font-medium text-emerald-700">
+                <p className="text-xs font-medium text-brand-deep">
                     Linked to the masterlist. Editing the name switches to
                     manual entry.
                 </p>

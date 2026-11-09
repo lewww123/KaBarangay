@@ -3,15 +3,11 @@ import type { ReactNode } from 'react';
 import {
     BarChart3,
     Building2,
-    ClipboardCheck,
     ClipboardList,
     FileBarChart,
-    FileText,
     LayoutDashboard,
-    Megaphone,
     Network,
     Phone,
-    ScanLine,
     Settings,
     UserCog,
     Users,
@@ -70,24 +66,6 @@ export default function AdminLayout({ children, active }: AdminLayoutProps) {
                             label="Residents"
                             active={active === 'residents'}
                         />
-                        <DeskNavLink
-                            href="/admin/qr-scanner"
-                            icon={ScanLine}
-                            label="QR Scanner"
-                            active={active === 'qr-scanner'}
-                        />
-                        <DeskNavLink
-                            href="/admin/announcements/approvals"
-                            icon={Megaphone}
-                            label="Announcement Approvals"
-                            active={active === 'announcement-approvals'}
-                        />
-                        <DeskNavLink
-                            href="/admin/certificates"
-                            icon={FileText}
-                            label="Certificate Requests"
-                            active={active === 'certificates'}
-                        />
                     </DeskNavGroup>
 
                     <DeskNavGroup label="Barangay Records">
@@ -96,12 +74,6 @@ export default function AdminLayout({ children, active }: AdminLayoutProps) {
                             icon={Building2}
                             label="Sectors"
                             active={active === 'sectors'}
-                        />
-                        <DeskNavLink
-                            href="/admin/sector-applications"
-                            icon={ClipboardCheck}
-                            label="Sector Applications"
-                            active={active === 'sector-applications'}
                         />
                         <DeskNavLink
                             href="/admin/staff"

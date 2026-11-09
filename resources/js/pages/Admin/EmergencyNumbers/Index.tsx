@@ -162,7 +162,7 @@ function EmergencyNumbersContent({
                 </div>
 
                 {flash?.success && (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800 shadow-card">
+                    <div className="rounded-xl border border-brand-muted bg-brand-soft p-4 text-sm font-medium text-brand-deep shadow-card">
                         {flash.success}
                     </div>
                 )}

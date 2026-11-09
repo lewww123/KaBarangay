@@ -160,7 +160,7 @@ export default function SectorApplicationStaffReview({
             </div>
 
             {actionFeedback && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-semibold text-emerald-800">
+                <div className="rounded-xl border border-brand-muted bg-brand-soft p-4 text-xs font-semibold text-brand-deep">
                     {actionFeedback}
                 </div>
             )}
@@ -271,7 +271,7 @@ export default function SectorApplicationStaffReview({
                                             >
                                                 Inspect
                                             </a>
-                                            <span className="rounded-lg bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 uppercase">
+                                            <span className="rounded-lg bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand-deep uppercase">
                                                 Attached
                                             </span>
                                         </div>

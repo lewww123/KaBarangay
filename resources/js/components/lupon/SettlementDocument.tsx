@@ -73,7 +73,7 @@ export default function SettlementDocument({
             <div className="flex flex-wrap gap-3">
                 <a
                     href={document.url}
-                    className="rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white"
+                    className="rounded-lg bg-brand px-4 py-2 text-sm text-white"
                 >
                     Download Amicable Settlement DOCX
                 </a>

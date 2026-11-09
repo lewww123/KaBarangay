@@ -117,7 +117,7 @@ export function disbursementStatusClasses(
     status: DisbursementDocumentStatus,
 ): string {
     if (status === 'published') {
-        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+        return 'border-brand-muted bg-brand-soft text-brand-deep';
     }
 
     if (status === 'archived') {

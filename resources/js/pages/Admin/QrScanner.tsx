@@ -201,8 +201,8 @@ export default function QrScanner() {
                         <div className="border-t border-line-soft px-5 py-5 text-center">
                             {isScanning && !error && (
                                 <>
-                                    <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                                        <span className="h-3 w-3 animate-pulse rounded-full bg-green-600" />
+                                    <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-brand-soft">
+                                        <span className="h-3 w-3 animate-pulse rounded-full bg-brand" />
                                     </div>
 
                                     <p className="font-semibold text-ink-strong">

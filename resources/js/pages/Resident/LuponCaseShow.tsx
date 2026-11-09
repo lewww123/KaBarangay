@@ -245,22 +245,22 @@ function LuponCaseContent({ viewerRole = 'complainant', caseData }: Props) {
 
                 {/* Settlement Card if available */}
                 {caseData.settlement && (
-                    <div className="rounded-xl border border-green-200 bg-green-50/50 p-6 shadow-card">
+                    <div className="rounded-xl border border-brand-muted bg-brand-soft/50 p-6 shadow-card">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-base font-semibold text-green-900">
+                            <h2 className="text-base font-semibold text-brand-deep">
                                 Official Settlement / Resolution
                             </h2>
-                            <span className="rounded-full bg-green-100 px-3 py-0.5 text-xs font-semibold text-green-800">
+                            <span className="rounded-full bg-brand-soft px-3 py-0.5 text-xs font-semibold text-brand-deep">
                                 {caseData.settlement.status}
                             </span>
                         </div>
 
-                        <p className="mt-1 text-xs text-green-700">
+                        <p className="mt-1 text-xs text-brand-deep">
                             Type: {caseData.settlement.type} on{' '}
                             {caseData.settlement.date}
                         </p>
 
-                        <div className="mt-3 rounded-xl border border-green-200 bg-white p-4 text-xs leading-5 whitespace-pre-line text-ink-strong">
+                        <div className="mt-3 rounded-xl border border-brand-muted bg-white p-4 text-xs leading-5 whitespace-pre-line text-ink-strong">
                             {caseData.settlement.terms}
                         </div>
                     </div>

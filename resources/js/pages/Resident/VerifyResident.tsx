@@ -45,12 +45,12 @@ export default function VerifyResident({ verification }: Props) {
                             {/* Valid QR */}
                             {verification.valid ? (
                                 <>
-                                    <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-center">
-                                        <p className="text-sm font-medium text-green-800">
+                                    <div className="mb-6 rounded-xl border border-brand-muted bg-brand-soft p-4 text-center">
+                                        <p className="text-sm font-medium text-brand-deep">
                                             {verification.message}
                                         </p>
 
-                                        <p className="mt-1 text-xs text-green-700">
+                                        <p className="mt-1 text-xs text-brand-deep">
                                             This QR code is associated with an
                                             active resident record.
                                         </p>

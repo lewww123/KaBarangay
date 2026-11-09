@@ -213,7 +213,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                 </div>
 
                 {flash?.success && (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                    <div className="rounded-xl border border-brand-muted bg-brand-soft px-4 py-3 text-sm font-medium text-brand-deep">
                         {flash.success}
                     </div>
                 )}
@@ -482,7 +482,7 @@ function StatTile({
     const toneClass = {
         default: 'border-line-soft bg-white text-ink-strong',
         blue: 'border-blue-200 bg-blue-50/50 text-blue-900',
-        green: 'border-emerald-200 bg-emerald-50/50 text-emerald-900',
+        green: 'border-brand-muted bg-brand-soft/50 text-brand-deep',
         gray: 'border-line-soft bg-canvas text-ink',
     }[tone];
 

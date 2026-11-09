@@ -320,7 +320,7 @@ export default function DocumentPanel({
                             <button
                                 type="button"
                                 onClick={onSchedule}
-                                className="mr-3 mb-3 inline-block text-left text-xs font-semibold text-emerald-800 underline"
+                                className="mr-3 mb-3 inline-block text-left text-xs font-semibold text-brand-deep underline"
                             >
                                 Schedule a hearing to complete pending notices
                             </button>
@@ -333,7 +333,7 @@ export default function DocumentPanel({
                                 (kind) => kind.value === generate.data.kind,
                             )
                         }
-                        className="rounded-lg bg-emerald-800 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                        className="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
                     >
                         {generate.processing
                             ? 'Preparing…'
@@ -405,7 +405,7 @@ export default function DocumentPanel({
                                                 {document.url && (
                                                     <a
                                                         href={document.url}
-                                                        className="rounded border px-2 py-1.5 text-emerald-800"
+                                                        className="rounded border px-2 py-1.5 text-brand-deep"
                                                     >
                                                         Download DOCX
                                                     </a>
@@ -463,7 +463,7 @@ export default function DocumentPanel({
                                 type="button"
                                 disabled={!previewReady || printing}
                                 onClick={printPreview}
-                                className="rounded-lg bg-emerald-800 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                                className="rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
                             >
                                 {printing
                                     ? 'Opening print view…'
@@ -600,7 +600,7 @@ export default function DocumentPanel({
                             </button>
                             <button
                                 disabled={service.processing}
-                                className="rounded bg-emerald-800 px-3 py-2 text-xs font-semibold text-white"
+                                className="rounded bg-brand px-3 py-2 text-xs font-semibold text-white"
                             >
                                 Save service record
                             </button>

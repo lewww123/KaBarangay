@@ -146,7 +146,7 @@ export default function HearingRecords({
                         <button
                             type="button"
                             onClick={() => openRecord(summary)}
-                            className="rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white"
+                            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
                         >
                             Open {currentPhase} hearings (
                             {
@@ -167,7 +167,7 @@ export default function HearingRecords({
                     <button
                         type="button"
                         onClick={() => setIsOpen(true)}
-                        className="ml-3 rounded-lg bg-emerald-800 px-4 py-2 text-white"
+                        className="ml-3 rounded-lg bg-brand px-4 py-2 text-white"
                     >
                         Open case hearing records
                     </button>
@@ -267,7 +267,7 @@ export default function HearingRecords({
                                                                 'block w-full rounded-xl border p-3 text-left ' +
                                                                 (selected?.id ===
                                                                 hearing.id
-                                                                    ? 'border-emerald-800 bg-emerald-50'
+                                                                    ? 'border-brand bg-brand-soft'
                                                                     : 'border-stone-200 hover:bg-stone-50')
                                                             }
                                                         >
@@ -302,7 +302,7 @@ export default function HearingRecords({
                             >
                                 {selected?.phase === 'Lupon' &&
                                     pangkat?.pangkat_members?.length === 3 && (
-                                        <section className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                                        <section className="space-y-2 rounded-lg border border-brand-muted bg-brand-soft p-4">
                                             <h3 className="font-semibold">
                                                 Pangkat assigned to conciliation
                                             </h3>
@@ -336,7 +336,7 @@ export default function HearingRecords({
                                     <button
                                         type="button"
                                         onClick={() => onSettle?.()}
-                                        className="rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white"
+                                        className="rounded-lg bg-brand px-4 py-2 text-sm text-white"
                                     >
                                         View amicable settlement
                                     </button>
@@ -391,7 +391,7 @@ export default function HearingRecords({
                                                         onClick={() =>
                                                             onSettle?.()
                                                         }
-                                                        className="rounded-lg bg-emerald-800 p-3 text-sm text-white disabled:opacity-40"
+                                                        className="rounded-lg bg-brand p-3 text-sm text-white disabled:opacity-40"
                                                     >
                                                         Settled — record
                                                         agreement
@@ -541,7 +541,7 @@ export default function HearingRecords({
                                                                 disabled={
                                                                     form.processing
                                                                 }
-                                                                className="rounded bg-emerald-800 px-3 py-2 text-xs font-semibold text-white"
+                                                                className="rounded bg-brand px-3 py-2 text-xs font-semibold text-white"
                                                             >
                                                                 {form.processing
                                                                     ? 'Saving hearing notes…'
@@ -561,7 +561,7 @@ export default function HearingRecords({
                                         <button
                                             type="button"
                                             onClick={() => onNext?.()}
-                                            className="rounded-lg bg-emerald-800 p-3 text-sm text-white"
+                                            className="rounded-lg bg-brand p-3 text-sm text-white"
                                         >
                                             Schedule hearing #1 · {currentPhase}
                                         </button>

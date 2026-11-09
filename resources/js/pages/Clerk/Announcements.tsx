@@ -185,7 +185,7 @@ export default function Announcements({
                                             className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${
                                                 item.approval_status ===
                                                 'approved'
-                                                    ? 'bg-green-100 text-green-800'
+                                                    ? 'bg-brand-soft text-brand-deep'
                                                     : item.approval_status ===
                                                         'rejected'
                                                       ? 'bg-red-100 text-red-800'

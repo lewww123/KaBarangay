@@ -250,7 +250,7 @@ export default function WorkflowPanel({
                             <Errors errors={form.errors} />
                             <button
                                 disabled={form.processing || !form.data.status}
-                                className="rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                             >
                                 {form.processing
                                     ? 'Saving…'

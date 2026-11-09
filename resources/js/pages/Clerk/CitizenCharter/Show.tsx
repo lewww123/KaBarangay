@@ -154,7 +154,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
 
                 {/* FLASH NOTICES */}
                 {flash?.success && (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                    <div className="rounded-xl border border-brand-muted bg-brand-soft px-4 py-3 text-sm font-medium text-brand-deep">
                         {flash.success}
                     </div>
                 )}
@@ -455,7 +455,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                                                     Version {ver.version_number}
                                                 </span>
                                                 {isLivePublished && (
-                                                    <span className="py-0.2 rounded-full bg-emerald-100 px-1.5 text-[9px] font-semibold text-emerald-800">
+                                                    <span className="py-0.2 rounded-full bg-brand-soft px-1.5 text-[9px] font-semibold text-brand-deep">
                                                         LIVE
                                                     </span>
                                                 )}

@@ -51,7 +51,7 @@ export default function SectorApplicationList({
                 );
             case 'approved':
                 return (
-                    <span className="inline-flex items-center rounded-lg bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 uppercase">
+                    <span className="inline-flex items-center rounded-lg bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand-deep uppercase">
                         Approved
                     </span>
                 );
@@ -166,8 +166,8 @@ export default function SectorApplicationList({
                     onClick={() => setStatusFilter('approved')}
                     className={`cursor-pointer rounded-xl border p-4 shadow-card transition ${
                         statusFilter === 'approved'
-                            ? 'border-emerald-700 bg-emerald-700 text-white'
-                            : 'border-emerald-200 bg-emerald-50/50 text-emerald-900 hover:border-emerald-300'
+                            ? 'border-brand bg-brand text-white'
+                            : 'border-brand-muted bg-brand-soft/50 text-brand-deep hover:border-brand-muted'
                     }`}
                 >
                     <span className="text-[10px] font-semibold tracking-wider uppercase opacity-75">

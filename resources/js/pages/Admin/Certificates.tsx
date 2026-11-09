@@ -193,7 +193,7 @@ function CertificatesContent({
             <Head title="Certificate Requests" />
 
             {flash?.success && (
-                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                <div className="mb-4 rounded-lg border border-brand-muted bg-brand-soft px-4 py-3 text-sm font-medium text-brand-deep">
                     {flash.success}
                 </div>
             )}

@@ -177,7 +177,7 @@ export default function ResidentAutocomplete({
                             id={`${id}-option-${index}`}
                             role="option"
                             aria-selected={index === active}
-                            className={`cursor-pointer px-3 py-2 text-sm ${index === active ? 'bg-green-100' : 'hover:bg-secondary'}`}
+                            className={`cursor-pointer px-3 py-2 text-sm ${index === active ? 'bg-brand-soft' : 'hover:bg-secondary'}`}
                             onMouseDown={(event) => event.preventDefault()}
                             onMouseEnter={() => setActive(index)}
                             onClick={() => select(resident)}

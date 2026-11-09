@@ -234,7 +234,7 @@ function LuponContent({
                 </div>
 
                 {flash?.success && (
-                    <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                    <div className="mb-5 rounded-xl border border-brand-muted bg-brand-soft p-4 text-sm text-brand-deep">
                         {flash.success}
                     </div>
                 )}
@@ -1492,11 +1492,11 @@ function StatusBadge({ status }: { status: ComplaintStatus }) {
     const styles: Record<ComplaintStatus, string> = {
         'Pending Payment': 'bg-orange-50 text-orange-800 border-orange-200',
         'Payment Verification': 'bg-amber-50 text-amber-800 border-amber-200',
-        'Payment Verified': 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        'Payment Verified': 'bg-brand-soft text-brand-deep border-brand-muted',
         Submitted: 'bg-blue-50 text-blue-700 border-blue-200',
         'Under Review': 'bg-amber-50 text-amber-700 border-amber-200',
         'For Payment': 'bg-orange-50 text-orange-800 border-orange-200',
-        Accepted: 'bg-green-50 text-green-700 border-green-200',
+        Accepted: 'bg-brand-soft text-brand-deep border-brand-muted',
         Rejected: 'bg-red-50 text-red-700 border-red-200',
     };
 

@@ -99,7 +99,7 @@ export default function Dashboard({
                                 {stats?.totalResidents ?? 0}
                             </p>
                         </div>
-                        <div className="rounded-r-lg border-l-4 border-green-500 bg-white p-4 shadow-card sm:p-5">
+                        <div className="rounded-r-lg border-l-4 border-brand bg-white p-4 shadow-card sm:p-5">
                             <h3 className="mb-1 text-xs font-semibold tracking-wider text-ink-muted uppercase">
                                 Published Updates & Programs
                             </h3>

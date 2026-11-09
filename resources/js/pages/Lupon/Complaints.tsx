@@ -291,7 +291,7 @@ function LuponComplaints({
                     <div
                         role="status"
                         aria-live="polite"
-                        className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"
+                        className="rounded-xl border border-brand-muted bg-brand-soft p-4 text-sm text-brand-deep"
                     >
                         {flash.success}
                     </div>
@@ -820,11 +820,11 @@ function StatusBadge({
     const styles: Record<ComplaintStatus, string> = {
         'Pending Payment': 'bg-orange-50 text-orange-800 border-orange-200',
         'Payment Verification': 'bg-amber-50 text-amber-800 border-amber-200',
-        'Payment Verified': 'bg-green-50 text-green-700 border-green-200',
+        'Payment Verified': 'bg-brand-soft text-brand-deep border-brand-muted',
         Submitted: 'bg-blue-50 text-blue-700 border-blue-200',
         'Under Review': 'bg-amber-50 text-amber-700 border-amber-200',
         'For Payment': 'bg-orange-50 text-orange-800 border-orange-200',
-        Accepted: 'bg-green-50 text-green-700 border-green-200',
+        Accepted: 'bg-brand-soft text-brand-deep border-brand-muted',
         Rejected: 'bg-red-50 text-red-700 border-red-200',
     };
 
@@ -856,7 +856,7 @@ function ActionButton({
 }) {
     const tones = {
         amber: 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100',
-        green: 'border-green-300 bg-green-50 text-green-800 hover:bg-green-100',
+        green: 'border-brand-muted bg-brand-soft text-brand-deep hover:bg-brand-soft',
         red: 'border-red-300 bg-red-50 text-red-800 hover:bg-red-100',
     } as const;
 

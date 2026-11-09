@@ -254,7 +254,7 @@ export default function WalkInComplaint({
                     <div className="flex justify-end">
                         <button
                             disabled={form.processing}
-                            className="rounded-lg bg-emerald-800 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                            className="rounded-lg bg-brand px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
                         >
                             {form.processing
                                 ? 'Submitting complaint…'

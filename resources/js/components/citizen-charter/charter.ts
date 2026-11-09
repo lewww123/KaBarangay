@@ -89,7 +89,7 @@ export function charterStatusBadge(status: string): {
         case 'published':
             return {
                 label: 'Published',
-                classes: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                classes: 'bg-brand-soft text-brand-deep border-brand-muted',
             };
         case 'archived':
             return {

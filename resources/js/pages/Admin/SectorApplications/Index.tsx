@@ -79,11 +79,11 @@ function SectorApplicationsContent({
                         </p>
                     </div>
 
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-card">
-                        <span className="text-[10px] font-semibold tracking-wider text-emerald-800 uppercase">
+                    <div className="rounded-xl border border-brand-muted bg-brand-soft/50 p-4 shadow-card">
+                        <span className="text-[10px] font-semibold tracking-wider text-brand-deep uppercase">
                             Admin Approved
                         </span>
-                        <p className="mt-1 text-2xl font-semibold text-emerald-900">
+                        <p className="mt-1 text-2xl font-semibold text-brand-deep">
                             {stats.approved ?? 0}
                         </p>
                     </div>
@@ -238,7 +238,7 @@ function SectorApplicationsContent({
                                             </td>
                                             <td className="px-4 py-3.5 text-xs text-ink-muted">
                                                 {app.staff_checklist_completed ? (
-                                                    <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                                                    <span className="inline-flex items-center gap-1 font-semibold text-brand-deep">
                                                         <span></span>{' '}
                                                         Recommended (
                                                         {app.reviewed_by_staff_name ||
@@ -256,7 +256,7 @@ function SectorApplicationsContent({
                                                     className={`inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-semibold uppercase ${
                                                         app.status ===
                                                         'approved'
-                                                            ? 'bg-emerald-100 text-emerald-800'
+                                                            ? 'bg-brand-soft text-brand-deep'
                                                             : app.status ===
                                                                 'under_admin_review'
                                                               ? 'bg-blue-100 text-blue-800'

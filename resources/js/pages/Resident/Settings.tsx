@@ -227,7 +227,7 @@ export default function Settings() {
 
                         <div className="min-h-7">
                             {showSaved && (
-                                <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-muted bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-deep">
                                     <CheckIcon />
                                     Changes saved
                                 </span>
@@ -239,7 +239,7 @@ export default function Settings() {
                 {flash?.success && (
                     <div
                         role="status"
-                        className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"
+                        className="mb-4 rounded-xl border border-brand-muted bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-deep"
                     >
                         {flash.success}
                     </div>
@@ -790,7 +790,7 @@ function SwitchRow({
                     <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                             checked
-                                ? 'bg-green-50 text-green-700'
+                                ? 'bg-brand-soft text-brand-deep'
                                 : 'bg-secondary text-ink-muted'
                         }`}
                     >

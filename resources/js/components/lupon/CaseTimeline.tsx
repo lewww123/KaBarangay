@@ -58,7 +58,7 @@ export default function CaseTimeline({
                     ))}
                 </div>
             )}
-            <ol className="space-y-4 border-l border-emerald-200 pl-4">
+            <ol className="space-y-4 border-l border-brand-muted pl-4">
                 {[...workflow.events]
                     .sort(
                         (a, b) =>
@@ -69,7 +69,7 @@ export default function CaseTimeline({
                         <li key={event.id} className="relative">
                             <span
                                 aria-hidden="true"
-                                className="absolute top-1.5 -left-[21px] h-2 w-2 rounded-full bg-emerald-600"
+                                className="absolute top-1.5 -left-[21px] h-2 w-2 rounded-full bg-brand"
                             />
                             <p className="text-sm font-semibold text-ink-strong">
                                 {luponStatusLabel(event.to)}

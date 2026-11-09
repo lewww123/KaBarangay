@@ -22,7 +22,7 @@ export default function PromoteComplaint({
     });
     return (
         <form
-            className="w-full space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4"
+            className="w-full space-y-3 rounded-xl border border-brand-muted bg-brand-soft p-4"
             onSubmit={(event) => {
                 event.preventDefault();
                 if (!window.confirm('Confirm that you personally verified the actual payment and official receipt. Create the official case?')) return;
@@ -34,7 +34,7 @@ export default function PromoteComplaint({
                 });
             }}
         >
-            <h3 className="font-semibold text-emerald-950">
+            <h3 className="font-semibold text-brand-deep">
                 Verify payment and create the official case
             </h3>
             <p className="text-xs text-ink-muted">
@@ -116,7 +116,7 @@ export default function PromoteComplaint({
             <Errors errors={form.errors} />
             <button
                 disabled={form.processing}
-                className="rounded-lg bg-emerald-800 px-4 py-2 font-semibold text-white disabled:opacity-50"
+                className="rounded-lg bg-brand px-4 py-2 font-semibold text-white disabled:opacity-50"
             >
                 {form.processing
                     ? 'Creating official case…'

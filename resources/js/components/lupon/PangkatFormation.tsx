@@ -229,7 +229,7 @@ export default function PangkatFormation({
                     new Set(members.map((name) => name.trim().toLowerCase()))
                         .size !== 3
                 }
-                className="rounded-lg bg-emerald-800 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+                className="rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
             >
                 {form.processing
                     ? 'Saving Pangkat and scheduling hearing…'

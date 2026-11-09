@@ -482,7 +482,7 @@ function MetricCard({
                 {label}
             </p>
             <p
-                className={`mt-1 text-2xl font-semibold ${{ green: 'text-emerald-800', amber: 'text-amber-800', red: 'text-red-800' }[color] ?? 'text-ink-strong'}`}
+                className={`mt-1 text-2xl font-semibold ${{ green: 'text-brand-deep', amber: 'text-amber-800', red: 'text-red-800' }[color] ?? 'text-ink-strong'}`}
             >
                 {value}
             </p>

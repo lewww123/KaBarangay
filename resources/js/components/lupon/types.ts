@@ -91,7 +91,7 @@ export function luponStatusLabel(status: string): string {
 }
 export function luponStatusClasses(status: string): string {
     if (['settled', 'Settled', 'Executed'].includes(status))
-        return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+        return 'bg-brand-soft text-brand-deep border-brand-muted';
     if (
         [
             'repudiated',

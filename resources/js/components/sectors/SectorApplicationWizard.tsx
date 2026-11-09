@@ -203,8 +203,8 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
 
             {submittedSuccess ? (
                 /* SUCCESS STATE */
-                <div className="space-y-4 rounded-xl border border-emerald-200 bg-white p-8 text-center shadow-card">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700">
+                <div className="space-y-4 rounded-xl border border-brand-muted bg-white p-8 text-center shadow-card">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-2xl text-brand-deep">
                         
                     </div>
                     <h2 className="text-xl font-semibold text-ink-strong">
@@ -323,7 +323,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                 className={`rounded-xl border p-4.5 transition ${
                                     isAlreadyMember
                                         ? 'border-amber-200 bg-amber-50/50'
-                                        : 'border-emerald-200 bg-emerald-50/30'
+                                        : 'border-brand-muted bg-brand-soft/30'
                                 }`}
                             >
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -356,7 +356,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                                 Already Active {sectorTitle}
                                             </span>
                                         ) : (
-                                            <span className="inline-flex rounded-lg border border-emerald-300 bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-800">
+                                            <span className="inline-flex rounded-lg border border-brand-muted bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand-deep">
                                                 Active Resident Verified
                                             </span>
                                         )}
@@ -370,7 +370,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                         sector registration is prevented.
                                     </p>
                                 ) : (
-                                    <div className="mt-4 flex items-center gap-2 border-t border-emerald-100/80 pt-3">
+                                    <div className="mt-4 flex items-center gap-2 border-t border-brand-muted/60 pt-3">
                                         <input
                                             type="checkbox"
                                             id="confirm_identity"
@@ -452,7 +452,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                         />
 
                                         {doc.file && (
-                                            <p className="text-[11px] font-medium text-emerald-700">
+                                            <p className="text-[11px] font-medium text-brand-deep">
                                                 Selected: {doc.file.name} (
                                                 {(doc.file.size / 1024).toFixed(
                                                     1,

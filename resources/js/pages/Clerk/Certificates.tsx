@@ -292,8 +292,8 @@ const STATUS_STYLES: Record<string, string> = {
     'Needs Action': 'bg-orange-100 text-orange-800',
     'For Payment': 'bg-blue-100 text-blue-800',
     Processing: 'bg-indigo-100 text-indigo-800',
-    'Ready for Claim': 'bg-teal-100 text-teal-800',
-    Released: 'bg-green-100 text-green-800',
+    'Ready for Claim': 'bg-brand-soft text-brand-deep',
+    Released: 'bg-brand-soft text-brand-deep',
     Rejected: 'bg-red-100 text-red-800',
 };
 
@@ -2377,13 +2377,13 @@ function Dashboard({
     );
 
     const renderResidencyFields = () => (
-        <div className="space-y-3 rounded-lg border border-teal-100 bg-teal-50 p-4">
-            <h4 className="text-xs font-semibold text-teal-800 uppercase">
+        <div className="space-y-3 rounded-lg border border-brand-muted bg-brand-soft p-4">
+            <h4 className="text-xs font-semibold text-brand-deep uppercase">
                 Residency Details
             </h4>
 
             {profileLoading && (
-                <p className="text-xs text-teal-800">
+                <p className="text-xs text-brand-deep">
                     Loading the linked resident's details…
                 </p>
             )}
@@ -3960,7 +3960,7 @@ function Dashboard({
                                                 <td className="px-4 py-3">
                                                     {row.record_type ===
                                                     'issuance' ? (
-                                                        <span className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800">
+                                                        <span className="inline-flex rounded-full border border-brand-muted bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand-deep">
                                                             Issued
                                                         </span>
                                                     ) : (
@@ -3992,7 +3992,7 @@ function Dashboard({
                                                     {row.record_type ===
                                                         'issuance' ||
                                                     row.status === null ? (
-                                                        <span className="inline-flex rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800">
+                                                        <span className="inline-flex rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand-deep">
                                                             Issued
                                                         </span>
                                                     ) : (
@@ -4310,10 +4310,10 @@ function Dashboard({
                                                                 'qr' &&
                                                                 data.resident_name !==
                                                                     '' && (
-                                                                    <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-800">
+                                                                    <div className="rounded-lg border border-brand-muted bg-brand-soft px-3 py-3 text-sm text-brand-deep">
                                                                         <div className="flex items-center justify-between gap-3">
                                                                             <div>
-                                                                                <span className="inline-flex items-center rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">
+                                                                                <span className="inline-flex items-center rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-white">
                                                                                     QR
                                                                                     VERIFIED
                                                                                 </span>
@@ -4322,7 +4322,7 @@ function Dashboard({
                                                                                         data.resident_name
                                                                                     }
                                                                                 </p>
-                                                                                <p className="text-xs text-green-700">
+                                                                                <p className="text-xs text-brand-deep">
                                                                                     Resident
                                                                                     ID:{' '}
                                                                                     {
@@ -4345,7 +4345,7 @@ function Dashboard({
                                                                                             1,
                                                                                     );
                                                                                 }}
-                                                                                className="shrink-0 rounded-lg border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-800 hover:bg-green-100"
+                                                                                className="shrink-0 rounded-lg border border-brand-muted bg-white px-3 py-1.5 text-xs font-medium text-brand-deep hover:bg-brand-soft"
                                                                             >
                                                                                 {
                                                                                     'Scan another'
@@ -4566,8 +4566,8 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 'Scholarship Certificate' && (
-                                                                <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
-                                                                    <h4 className="text-xs font-semibold text-emerald-800 uppercase">
+                                                                <div className="space-y-3 rounded-lg border border-brand-muted bg-brand-soft p-4">
+                                                                    <h4 className="text-xs font-semibold text-brand-deep uppercase">
                                                                         Scholarship
                                                                         & Family
                                                                         Details
@@ -4837,7 +4837,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE && (
-                                                                <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+                                                                <div className="rounded-lg border border-brand-muted bg-brand-soft px-3 py-2 text-xs text-brand-deep">
                                                                     The purpose
                                                                     of this
                                                                     certificate
@@ -4942,7 +4942,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE && (
-                                                                <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+                                                                <div className="rounded-lg border border-brand-muted bg-brand-soft px-3 py-2 text-xs text-brand-deep">
                                                                     Select the
                                                                     signatory
                                                                     for this
@@ -5275,8 +5275,8 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 'Scholarship Certificate' && (
-                                                                <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
-                                                                    <h4 className="text-xs font-semibold text-emerald-800 uppercase">
+                                                                <div className="space-y-3 rounded-lg border border-brand-muted bg-brand-soft p-4">
+                                                                    <h4 className="text-xs font-semibold text-brand-deep uppercase">
                                                                         Scholarship
                                                                         & Family
                                                                         Details
@@ -5546,7 +5546,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE && (
-                                                                <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+                                                                <div className="rounded-lg border border-brand-muted bg-brand-soft px-3 py-2 text-xs text-brand-deep">
                                                                     The purpose
                                                                     of this
                                                                     certificate
@@ -5651,7 +5651,7 @@ function Dashboard({
 
                                                             {data.certificate_type ===
                                                                 RESIDENCY_TYPE && (
-                                                                <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+                                                                <div className="rounded-lg border border-brand-muted bg-brand-soft px-3 py-2 text-xs text-brand-deep">
                                                                     Select the
                                                                     signatory
                                                                     for this
@@ -5773,8 +5773,8 @@ function Dashboard({
                                         <div className="bg-secondary p-6">
                                             <div className="mx-auto mb-4 max-w-[500px]">
                                                 {residentSource === 'qr' ? (
-                                                    <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                                                        <span className="inline-flex items-center rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">
+                                                    <div className="rounded-lg border border-brand-muted bg-brand-soft px-3 py-2 text-sm text-brand-deep">
+                                                        <span className="inline-flex items-center rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-white">
                                                             QR VERIFIED
                                                         </span>
                                                         <span className="ml-2">
@@ -5986,11 +5986,11 @@ function Dashboard({
                                             </div>
 
                                             {requestDetails.issuance && (
-                                                <div className="rounded-lg border border-teal-200 bg-teal-50 p-2.5 sm:col-span-2">
-                                                    <p className="text-[10px] font-semibold tracking-wide text-teal-800 uppercase">
+                                                <div className="rounded-lg border border-brand-muted bg-brand-soft p-2.5 sm:col-span-2">
+                                                    <p className="text-[10px] font-semibold tracking-wide text-brand-deep uppercase">
                                                         Certificate Issued
                                                     </p>
-                                                    <p className="text-xs font-medium text-teal-900">
+                                                    <p className="text-xs font-medium text-brand-deep">
                                                         Reference:{' '}
                                                         <span className="font-mono">
                                                             {
@@ -6000,7 +6000,7 @@ function Dashboard({
                                                             }
                                                         </span>
                                                     </p>
-                                                    <p className="text-[11px] text-teal-700">
+                                                    <p className="text-[11px] text-brand-deep">
                                                         Issued on{' '}
                                                         {
                                                             requestDetails
@@ -6036,7 +6036,7 @@ function Dashboard({
                                         )}
 
                                         {requestActionSuccess && (
-                                            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                                            <div className="rounded-lg border border-brand-muted bg-brand-soft px-3 py-2 text-sm text-brand-deep">
                                                 {requestActionSuccess}
                                             </div>
                                         )}
@@ -6119,7 +6119,7 @@ function Dashboard({
                                                             void handleConfirmPayment()
                                                         }
                                                         disabled={actionLoading}
-                                                        className="inline-flex shrink-0 items-center justify-center rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-card hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        className="inline-flex shrink-0 items-center justify-center rounded-lg bg-brand px-3.5 py-1.5 text-xs font-semibold text-white shadow-card hover:bg-brand disabled:cursor-not-allowed disabled:opacity-60"
                                                     >
                                                         {actionLoading
                                                             ? 'Confirming...'
@@ -6168,7 +6168,7 @@ function Dashboard({
                                                                     disabled={
                                                                         actionLoading
                                                                     }
-                                                                    className="rounded bg-emerald-700 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+                                                                    className="rounded bg-brand px-3 py-1 text-xs font-semibold text-white hover:bg-brand disabled:opacity-60"
                                                                 >
                                                                     {actionLoading
                                                                         ? 'Releasing...'
@@ -6193,7 +6193,7 @@ function Dashboard({
 
                                             {requestDetails.status ===
                                                 'Released' && (
-                                                <p className="text-xs font-medium text-green-800">
+                                                <p className="text-xs font-medium text-brand-deep">
                                                     Certificate released and
                                                     handed over to resident.
                                                     Lifecycle is complete.
@@ -6477,7 +6477,7 @@ function Dashboard({
                                 ) : issuanceDetails ? (
                                     <div className="space-y-5">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <span className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-800">
+                                            <span className="inline-flex rounded-full border border-brand-muted bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand-deep">
                                                 Issued
                                             </span>
                                             <span className="font-mono text-sm font-semibold text-ink-strong">

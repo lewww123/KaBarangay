@@ -452,7 +452,7 @@ function ProfileContent() {
 
                                 {profile.email &&
                                     (profile.emailVerified ? (
-                                        <p className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                                        <p className="inline-flex items-center rounded-full bg-brand-soft px-2 py-1 text-[11px] font-semibold text-brand-deep">
                                             Email verified
                                         </p>
                                     ) : (
@@ -544,7 +544,7 @@ function ProfileContent() {
                             </p>
 
                             <div className="mt-1">
-                                <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand-deep">
                                     <SmallCheckIcon />
                                     {profile.accountStatus}
                                 </span>
@@ -695,10 +695,10 @@ function NotificationAlert({
 }) {
     const styles = {
         success: {
-            container: 'border-green-200 bg-green-50',
-            icon: 'bg-green-100 text-green-700',
-            title: 'text-green-900',
-            message: 'text-green-800',
+            container: 'border-brand-muted bg-brand-soft',
+            icon: 'bg-brand-soft text-brand-deep',
+            title: 'text-brand-deep',
+            message: 'text-brand-deep',
         },
 
         error: {

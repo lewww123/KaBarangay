@@ -38,7 +38,7 @@ export default function RegistrationVerificationResend({ feedback }: Props) {
                 {feedback && (
                     <p
                         role="status"
-                        className="mt-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800"
+                        className="mt-5 rounded-lg border border-brand-muted bg-brand-soft p-3 text-sm text-brand-deep"
                     >
                         {feedback}
                     </p>

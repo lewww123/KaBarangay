@@ -212,7 +212,7 @@ export default function ResidentDirectoryTable({
                                             <span
                                                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
                                                     res.status === 'active'
-                                                        ? 'bg-emerald-100 text-emerald-800'
+                                                        ? 'bg-brand-soft text-brand-deep'
                                                         : 'bg-secondary text-ink-muted'
                                                 }`}
                                             >
@@ -221,7 +221,7 @@ export default function ResidentDirectoryTable({
                                         </td>
                                         <td className="px-4 py-3.5 text-center">
                                             {res.has_qr ? (
-                                                <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                                <span className="inline-flex items-center gap-1 rounded-lg border border-brand-muted bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand-deep">
                                                     <span></span> Active
                                                 </span>
                                             ) : (

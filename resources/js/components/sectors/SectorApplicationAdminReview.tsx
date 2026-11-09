@@ -125,7 +125,7 @@ export default function SectorApplicationAdminReview({
                                     </strong>
                                 </span>
                                 {application.staff_checklist_completed && (
-                                    <span className="text-[11px] font-semibold text-emerald-700">
+                                    <span className="text-[11px] font-semibold text-brand-deep">
                                         Checklist completed
                                     </span>
                                 )}

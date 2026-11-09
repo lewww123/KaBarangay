@@ -55,7 +55,7 @@ export function EvidenceList({ files }: { files: LuponEvidenceFile[] }) {
                 >
                     <a
                         href={file.url}
-                        className="min-w-0 font-medium break-words text-emerald-800 underline"
+                        className="min-w-0 font-medium break-words text-brand-deep underline"
                     >
                         {file.name}
                     </a>

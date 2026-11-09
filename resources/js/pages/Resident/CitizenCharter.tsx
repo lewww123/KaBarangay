@@ -175,7 +175,7 @@ function CitizenCharterContent({
                             >
                                 <div>
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                        <span className="inline-flex rounded-full border border-brand-muted bg-brand-soft px-2.5 py-0.5 text-[10px] font-semibold text-brand-deep">
                                             {service.category ||
                                                 'General Service'}
                                         </span>

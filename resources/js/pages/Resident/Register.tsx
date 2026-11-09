@@ -512,7 +512,7 @@ function RegistrationContent({
                                 ? 'assertive'
                                 : 'polite'
                         }
-                        className={`fixed top-4 right-4 z-[100] flex max-w-[calc(100vw-2rem)] items-start gap-3 rounded-xl border p-4 text-sm shadow-lg sm:max-w-md ${submissionFeedback.kind === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-900'}`}
+                        className={`fixed top-4 right-4 z-[100] flex max-w-[calc(100vw-2rem)] items-start gap-3 rounded-xl border p-4 text-sm shadow-lg sm:max-w-md ${submissionFeedback.kind === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-brand-muted bg-brand-soft text-brand-deep'}`}
                     >
                         <span className="whitespace-pre-line">
                             {submissionFeedback.message}

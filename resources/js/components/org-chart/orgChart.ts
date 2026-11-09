@@ -29,7 +29,7 @@ export function orgChartStatusBadge(status: OrgChartStatus): {
         case 'published':
             return {
                 label: 'Published',
-                classes: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                classes: 'border-brand-muted bg-brand-soft text-brand-deep',
             };
         case 'archived':
             return {
