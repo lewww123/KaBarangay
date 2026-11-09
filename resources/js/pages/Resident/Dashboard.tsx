@@ -110,192 +110,190 @@ function DashboardContent({
                 </section>
 
                 <div className="@container">
-                    <div className="grid grid-cols-1 items-start gap-6 @min-[48rem]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                        <div className="min-w-0 space-y-6">
-                            {/* QUICK SERVICES */}
-                            <section
-                                aria-labelledby="quick-services-heading"
-                                className="@container/services"
+                    <div className="space-y-6">
+                        {/* QUICK SERVICES */}
+                        <section
+                            aria-labelledby="quick-services-heading"
+                            className="@container/services"
+                        >
+                            <h2
+                                id="quick-services-heading"
+                                className="sr-only"
                             >
+                                Quick Services
+                            </h2>
+
+                            <div className="grid grid-cols-1 gap-3 @min-[27rem]/services:grid-cols-2">
+                                <QuickServiceCard
+                                    href="/resident/certificates"
+                                    icon={<CertificateIcon />}
+                                    title="Request Certificate"
+                                    description="Request barangay documents and track your request."
+                                />
+
+                                <QuickServiceCard
+                                    href="/resident/lupon"
+                                    icon={<ComplaintIcon />}
+                                    title="File a Complaint"
+                                    description="Submit a concern or view your Lupon case."
+                                />
+                            </div>
+                        </section>
+
+                        {/* LATEST ANNOUNCEMENT (REAL DATA FROM BACKEND) */}
+                        <section
+                            aria-labelledby="latest-announcement-heading"
+                            className="space-y-2"
+                        >
+                            <div className="flex items-center justify-between gap-4">
                                 <h2
-                                    id="quick-services-heading"
-                                    className="sr-only"
+                                    id="latest-announcement-heading"
+                                    className="text-ink-strong text-sm font-semibold"
                                 >
-                                    Quick Services
+                                    Latest Announcement
                                 </h2>
 
-                                <div className="grid grid-cols-1 gap-3 @min-[27rem]/services:grid-cols-2">
-                                    <QuickServiceCard
-                                        href="/resident/certificates"
-                                        icon={<CertificateIcon />}
-                                        title="Request Certificate"
-                                        description="Request barangay documents and track your request."
-                                    />
+                                <Link
+                                    href="/resident/announcements"
+                                    className="text-brand shrink-0 text-xs font-semibold hover:underline"
+                                >
+                                    View All
+                                </Link>
+                            </div>
 
-                                    <QuickServiceCard
-                                        href="/resident/lupon"
-                                        icon={<ComplaintIcon />}
-                                        title="File a Complaint"
-                                        description="Submit a concern or view your Lupon case."
-                                    />
+                            {latestAnnouncement ? (
+                                <Link
+                                    href="/resident/announcements"
+                                    className="border-line-soft bg-surface shadow-card hover:border-brand flex min-h-[68px] items-center gap-3 rounded-xl border p-4 transition-colors"
+                                >
+                                    <span className="bg-brand-soft text-brand grid size-9 shrink-0 place-items-center rounded-full">
+                                        <AnnouncementIcon />
+                                    </span>
+
+                                    <span className="min-w-0">
+                                        <span className="text-ink-strong block truncate text-sm font-semibold">
+                                            {latestAnnouncement.title}
+                                        </span>
+
+                                        <span className="text-ink-muted mt-0.5 block text-xs">
+                                            {latestAnnouncement.created_at}
+                                        </span>
+                                    </span>
+                                </Link>
+                            ) : (
+                                <div className="border-line-soft bg-surface text-ink-muted shadow-card flex min-h-[68px] items-center justify-center rounded-xl border p-4 text-sm">
+                                    No active announcements at this time.
                                 </div>
-                            </section>
+                            )}
+                        </section>
 
-                            {/* LATEST ANNOUNCEMENT (REAL DATA FROM BACKEND) */}
-                            <section
-                                aria-labelledby="latest-announcement-heading"
-                                className="space-y-2"
+                    {/* BARANGAY ASSISTANCE */}
+                    <section
+                        aria-labelledby="barangay-assistance-heading"
+                        className="border-line-soft bg-surface shadow-card min-w-0 rounded-xl border p-4"
+                    >
+                        <div className="mb-3">
+                            <h2
+                                id="barangay-assistance-heading"
+                                className="text-ink-strong text-sm font-semibold tracking-tight"
                             >
-                                <div className="flex items-center justify-between gap-4">
-                                    <h2
-                                        id="latest-announcement-heading"
-                                        className="text-ink-strong text-sm font-semibold"
-                                    >
-                                        Latest Announcement
-                                    </h2>
+                                Need barangay assistance?
+                            </h2>
 
-                                    <Link
-                                        href="/resident/announcements"
-                                        className="text-brand shrink-0 text-xs font-semibold hover:underline"
-                                    >
-                                        View All
-                                    </Link>
-                                </div>
-
-                                {latestAnnouncement ? (
-                                    <Link
-                                        href="/resident/announcements"
-                                        className="border-line-soft bg-surface shadow-card hover:border-brand flex min-h-[68px] items-center gap-3 rounded-xl border p-4 transition-colors"
-                                    >
-                                        <span className="bg-brand-soft text-brand grid size-9 shrink-0 place-items-center rounded-full">
-                                            <AnnouncementIcon />
-                                        </span>
-
-                                        <span className="min-w-0">
-                                            <span className="text-ink-strong block truncate text-sm font-semibold">
-                                                {latestAnnouncement.title}
-                                            </span>
-
-                                            <span className="text-ink-muted mt-0.5 block text-xs">
-                                                {latestAnnouncement.created_at}
-                                            </span>
-                                        </span>
-                                    </Link>
-                                ) : (
-                                    <div className="border-line-soft bg-surface text-ink-muted shadow-card flex min-h-[68px] items-center justify-center rounded-xl border p-4 text-sm">
-                                        No active announcements at this time.
-                                    </div>
-                                )}
-                            </section>
+                            <p className="text-ink-muted mt-1 text-xs leading-relaxed">
+                                For concerns that need help from the
+                                barangay or Barangay Tanod.
+                            </p>
                         </div>
 
-                        {/* BARANGAY ASSISTANCE */}
-                        <section
-                            aria-labelledby="barangay-assistance-heading"
-                            className="border-line-soft bg-surface shadow-card min-w-0 rounded-xl border p-4"
-                        >
-                            <div className="mb-3">
-                                <h2
-                                    id="barangay-assistance-heading"
-                                    className="text-ink-strong text-sm font-semibold tracking-tight"
-                                >
-                                    Need barangay assistance?
-                                </h2>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <button
+                                type="button"
+                                onClick={() => setActiveModal('tanod')}
+                                className="group border-line-soft bg-surface hover:border-brand focus:ring-brand/25 w-full overflow-hidden rounded-xl border text-left transition-colors focus:ring-2 focus:outline-none"
+                            >
+                                <div className="flex min-h-[96px] items-start gap-3 p-4">
+                                    <span className="bg-brand-soft text-brand grid size-10 shrink-0 place-items-center rounded-lg">
+                                        <ShieldIcon />
+                                    </span>
 
-                                <p className="text-ink-muted mt-1 text-xs leading-relaxed">
-                                    For concerns that need help from the
-                                    barangay or Barangay Tanod.
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveModal('tanod')}
-                                    className="group border-line-soft bg-surface hover:border-brand focus:ring-brand/25 w-full overflow-hidden rounded-xl border text-left transition-colors focus:ring-2 focus:outline-none"
-                                >
-                                    <div className="flex min-h-[96px] items-start gap-3 p-4">
-                                        <span className="bg-brand-soft text-brand grid size-10 shrink-0 place-items-center rounded-lg">
-                                            <ShieldIcon />
+                                    <span className="min-w-0 flex-1">
+                                        <span className="bg-brand-soft text-brand inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase">
+                                            Non-emergency
                                         </span>
 
-                                        <span className="min-w-0 flex-1">
-                                            <span className="bg-brand-soft text-brand inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase">
-                                                Non-emergency
-                                            </span>
-
-                                            <span className="text-ink-strong mt-1.5 block text-sm font-semibold">
-                                                Tanod Assistance
-                                            </span>
-
-                                            <span className="text-ink-muted mt-1 block text-xs leading-relaxed">
-                                                For disturbances, suspicious
-                                                activity, neighborhood concerns,
-                                                or barangay help.
-                                            </span>
+                                        <span className="text-ink-strong mt-1.5 block text-sm font-semibold">
+                                            Tanod Assistance
                                         </span>
 
-                                        <span className="text-ink-faint hidden shrink-0 sm:block">
-                                            <ChevronRightIcon />
+                                        <span className="text-ink-muted mt-1 block text-xs leading-relaxed">
+                                            For disturbances, suspicious
+                                            activity, neighborhood concerns,
+                                            or barangay help.
                                         </span>
-                                    </div>
+                                    </span>
 
-                                    <div className="border-line-soft bg-canvas text-ink-muted border-t px-4 py-2 text-[11px] font-medium">
-                                        Barangay Tanod contacts available inside
-                                    </div>
-                                </button>
+                                    <span className="text-ink-faint hidden shrink-0 sm:block">
+                                        <ChevronRightIcon />
+                                    </span>
+                                </div>
 
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveModal('emergency')}
-                                    className="group bg-surface w-full overflow-hidden rounded-xl border border-red-200 text-left transition-colors hover:border-red-300 focus:ring-2 focus:ring-red-300 focus:outline-none"
-                                >
-                                    <div className="flex min-h-[96px] items-start gap-3 p-4">
-                                        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-red-100 text-red-700">
-                                            <EmergencyIcon />
-                                        </span>
+                                <div className="border-line-soft bg-canvas text-ink-muted border-t px-4 py-2 text-[11px] font-medium">
+                                    Barangay Tanod contacts available inside
+                                </div>
+                            </button>
 
-                                        <span className="min-w-0 flex-1">
-                                            <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-red-700 uppercase">
-                                                Urgent
-                                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setActiveModal('emergency')}
+                                className="group bg-surface w-full overflow-hidden rounded-xl border border-red-200 text-left transition-colors hover:border-red-300 focus:ring-2 focus:ring-red-300 focus:outline-none"
+                            >
+                                <div className="flex min-h-[96px] items-start gap-3 p-4">
+                                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-red-100 text-red-700">
+                                        <EmergencyIcon />
+                                    </span>
 
-                                            <span className="mt-1.5 block text-sm font-semibold text-red-700">
-                                                Emergency Help
-                                            </span>
-
-                                            <span className="text-ink-muted mt-1 block text-xs leading-relaxed">
-                                                Quickly find ambulance, police,
-                                                fire, hospital, and disaster
-                                                hotlines.
-                                            </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-red-700 uppercase">
+                                            Urgent
                                         </span>
 
-                                        <span className="hidden shrink-0 text-red-600 sm:block">
-                                            <ChevronRightIcon />
+                                        <span className="mt-1.5 block text-sm font-semibold text-red-700">
+                                            Emergency Help
                                         </span>
-                                    </div>
 
-                                    <div className="border-t border-red-100 bg-red-50 px-4 py-2 text-[11px] font-medium text-red-700">
-                                        Verified emergency service contacts
-                                        available inside
-                                    </div>
-                                </button>
-                            </div>
+                                        <span className="text-ink-muted mt-1 block text-xs leading-relaxed">
+                                            Quickly find ambulance, police,
+                                            fire, hospital, and disaster
+                                            hotlines.
+                                        </span>
+                                    </span>
 
-                            <p className="text-ink-faint mt-3 text-[11px] leading-relaxed">
-                                For life-threatening emergencies, contact the
-                                appropriate emergency service directly.
-                            </p>
-                        </section>
+                                    <span className="hidden shrink-0 text-red-600 sm:block">
+                                        <ChevronRightIcon />
+                                    </span>
+                                </div>
+
+                                <div className="border-t border-red-100 bg-red-50 px-4 py-2 text-[11px] font-medium text-red-700">
+                                    Verified emergency service contacts
+                                    available inside
+                                </div>
+                            </button>
+                        </div>
+
+                        <p className="text-ink-faint mt-3 text-[11px] leading-relaxed">
+                            For life-threatening emergencies, contact the
+                            appropriate emergency service directly.
+                        </p>
+                    </section>
                     </div>
                 </div>
 
                 {/* MODALS */}
                 {activeModal === 'tanod' && (
                     <ModalContainer
-                        title="Request Tanod Assistance"
-                        description="Tell us what happened so the barangay can review your concern."
+                        title="Tanod Assistance"
+                        description="Official Tanod contact information for your barangay."
                         icon={
                             <span className="bg-brand-soft text-brand flex h-11 w-11 items-center justify-center rounded-xl">
                                 <ShieldIcon />
@@ -303,10 +301,7 @@ function DashboardContent({
                         }
                         onClose={() => setActiveModal(null)}
                     >
-                        <TanodAssistanceForm
-                            onCancel={() => setActiveModal(null)}
-                            hotlines={barangayHotlines}
-                        />
+                        <TanodAssistanceForm hotlines={barangayHotlines} />
                     </ModalContainer>
                 )}
 
@@ -451,21 +446,11 @@ function ContactActionButtons({
 }
 
 function TanodAssistanceForm({
-    onCancel,
     hotlines = [],
 }: {
-    onCancel: () => void;
     hotlines?: ResidentContact[];
 }) {
     const [showOtherContacts, setShowOtherContacts] = useState(false);
-    const [concernType, setConcernType] = useState('');
-    const [location, setLocation] = useState('');
-    const [details, setDetails] = useState('');
-
-    const handleSubmit = () => {
-        window.alert('Tanod assistance request preview submitted.');
-        onCancel();
-    };
 
     const showEmptyState = hotlines.length === 0;
     const officialContact =
@@ -596,93 +581,6 @@ function TanodAssistanceForm({
                 </section>
             )}
 
-            <div className="border-t border-line-soft pt-5">
-                <h3 className="text-base font-semibold tracking-tight text-ink-strong">
-                    Send a Tanod Assistance Request
-                </h3>
-
-                <p className="mt-1 text-sm leading-5 text-ink-muted">
-                    For non-urgent concerns, you can also send a request through
-                    KaBarangay.
-                </p>
-            </div>
-
-            <div>
-                <label
-                    htmlFor="tanod-concern"
-                    className="mb-2 block text-sm font-semibold text-ink"
-                >
-                    Concern Type
-                </label>
-
-                <select
-                    id="tanod-concern"
-                    value={concernType}
-                    onChange={(e) => setConcernType(e.target.value)}
-                    className="min-h-12 w-full rounded-xl border border-line bg-white px-3 text-base text-ink-strong transition outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 sm:text-sm"
-                >
-                    <option value="">Select concern</option>
-                    <option value="noise">Noise disturbance</option>
-                    <option value="conflict">Neighborhood conflict</option>
-                    <option value="suspicious">Suspicious activity</option>
-                    <option value="assistance">Assistance needed</option>
-                    <option value="other">Other concern</option>
-                </select>
-            </div>
-
-            <div>
-                <label
-                    htmlFor="tanod-location"
-                    className="mb-2 block text-sm font-semibold text-ink"
-                >
-                    Where is it happening?
-                </label>
-
-                <input
-                    id="tanod-location"
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Enter purok, street, or nearby landmark"
-                    className="min-h-12 w-full rounded-xl border border-line bg-white px-3 text-base text-ink-strong transition outline-none placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15 sm:text-sm"
-                />
-            </div>
-
-            <div>
-                <label
-                    htmlFor="tanod-details"
-                    className="mb-2 block text-sm font-semibold text-ink"
-                >
-                    Tell us what happened
-                </label>
-
-                <textarea
-                    id="tanod-details"
-                    rows={4}
-                    value={details}
-                    onChange={(e) => setDetails(e.target.value)}
-                    placeholder="Describe the concern clearly..."
-                    className="w-full resize-y rounded-xl border border-line bg-white p-3 text-base text-ink-strong transition outline-none placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15 sm:text-sm"
-                />
-            </div>
-
-            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="min-h-12 rounded-xl border border-line bg-white px-5 text-sm font-semibold text-ink transition hover:bg-canvas"
-                >
-                    Cancel
-                </button>
-
-                <button
-                    type="button"
-                    onClick={handleSubmit}
-                    className="min-h-12 rounded-xl bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-deep"
-                >
-                    Send Request
-                </button>
-            </div>
         </div>
     );
 }
