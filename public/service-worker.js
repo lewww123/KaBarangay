@@ -7,6 +7,7 @@ const META = VERSION + '-meta';
 const PAGES = VERSION + '-pages-';
 const MAX_AGE = 24 * 60 * 60 * 1000;
 const MAX_PAGES = 20;
+const OFFLINE_LOGOUT = '/offline.html?loggedout=1';
 let serial = Promise.resolve();
 let authEpoch = 0;
 const ordered = (work) => {
@@ -263,13 +264,11 @@ self.addEventListener('fetch', (event) => {
                             ? new Response(null, {
                                   status: 409,
                                   headers: {
-                                      'X-Inertia-Location':
-                                          '/offline.html?loggedout=1',
+                                      'X-Inertia-Location': OFFLINE_LOGOUT,
                                   },
                               })
                             : Response.redirect(
-                                  self.location.origin +
-                                      '/offline.html?loggedout=1',
+                                  self.location.origin + OFFLINE_LOGOUT,
                                   303,
                               );
                     }
