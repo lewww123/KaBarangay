@@ -74,6 +74,13 @@ const scopeA = 'a'.repeat(64),
 let scope = scopeA,
     writes = 0,
     logouts = 0;
+let degraded = false;
+let buggy = false;
+// A signed-out /offline/session answer never reads the account tables, so it can only
+// ever prove that this server is alive.
+let guestProbe = false;
+let legacyProbe = false;
+let sessionProbes = 0;
 let slowResponse;
 const appScript = `import {offlineSnapshot} from '/snapshot.js';
 window.appBooted=true;
@@ -107,15 +114,60 @@ const server = createServer(async (req, res) => {
         );
         return;
     }
-    res.setHeader('X-KaBarangay-Offline-Scope', scope || '');
+    // A degraded server says nothing about the scope: it neither issues one nor revokes one.
+    if (!degraded) res.setHeader('X-KaBarangay-Offline-Scope', scope || '');
+    if (url.pathname === '/test/degrade') {
+        degraded = true;
+        res.setHeader('Content-Type', 'application/json');
+        res.end('{"degraded":true}');
+        return;
+    }
+    if (url.pathname === '/test/recover') {
+        degraded = false;
+        res.setHeader('X-KaBarangay-Offline-Scope', scope || '');
+        res.setHeader('Content-Type', 'application/json');
+        res.end('{"recovered":true}');
+        return;
+    }
+    // Stand in for a signed-out visitor: the real endpoint answers this shape without
+    // reading the account tables, so it says the same thing during an outage or not.
+    if (url.pathname === '/test/guest') {
+        guestProbe = url.searchParams.get('off') !== '1';
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ guestProbe }));
+        return;
+    }
     if (url.pathname === '/test/slow-scope') {
         res.setHeader('Content-Type', 'application/json');
         slowResponse = res;
         return;
     }
     if (url.pathname === '/offline/session') {
+        sessionProbes++;
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ scope, csrfToken: 'test-csrf-only' }));
+        res.end(
+            JSON.stringify(
+                guestProbe
+                    ? {
+                          scope: null,
+                          owner: null,
+                          identity: 'anonymous',
+                          csrfToken: 'test-csrf-only',
+                      }
+                    : degraded
+                      ? {
+                            scope: null,
+                            owner: null,
+                            identity: 'unresolved',
+                            csrfToken: 'test-csrf-only',
+                        }
+                      : {
+                            scope,
+                            identity: legacyProbe ? undefined : 'verified',
+                            csrfToken: 'test-csrf-only',
+                        },
+            ),
+        );
         return;
     }
     if (url.pathname === '/test/switch') {
@@ -135,6 +187,38 @@ const server = createServer(async (req, res) => {
         res.statusCode = 302;
         res.setHeader('Location', '/resident/login');
         res.end();
+        return;
+    }
+    // The reported outage: Laravel is up and answers, but its database is not, so every
+    // application route hands back the degraded contract instead of a silent success.
+    if (url.pathname === '/test/bug') {
+        buggy = true;
+        res.setHeader('Content-Type', 'application/json');
+        res.end('{"bug":true}');
+        return;
+    }
+    if (url.pathname === '/test/bug-off') {
+        buggy = false;
+        res.setHeader('Content-Type', 'application/json');
+        res.end('{"bug":false}');
+        return;
+    }
+    // A real defect keeps its ordinary 500 shape: no marker, nothing to hand to the cache.
+    if (buggy) {
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'text/html');
+        res.end(
+            '<!doctype html><html><head><title>Server error</title></head><body><h1>Genuine defect page</h1></body></html>',
+        );
+        return;
+    }
+    if (degraded) {
+        res.statusCode = 503;
+        res.setHeader('X-KaBarangay-Offline', 'unavailable');
+        res.setHeader('Content-Type', 'text/html');
+        res.end(
+            '<!doctype html><html><head><title>Unavailable</title></head><body><h1>Outage page from the server</h1></body></html>',
+        );
         return;
     }
     if (req.method === 'POST') {
@@ -178,6 +262,15 @@ const talk = (page, message) =>
             ).postMessage(message, [channel.port2]);
         });
     }, message);
+// The probe timer is a quarter of a minute long, so wait on the server-side count instead
+// of a blind sleep: it proves the client actually asked, and exactly how many times.
+const waitForProbe = async (baseline) => {
+    for (let attempt = 0; attempt < 200; attempt++) {
+        if (sessionProbes > baseline) return sessionProbes;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    throw new Error('The connectivity probe never reached the server');
+};
 try {
     browser = await chromium.launch({
         executablePath:
@@ -199,7 +292,143 @@ try {
     assert.equal((await page.evaluate(() => window.prepare())).ok, true);
     assert.equal((await talk(page, { type: 'KB_LIST' })).pages.length, 2);
 
+    // An unreachable database is not a logout: a degraded response carries no scope, so
+    // the copies saved under the real scope survive and no shared partition appears.
+    await page.evaluate(() => fetch('/test/degrade'));
+    await page.evaluate(() => fetch('/offline/session'));
+    await page.evaluate(() => fetch('/resident/certificates'));
+
+    // Laravel answered with an HTTP status, so a status-only probe would still call this
+    // healthy. The identity in the body is what reports the outage instead.
+    await page
+        .getByText('Barangay data unavailable', { exact: true })
+        .waitFor();
+    assert.equal(
+        await page.getByText('Offline Mode').count(),
+        0,
+        'A reachable server with an unreadable database is not "offline mode"',
+    );
+
+    // The existing write blocker follows the degraded state, not navigator.onLine.
+    assert.equal(
+        await page.evaluate(() => {
+            const form = document.querySelector('form');
+            window.submitRan = false;
+            form.addEventListener('submit', () => (window.submitRan = true));
+            form.requestSubmit();
+            return window.submitRan;
+        }),
+        false,
+        'A degraded server must not let a form submit',
+    );
+
+    // A signed-out probe answers "anonymous" without reading the account tables at all,
+    // so that answer proves only that Laravel is alive. Read as proof that the data
+    // service is readable it would re-open the write gate during the very outage that
+    // queued the writes, so it must neither clear the card nor release the block.
+    // A reconnect is what makes the client ask again; the probe timer runs a quarter of
+    // a minute and a synthetic event is not what the browser delivers.
+    const reconnectProbe = async () => {
+        const baseline = sessionProbes;
+        await context.setOffline(true);
+        await context.setOffline(false);
+        await waitForProbe(baseline);
+    };
+    await page.evaluate(() => fetch('/test/guest'));
+    for (const round of ['first', 'second']) {
+        await reconnectProbe();
+        await page.evaluate(() => new Promise((done) => setTimeout(done, 250)));
+        assert.equal(
+            await page
+                .getByText('Barangay data unavailable', { exact: true })
+                .count(),
+            1,
+            `A ${round} anonymous probe must not be read as data recovery`,
+        );
+        assert.equal(
+            await page.evaluate(() => {
+                const form = document.querySelector('form');
+                window.submitRan = false;
+                form.addEventListener('submit', () => (window.submitRan = true));
+                form.requestSubmit();
+                return window.submitRan;
+            }),
+            false,
+            `A ${round} anonymous probe must not re-open the write block`,
+        );
+    }
+    assert.equal(await page.evaluate(() => navigator.onLine), true);
+    assert.equal(
+        (await talk(page, { type: 'KB_LIST' })).pages.length,
+        2,
+        'An anonymous probe must leave the saved partition alone',
+    );
+
+    // The same reconnect with an identity that had to read the account tables does end
+    // the outage state, and the next answer that cannot read them brings it back: the
+    // card follows the data service, never the network.
+    await page.evaluate(() => fetch('/test/guest?off=1'));
+    await page.evaluate(() => fetch('/test/recover'));
+    await reconnectProbe();
+    await page
+        .getByText('Barangay data unavailable', { exact: true })
+        .waitFor({ state: 'detached' });
+    await page.evaluate(() => fetch('/test/degrade'));
+    await reconnectProbe();
+    await page
+        .getByText('Barangay data unavailable', { exact: true })
+        .waitFor();
+
+    // A degraded navigation is answered from this account's own saved copy, and the
+    // server's outage page never reaches the screen.
+    await page.goto(origin + '/resident/certificates');
+    await page.getByText('Saved certificate list', { exact: true }).waitFor();
+    assert.equal(
+        await page
+            .getByText('Outage page from the server', { exact: true })
+            .count(),
+        0,
+    );
+
+    assert.equal(
+        (await talk(page, { type: 'KB_LIST' })).pages.length,
+        2,
+        'Degraded responses must never clear a valid partition',
+    );
+    assert.ok(
+        (await page.evaluate(() => caches.keys())).every((name) =>
+            [
+                '^kb-offline-v2-assets$',
+                '^kb-offline-v2-meta$',
+                '^kb-offline-v2-pages-[a-f0-9]{64}$',
+                '^kb-offline-v2-shell-[a-f0-9]{64}$',
+            ].some((pattern) => new RegExp(pattern).test(name)),
+        ),
+        'Degradation must not open a shared cache partition',
+    );
+
+    // Only the degraded contract is a hand-off. A plain 500 is a defect in this
+    // application and must stay on screen instead of being hidden behind a saved copy.
+    await page.evaluate(() => fetch('/test/recover'));
+    await page.evaluate(() => fetch('/test/bug'));
+    await page.goto(origin + '/resident/certificates');
+    await page.getByText('Genuine defect page', { exact: true }).waitFor();
+    assert.equal(
+        await page.getByText('Saved certificate list', { exact: true }).count(),
+        0,
+    );
+    await page.evaluate(() => fetch('/test/bug-off'));
+    await page.goto(origin + '/resident/other?tab=history');
+    await page.waitForFunction(() => typeof window.prepare === 'function');
+    await page.evaluate(() => fetch('/test/recover'));
+    assert.equal(
+        (await talk(page, { type: 'KB_LIST' })).pages.length,
+        2,
+        'Recovery must keep the partition a blip left intact',
+    );
+
     await context.setOffline(true);
+    await page.getByText('Offline Mode', { exact: true }).waitFor();
     await page.goto(origin + '/resident/certificates');
     await page.getByText('Ready for Claim', { exact: true }).waitFor();
     assert.equal(await page.locator('#kb-offline-notice').count(), 1);
@@ -240,11 +469,12 @@ try {
     assert.ok(page.url().includes('/resident/other?tab=history'));
     await page.locator('#kb-offline-notice').waitFor();
     await page.getByRole('link', { name: 'Unsaved page', exact: true }).click();
-    await page
-        .getByRole('heading', { name: 'Mga page sa device na ito' })
-        .waitFor();
-    await page.waitForFunction(
-        () => document.querySelectorAll('#kb-offline-pages li').length === 2,
+    await page.getByText('Hindi available offline ang page na ito', { exact: false }).waitFor();
+    assert.ok(!page.url().includes('/offline.html'), 'Normal offline fallback must not navigate to standalone offline.html');
+    assert.equal(
+        (await talk(page, { type: 'KB_LIST' })).pages.length,
+        2,
+        'Saved pages must remain tracked for in-app/offline use',
     );
     assert.equal(
         await page.evaluate(
@@ -321,7 +551,7 @@ try {
         assets: [],
     });
     await page.evaluate(async (scope) => {
-        const cache = await caches.open('kb-offline-v1-pages-' + scope);
+        const cache = await caches.open('kb-offline-v2-pages-' + scope);
         for (const key of await cache.keys()) {
             const item = await (await cache.match(key)).json();
             if (item.path === '/resident/expired')
@@ -336,9 +566,8 @@ try {
     }, scopeB);
     await context.setOffline(true);
     await page.goto(origin + '/resident/expired');
-    await page
-        .getByRole('heading', { name: 'Mga page sa device na ito' })
-        .waitFor();
+    await page.getByText('Hindi available offline ang page na ito', { exact: false }).waitFor();
+    assert.ok(!page.url().includes('/offline.html'), 'Expired uncached fallback must not use standalone offline.html');
     assert.equal(
         await page.getByText('Expired private copy', { exact: true }).count(),
         0,
@@ -407,13 +636,20 @@ try {
     await page.goto(origin + '/resident/certificates');
     await page.waitForFunction(() => typeof window.prepare === 'function');
     await page.evaluate(() => window.prepare());
-    // Simulate a stale offline indication after the server has become reachable.
+    // A stale worker hint must not mark a reachable server offline, including
+    // deployments that still return the original scope-only session response.
+    legacyProbe = true;
+    const confirmation = page.waitForResponse((response) =>
+        response.url().endsWith('/offline/session'),
+    );
     await page.evaluate(() => {
         navigator.serviceWorker.dispatchEvent(
             new MessageEvent('message', { data: { type: 'KB_NETWORK_OFFLINE' } }),
         );
     });
-    await page.getByText('Offline Mode', { exact: true }).waitFor();
+    await (await confirmation).finished();
+    await page.getByText('Offline Mode', { exact: true }).waitFor({ state: 'hidden' });
+    await page.getByText('Barangay data unavailable', { exact: true }).waitFor({ state: 'hidden' });
     const logoutDestination = await page.evaluate(async () => {
         const url = new URL('/resident/logout', location.origin);
         const allowed = document.dispatchEvent(

@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureStaffRole;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResidentAuth;
 use App\Http\Middleware\SecurityHeaders;
+use App\Support\OfflineDegraded;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -69,5 +70,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (Throwable $exception, Request $request) {
+            if (! OfflineDegraded::causedByDatabaseLoss($exception)) {
+                return null;
+            }
+
+            return OfflineDegraded::respond($request, $exception);
+        });
     })
     ->create();

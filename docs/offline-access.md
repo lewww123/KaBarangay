@@ -6,13 +6,26 @@ queue uses native IndexedDB and requires the additive migration
 `2026_11_04_000001_add_offline_identity_to_certificate_requests.php`. Run this
 migration before enabling the new deployment. No local server is needed.
 
-Sign in online, open a page, and wait for **Saved for offline**. Fully loaded
-authenticated Inertia pages are saved as sanitized, static HTML copies. The
+Sign in online and open a page; loading happens silently in the background.
+Fully loaded authenticated Inertia pages are saved as sanitized, static HTML
+copies. The
 last 20 page URLs, including their selected query filters, are retained for up
 to 24 hours. Deferred data must finish loading before saving. Saved copies use
 the CSS/fonts already used by the page, and do not start React or make live API
 requests. Browser eviction, private browsing, quota limits, or clearing site
 data can remove copies. Unsaved pages require internet.
+
+## Connectivity indicator
+
+A small status line sits under the header on signed-in pages and disappears
+when everything is synced. It reports **Offline Mode**, the count of requests
+waiting to send, **SyncingΓÇª** and **Your request has been sent successfully.**
+Offline is not decided from `navigator.onLine` alone: while the browser claims a
+connection, the app periodically requests `/offline/session`, and only two
+consecutive failures with no HTTP response at all mark the app offline. That
+keeps captive portals and dead uplinks from showing a connected UI. Because the
+verdict needs those failures, a genuinely dead network is detected within one
+probe interval rather than instantly.
 
 ## Offline use
 
@@ -21,19 +34,35 @@ data can remove copies. Unsaved pages require internet.
 - Live filters/tabs, new document downloads, email delivery and AI responses
   require internet. Payment, official receipts, certificate approval and
   release, and Lupon actions require the online process.
-- A page still open when connectivity is lost blocks Inertia writes and form
-  submissions. Offline navigation opens a static saved page. Background Inertia
+- A page still open when connectivity is lost blocks Inertia writes for pages
+  with no offline workflow; the resident certificate form queues instead (see
+  below). Offline navigation opens a static saved page. Background Inertia
   polling is canceled while offline.
+- A cold offline start (browser reopened, or a URL never loaded while online)
+  is read-only: saved pages are sanitized static copies that intentionally
+  contain no scripts or bootstrap data, so the interactive form and its queue
+  are available only in a page that was already open when the connection
+  dropped. Build CSS, fonts and JavaScript are cached, but because the saved
+  copies never execute them, that only serves the app while it is already
+  running.
+- Only `/resident/certificates` keeps its live Inertia data for offline use, so
+  that one page still refreshes its own sections from the last authorized
+  payload (marked as saved information) instead of falling back to a static
+  copy. Every other page's data is not retained beyond its sanitized snapshot.
 
 ## Offline certificate requests
 
-Sign in as a verified resident online and wait for **Offline certificate drafts
-are ready**. Open **Offline drafts & requests** (`/offline-certificates.html`).
-The normal certificate form also has **Save draft on this device**. In the
-offline editor, save an incomplete draft or review the details and confirm
-queueing. **Pending sync is not an official submission** and has only a local
-UUID. After server acceptance, the editor shows the official reference, fee,
-and actual status. Synced does not mean approved.
+Sign in as a verified resident while online so the device holds your offline
+certificate catalog, then use the normal **Certificate Requests** form. Submit
+it online, or **Submit (sends when online)** when offline: the same form
+review then confirmation queues the request on this device with only a local
+UUID. **Waiting for Internet Connection is not an official submission**; the
+Barangay has not received it and no request number exists yet. Queued items
+appear above your server requests in **My Requests** and disappear once the
+sync is accepted, after which the row shows the official reference, fee and
+actual status. Synced does not mean approved. The standalone
+`/offline-certificates.html` editor offers the same queue for drafts created
+there, including **Save draft on this device**.
 
 Sync runs on reconnection, every 30 seconds while a prepared page is open, and
 through **Sync now**. Supported browsers can also use service-worker Background

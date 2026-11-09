@@ -36,6 +36,8 @@ const qr = 'opaque-resident-qr-token';
 let scope = scopeA,
     sends = 0,
     accepted = 0,
+    degraded = false,
+    degradedSyncAttempts = 0,
     dropAfterAccept = true;
 const receipts = new Map();
 const server = createServer(async (req, res) => {
@@ -49,13 +51,38 @@ const server = createServer(async (req, res) => {
         res.end(files[path]);
         return;
     }
-    res.setHeader('X-KaBarangay-Offline-Scope', scope);
+    // A degraded server says nothing about the scope: it neither issues nor revokes one.
+    if (!degraded) res.setHeader('X-KaBarangay-Offline-Scope', scope);
     if (path === '/offline/session') {
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ scope, csrfToken: 'test-csrf' }));
+        res.end(
+            JSON.stringify(
+                degraded
+                    ? {
+                          scope: null,
+                          owner: null,
+                          identity: 'unresolved',
+                          csrfToken: 'test-csrf',
+                      }
+                    : {
+                          scope,
+                          identity: 'verified',
+                          csrfToken: 'test-csrf',
+                      },
+            ),
+        );
         return;
     }
     if (path.endsWith('/sync')) {
+        // Production answers a sync with the degraded contract while its database is
+        // unreadable. Reaching this branch at all would mean the queue was not held.
+        if (degraded) {
+            degradedSyncAttempts++;
+            res.setHeader('X-KaBarangay-Offline', 'unavailable');
+            res.writeHead(503, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'unavailable' }));
+            return;
+        }
         sends++;
         let text = '';
         for await (const chunk of req) text += chunk;
@@ -281,6 +308,76 @@ try {
         .locator('#entries li')
         .filter({ hasText: 'QR Resident' })
         .waitFor();
+    // The data service is unreachable while this server keeps answering. The prepared
+    // roster must still record attendance locally, and nothing may be submitted,
+    // accepted or reported as confirmed until the data service can read accounts again.
+    degraded = true;
+    const widerSheet = contextData();
+    widerSheet.residents.push({
+        id: 3,
+        name: 'Degraded Resident',
+        number: 'ONE-003',
+        qrHash: null,
+    });
+    assert.equal(
+        (
+            await rpc(page, {
+                type: 'KB_ATTENDANCE_ACTIVATE',
+                context: widerSheet,
+            })
+        ).ok,
+        true,
+        'A degraded server must not revoke the scope this roster was prepared under',
+    );
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('#event option'));
+    const sentBefore = sends;
+    await page.locator('#resident').selectOption('3');
+    await page.locator('#manual').click();
+    await page
+        .locator('#entries li')
+        .filter({ hasText: /Degraded Resident.*· pending/ })
+        .waitFor();
+    assert.equal(
+        sends,
+        sentBefore,
+        'A degraded server must not receive an attendance submission',
+    );
+    assert.equal(
+        degradedSyncAttempts,
+        0,
+        'A held queue must not even reach the sync endpoint',
+    );
+    await page.locator('#sync').click();
+    await page.locator('#notice').getByText(/No server confirmation/).waitFor();
+    assert.equal(
+        degradedSyncAttempts,
+        0,
+        'Pressing Sync during the outage must submit nothing',
+    );
+    assert.equal(
+        accepted,
+        2,
+        'Nothing may look accepted while the data service is unreadable',
+    );
+    await page.reload();
+    await page
+        .locator('#entries li')
+        .filter({ hasText: /Degraded Resident.*· pending/ })
+        .waitFor();
+    assert.equal(degradedSyncAttempts, 0);
+    degraded = false;
+    await page.locator('#sync').click();
+    await page
+        .locator('#entries li')
+        .filter({ hasText: /Degraded Resident.*· synced/ })
+        .waitFor();
+    assert.equal(
+        accepted,
+        3,
+        'The entry held through the outage is accepted exactly once',
+    );
+    assert.equal(sends, sentBefore + 1, 'Recovery submits the held entry once');
     await context.setOffline(true);
     await page.locator('#logout').click();
     await page.waitForURL('**/offline.html?loggedout=1');
@@ -291,7 +388,7 @@ try {
         .waitFor();
     assert.equal(await page.locator('#entries li').count(), 0);
     console.log(
-        'PASS: actual offline manual/keyboard-QR entry, encrypted queue, invalid/duplicate QR, reconnect, uncertain response retry, account isolation, logout locking.',
+        'PASS: actual offline manual/keyboard-QR entry, encrypted queue, invalid/duplicate QR, reconnect, uncertain response retry, entry held through a degraded data service, account isolation, logout locking.',
     );
 } finally {
     await browser?.close();

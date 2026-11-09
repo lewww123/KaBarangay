@@ -15,6 +15,7 @@ import {
 } from '@/lib/offlineCertificates';
 
 const PROBE_MS = 25000;
+const PROBE_RETRY_MS = 1000;
 
 type WorkerReply = { ok: boolean; savedAt?: number };
 const eligible = (page: Page) =>
@@ -26,6 +27,20 @@ const eligible = (page: Page) =>
 
 export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
     useEffect(() => protectSession(initialPage), [initialPage]);
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('offline_uncached') !== '1') return;
+        const from = params.get('from') || 'That page';
+        notifyConnectivity(
+            'error',
+            `${from} is not available offline on this device. Showing a saved KaBarangay page instead.`,
+            12000,
+        );
+        params.delete('offline_uncached');
+        params.delete('from');
+        const next = location.pathname + (params.toString() ? `?${params}` : '') + location.hash;
+        window.history.replaceState({}, '', next);
+    }, []);
     const [privatePage, setPrivatePage] = useState(eligible(initialPage));
     const countPending = (items: { status: string }[]) =>
         items.filter((item) => UNSYNCED_STATUSES.includes(item.status)).length;
@@ -87,10 +102,20 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                 degraded: networkAvailable && !dataAvailable,
             });
         let probeFailures = 0;
+        let activeProbe: AbortController | undefined;
+        let probeRetry: ReturnType<typeof setTimeout> | undefined;
+        const cancelProbe = () => {
+            clearTimeout(probeRetry);
+            activeProbe?.abort();
+            activeProbe = undefined;
+        };
         const probe = async () => {
+            if (closed || !navigator.onLine || activeProbe) return;
+            clearTimeout(probeRetry);
             const controller = new AbortController();
+            activeProbe = controller;
             const abort = setTimeout(() => controller.abort(), 8000);
-            let identity: string | null = null;
+            let identity: 'verified' | 'anonymous' | 'unresolved' | null = null;
             try {
                 const response = await fetch('/offline/session', {
                     credentials: 'same-origin',
@@ -98,18 +123,39 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                     signal: controller.signal,
                     headers: { Accept: 'application/json' },
                 });
-                // The status says a process answered; only the identity it reports says
-                // whether the account database answered with it.
-                identity =
-                    ((await response
-                        .json()
-                        .catch(() => null)) as { identity?: string } | null)
-                        ?.identity ?? null;
+                const session = (await response.json().catch(() => null)) as {
+                    identity?: unknown;
+                    scope?: unknown;
+                } | null;
+                // Older servers return a scope without an identity field.
+                if (response.ok && session) {
+                    if (
+                        session.identity === 'verified' ||
+                        session.identity === 'anonymous'
+                    ) {
+                        identity = session.identity;
+                    } else if (
+                        session.identity === undefined &&
+                        session.scope === null
+                    ) {
+                        identity = 'anonymous';
+                    } else if (
+                        session.identity === undefined &&
+                        typeof session.scope === 'string' &&
+                        /^[a-f0-9]{64}$/.test(session.scope)
+                    ) {
+                        identity = 'verified';
+                    }
+                }
+                identity ??= 'unresolved';
             } catch {
                 identity = null;
             } finally {
                 clearTimeout(abort);
             }
+            if (activeProbe !== controller || closed) return;
+            activeProbe = undefined;
+            if (!navigator.onLine) return;
             const recovered = !networkAvailable || !dataAvailable;
             // Connectivity and identity are separate measurements. Any answer proves this
             // server is up; only an identity that had to read the account tables proves
@@ -136,7 +182,10 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
             }
             if (identity === null) {
                 // navigator.onLine stays true on captive portals and dead uplinks.
-                if (++probeFailures < 2 || !networkAvailable) return;
+                if (++probeFailures < 2) {
+                    probeRetry = setTimeout(() => void probe(), PROBE_RETRY_MS);
+                    return;
+                }
                 networkAvailable = false;
                 dataAvailable = false;
                 publish();
@@ -185,6 +234,7 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                 pending: 0,
                 stale: page.props.offlineCached === true,
             });
+            if (!isOnline() && page.props.offlineCached !== true) void probe();
             schedule();
             void prepareQueue();
         };
@@ -308,6 +358,7 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
         });
         const connection = () => {
             if (!navigator.onLine) {
+                cancelProbe();
                 networkAvailable = false;
                 dataAvailable = false;
                 probeFailures = 0;
@@ -331,9 +382,13 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
         };
         const workerMessage = (event: MessageEvent) => {
             if (event.data?.type === 'KB_NETWORK_OFFLINE') {
-                networkAvailable = false;
-                dataAvailable = false;
-                publish();
+                // A single failed or cancelled request can trigger this message.
+                // Verify reachability before changing the state of the whole app.
+                if (navigator.onLine) {
+                    if (!activeProbe && probeFailures === 0) void probe();
+                } else {
+                    connection();
+                }
             }
             if (event.data?.type === 'KB_DATA_UNAVAILABLE') {
                 networkAvailable = true;
@@ -374,7 +429,12 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
         navigator.serviceWorker?.addEventListener('message', workerMessage);
         publish();
         void probe();
-        if ('serviceWorker' in navigator && !import.meta.env.DEV) {
+        const enableSw =
+            'serviceWorker' in navigator &&
+            (!import.meta.env.DEV ||
+                import.meta.env.VITE_ENABLE_SW === 'true' ||
+                new URLSearchParams(location.search).has('sw'));
+        if (enableSw) {
             void (async () => {
                 try {
                     await navigator.serviceWorker.register(
@@ -417,9 +477,12 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                         );
                 }
             })();
+        } else if ('serviceWorker' in navigator && !import.meta.env.DEV) {
+            // Fallback: no-op when disabled; dev remains explicit opt-in.
         }
         return () => {
             closed = true;
+            cancelProbe();
             clearTimeout(timer);
             observe.disconnect();
             stopSuccess();
@@ -439,7 +502,5 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
     }, [initialPage]);
 
     if (!privatePage) return null;
-    return (
-        <OfflineConnectivityIndicator onRetry={() => void syncNow()} />
-    );
+    return <OfflineConnectivityIndicator onRetry={() => void syncNow()} />;
 }

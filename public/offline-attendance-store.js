@@ -251,6 +251,8 @@
         } catch {
             return { offline: true };
         }
+        // An unavailable database is not an account switch: retry later without touching the queue.
+        if (server?.identity === 'unresolved') return { offline: true };
         if (server.scope !== session.scope || !server.csrfToken)
             return { loginRequired: true };
         for (const entry of (await list()).filter(

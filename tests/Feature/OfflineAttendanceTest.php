@@ -136,7 +136,9 @@ class OfflineAttendanceTest extends TestCase
         $this->postJson($this->url('sync'), $payload)->assertForbidden();
         $this->event->update(['approval_status' => 'approved']);
         $this->staff->staffAssignments()->update(['is_active' => false]);
-        $this->postJson($this->url('sync'), $payload)->assertForbidden();
+        $response = $this->postJson($this->url('sync'), $payload);
+        $response->assertUnauthorized();
+        $this->assertGuest();
         $this->assertDatabaseCount('announcement_attendances', 0);
     }
 
