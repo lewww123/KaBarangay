@@ -44,6 +44,7 @@ class LuponLifecycleIntegrationTest extends TestCase
         $purok = $this->createPurok($this->barangay);
         $this->resident = $this->createResident($this->barangay, $purok);
         $this->staff = $this->createStaff($this->barangay, 'lupon');
+        $this->staff->staffAssignments()->update(['position' => 'Lupon Secretary']);
         foreach (['Punong Barangay' => 'Default Captain', 'Barangay Secretary' => 'Secretary Person', 'Barangay Kagawad' => 'Alice & Reyes', 'Kagawad on Health' => 'Bob Santos'] as $title => $name) {
             $position = OrgChartPosition::create(['barangay_id' => $this->barangay->id, 'title' => $title, 'assigned_person' => $name, 'status' => 'published', 'created_by' => $this->staff->id]);
             if ($name === 'Alice & Reyes') {
@@ -55,7 +56,7 @@ class LuponLifecycleIntegrationTest extends TestCase
 
     private function docket(array $overrides = []): LuponCase
     {
-        $this->post('/lupon/cases', [
+        $this->post('/lupon/cases', ['payment_verified' => true, 'payment_date' => now()->timezone('Asia/Manila')->toDateString(), 'verification_note' => 'Original receipt and actual payment checked.', 'or_number' => 'WALKIN-'.\Illuminate\Support\Str::uuid(), 'fee_amount' => 100,
             'case_type' => 'Debt / Money Dispute', 'incident_date' => '2026-10-01', 'incident_location' => 'Purok 1', 'narrative' => 'Unpaid loan.', 'requested_action' => 'Mediation.',
             'complainant_name' => 'Tampered name', 'complainant_is_resident' => true, 'complainant_resident_id' => $this->resident->id, 'complainant_address' => 'Spoofed address',
             'respondent_name' => 'Walk-in Respondent', 'respondent_is_resident' => false,
@@ -63,6 +64,24 @@ class LuponLifecycleIntegrationTest extends TestCase
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         return LuponCase::latest('id')->firstOrFail();
+    }
+
+    private function unpaidDocket(array $overrides = []): LuponCase
+    {
+        $case = $this->docket($overrides);
+        $case->update([
+            'payment_status' => 'unpaid',
+            'fee_amount' => null,
+            'or_number' => null,
+            'paid_at' => null,
+            'payment_verification' => null,
+        ]);
+        $case->complaint()->update([
+            'status' => 'For Payment',
+            'payment_verification' => null,
+        ]);
+
+        return $case->fresh();
     }
 
     private function xml(LuponDocument $document): string
@@ -181,7 +200,7 @@ class LuponLifecycleIntegrationTest extends TestCase
 
     public function test_rescheduled_notices_are_versioned_and_fee_verification_does_not_fake_service(): void
     {
-        $case = $this->docket();
+        $case = $this->unpaidDocket();
         $hearing = $case->hearings()->first();
         $old = $case->documents()->pluck('id');
         $this->patch('/lupon/hearings/'.$hearing->id, ['status' => 'Rescheduled', 'hearing_date' => '2026-11-04', 'hearing_time' => '10:30', 'venue' => 'Session Hall'])->assertSessionHasNoErrors();
@@ -190,11 +209,13 @@ class LuponLifecycleIntegrationTest extends TestCase
         $this->assertStringContainsString('November 4, 2026', $this->xml($doc));
         $service = ['served_at' => now()->toIso8601String(), 'service_method' => 'personal', 'service_note' => 'Personally received; signed acknowledgment in docket.', 'receipt_confirmed' => true];
         $this->post('/lupon/documents/'.$doc->id.'/serve', $service)->assertSessionHasErrors('document');
-        $this->post('/lupon/cases/'.$case->id.'/verify-fee', ['payment_status' => 'waived', 'fee_amount' => 0, 'or_number' => 'WAIVER-1'])->assertSessionHasNoErrors();
+        $this->post('/lupon/cases/'.$case->id.'/verify-fee', ['payment_status' => 'waived', 'fee_amount' => 0])->assertSessionHasNoErrors();
+        $this->assertNull($case->fresh()->or_number);
         $this->assertNull($case->fresh()->form_7_issued_at);
         Mail::assertNothingSent();
         $this->travel(1)->seconds();
         $service['served_at'] = now()->toIso8601String();
+        $this->post('/lupon/documents/'.$doc->id.'/issue', ['issued_at' => now()->toIso8601String(), 'content_reviewed' => true])->assertSessionHasNoErrors();
         $this->post('/lupon/documents/'.$doc->id.'/serve', $service)->assertSessionHasNoErrors();
         $this->assertNotNull($doc->fresh()->served_at);
         $this->assertSame('Summoned', LuponCaseWorkflow::tracking($case->fresh()));
@@ -258,16 +279,17 @@ class LuponLifecycleIntegrationTest extends TestCase
     public function test_online_complaint_evidence_is_carried_to_docket_and_remains_private(): void
     {
         $this->withSession(['resident_id' => $this->resident->id])->post('/resident/lupon/complaints', [
+            'submission_token' => (string) \Illuminate\Support\Str::uuid(),
             'respondentName' => 'Walk-in Respondent', 'respondentResidentStatus' => 'Unknown', 'complaintType' => 'Debt / Money Dispute', 'incidentDate' => '2026-10-01', 'incidentLocation' => 'Purok 1', 'narrative' => 'Loan remains unpaid.', 'requestedAction' => 'Request mediation.',
             'evidence' => [UploadedFile::fake()->create('receipt.pdf', 12, 'application/pdf')],
         ])->assertRedirect()->assertSessionHasNoErrors();
         $complaint = LuponComplaint::firstOrFail();
         $file = $complaint->evidence()->firstOrFail();
         $this->get('/resident/lupon/evidence/'.$file->id)->assertOk();
-        $this->get('/resident/lupon')->assertInertia(fn ($page) => $page->where('complaints.data.0.trackingStatus', 'For Review')->has('complaints.data.0.evidence', 1));
+        $this->get('/resident/lupon')->assertInertia(fn ($page) => $page->where('complaints.data.0.trackingStatus', 'Under Review')->has('complaints.data.0.evidence', 1));
         $complaint->update(['submitted_at' => now()->subDays(3)]);
         $this->post('/lupon/complaints/'.$complaint->id.'/request-payment', ['assessed_fee' => 100])->assertSessionHasNoErrors();
-        $this->post('/lupon/complaints/'.$complaint->id.'/promote', ['or_number' => 'OR-ONLINE-1', 'venue' => 'Barangay Hall', 'hearing_date' => '2026-11-03', 'hearing_time' => '10:00'])->assertSessionHasNoErrors();
+        $this->post('/lupon/complaints/'.$complaint->id.'/promote', ['payment_verified' => true, 'payment_date' => now()->timezone('Asia/Manila')->toDateString(), 'verification_note' => 'Original receipt and actual payment checked.', 'or_number' => 'OR-ONLINE-1', 'venue' => 'Barangay Hall', 'hearing_date' => '2026-11-03', 'hearing_time' => '10:00'])->assertSessionHasNoErrors();
         $case = $complaint->case()->firstOrFail();
         $this->assertSame($case->id, $file->fresh()->case_id);
         $this->assertSame('2026-11-02', $case->filed_date->toDateString());
@@ -288,14 +310,16 @@ class LuponLifecycleIntegrationTest extends TestCase
 
     public function test_verified_respondent_only_sees_served_notices_and_unlinked_account_loses_access(): void
     {
-        $case = $this->docket();
+        $case = $this->unpaidDocket();
         $party = $case->respondents()->first();
         $resident = $this->createResident($this->barangay, $this->createPurok($this->barangay), ['mobile' => '09170000087']);
         $party->update(['resident_id' => $resident->id, 'association_status' => 'verified']);
         $doc = $case->documents()->where('kind', 'summons')->firstOrFail();
         $this->withSession(['resident_id' => $resident->id])->get('/resident/lupon/documents/'.$doc->id)->assertNotFound();
-        $this->post('/lupon/cases/'.$case->id.'/verify-fee', ['payment_status' => 'waived', 'fee_amount' => 0, 'or_number' => 'WAIVER-2'])->assertSessionHasNoErrors();
+        $this->post('/lupon/cases/'.$case->id.'/verify-fee', ['payment_status' => 'waived', 'fee_amount' => 0])->assertSessionHasNoErrors();
+        $this->assertNull($case->fresh()->or_number);
         $this->travel(1)->seconds();
+        $this->post('/lupon/documents/'.$doc->id.'/issue', ['issued_at' => now()->toIso8601String(), 'content_reviewed' => true])->assertSessionHasNoErrors();
         $this->post('/lupon/documents/'.$doc->id.'/serve', ['served_at' => now()->toIso8601String(), 'service_method' => 'personal', 'service_note' => 'Verified personal receipt.', 'receipt_confirmed' => true])->assertSessionHasNoErrors();
         $this->get('/resident/lupon/documents/'.$doc->id)->assertOk();
         $this->get('/resident/lupon/cases/'.$case->id)->assertInertia(fn ($page) => $page->where('viewerRole', 'respondent')->where('caseData.requestedAction', null)->where('caseData.narrative', 'Nature of Dispute: Debt / Money Dispute')->has('caseData.documents', 1));

@@ -12,7 +12,7 @@ class LuponDocument extends Model
 
     protected function casts(): array
     {
-        return ['signatories' => 'array', 'generated_at' => 'datetime', 'served_at' => 'datetime'];
+        return ['signatories' => 'array', 'generated_at' => 'datetime', 'issued_at' => 'datetime', 'served_at' => 'datetime'];
     }
 
     public function case()

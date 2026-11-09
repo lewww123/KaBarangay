@@ -891,6 +891,7 @@ Route::group(['domain' => config('app.staff_domain')], function () {
         Route::middleware('role:lupon')->prefix('lupon')->name('lupon.')->group(function () {
 
             Route::get('/dashboard', [LuponController::class, 'dashboard'])->name('dashboard');
+            Route::get('/tagapamayapa', [LuponController::class, 'tagapamayapa'])->name('tagapamayapa');
 
             // Complaint intake queue and review. Lupon staff only; no admin or
             // aggregate access is exposed in this batch.
@@ -900,18 +901,32 @@ Route::group(['domain' => config('app.staff_domain')], function () {
             Route::post('/complaints/{complaint}/request-payment', [LuponComplaintController::class, 'requestPayment'])->name('complaints.request-payment');
             Route::post('/complaints/{complaint}/promote', [LuponCaseController::class, 'promote'])->name('complaints.promote');
 
+            // Walk-in intake records a complaint submission only. Official case
+            // creation stays with the payment verification routes above.
+            Route::get('/complaints/walk-in', [LuponComplaintController::class, 'createWalkIn'])->name('complaints.walk-in');
+            Route::post('/complaints/walk-in', [LuponComplaintController::class, 'storeWalkIn'])->name('complaints.walk-in.store');
+
             Route::get('/residents/search', ResidentSearchController::class)->middleware('throttle:120,1')->name('residents.search');
             Route::get('/residents/{resident}/lookup', [LuponCaseController::class, 'residentLookup'])->middleware('throttle:120,1')->name('residents.lookup');
             Route::get('/evidence/{evidence}', [LuponEvidenceController::class, 'download'])->name('evidence.download');
             Route::patch('/evidence/{evidence}/visibility', [LuponEvidenceController::class, 'share'])->name('evidence.visibility');
             Route::post('/cases/{case}/evidence', [LuponEvidenceController::class, 'store'])->name('evidence.store');
             Route::post('/cases/{case}/documents', [LuponDocumentController::class, 'generate'])->name('documents.generate');
+            Route::get('/documents', [\App\Http\Controllers\Lupon\LuponPortalController::class, 'index'])->defaults('module', 'documents')->name('document-center');
             Route::get('/documents/{document}', [LuponDocumentController::class, 'download'])->name('documents.download');
             Route::get('/documents/{document}/preview', [LuponDocumentController::class, 'download'])->name('documents.preview');
             Route::post('/documents/{document}/serve', [LuponDocumentController::class, 'serve'])->name('documents.serve');
             Route::post('/cases/{case}/verify-fee', [LuponDocumentController::class, 'verifyFee'])->name('cases.verify-fee');
             Route::post('/cases/{case}/history', [LuponDocumentController::class, 'history'])->name('cases.history');
             Route::post('/cases/{case}/extend-conciliation', [LuponDocumentController::class, 'extend'])->name('cases.extend');
+            Route::get('/payments', [LuponComplaintController::class, 'index'])->name('payments')->defaults('queueMode', 'payments');
+            foreach (['pangkat', 'arbitration', 'records'] as $module) {
+                Route::get('/'.$module, [\App\Http\Controllers\Lupon\LuponPortalController::class, 'index'])->defaults('module', $module)->name($module.'.index');
+            }
+            Route::get('/reports', [\App\Http\Controllers\Lupon\LuponPortalController::class, 'reports'])->name('reports');
+            Route::get('/profile', [\App\Http\Controllers\Lupon\LuponPortalController::class, 'profile'])->name('profile');
+            Route::post('/cases/{case}/proceedings', [\App\Http\Controllers\Lupon\LuponPortalController::class, 'proceeding'])->name('proceedings.store');
+            Route::post('/documents/{document}/issue', [LuponDocumentController::class, 'issue'])->name('documents.issue');
             // Lupon Case Management
             Route::get('/cases', [LuponCaseController::class, 'index'])->name('cases.index');
             Route::get('/cases/create', [LuponCaseController::class, 'create'])->name('cases.create');

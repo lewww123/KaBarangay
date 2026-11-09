@@ -33,15 +33,16 @@ class LuponOnlinePaymentTest extends TestCase
         $purok = $this->createPurok($this->barangay);
         $this->resident = $this->createResident($this->barangay, $purok);
         $this->staff = $this->createStaff($this->barangay, 'lupon');
+        $this->staff->staffAssignments()->update(['position' => 'Lupon Secretary']);
     }
 
     public function test_online_submission_review_payment_and_case_share_one_automatic_flow(): void
     {
         $complaint = $this->submitComplaint();
-        $this->assertSame('Submitted', $complaint->status);
+        $this->assertSame('Under Review', $complaint->status);
         $this->assertDatabaseCount('lupon_cases', 0);
         $this->get('/resident/lupon')->assertInertia(fn ($page) => $page
-            ->where('complaints.data.0.trackingStatus', 'For Review')
+            ->where('complaints.data.0.trackingStatus', 'Under Review')
             ->where('complaints.data.0.case', null));
 
         $this->actingAs($this->staff)->post('/lupon/complaints/'.$complaint->id.'/request-payment', [
@@ -58,7 +59,7 @@ class LuponOnlinePaymentTest extends TestCase
         $this->post('/lupon/complaints/'.$complaint->id.'/promote', $this->receipt())->assertSessionHasNoErrors();
 
         $case = $complaint->case()->firstOrFail();
-        $this->assertSame('Accepted', $complaint->fresh()->status);
+        $this->assertSame('Payment Verified', $complaint->fresh()->status);
         $this->assertSame('paid', $case->payment_status);
         $this->assertEquals(125.50, $case->fee_amount);
         $this->assertSame('OR-ONLINE-101', $case->or_number);
@@ -76,10 +77,10 @@ class LuponOnlinePaymentTest extends TestCase
         $this->assertDatabaseCount('lupon_cases', 1);
     }
 
-    public function test_receipt_and_complete_schedule_are_required_before_any_case_or_hearing_exists(): void
+    public function test_actual_payment_verification_is_required_before_any_official_case_exists(): void
     {
         $complaint = $this->assessedComplaint();
-        foreach (['or_number', 'hearing_date', 'hearing_time', 'venue'] as $field) {
+        foreach (['or_number', 'payment_verified', 'payment_date', 'verification_note'] as $field) {
             $data = $this->receipt();
             unset($data[$field]);
             $this->post('/lupon/complaints/'.$complaint->id.'/promote', $data)->assertSessionHasErrors($field);
@@ -143,7 +144,7 @@ class LuponOnlinePaymentTest extends TestCase
     {
         $complaint = $this->assessedComplaint();
         $this->post('/lupon/complaints/'.$complaint->id.'/promote', $this->receipt())->assertSessionHasNoErrors();
-        $this->post('/lupon/complaints/'.$complaint->id.'/promote', $this->receipt())->assertSessionHasErrors('complaint');
+        $this->post('/lupon/complaints/'.$complaint->id.'/promote', $this->receipt())->assertSessionHasNoErrors();
         $this->assertDatabaseCount('lupon_cases', 1);
         $this->assertDatabaseCount('lupon_hearings', 1);
         $this->post('/lupon/complaints/'.$complaint->id.'/request-payment', ['assessed_fee' => 50])->assertSessionHasErrors('assessed_fee');
@@ -174,7 +175,7 @@ class LuponOnlinePaymentTest extends TestCase
     private function submitComplaint(): LuponComplaint
     {
         $this->withSession(['resident_id' => $this->resident->id])->post('/resident/lupon/complaints', [
-            'respondentName' => 'Respondent One', 'respondentResidentStatus' => 'Unknown',
+            'submission_token' => (string) \Illuminate\Support\Str::uuid(), 'respondentName' => 'Respondent One', 'respondentResidentStatus' => 'Unknown',
             'complaintType' => 'Debt / Money Dispute', 'incidentDate' => '2026-11-01',
             'incidentLocation' => 'Purok 1', 'narrative' => 'Unpaid loan.', 'requestedAction' => 'Request mediation.',
         ])->assertSessionHasNoErrors();
@@ -193,6 +194,6 @@ class LuponOnlinePaymentTest extends TestCase
 
     private function receipt(): array
     {
-        return ['or_number' => 'OR-ONLINE-101', 'hearing_date' => '2026-11-05', 'hearing_time' => '14:30', 'venue' => 'Barangay Session Hall'];
+        return ['payment_verified' => true, 'payment_date' => now()->timezone('Asia/Manila')->toDateString(), 'verification_note' => 'Original receipt and actual payment checked.', 'or_number' => 'OR-ONLINE-101', 'hearing_date' => '2026-11-05', 'hearing_time' => '14:30', 'venue' => 'Barangay Session Hall'];
     }
 }

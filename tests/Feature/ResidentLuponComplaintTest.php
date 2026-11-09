@@ -99,7 +99,7 @@ class ResidentLuponComplaintTest extends TestCase
 
         $this->assertSame($this->barangay->id, $complaint->barangay_id);
         $this->assertSame($this->resident->id, $complaint->resident_id);
-        $this->assertSame('Submitted', $complaint->status);
+        $this->assertSame('Under Review', $complaint->status);
         $this->assertSame('Pedro Santos', $complaint->respondent_name);
         $this->assertSame('Yes', $complaint->respondent_resident_status);
         $this->assertSame('Noise / Disturbance', $complaint->complaint_type);
@@ -301,6 +301,7 @@ class ResidentLuponComplaintTest extends TestCase
     private function validPayload(array $overrides = []): array
     {
         return [
+            'submission_token' => (string) \Illuminate\Support\Str::uuid(),
             'respondentName' => 'Pedro Santos',
             'respondentResidentStatus' => 'Yes',
             'respondentAddress' => 'Purok 2',

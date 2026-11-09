@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Barangay;
+use App\Models\LuponCase;
+use App\Models\LuponCaseEvent;
+use App\Models\LuponComplaint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
@@ -46,7 +49,8 @@ class LuponPortalAuthorizationTest extends TestCase
     {
         $inactive = $this->createStaff($this->barangay, 'lupon', ['status' => 'inactive']);
 
-        $this->actingAs($inactive)->get('/lupon/dashboard')->assertStatus(403);
+        $this->actingAs($inactive)->get('/lupon/dashboard')->assertRedirect(route('login'));
+        $this->assertGuest();
     }
 
     public function test_admin_is_denied_on_the_lupon_portal(): void
@@ -60,8 +64,19 @@ class LuponPortalAuthorizationTest extends TestCase
     public function test_super_admin_is_denied_on_the_lupon_portal(): void
     {
         $superAdmin = $this->createStaff($this->barangay, 'super_admin');
+        $assignment = \App\Models\StaffAssignment::create([
+            'user_id' => $superAdmin->id,
+            'resident_id' => $superAdmin->resident_id,
+            'barangay_id' => $this->barangay->id,
+            'department' => 'super_admin',
+            'position' => 'Super Admin',
+            'is_active' => true,
+        ]);
 
-        $this->actingAs($superAdmin)->get('/lupon/dashboard')->assertStatus(403);
+        $this->actingAs($superAdmin)
+            ->withSession(['staff_assignment_id' => $assignment->id])
+            ->get('/lupon/dashboard')
+            ->assertStatus(403);
     }
 
     public function test_other_staff_roles_are_denied_on_the_lupon_portal(): void
@@ -144,6 +159,7 @@ class LuponPortalAuthorizationTest extends TestCase
                 ->has('metrics')
                 ->has('deadlines')
                 ->has('schedule')
+                ->has('recentActivity')
                 ->missing('cases')
                 ->missing('luponCases')
                 ->missing('recentAnnouncements')
@@ -181,6 +197,188 @@ class LuponPortalAuthorizationTest extends TestCase
         foreach (['initialComplaints', 'LUP-2026', 'Juan Dela Cruz'] as $forbidden) {
             $this->assertStringNotContainsString($forbidden, $source);
         }
+    }
+
+    public function test_lupon_navigation_matches_the_restructured_portal_and_keeps_legacy_routes(): void
+    {
+        $layout = file_get_contents(resource_path('js/layouts/LuponLayout.tsx'));
+        $cases = file_get_contents(resource_path('js/pages/Lupon/Cases/Index.tsx'));
+
+        foreach ([
+            'Overview',
+            'Complaint Submissions',
+            'All Cases',
+            'Mediation',
+            'Conciliation',
+            'Arbitration',
+            'Resolved',
+            'Lupon Tagapamayapa',
+            '/lupon/cases?stage=mediation',
+            '/lupon/cases?stage=conciliation',
+            '/lupon/cases?stage=arbitration',
+            '/lupon/cases?stage=resolved',
+            'activeStage === item.id',
+            'aria-current',
+        ] as $expected) {
+            $this->assertStringContainsString($expected, $layout);
+        }
+
+        foreach ([
+            'Payment Verification',
+            'Pangkat & Conciliation',
+            'Arbitration & Awards',
+            'Summons & Documents',
+            'Case Records',
+            'My Profile',
+        ] as $removed) {
+            $this->assertStringNotContainsString($removed, $layout);
+        }
+
+        foreach ([
+            'All Cases',
+            'Mediation',
+            'Conciliation',
+            'Arbitration',
+            'Resolved',
+            'caseStage={stage}',
+            '/lupon/cases/${c.id}',
+        ] as $expected) {
+            $this->assertStringContainsString($expected, $cases);
+        }
+
+        $lupon = $this->createStaff($this->barangay, 'lupon');
+
+        foreach ([
+            '/lupon/payments',
+            '/lupon/hearings',
+            '/lupon/pangkat',
+            '/lupon/arbitration',
+            '/lupon/documents',
+            '/lupon/records',
+            '/lupon/reports',
+            '/lupon/profile',
+        ] as $legacyRoute) {
+            $this->actingAs($lupon)->get($legacyRoute)->assertOk();
+        }
+
+        $this->actingAs($lupon)
+            ->get('/lupon/tagapamayapa')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Lupon/Tagapamayapa'));
+    }
+
+    public function test_dashboard_metrics_cover_the_new_case_stages_and_recent_activity(): void
+    {
+        $lupon = $this->createStaff($this->barangay, 'lupon');
+        $cases = [
+            ['KP-METRIC-MED', 'Kapitan', 'mediation_active'],
+            ['KP-METRIC-CON', 'Lupon', 'conciliation_active'],
+            ['KP-METRIC-ARB', 'Arbitration', 'arbitration_active'],
+            ['KP-METRIC-RES', 'Closed', 'settled'],
+            ['KP-METRIC-FILED', 'Kapitan', 'filed'],
+        ];
+
+        foreach ($cases as [$caseNumber, $phase, $status]) {
+            LuponCase::create([
+                'payment_status' => 'paid',
+                'barangay_id' => $this->barangay->id,
+                'origin' => 'manual',
+                'case_number' => $caseNumber,
+                'title' => $caseNumber.' title',
+                'case_type' => 'Debt / Money Dispute',
+                'phase' => $phase,
+                'status' => $status,
+                'created_by' => $lupon->id,
+                'assigned_to' => $lupon->id,
+                'filed_date' => now()->toDateString(),
+            ]);
+        }
+
+        $currentCase = LuponCase::where('case_number', 'KP-METRIC-MED')->firstOrFail();
+
+        foreach ([
+            ['LUP-METRIC-PENDING', 'Pending Payment', null],
+            ['LUP-METRIC-FOR-PAYMENT', 'For Payment', 100],
+            ['LUP-METRIC-SUBMITTED', 'Submitted', null],
+            ['LUP-METRIC-REJECTED', 'Rejected', null],
+        ] as [$reference, $status, $fee]) {
+            LuponComplaint::create([
+                'barangay_id' => $this->barangay->id,
+                'resident_id' => null,
+                'reference' => $reference,
+                'respondent_name' => 'Metric Respondent',
+                'respondent_resident_status' => 'Unknown',
+                'complaint_type' => 'Debt / Money Dispute',
+                'incident_date' => now()->subDay()->toDateString(),
+                'incident_location' => 'Purok One',
+                'narrative' => 'Metric test complaint.',
+                'requested_action' => 'Mediation.',
+                'status' => $status,
+                'assessed_fee' => $fee,
+                'submitted_at' => now(),
+            ]);
+        }
+
+        LuponCaseEvent::create([
+            'case_id' => $currentCase->id,
+            'from_status' => 'filed',
+            'to_status' => 'mediation_active',
+            'occurred_at' => now(),
+            'notes' => 'Current barangay activity.',
+        ]);
+
+        $foreignBarangay = $this->createBarangay('Metric Foreign', 'METRIC-FOREIGN');
+        $foreignStaff = $this->createStaff($foreignBarangay, 'lupon');
+        $foreignCase = LuponCase::create([
+            'payment_status' => 'paid',
+            'barangay_id' => $foreignBarangay->id,
+            'origin' => 'manual',
+            'case_number' => 'KP-METRIC-FOREIGN',
+            'title' => 'Foreign metric case',
+            'case_type' => 'Debt / Money Dispute',
+            'phase' => 'Kapitan',
+            'status' => 'mediation_active',
+            'created_by' => $foreignStaff->id,
+            'assigned_to' => $foreignStaff->id,
+            'filed_date' => now()->toDateString(),
+        ]);
+        LuponComplaint::create([
+            'barangay_id' => $foreignBarangay->id,
+            'resident_id' => null,
+            'reference' => 'LUP-METRIC-FOREIGN',
+            'respondent_name' => 'Foreign Respondent',
+            'respondent_resident_status' => 'Unknown',
+            'complaint_type' => 'Debt / Money Dispute',
+            'incident_date' => now()->subDay()->toDateString(),
+            'incident_location' => 'Foreign Purok',
+            'narrative' => 'Foreign complaint.',
+            'requested_action' => 'Mediation.',
+            'status' => 'For Payment',
+            'assessed_fee' => 100,
+            'submitted_at' => now(),
+        ]);
+        LuponCaseEvent::create([
+            'case_id' => $foreignCase->id,
+            'from_status' => 'filed',
+            'to_status' => 'mediation_active',
+            'occurred_at' => now()->addMinute(),
+            'notes' => 'Foreign activity.',
+        ]);
+
+        $this->actingAs($lupon)
+            ->get('/lupon/dashboard')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Lupon/Dashboard')
+                ->where('metrics.filed', 5)
+                ->where('metrics.activeMediation', 1)
+                ->where('metrics.activeConciliation', 1)
+                ->where('metrics.arbitration', 1)
+                ->where('metrics.resolved', 1)
+                ->where('metrics.pendingComplaints', 3)
+                ->where('metrics.awaitingPayment', 2)
+                ->has('recentActivity', 1)
+                ->where('recentActivity.0.caseNumber', 'KP-METRIC-MED'));
     }
 
     public function test_resident_lupon_prototype_still_renders_unchanged(): void

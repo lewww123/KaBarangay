@@ -11,18 +11,19 @@ use App\Models\Resident;
 use App\Support\AuditLogger;
 use App\Support\CertificateOfficials;
 use App\Support\LuponAccess;
+use App\Support\LuponCache;
 use App\Support\LuponCasePresenter;
 use App\Support\LuponCaseWorkflow;
 use App\Support\LuponCatalog;
 use App\Support\LuponDocket;
 use App\Support\LuponDocuments;
 use App\Support\LuponEvidenceStore;
+use App\Support\LuponReferences;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -31,9 +32,18 @@ use Inertia\Response;
 
 class LuponCaseController extends Controller
 {
-    private const PHASES = ['Kapitan', 'Lupon', 'Closed'];
+    private const PHASES = ['Kapitan', 'Lupon', 'Arbitration', 'Closed'];
 
-    private const STATUSES = ['filed', 'mediation_active', 'pangkat_formed', 'conciliation_active', 'settled', 'repudiated', 'dismissed', 'certified_to_file_action'];
+    private const STATUSES = ['filed', 'mediation_active', 'pangkat_formed', 'conciliation_active', 'settled', 'repudiated', 'dismissed', 'certified_to_file_action', 'arbitration_active', 'arbitration_awarded', 'executed', 'court_forwarded'];
+
+    private const STAGES = ['all', 'mediation', 'conciliation', 'arbitration', 'resolved'];
+
+    private const STAGE_PHASES = [
+        'mediation' => 'Kapitan',
+        'conciliation' => 'Lupon',
+        'arbitration' => 'Arbitration',
+        'resolved' => 'Closed',
+    ];
 
     private const CASE_TYPES = LuponCatalog::CASE_TYPES;
 
@@ -51,20 +61,23 @@ class LuponCaseController extends Controller
         $search = $request->query('search');
         $statusFilter = is_string($request->query('status')) ? LuponCaseWorkflow::normalize($request->query('status')) : null;
         $phaseFilter = $request->query('phase');
+        $stageFilter = in_array($request->query('stage'), self::STAGES, true) ? $request->query('stage') : 'all';
 
+        $sort = in_array($request->query('sort'), ['oldest', 'case_number'], true) ? $request->query('sort') : 'newest';
         $query = LuponCase::query()
             ->where('barangay_id', $user->barangay_id)
             ->with([
-                'parties',
+                'parties', 'complaint:id,reference',
                 'hearings' => fn ($q) => $q->latest('hearing_date')->limit(1),
             ])
-            ->latest('filed_date');
+            ->orderBy($sort === 'case_number' ? 'case_number' : 'filed_date', $sort === 'newest' ? 'desc' : 'asc')->orderBy('id', 'desc');
 
         if (is_string($search) && trim($search) !== '') {
             $trimmed = trim($search);
             $query->where(function ($q) use ($trimmed) {
                 $q->where('case_number', 'like', "%{$trimmed}%")
                     ->orWhere('title', 'like', "%{$trimmed}%")
+                    ->orWhereHas('complaint', fn ($cq) => $cq->where('reference', 'like', "%{$trimmed}%"))
                     ->orWhereHas('parties', fn ($pq) => $pq->where('name', 'like', "%{$trimmed}%"));
             });
         }
@@ -75,6 +88,10 @@ class LuponCaseController extends Controller
 
         if (is_string($phaseFilter) && in_array($phaseFilter, self::PHASES, true)) {
             $query->where('phase', $phaseFilter);
+        }
+
+        if ($stageFilter !== 'all') {
+            $query->where('phase', self::STAGE_PHASES[$stageFilter]);
         }
 
         $barangayId = $user->barangay_id;
@@ -91,10 +108,13 @@ class LuponCaseController extends Controller
                     'id' => $case->id,
                     'caseNumber' => $case->case_number,
                     'origin' => $case->origin,
+                    'complaintReference' => $case->complaint?->reference,
                     'title' => $case->title,
                     'caseType' => $case->case_type,
                     'phase' => $case->phase,
-                    'status' => $case->status,                    'filedDate' => $case->filed_date->format('F j, Y'),
+                    'status' => $case->status,
+                    'paymentStatus' => $case->payment_status,
+                    'filedDate' => $case->filed_date->format('F j, Y'),
                     'complainantName' => $primaryComplainant?->name ?? 'Unknown',
                     'respondentName' => $primaryRespondent?->name ?? 'Unknown',
                     'complainantsCount' => $case->complainants->count(),
@@ -111,14 +131,16 @@ class LuponCaseController extends Controller
                 'search' => $search ?? '',
                 'status' => $statusFilter ?? '',
                 'phase' => $phaseFilter ?? '',
+                'stage' => $stageFilter,
+                'sort' => $sort,
             ],
             'counts' => $this->deferProp(fn () => $this->rememberAggregate(
-                "lupon:cases:counts:{$barangayId}",
+                "lupon:cases:counts:v3:{$barangayId}",
                 30,
                 function () use ($barangayId): array {
                     $counts = LuponCase::query()
                         ->where('barangay_id', $barangayId)
-                        ->selectRaw("COUNT(*) as total, COUNT(CASE WHEN status IN ('filed', 'mediation_active', 'pangkat_formed', 'conciliation_active') THEN 1 END) as active, COUNT(CASE WHEN status = 'settled' THEN 1 END) as settled, COUNT(CASE WHEN status IN ('repudiated', 'certified_to_file_action') THEN 1 END) as unresolved")
+                        ->selectRaw("COUNT(*) as total, COUNT(CASE WHEN phase = 'Kapitan' THEN 1 END) as mediation, COUNT(CASE WHEN phase = 'Lupon' THEN 1 END) as conciliation, COUNT(CASE WHEN phase = 'Arbitration' THEN 1 END) as arbitration, COUNT(CASE WHEN phase = 'Closed' THEN 1 END) as resolved, COUNT(CASE WHEN status IN ('filed', 'mediation_active', 'pangkat_formed', 'conciliation_active') THEN 1 END) as active, COUNT(CASE WHEN status = 'settled' THEN 1 END) as settled, COUNT(CASE WHEN status IN ('repudiated', 'certified_to_file_action') THEN 1 END) as unresolved")
                         ->first();
 
                     return [
@@ -126,9 +148,14 @@ class LuponCaseController extends Controller
                         'active' => (int) $counts->active,
                         'settled' => (int) $counts->settled,
                         'unresolved' => (int) $counts->unresolved,
+                        'mediation' => (int) $counts->mediation,
+                        'conciliation' => (int) $counts->conciliation,
+                        'arbitration' => (int) $counts->arbitration,
+                        'resolved' => (int) $counts->resolved,
                     ];
                 },
             )),
+            'canCreateCases' => LuponAccess::canVerify($request),
             'phases' => self::PHASES,
             'statuses' => self::STATUSES,
         ]);
@@ -139,7 +166,7 @@ class LuponCaseController extends Controller
      */
     public function create(Request $request): Response
     {
-        LuponAccess::staff($request);
+        LuponAccess::secretary($request);
 
         return Inertia::render('Lupon/Cases/Create', ['caseTypes' => self::CASE_TYPES, 'officials' => CertificateOfficials::resolve($request->user()->barangay_id)]);
     }
@@ -212,13 +239,23 @@ class LuponCaseController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        LuponAccess::secretary($request);
         $user = $request->user();
 
         if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
             abort(403, 'Unauthorized.');
         }
 
+        if (is_string($request->input('or_number'))) {
+            $request->merge(['or_number' => strtoupper(trim($request->input('or_number')))]);
+        }
+
         $validated = $request->validate([
+            'payment_verified' => ['required', 'accepted'],
+            'fee_amount' => ['required', 'numeric', 'min:0.01', 'max:999999.99'],
+            'or_number' => ['required', 'string', 'max:100', Rule::unique('lupon_cases', 'or_number')->where('barangay_id', $user->barangay_id)],
+            'payment_date' => ['required', 'date', 'before_or_equal:'.LuponCaseWorkflow::today()],
+            'verification_note' => ['required', 'string', 'max:2000'],
             'case_type' => ['required', 'string', Rule::in(self::CASE_TYPES)],
             'acting_captain_id' => ['nullable', 'integer', 'min:1'],
             'hearing_date' => ['nullable', 'date', 'after_or_equal:'.LuponCaseWorkflow::today()],
@@ -269,6 +306,7 @@ class LuponCaseController extends Controller
             : $validated['case_type'];
 
         $newCase = $this->createManualCaseWithRetry($validated, $resolvedCaseType, $user, $request);
+        LuponCache::forget((int) $user->barangay_id);
 
         return redirect()->route('lupon.cases.show', $newCase->id)
             ->with('success', "Case {$newCase->case_number} successfully encoded.");
@@ -282,12 +320,27 @@ class LuponCaseController extends Controller
         while ($attempts < $maxAttempts) {
             try {
                 return DB::transaction(function () use ($validated, $resolvedCaseType, $user, $request) {
+                    Barangay::whereKey($user->barangay_id)->lockForUpdate()->firstOrFail();
+                    if (LuponCase::where('barangay_id', $user->barangay_id)->where('or_number', $validated['or_number'])->lockForUpdate()->exists()) {
+                        throw ValidationException::withMessages(['or_number' => 'This OR number is already recorded in your barangay.']);
+                    }
+                    $complaint = LuponComplaint::create([
+                        'barangay_id' => $user->barangay_id, 'resident_id' => $validated['complainant_resident_id'] ?? null,
+                        'reference' => LuponReferences::next('LUP-'.Carbon::parse(LuponCaseWorkflow::today())->year.'-'),
+                        'complainant_snapshot' => ['name' => $validated['complainant_name'], 'address' => $validated['complainant_address'] ?? null, 'contact' => $validated['complainant_contact'] ?? null],
+                        'respondent_name' => $validated['respondent_name'], 'respondent_resident_status' => $validated['respondent_is_resident'] ? 'Yes' : 'No',
+                        'respondent_address' => $validated['respondent_address'] ?? null, 'respondent_contact' => $validated['respondent_contact'] ?? null,
+                        'complaint_type' => $resolvedCaseType, 'incident_date' => $validated['incident_date'], 'incident_location' => $validated['incident_location'],
+                        'narrative' => $validated['narrative'], 'requested_action' => $validated['requested_action'], 'submitted_at' => now(), 'status' => 'Payment Verified',
+                        'assessed_fee' => $validated['fee_amount'], 'payment_verification' => ['actor_id' => $user->id, 'verified_at' => now()->toIso8601String(), 'payment_date' => $validated['payment_date'], 'or_number' => $validated['or_number'], 'amount' => $validated['fee_amount'], 'verification_note' => $validated['verification_note']],
+                    ]);
                     $caseNumber = $this->generateCaseNumber($user->barangay_id);
 
                     $case = LuponCase::create([
                         'barangay_id' => $user->barangay_id,
-                        'complaint_id' => null,
+                        'complaint_id' => $complaint->id,
                         'origin' => 'manual',
+                        'payment_status' => 'paid', 'payment_verification' => ['actor_id' => $user->id, 'verified_at' => now()->toIso8601String(), 'payment_date' => $validated['payment_date'], 'verification_note' => $validated['verification_note']], 'fee_amount' => $validated['fee_amount'], 'or_number' => $validated['or_number'], 'paid_at' => $validated['payment_date'],
                         'acting_captain_id' => $validated['acting_captain_id'] ?? null,
                         'intake_narrative' => $validated['narrative'],
                         'intake_requested_action' => $validated['requested_action'],
@@ -359,7 +412,7 @@ class LuponCaseController extends Controller
                     );
 
                     LuponDocket::finish($case, $validated, $user->id);
-                    LuponEvidenceStore::store($request->file('evidence', []), null, $case, null, $user->id);
+                    LuponEvidenceStore::store($request->file('evidence', []), $complaint, $case, null, $user->id);
 
                     return $case;
                 });
@@ -405,11 +458,12 @@ class LuponCaseController extends Controller
         };
 
         return Inertia::render('Lupon/Cases/Show', [
-            'caseData' => $this->deferProp(function () use ($case, $loadCase): array {
+            'caseData' => $this->deferProp(function () use ($case, $loadCase, $request): array {
                 $loadCase();
 
                 return [
                     'id' => $case->id,
+                    'canVerifyPayments' => LuponAccess::canVerify($request),
                     'caseNumber' => $case->case_number,
                     'origin' => $case->origin,
                     'title' => $case->title,
@@ -484,6 +538,7 @@ class LuponCaseController extends Controller
      */
     public function promote(Request $request, LuponComplaint $complaint): RedirectResponse
     {
+        LuponAccess::secretary($request);
         $user = $request->user();
 
         if (! $user->staffAssignments()->where('department', 'lupon')->where('is_active', true)->exists()) {
@@ -494,7 +549,11 @@ class LuponCaseController extends Controller
             abort(403, 'Unauthorized access to complaint.');
         }
 
-        if ($complaint->status !== 'For Payment' || ! $complaint->assessed_fee || (float) $complaint->assessed_fee <= 0) {
+        if ($complaint->case()->exists()) {
+            return back()->with('success', 'This complaint already has an official case.');
+        }
+
+        if (! in_array($complaint->status, ['Pending Payment', 'Payment Verification', 'For Payment'], true) || ! $complaint->assessed_fee || (float) $complaint->assessed_fee <= 0) {
             return redirect()->back()->withErrors([
                 'complaint' => 'Complete the complaint review and assess the filing fee before recording payment and creating a case.',
             ]);
@@ -508,23 +567,24 @@ class LuponCaseController extends Controller
         }
 
         if (is_string($request->input('or_number'))) {
-            $request->merge(['or_number' => trim($request->input('or_number'))]);
+            $request->merge(['or_number' => strtoupper(trim($request->input('or_number')))]);
         }
         $request->validate([
             'or_number' => ['required', 'string', 'max:100', Rule::unique('lupon_cases', 'or_number')->where('barangay_id', $user->barangay_id)],
             'acting_captain_id' => ['nullable', 'integer', 'min:1'],
-            'hearing_date' => ['required', 'date', 'after_or_equal:'.LuponCaseWorkflow::today()],
-            'hearing_time' => ['required', 'date_format:H:i'],
-            'venue' => ['required', 'string', 'max:255'],
+            'payment_verified' => ['required', 'accepted'],
+            'payment_date' => ['required', 'date', 'before_or_equal:'.LuponCaseWorkflow::today()],
+            'verification_note' => ['required', 'string', 'max:2000'],
+            'hearing_date' => ['nullable', 'date', 'after_or_equal:'.LuponCaseWorkflow::today()],
+            'hearing_time' => ['required_with:hearing_date', 'nullable', 'date_format:H:i'],
+            'venue' => ['required_with:hearing_date', 'nullable', 'string', 'max:255'],
         ]);
         CertificateOfficials::resolve($user->barangay_id, $request->filled('acting_captain_id') ? $request->integer('acting_captain_id') : null);
         $case = $this->createCaseWithRetry($complaint, $user, $request);
-        Cache::forget('lupon:complaints:stats:'.$user->barangay_id);
-        Cache::forget('lupon:cases:counts:'.$user->barangay_id);
-        Cache::forget('lupon:dashboard:metrics:'.$user->barangay_id);
+        LuponCache::forget((int) $user->barangay_id);
 
         return redirect()->back()
-            ->with('success', "Payment and OR recorded. Case {$case->case_number} and Kapitan hearing #1 have been created with the selected schedule.");
+            ->with('success', "Payment verified and recorded. Official case {$case->case_number} created. Schedules are recorded separately.");
     }
 
     /**
@@ -542,7 +602,7 @@ class LuponCaseController extends Controller
                     if ($existing = $complaint->case()->first()) {
                         return $existing;
                     }
-                    if ($complaint->status !== 'For Payment' || (float) $complaint->assessed_fee <= 0) {
+                    if (! in_array($complaint->status, ['Pending Payment', 'Payment Verification', 'For Payment'], true) || (float) $complaint->assessed_fee <= 0) {
                         throw ValidationException::withMessages(['complaint' => 'This complaint is no longer awaiting payment. Refresh the queue.']);
                     }
                     // Serialize online receipt recording within this barangay.
@@ -552,6 +612,17 @@ class LuponCaseController extends Controller
                     }
                     $complaint->loadMissing(['resident.purok:id,name', 'barangay:id,name']);
 
+                    // A walk-in complainant has no resident record, so the party
+                    // snapshot recorded at intake supplies the case title and the
+                    // complainant party instead of the masterlist row.
+                    $complainant = $complaint->resident;
+                    $complainantName = $complainant?->full_name
+                        ?? $complaint->complainant_snapshot['name']
+                        ?? 'Walk-in complainant';
+                    $complainantAddress = $complainant
+                        ? trim(implode(', ', array_filter([$complainant->purok?->name, $complaint->barangay?->name])))
+                        : ($complaint->complainant_snapshot['address'] ?? null);
+
                     $caseNumber = $this->generateCaseNumber($complaint->barangay_id);
 
                     $newCase = LuponCase::create([
@@ -560,7 +631,7 @@ class LuponCaseController extends Controller
                         'origin' => 'promoted',
                         'acting_captain_id' => $request->filled('acting_captain_id') ? $request->integer('acting_captain_id') : null,
                         'case_number' => $caseNumber,
-                        'title' => "{$complaint->complaint_type}: {$complaint->resident->full_name} vs. {$complaint->respondent_name}",
+                        'title' => "{$complaint->complaint_type}: {$complainantName} vs. {$complaint->respondent_name}",
                         'case_type' => $complaint->complaint_type,
                         'phase' => 'Kapitan',
                         'status' => 'filed',
@@ -571,7 +642,7 @@ class LuponCaseController extends Controller
                         'payment_status' => 'paid',
                         'fee_amount' => $complaint->assessed_fee,
                         'or_number' => $request->input('or_number'),
-                        'paid_at' => now(),
+                        'paid_at' => $request->input('payment_date'),
                     ]);
 
                     // Add primary complainant
@@ -579,10 +650,10 @@ class LuponCaseController extends Controller
                         'case_id' => $newCase->id,
                         'party_type' => 'complainant',
                         'resident_id' => $complaint->resident_id,
-                        'name' => $complaint->resident->full_name,
-                        'is_resident' => true,
-                        'address' => trim(implode(', ', array_filter([$complaint->resident->purok?->name, $complaint->barangay?->name]))),
-                        'contact_number' => $complaint->resident->mobile,
+                        'name' => $complainantName,
+                        'is_resident' => $complainant !== null,
+                        'address' => $complainantAddress,
+                        'contact_number' => $complainant?->mobile ?? ($complaint->complainant_snapshot['contact'] ?? null),
                         'is_primary' => true,
                     ]);
 
@@ -614,7 +685,7 @@ class LuponCaseController extends Controller
                     );
 
                     LuponDocket::finish($newCase, $request->only(['hearing_date', 'hearing_time', 'venue']), $user->id);
-                    $complaint->update(['status' => 'Accepted']);
+                    $complaint->update(['status' => 'Payment Verified', 'payment_verification' => ['actor_id' => $user->id, 'verified_at' => now()->toIso8601String(), 'payment_date' => $request->input('payment_date'), 'or_number' => $request->input('or_number'), 'amount' => $complaint->assessed_fee, 'verification_note' => $request->input('verification_note')]]);
                     AuditLogger::record('lupon_case.fee_verified', barangayId: $newCase->barangay_id,
                         actorId: $user->id, entityType: 'lupon_case', entityId: $newCase->id,
                         context: ['payment_status' => 'paid', 'case_number' => $newCase->case_number]);
@@ -753,6 +824,7 @@ class LuponCaseController extends Controller
                 'verified_at' => null,
                 'verification_notes' => $validated['verification_notes'] ?? 'Association unlinked by staff.',
             ]);
+            LuponDocuments::invalidateNotices($case);
 
             AuditLogger::record(
                 event: 'lupon_respondent.unlinked',
@@ -783,6 +855,7 @@ class LuponCaseController extends Controller
             'verified_at' => now(),
             'verification_notes' => $validated['verification_notes'] ?? 'Verified by Lupon Staff.',
         ]);
+        LuponDocuments::invalidateNotices($case);
 
         AuditLogger::record(
             event: 'lupon_respondent.verified',
@@ -843,6 +916,7 @@ class LuponCaseController extends Controller
                 LuponDocuments::generate($changed, 'cfa', $user->id);
             }
         });
+        LuponCache::forget((int) $user->barangay_id);
 
         return redirect()->back()->with('success', 'Case status updated successfully.');
     }

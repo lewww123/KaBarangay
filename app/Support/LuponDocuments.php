@@ -193,7 +193,7 @@ final class LuponDocuments
             $section->addText('Date: ${hearing_date}     Time: ${hearing_time}');
             $section->addText('Venue: ${venue}');
             $section->addText('Bring your supporting records and witnesses, if any. Service and actual receipt must be recorded by the Lupon desk.');
-            $section->addText('Issued on ${issued_date}.');
+            $section->addText('Prepared on ${issued_date}.');
             $section->addTextBreak(2);
             $section->addText('${punong_barangay}', ['bold' => true], ['alignment' => 'right']);
             $section->addText('${punong_barangay_title}', [], ['alignment' => 'right']);
@@ -213,7 +213,7 @@ final class LuponDocuments
         } else {
             $section->addText('${cfa_basis}');
             $section->addText('Accordingly, the dispute may be filed with the appropriate court or government office, subject to its jurisdiction and applicable rules.');
-            $section->addText('Issued on ${issued_date}.');
+            $section->addText('Prepared on ${issued_date}.');
             $section->addTextBreak(2);
             $section->addText('${certifying_secretary}', ['bold' => true]);
             $section->addText('${secretary_title}');
@@ -221,7 +221,7 @@ final class LuponDocuments
             $section->addText('${attesting_chair}', ['bold' => true]);
             $section->addText('${attesting_title}');
         }
-        $section->addFooter()->addText('System-generated copy — review and obtain the required original signatures before release.', ['size' => 8], ['alignment' => 'center']);
+        $section->addFooter()->addText('Configurable review template — not a prescribed official form. Legal review and original signatures are required before official use.', ['size' => 8], ['alignment' => 'center']);
         $template = tempnam(sys_get_temp_dir(), 'lupon_template_');
         IOFactory::createWriter($word, 'Word2007')->save($template);
 
@@ -232,12 +232,19 @@ final class LuponDocuments
     {
         $route = $portal === 'resident' ? 'resident.lupon.documents.download' : 'lupon.documents.download';
 
-        return ['id' => $document->id, 'kind' => $document->kind, 'label' => self::KINDS[$document->kind] ?? $document->kind, 'status' => $document->status, 'hearingId' => $document->hearing_id, 'generatedAt' => $document->generated_at?->toIso8601String(), 'servedAt' => $document->served_at?->toIso8601String(), 'url' => $document->status === 'ready' ? route($route, ['document' => $document->id]) : null];
+        return ['id' => $document->id, 'kind' => $document->kind, 'label' => self::KINDS[$document->kind] ?? $document->kind, 'status' => $document->status, 'hearingId' => $document->hearing_id, 'generatedAt' => $document->generated_at?->toIso8601String(), 'issuedAt' => $document->issued_at?->toIso8601String(), 'servedAt' => $document->served_at?->toIso8601String(), 'url' => $document->status === 'ready' ? route($route, ['document' => $document->id]) : null];
     }
 
     public static function invalidateNotices(LuponCase $case): void
     {
-        $case->documents()->whereIn('kind', ['notice_of_hearing', 'summons'])->where('status', 'ready')->update(['status' => 'superseded']);
+        // Only prepared, unissued copies are superseded. Issued or served
+        // notices stay untouched as legal history.
+        $case->documents()
+            ->whereIn('kind', ['notice_of_hearing', 'summons'])
+            ->where('status', 'ready')
+            ->whereNull('issued_at')
+            ->whereNull('served_at')
+            ->update(['status' => 'superseded']);
     }
 
     private static function fail(string $message): never
