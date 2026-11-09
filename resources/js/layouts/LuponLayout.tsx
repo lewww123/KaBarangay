@@ -1,5 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState, type ReactNode } from 'react';
+import { formatBarangayLabel } from '@/lib/formatBarangayLabel';
 
 type LegacyLuponPage =
     | 'dashboard'
@@ -80,9 +81,9 @@ export default function LuponLayout({
         };
     }>().props;
     user = user ?? shared.auth?.user;
-    const resolvedBarangayName =
-        barangayName ?? shared.auth?.activeBarangay?.name ?? null;
-    const brand = resolvedBarangayName ? `Barangay ${resolvedBarangayName}` : 'Barangay';
+    const brand = formatBarangayLabel(
+        barangayName ?? shared.auth?.activeBarangay?.name ?? null,
+    );
     const casesActive = active === 'cases';
     const [casesOpen, setCasesOpen] = useState(casesActive);
     const activeStage = caseStage ?? 'all';
