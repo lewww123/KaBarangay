@@ -68,22 +68,22 @@ export default function WalkInComplaint({
     };
 
     return (
-        <LuponLayout active="complaints" user={auth.user}>
+        <LuponLayout active="walk-in" user={auth.user}>
             <Head title="Walk-in Complaint Intake" />
             <main className="mx-auto max-w-6xl space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">
+                        <h1 className="text-2xl font-bold text-ink-strong">
                             Walk-in complaint intake
                         </h1>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             Record the dispute exactly as presented at the desk
                             {userName ? ` — signed in as ${userName}` : ''}.
                         </p>
                     </div>
                     <Link
                         href="/lupon/complaints"
-                        className="rounded-lg border bg-white px-4 py-2 text-sm font-semibold"
+                        className="rounded-lg border bg-surface px-4 py-2 text-sm font-semibold"
                     >
                         Back to submissions
                     </Link>
@@ -142,11 +142,11 @@ export default function WalkInComplaint({
                         />
                     </div>
 
-                    <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-                        <h2 className="font-bold text-slate-900">
+                    <section className="space-y-4 rounded-xl border border-line-soft bg-surface p-4 sm:p-5">
+                        <h2 className="font-bold text-ink-strong">
                             Dispute details
                         </h2>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-ink-muted">
                             An unregistered complainant is kept from the details
                             entered above. Linking either party to the masterlist
                             replaces the typed details with the verified
@@ -254,7 +254,7 @@ export default function WalkInComplaint({
                     <div className="flex justify-end">
                         <button
                             disabled={form.processing}
-                            className="rounded-lg bg-emerald-800 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                            className="rounded-lg bg-brand px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
                         >
                             {form.processing
                                 ? 'Submitting complaint…'

@@ -37,7 +37,7 @@ export default function PromoteComplaint({
             <h3 className="font-bold text-emerald-950">
                 Verify payment and create the official case
             </h3>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-ink-muted">
                 Record the actual barangay payment and official receipt, then
                 optionally an agreed hearing schedule. The case is created only
                 when this is submitted.
@@ -100,7 +100,7 @@ export default function PromoteComplaint({
                     onChange={(e) =>
                         form.setData('acting_captain_id', e.target.value)
                     }
-                    className="mt-1 block w-full rounded-lg border bg-white p-2"
+                    className="mt-1 block w-full rounded-lg border bg-surface p-2"
                 >
                     <option value="">Default Punong Barangay</option>
                     {officials.active_kagawads.map((member) => (
@@ -116,7 +116,7 @@ export default function PromoteComplaint({
             <Errors errors={form.errors} />
             <button
                 disabled={form.processing}
-                className="rounded-lg bg-emerald-800 px-4 py-2 font-semibold text-white disabled:opacity-50"
+                className="rounded-lg bg-brand px-4 py-2 font-semibold text-white disabled:opacity-50"
             >
                 {form.processing
                     ? 'Creating official case…'

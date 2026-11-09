@@ -72,22 +72,22 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
             <main className="mx-auto max-w-6xl space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">
+                        <h1 className="text-2xl font-bold text-ink-strong">
                             Walk-in case intake
                         </h1>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             Scan or search both parties, record the dispute, and
                             prepare the first hearing notices.
                         </p>
                     </div>
                     <Link
                         href="/lupon/cases"
-                        className="rounded-lg border bg-white px-4 py-2 text-sm font-semibold"
+                        className="rounded-lg border bg-surface px-4 py-2 text-sm font-semibold"
                     >
                         Back to cases
                     </Link>
                 </div>
-                <section className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-2"><h2 className="font-semibold sm:col-span-2">Actual payment verification — Secretary only</h2>{(['fee_amount','or_number','payment_date','verification_note'] as const).map(key=><label key={key} className="text-sm">{({fee_amount:'Approved assessed amount',or_number:'Official receipt number',payment_date:'Actual payment date',verification_note:'Actual verification details'})[key]}<input type={key==='payment_date'?'date':key==='fee_amount'?'number':'text'} step={key==='fee_amount'?'0.01':undefined} className="mt-1 block w-full rounded border p-2" value={form.data[key]} onChange={e=>form.setData(key,e.target.value)} /></label>)}<label className="flex gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={form.data.payment_verified} onChange={e=>form.setData('payment_verified',e.target.checked)} />I personally verified the actual barangay payment and official receipt.</label></section>
+                <section className="grid gap-3 rounded-2xl border border-line-soft bg-surface p-4 shadow-card sm:grid-cols-2"><h2 className="font-semibold text-ink-strong sm:col-span-2">Actual payment verification — Secretary only</h2>{(['fee_amount','or_number','payment_date','verification_note'] as const).map(key=><label key={key} className="text-sm text-ink">{({fee_amount:'Approved assessed amount',or_number:'Official receipt number',payment_date:'Actual payment date',verification_note:'Actual verification details'})[key]}<input type={key==='payment_date'?'date':key==='fee_amount'?'number':'text'} step={key==='fee_amount'?'0.01':undefined} className="mt-1 block w-full rounded-xl border border-line bg-surface p-2 text-ink-strong outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" value={form.data[key]} onChange={e=>form.setData(key,e.target.value)} /></label>)}<label className="flex items-center gap-2 text-sm text-ink sm:col-span-2"><input type="checkbox" className="rounded border-line text-brand focus:ring-brand/30" checked={form.data.payment_verified} onChange={e=>form.setData('payment_verified',e.target.checked)} />I personally verified the actual barangay payment and official receipt.</label></section>
                 {Object.keys(form.errors).length > 0 && (
                     <div
                         role="alert"
@@ -124,8 +124,8 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
                             }
                         />
                     </div>
-                    <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-                        <h2 className="font-bold text-slate-900">
+                    <section className="space-y-4 rounded-xl border border-line-soft bg-surface p-4 sm:p-5">
+                        <h2 className="font-bold text-ink-strong">
                             Dispute details
                         </h2>
                         <div className="grid gap-4 sm:grid-cols-2">
@@ -234,11 +234,11 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
                             error={form.errors.evidence}
                         />
                     </section>
-                    <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-                        <h2 className="font-bold text-slate-900">
+                    <section className="space-y-4 rounded-xl border border-line-soft bg-surface p-4 sm:p-5">
+                        <h2 className="font-bold text-ink-strong">
                             First hearing & presiding official
                         </h2>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-ink-muted">
                             Enter the first hearing date, time and venue so the
                             summons can include the saved case and party
                             details. After saving the case, open Summons in
@@ -314,7 +314,7 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
                                 ))}
                             </select>
                         </label>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-ink-muted">
                             Notices are prepared from this schedule. Verify any
                             filing fee or waiver and record actual service
                             separately. The mediation clock starts at the
@@ -324,7 +324,7 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
                     <div className="flex justify-end">
                         <button
                             disabled={form.processing}
-                            className="rounded-lg bg-emerald-800 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                            className="rounded-lg bg-brand px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
                         >
                             {form.processing
                                 ? 'Docketing…'

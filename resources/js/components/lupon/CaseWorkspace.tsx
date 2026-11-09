@@ -24,7 +24,7 @@ export default function CaseWorkspace({
             <nav
                 role="tablist"
                 aria-label="Case workspace"
-                className="flex gap-1 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1.5"
+                className="flex gap-1 overflow-x-auto rounded-2xl border border-line-soft bg-surface p-1.5 shadow-card"
                 onKeyDown={(event) => {
                     const focused = (event.target as HTMLElement).closest(
                         '[role=tab]',
@@ -63,7 +63,7 @@ export default function CaseWorkspace({
                         aria-controls={`case-panel-${item.id}`}
                         tabIndex={section === item.id ? 0 : -1}
                         onClick={() => setSection(item.id)}
-                        className={`rounded-lg px-4 py-2.5 text-sm font-semibold ${section === item.id ? 'bg-[#3f6f3d] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
+                        className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition ${section === item.id ? 'bg-brand text-white shadow-sm' : 'text-ink-muted hover:bg-secondary hover:text-ink-strong'}`}
                     >
                         {item.label}
                     </button>

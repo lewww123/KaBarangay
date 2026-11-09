@@ -121,10 +121,10 @@ export default function HearingRecords({
     return (
         <>
             {summary ? (
-                <section className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                <section className="rounded-xl border border-line-soft bg-canvas p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <p className="text-xs font-semibold text-stone-500">
+                            <p className="text-xs font-semibold text-ink-muted">
                                 {['Scheduled', 'Rescheduled'].includes(
                                     summary.status,
                                 )
@@ -135,7 +135,7 @@ export default function HearingRecords({
                                 Hearing #{summary.hearingNumber} ·{' '}
                                 {summary.phase}
                             </h3>
-                            <p className="mt-1 text-sm text-stone-600">
+                            <p className="mt-1 text-sm text-ink-muted">
                                 {summary.date} {summary.time} · {summary.venue}
                             </p>
                             <p className="mt-1 text-sm">
@@ -146,7 +146,7 @@ export default function HearingRecords({
                         <button
                             type="button"
                             onClick={() => openRecord(summary)}
-                            className="rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white"
+                            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
                         >
                             Open {currentPhase} hearings (
                             {
@@ -156,7 +156,7 @@ export default function HearingRecords({
                             /3)
                         </button>
                     </div>
-                    <p className="mt-3 text-xs text-stone-500">
+                    <p className="mt-3 text-xs text-ink-muted">
                         Browse saved hearings by phase. Only recorded hearings
                         appear.
                     </p>
@@ -167,7 +167,7 @@ export default function HearingRecords({
                     <button
                         type="button"
                         onClick={() => setIsOpen(true)}
-                        className="ml-3 rounded-lg bg-emerald-800 px-4 py-2 text-white"
+                        className="ml-3 rounded-lg bg-brand px-4 py-2 text-white"
                     >
                         Open case hearing records
                     </button>
@@ -186,7 +186,7 @@ export default function HearingRecords({
                     )
                         closeRecords();
                 }}
-                className="m-auto max-h-[92vh] w-[calc(100%-1.5rem)] max-w-6xl overflow-auto rounded-xl border-0 bg-white p-0 text-stone-900 shadow-xl backdrop:bg-black/50"
+                className="m-auto max-h-[92vh] w-[calc(100%-1.5rem)] max-w-6xl overflow-auto rounded-xl border-0 bg-white p-0 text-ink-strong shadow-xl backdrop:bg-black/50"
             >
                 {isOpen && (
                     <>
@@ -195,7 +195,7 @@ export default function HearingRecords({
                                 <h2 className="font-semibold">
                                     Case hearing records
                                 </h2>
-                                <p className="text-xs text-stone-500">
+                                <p className="text-xs text-ink-muted">
                                     Choose a hearing card to inspect its saved
                                     details.
                                 </p>
@@ -228,7 +228,7 @@ export default function HearingRecords({
                                     )
                                     .map((phase) => (
                                         <section key={phase}>
-                                            <h3 className="mb-2 text-xs font-semibold text-stone-500 uppercase">
+                                            <h3 className="mb-2 text-xs font-semibold text-ink-muted uppercase">
                                                 {phase} ·{' '}
                                                 {phase === currentPhase
                                                     ? 'Current phase'
@@ -268,7 +268,7 @@ export default function HearingRecords({
                                                                 (selected?.id ===
                                                                 hearing.id
                                                                     ? 'border-emerald-800 bg-emerald-50'
-                                                                    : 'border-stone-200 hover:bg-stone-50')
+                                                                    : 'border-line-soft hover:bg-canvas')
                                                             }
                                                         >
                                                             <span className="block text-sm font-semibold">
@@ -281,7 +281,7 @@ export default function HearingRecords({
                                                                 {hearing.date}{' '}
                                                                 {hearing.time}
                                                             </span>
-                                                            <span className="mt-1 block text-xs text-stone-600">
+                                                            <span className="mt-1 block text-xs text-ink-muted">
                                                                 {displayStatus(
                                                                     hearing,
                                                                 )}
@@ -336,14 +336,14 @@ export default function HearingRecords({
                                     <button
                                         type="button"
                                         onClick={() => onSettle?.()}
-                                        className="rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white"
+                                        className="rounded-lg bg-brand px-4 py-2 text-sm text-white"
                                     >
                                         View amicable settlement
                                     </button>
                                 )}
                                 {selected && (
                                     <>
-                                        <div className="space-y-2 rounded-xl border border-stone-200 p-4">
+                                        <div className="space-y-2 rounded-xl border border-line-soft p-4">
                                             <h3 className="font-semibold">
                                                 Hearing #
                                                 {selected.hearingNumber} ·{' '}
@@ -364,7 +364,7 @@ export default function HearingRecords({
                                                 {selected.officerName ||
                                                     'Not supplied'}
                                             </p>
-                                            <p className="text-xs text-stone-500">
+                                            <p className="text-xs text-ink-muted">
                                                 Attendance details are
                                                 unavailable.
                                             </p>
@@ -391,7 +391,7 @@ export default function HearingRecords({
                                                         onClick={() =>
                                                             onSettle?.()
                                                         }
-                                                        className="rounded-lg bg-emerald-800 p-3 text-sm text-white disabled:opacity-40"
+                                                        className="rounded-lg bg-brand p-3 text-sm text-white disabled:opacity-40"
                                                     >
                                                         Settled — record
                                                         agreement
@@ -472,7 +472,7 @@ export default function HearingRecords({
                                                 <div className="mt-3">
                                                     {' '}
                                                     <form
-                                                        className="space-y-4 rounded-xl border border-stone-200 bg-white p-4"
+                                                        className="space-y-4 rounded-xl border border-line-soft bg-white p-4"
                                                         onSubmit={(event) => {
                                                             event.preventDefault();
                                                             form.transform(
@@ -541,7 +541,7 @@ export default function HearingRecords({
                                                                 disabled={
                                                                     form.processing
                                                                 }
-                                                                className="rounded bg-emerald-800 px-3 py-2 text-xs font-semibold text-white"
+                                                                className="rounded bg-brand px-3 py-2 text-xs font-semibold text-white"
                                                             >
                                                                 {form.processing
                                                                     ? 'Saving hearing notes…'
@@ -561,7 +561,7 @@ export default function HearingRecords({
                                         <button
                                             type="button"
                                             onClick={() => onNext?.()}
-                                            className="rounded-lg bg-emerald-800 p-3 text-sm text-white"
+                                            className="rounded-lg bg-brand p-3 text-sm text-white"
                                         >
                                             Schedule hearing #1 · {currentPhase}
                                         </button>

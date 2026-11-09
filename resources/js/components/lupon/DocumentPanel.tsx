@@ -134,16 +134,16 @@ export default function DocumentPanel({
     if (status === 'certified_to_file_action')
         kinds.push({ value: 'cfa', label: 'Certificate to File Action' });
     return (
-        <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+        <section className="space-y-4 rounded-xl border border-line-soft bg-surface p-4 sm:p-5">
             <div className="flex flex-wrap justify-between gap-2">
-                <h2 className="font-bold text-slate-900">
+                <h2 className="font-bold text-ink-strong">
                     Mga dokumento at pag-abot
                 </h2>
-                <span className="text-xs font-semibold text-slate-500">
+                <span className="text-xs font-semibold text-ink-muted">
                     Fee: {paymentStatus}
                 </span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-ink-muted">
                 Prepared files are unsigned copies. Review the details and
                 required signatures before release; record actual notice service
                 separately.
@@ -182,7 +182,7 @@ export default function DocumentPanel({
                                         event.target.value,
                                     )
                                 }
-                                className="mt-1 w-full rounded border bg-white p-2 text-sm"
+                                className="mt-1 w-full rounded border bg-surface p-2 text-sm"
                             >
                                 <option value="paid">Paid</option>
                                 <option value="waived">Waived</option>
@@ -202,7 +202,7 @@ export default function DocumentPanel({
                                         event.target.value,
                                     )
                                 }
-                                className="mt-1 w-full rounded border bg-white p-2 text-sm"
+                                className="mt-1 w-full rounded border bg-surface p-2 text-sm"
                             />
                         </label>
                         <label className="text-xs font-semibold sm:col-span-2">
@@ -214,13 +214,13 @@ export default function DocumentPanel({
                                 onChange={(event) =>
                                     fee.setData('or_number', event.target.value)
                                 }
-                                className="mt-1 w-full rounded border bg-white p-2 text-sm"
+                                className="mt-1 w-full rounded border bg-surface p-2 text-sm"
                             />
                         </label>
                         <Errors errors={fee.errors} />
                         <button
                             disabled={fee.processing}
-                            className="rounded-lg border bg-white px-3 py-2 text-xs font-semibold"
+                            className="rounded-lg border bg-surface px-3 py-2 text-xs font-semibold"
                         >
                             Save verification
                         </button>
@@ -228,13 +228,13 @@ export default function DocumentPanel({
                 </details>
             )}
             {kinds.length > 0 && (
-                <h3 className="text-sm font-semibold text-slate-800">
+                <h3 className="text-sm font-semibold text-ink-strong">
                     2. Ihanda ang kaukulang dokumento
                 </h3>
             )}
             {kinds.length > 0 && (
                 <form
-                    className="space-y-3 rounded-lg bg-slate-50 p-3"
+                    className="space-y-3 rounded-lg bg-canvas p-3"
                     onSubmit={(event) => {
                         event.preventDefault();
                         generate.post(`/lupon/cases/${caseId}/documents`, {
@@ -253,7 +253,7 @@ export default function DocumentPanel({
                                         event.target.value as LuponDocumentKind,
                                     )
                                 }
-                                className="mt-1 w-full rounded border bg-white p-2 text-sm"
+                                className="mt-1 w-full rounded border bg-surface p-2 text-sm"
                             >
                                 {kinds.map((kind) => (
                                     <option key={kind.value} value={kind.value}>
@@ -272,7 +272,7 @@ export default function DocumentPanel({
                                         event.target.value,
                                     )
                                 }
-                                className="mt-1 w-full rounded border bg-white p-2 text-sm"
+                                className="mt-1 w-full rounded border bg-surface p-2 text-sm"
                             >
                                 <option value="">
                                     {officials.default_punong_barangay?.name ||
@@ -302,7 +302,7 @@ export default function DocumentPanel({
                                         event.target.value,
                                     )
                                 }
-                                className="mt-1 w-full rounded border bg-white p-2 text-sm"
+                                className="mt-1 w-full rounded border bg-surface p-2 text-sm"
                             >
                                 <option value="">Next scheduled hearing</option>
                                 {upcoming.map((hearing) => (
@@ -333,7 +333,7 @@ export default function DocumentPanel({
                                 (kind) => kind.value === generate.data.kind,
                             )
                         }
-                        className="rounded-lg bg-emerald-800 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                        className="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
                     >
                         {generate.processing
                             ? 'Preparing…'
@@ -344,7 +344,7 @@ export default function DocumentPanel({
             {[...new Set(documents.map((document) => document.hearingId))].map(
                 (hearingId) => (
                     <section key={hearingId ?? 'case'} className="space-y-2">
-                        <h3 className="text-sm font-semibold text-stone-700">
+                        <h3 className="text-sm font-semibold text-ink">
                             {hearingId === null
                                 ? 'Case-level documents'
                                 : hearings.find(
@@ -362,13 +362,13 @@ export default function DocumentPanel({
                                 .map((document) => (
                                     <li
                                         key={document.id}
-                                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3"
+                                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line-soft p-3"
                                     >
                                         <div>
                                             <p className="text-sm font-semibold">
                                                 {document.label}
                                             </p>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="text-xs text-ink-muted">
                                                 {document.status === 'ready'
                                                     ? 'Prepared file · review/signatures still required'
                                                     : document.status ===
@@ -390,7 +390,7 @@ export default function DocumentPanel({
                                             </p>
                                         </div>
                                         {document.status === 'ready' && !document.issuedAt && <DocumentIssueControl documentId={document.id} />}
-                                        {document.issuedAt && <p className="text-xs text-slate-600">Issued: {new Date(document.issuedAt).toLocaleString('en-PH')}</p>}
+                                        {document.issuedAt && <p className="text-xs text-ink-muted">Issued: {new Date(document.issuedAt).toLocaleString('en-PH')}</p>}
                                         {document.status === 'ready' && (
                                             <div className="flex flex-wrap gap-2 text-xs font-semibold">
                                                 <button
@@ -445,7 +445,7 @@ export default function DocumentPanel({
                 ),
             )}
             {!documents.length && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-ink-muted">
                     No documents have been prepared yet.
                 </p>
             )}
@@ -455,7 +455,7 @@ export default function DocumentPanel({
                         role="dialog"
                         aria-modal="true"
                         aria-label={preview.label}
-                        className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-xl bg-white shadow-xl"
+                        className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-xl bg-surface shadow-xl"
                     >
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
                             <h3 className="font-bold">{preview.label}</h3>
@@ -463,7 +463,7 @@ export default function DocumentPanel({
                                 type="button"
                                 disabled={!previewReady || printing}
                                 onClick={printPreview}
-                                className="rounded-lg bg-emerald-800 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                                className="rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
                             >
                                 {printing
                                     ? 'Opening print view…'
@@ -486,7 +486,7 @@ export default function DocumentPanel({
                                 {printError}
                             </p>
                         )}
-                        <div className="overflow-auto bg-slate-100 p-3">
+                        <div className="overflow-auto bg-secondary p-3">
                             <DocxPreview
                                 url={`/lupon/documents/${preview.id}/preview`}
                                 onReady={setPreviewReady}
@@ -501,7 +501,7 @@ export default function DocumentPanel({
                         role="dialog"
                         aria-modal="true"
                         aria-label="Record notice service"
-                        className="max-h-[92vh] w-full max-w-lg space-y-4 overflow-auto rounded-xl bg-white p-5"
+                        className="max-h-[92vh] w-full max-w-lg space-y-4 overflow-auto rounded-xl bg-surface p-5"
                         onSubmit={(event) => {
                             event.preventDefault();
                             service.transform((data) => ({
@@ -600,7 +600,7 @@ export default function DocumentPanel({
                             </button>
                             <button
                                 disabled={service.processing}
-                                className="rounded bg-emerald-800 px-3 py-2 text-xs font-semibold text-white"
+                                className="rounded bg-brand px-3 py-2 text-xs font-semibold text-white"
                             >
                                 Save service record
                             </button>

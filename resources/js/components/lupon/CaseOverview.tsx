@@ -42,27 +42,27 @@ export default function CaseOverview({ caseData }: { caseData: OverviewCase }) {
                 ).map(([label, parties]) => (
                     <section
                         key={label}
-                        className="rounded-xl border border-stone-200 bg-white p-4"
+                        className="rounded-xl border border-line-soft bg-white p-4"
                     >
-                        <h2 className="font-semibold text-stone-900">{label}</h2>
+                        <h2 className="font-semibold text-ink-strong">{label}</h2>
                         {parties.length ? (
-                            <ul className="mt-3 divide-y divide-stone-100">
+                            <ul className="mt-3 divide-y divide-line-soft">
                                 {parties.map((party) => (
                                     <li key={party.id} className="py-2 text-sm">
                                         <p className="font-semibold">
                                             {party.name}
                                             {party.isPrimary && (
-                                                <span className="ml-2 text-xs font-normal text-stone-500">
+                                                <span className="ml-2 text-xs font-normal text-ink-muted">
                                                     Primary
                                                 </span>
                                             )}
                                         </p>
-                                        <p className="mt-1 whitespace-pre-wrap text-stone-600">
+                                        <p className="mt-1 whitespace-pre-wrap text-ink-muted">
                                             {party.address ||
                                                 'Address not recorded'}
                                         </p>
                                         {party.contactNumber && (
-                                            <p className="text-stone-600">
+                                            <p className="text-ink-muted">
                                                 {party.contactNumber}
                                             </p>
                                         )}
@@ -70,18 +70,18 @@ export default function CaseOverview({ caseData }: { caseData: OverviewCase }) {
                                 ))}
                             </ul>
                         ) : (
-                            <p className="mt-2 text-sm text-stone-500">
+                            <p className="mt-2 text-sm text-ink-muted">
                                 No party recorded.
                             </p>
                         )}
                     </section>
                 ))}
             </div>
-            <section className="rounded-xl border border-stone-200 bg-white p-4">
+            <section className="rounded-xl border border-line-soft bg-white p-4">
                 <h2 className="font-semibold">Complaint details</h2>
                 <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                     <div>
-                        <dt className="text-stone-500">
+                        <dt className="text-ink-muted">
                             Incident date (recorded)
                         </dt>
                         <dd className="font-semibold">
@@ -89,11 +89,11 @@ export default function CaseOverview({ caseData }: { caseData: OverviewCase }) {
                         </dd>
                     </div>
                     <div>
-                        <dt className="text-stone-500">Date filed</dt>
+                        <dt className="text-ink-muted">Date filed</dt>
                         <dd className="font-semibold">{caseData.filedDate}</dd>
                     </div>
                 </dl>
-                <p className="mt-3 text-sm text-stone-600">
+                <p className="mt-3 text-sm text-ink-muted">
                     Location: {complaint.incidentLocation || 'Not recorded'}
                 </p>
                 <details className="mt-3">

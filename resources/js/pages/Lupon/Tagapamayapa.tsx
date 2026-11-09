@@ -18,14 +18,14 @@ export default function LuponTagapamayapa({ auth, barangayName }: Props) {
             <Head title="Lupon Tagapamayapa" />
 
             <div className="mx-auto max-w-4xl space-y-5">
-                <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <p className="text-xs font-semibold tracking-[0.16em] text-[#3f6f3d] uppercase">
+                <section className="rounded-2xl border border-line-soft bg-surface p-6 shadow-card">
+                    <p className="text-xs font-semibold tracking-[0.16em] text-brand uppercase">
                         Katarungang Pambarangay
                     </p>
-                    <h1 className="mt-2 text-2xl font-semibold text-gray-900">
+                    <h1 className="mt-2 text-2xl font-semibold text-ink-strong">
                         Lupon Tagapamayapa
                     </h1>
-                    <p className="mt-2 max-w-2xl text-sm text-gray-500">
+                    <p className="mt-2 max-w-2xl text-sm text-ink-muted">
                         The Lupon organization directory will be completed in a
                         later implementation batch. Member and official records
                         remain managed through the barangay administration

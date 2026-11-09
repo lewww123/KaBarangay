@@ -86,13 +86,13 @@ export default function CaseTimeline({
                                           'en-PH',
                                       )}
                             </time>
-                            <p className="text-xs text-stone-500">
+                            <p className="text-xs text-ink-muted">
                                 Responsible staff: not supplied in this event
                                 record
                             </p>
                             {typeof event.metadata?.document_id ===
                                 'number' && (
-                                <p className="text-xs text-stone-500">
+                                <p className="text-xs text-ink-muted">
                                     Document ID: {event.metadata.document_id}
                                 </p>
                             )}

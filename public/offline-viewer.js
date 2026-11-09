@@ -1,4 +1,11 @@
 (async () => {
+    const signedOut = document.getElementById('kb-offline-logged-out');
+    if (signedOut && new URLSearchParams(location.search).has('loggedout')) {
+        document.getElementById('kb-offline-saved').hidden = true;
+        signedOut.hidden = false;
+        document.title = 'Mag-sign in · KaBarangay';
+        return;
+    }
     let loggingOut = false;
     let locked = false;
     const signalKey = 'kabarangay.session-boundary.v1';

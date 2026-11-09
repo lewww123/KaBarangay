@@ -89,7 +89,7 @@ export default function AttendanceResidentSelect({
         <div ref={containerRef} className="relative">
             <label
                 htmlFor={id}
-                className="block text-xs font-bold text-gray-700"
+                className="block text-xs font-bold text-ink"
             >
                 {label}
             </label>
@@ -108,7 +108,7 @@ export default function AttendanceResidentSelect({
                     open && active >= 0 ? `${id}-option-${active}` : undefined
                 }
                 placeholder={placeholder}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white p-2.5 text-xs outline-none focus:border-[#3f6f3d] disabled:cursor-wait disabled:bg-gray-100"
+                className="mt-1.5 w-full rounded-lg border border-line bg-surface p-2.5 text-xs outline-none focus:border-brand disabled:cursor-wait disabled:bg-secondary"
                 onFocus={() => setOpen(true)}
                 onBlur={(event) => {
                     if (containerRef.current?.contains(event.relatedTarget)) {
@@ -168,10 +168,10 @@ export default function AttendanceResidentSelect({
                     id={listId}
                     role="listbox"
                     aria-label="Matching residents"
-                    className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-white py-1 shadow-lg"
+                    className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-surface py-1 shadow-lg"
                 >
                     {matches.length === 0 ? (
-                        <li className="px-3 py-2 text-xs text-gray-500">
+                        <li className="px-3 py-2 text-xs text-ink-muted">
                             Walang tumugmang residente. Pumili mula sa listahan.
                         </li>
                     ) : (
@@ -185,16 +185,16 @@ export default function AttendanceResidentSelect({
                                 className={`cursor-pointer px-3 py-2 text-xs ${
                                     index === active
                                         ? 'bg-green-100'
-                                        : 'hover:bg-gray-100'
+                                        : 'hover:bg-secondary'
                                 }`}
                                 onMouseDown={(event) => event.preventDefault()}
                                 onMouseEnter={() => setActive(index)}
                                 onClick={() => selectResident(resident)}
                             >
-                                <span className="font-semibold text-gray-900">
+                                <span className="font-semibold text-ink-strong">
                                     {resident.last_name}, {resident.first_name}
                                 </span>{' '}
-                                <span className="text-gray-500">
+                                <span className="text-ink-muted">
                                     ({resident.resident_number})
                                 </span>
                             </li>
@@ -202,7 +202,7 @@ export default function AttendanceResidentSelect({
                     )}
                 </ul>
             )}
-            <p className="mt-1.5 text-[11px] text-gray-500">
+            <p className="mt-1.5 text-[11px] text-ink-muted">
                 Pumili ng wastong rekord ng residente mula sa mga tugma.
             </p>
             {value === '' && query.trim() !== '' && (

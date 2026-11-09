@@ -112,7 +112,7 @@ function HearingsIndex({
                 </header>
 
                 <section
-                    className="rounded-xl border border-line-soft bg-white p-4 shadow-card"
+                    className="rounded-2xl border border-line-soft bg-surface p-4 shadow-card"
                     aria-label="Filter hearings"
                 >
                     <form

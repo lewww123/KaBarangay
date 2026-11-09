@@ -71,7 +71,7 @@ export default function WorkflowPanel({
             <h2 className="font-semibold text-ink-strong">
                 Itala ang pag-usad ng kaso
             </h2>
-            <p className="text-xs text-stone-600">
+            <p className="text-xs text-ink-muted">
                 Choose the event that actually occurred, then review its
                 required records. Available options do not confirm that
                 requirements are met.
@@ -250,7 +250,7 @@ export default function WorkflowPanel({
                             <Errors errors={form.errors} />
                             <button
                                 disabled={form.processing || !form.data.status}
-                                className="rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                             >
                                 {form.processing
                                     ? 'Saving…'

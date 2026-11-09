@@ -1,3 +1,4 @@
+import { ClipboardCheck, HeartHandshake, Eye, Users } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import ClerkLayout from '@/layouts/ClerkLayout';
@@ -345,7 +346,8 @@ function ClerkAttendanceSheet({
             targetStatus === 'claimed' &&
             !attendances.some(
                 (item) =>
-                    item.resident?.id === residentId && item.status === 'present',
+                    item.resident?.id === residentId &&
+                    item.status === 'present',
             )
         ) {
             setFeedback({
@@ -461,7 +463,8 @@ function ClerkAttendanceSheet({
             targetStatus === 'claimed' &&
             !attendances.some(
                 (item) =>
-                    item.resident?.id === residentId && item.status === 'present',
+                    item.resident?.id === residentId &&
+                    item.status === 'present',
             )
         ) {
             setFeedback({
@@ -578,27 +581,27 @@ function ClerkAttendanceSheet({
             />
 
             <div className="mx-auto max-w-7xl space-y-6 pb-10">
-                <div className="flex flex-col gap-4 rounded-xl border border-line-soft/80 bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
+                <div className="border-line-soft/80 bg-surface shadow-card flex flex-col gap-4 rounded-xl border p-5 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-brand uppercase">
+                            <span className="text-brand rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase">
                                 {announcement.category}
                             </span>
-                            <span className="text-xs text-ink-faint">•</span>
-                            <span className="text-xs font-medium text-ink-muted">
+                            <span className="text-ink-faint text-xs">•</span>
+                            <span className="text-ink-muted text-xs font-medium">
                                 {announcement.location
                                     ? `${announcement.location}`
                                     : 'Walang nakasaad na lokasyon'}
                             </span>
                         </div>
-                        <h1 className="text-xl font-semibold tracking-tight text-ink-strong">
+                        <h1 className="text-ink-strong text-xl font-semibold tracking-tight">
                             {announcement.title}
                         </h1>
                     </div>
 
                     <a
                         href="/clerk/announcements"
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-4 py-2 text-xs font-semibold text-ink shadow-card transition hover:bg-canvas"
+                        className="border-line bg-surface text-ink shadow-card hover:bg-canvas inline-flex items-center justify-center gap-1.5 rounded-lg border px-4 py-2 text-xs font-semibold transition"
                     >
                         <span></span> Bumalik sa Announcements
                     </a>
@@ -620,18 +623,21 @@ function ClerkAttendanceSheet({
                 )}
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-                    <div className="flex flex-col justify-between space-y-4 rounded-xl border border-line-soft/80 bg-white p-6 shadow-card lg:col-span-7">
+                    <div className="border-line-soft/80 bg-surface shadow-card flex flex-col justify-between space-y-4 rounded-xl border p-6 lg:col-span-7">
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between border-b border-line-soft pb-3">
+                            <div className="border-line-soft flex items-center justify-between border-b pb-3">
                                 <div className="flex items-center gap-2.5">
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-sm text-brand">
-                                        📷
+                                    <span className="text-brand flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-sm">
+                                        <Eye
+                                            className="size-4"
+                                            aria-hidden="true"
+                                        />
                                     </span>
                                     <div>
-                                        <h3 className="text-sm font-semibold text-ink-strong">
+                                        <h3 className="text-ink-strong text-sm font-semibold">
                                             QR Code / Barcode Scanner
                                         </h3>
-                                        <p className="text-xs text-ink-muted">
+                                        <p className="text-ink-muted text-xs">
                                             Kasalukuyang mode:{' '}
                                             <strong className="text-brand uppercase">
                                                 {activeTab}
@@ -651,7 +657,7 @@ function ClerkAttendanceSheet({
                                 <div className="space-y-1.5">
                                     <label
                                         htmlFor="qr-token-input"
-                                        className="block text-xs font-semibold text-ink"
+                                        className="text-ink block text-xs font-semibold"
                                     >
                                         QR Token Input
                                     </label>
@@ -673,10 +679,10 @@ function ClerkAttendanceSheet({
                                             isProcessingScan || manualProcessing
                                         }
                                         placeholder={`I-scan para itala bilang ${activeTab}...`}
-                                        className="w-full rounded-lg border border-line bg-canvas/50 p-3 font-mono text-xs outline-none read-only:cursor-wait read-only:bg-secondary focus:border-brand focus:ring-1 focus:ring-[#3b6fa8]"
+                                        className="border-line bg-canvas/50 read-only:bg-secondary focus:border-brand focus:ring-brand w-full rounded-lg border p-3 font-mono text-xs outline-none read-only:cursor-wait focus:ring-1"
                                         autoFocus
                                     />
-                                    <p className="text-[11px] text-gray-500">
+                                    <p className="text-ink-muted text-[11px]">
                                         I-scan lang ang QR code. Awtomatikong
                                         vine-verify at itinatala kapag
                                         nakumpleto ng scanner ang entry.
@@ -687,7 +693,7 @@ function ClerkAttendanceSheet({
                                     disabled={
                                         isProcessingScan || manualProcessing
                                     }
-                                    className="w-full rounded-lg bg-brand py-2.5 text-xs font-semibold text-white shadow-card transition hover:bg-brand-deep disabled:cursor-wait disabled:opacity-70"
+                                    className="bg-brand shadow-card hover:bg-brand-deep w-full rounded-lg py-2.5 text-xs font-semibold text-white transition disabled:cursor-wait disabled:opacity-70"
                                 >
                                     {isProcessingScan
                                         ? 'Vine-verify at itinatala...'
@@ -697,15 +703,20 @@ function ClerkAttendanceSheet({
                         </div>
                     </div>
 
-                    <div className="flex flex-col justify-between space-y-4 rounded-xl border border-line-soft/80 bg-white p-6 shadow-card lg:col-span-5">
+                    <div className="border-line-soft/80 bg-surface shadow-card flex flex-col justify-between space-y-4 rounded-xl border p-6 lg:col-span-5">
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2.5 border-b border-line-soft pb-3">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning-soft text-sm text-warning" aria-hidden="true"></span>
+                            <div className="border-line-soft flex items-center gap-2.5 border-b pb-3">
+                                <span
+                                    className="bg-warning-soft text-warning flex h-8 w-8 items-center justify-center rounded-lg text-sm"
+                                    aria-hidden="true"
+                                >
+                                    <Users className="size-4" />
+                                </span>
                                 <div>
-                                    <h3 className="text-sm font-semibold text-ink-strong">
+                                    <h3 className="text-ink-strong text-sm font-semibold">
                                         Manual Entry
                                     </h3>
-                                    <p className="text-xs text-ink-muted">
+                                    <p className="text-ink-muted text-xs">
                                         Mag-record para sa{' '}
                                         <strong className="text-brand uppercase">
                                             {activeTab}
@@ -731,7 +742,7 @@ function ClerkAttendanceSheet({
                                             isProcessingScan || manualProcessing
                                         }
                                     />
-                                    <p className="text-[11px] text-gray-500">
+                                    <p className="text-ink-muted text-[11px]">
                                         Para sa rehistradong residente na walang
                                         ma-scan na QR code.
                                     </p>
@@ -742,7 +753,7 @@ function ClerkAttendanceSheet({
                                     disabled={
                                         isProcessingScan || manualProcessing
                                     }
-                                    className="w-full rounded-lg bg-brand py-3 text-xs font-semibold text-white shadow-card transition hover:bg-brand-deep disabled:cursor-wait disabled:opacity-70"
+                                    className="bg-brand shadow-card hover:bg-brand-deep w-full rounded-lg py-3 text-xs font-semibold text-white transition disabled:cursor-wait disabled:opacity-70"
                                 >
                                     {manualProcessing
                                         ? 'Itinatala...'
@@ -753,8 +764,8 @@ function ClerkAttendanceSheet({
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-line-soft/80 bg-white shadow-card">
-                    <div className="flex flex-col items-start justify-between gap-3 border-b border-line-soft bg-canvas/70 px-6 py-3 sm:flex-row sm:items-center">
+                <div className="border-line-soft/80 bg-surface shadow-card overflow-hidden rounded-xl border">
+                    <div className="border-line-soft bg-canvas/70 flex flex-col items-start justify-between gap-3 border-b px-6 py-3 sm:flex-row sm:items-center">
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
@@ -763,11 +774,15 @@ function ClerkAttendanceSheet({
                                 aria-pressed={activeTab === 'present'}
                                 className={`rounded-lg px-4 py-2 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'present'
-                                        ? 'bg-brand text-white shadow-card'
-                                        : 'border border-line bg-white text-ink-muted hover:bg-canvas'
+                                        ? 'bg-brand shadow-card text-white'
+                                        : 'border-line bg-surface text-ink-muted hover:bg-canvas border'
                                 }`}
                             >
-                                📋 Event Present / Dumalo (
+                                <ClipboardCheck
+                                    className="mr-1 inline size-4"
+                                    aria-hidden="true"
+                                />
+                                Event Present / Dumalo (
                                 {
                                     attendances.filter(
                                         (i) => i.status === 'present',
@@ -783,11 +798,15 @@ function ClerkAttendanceSheet({
                                 aria-pressed={activeTab === 'claimed'}
                                 className={`rounded-lg px-4 py-2 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'claimed'
-                                        ? 'bg-brand text-white shadow-card'
-                                        : 'border border-line bg-white text-ink-muted hover:bg-canvas'
+                                        ? 'bg-brand shadow-card text-white'
+                                        : 'border-line bg-surface text-ink-muted hover:bg-canvas border'
                                 }`}
                             >
-                                🎁 Aid Claimed / Naka-receive (
+                                <HeartHandshake
+                                    className="mr-1 inline size-4"
+                                    aria-hidden="true"
+                                />
+                                Aid Claimed / Naka-receive (
                                 {
                                     attendances.filter(
                                         (i) => i.status === 'claimed',
@@ -799,8 +818,8 @@ function ClerkAttendanceSheet({
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-ink-muted">
-                            <thead className="border-b border-line-soft bg-white text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
+                        <table className="text-ink-muted w-full text-left text-sm">
+                            <thead className="border-line-soft bg-surface text-ink-faint border-b text-[11px] font-semibold tracking-wider uppercase">
                                 <tr>
                                     <th className="px-6 py-3.5">
                                         Pangalan ng Residente
@@ -813,12 +832,12 @@ function ClerkAttendanceSheet({
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-line-soft text-xs">
+                            <tbody className="divide-line-soft divide-y text-xs">
                                 {filteredAttendances.length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={5}
-                                            className="p-10 text-center text-ink-faint italic"
+                                            className="text-ink-faint p-10 text-center italic"
                                         >
                                             Wala pang nakatalang rekord para sa
                                             tab na ito ({activeTab}).
@@ -830,11 +849,11 @@ function ClerkAttendanceSheet({
                                             key={item.id}
                                             className="hover:bg-canvas/80"
                                         >
-                                            <td className="px-6 py-3.5 font-semibold text-ink-strong">
+                                            <td className="text-ink-strong px-6 py-3.5 font-semibold">
                                                 {item.resident?.last_name},{' '}
                                                 {item.resident?.first_name}
                                             </td>
-                                            <td className="px-6 py-3.5 font-mono text-ink-muted">
+                                            <td className="text-ink-muted px-6 py-3.5 font-mono">
                                                 {item.resident?.resident_number}
                                             </td>
                                             <td className="px-6 py-3.5">
@@ -845,17 +864,17 @@ function ClerkAttendanceSheet({
                                                             ? 'bg-emerald-100 text-emerald-800'
                                                             : item.status ===
                                                                 'present'
-                                                              ? 'bg-[#edf4ea] text-brand'
+                                                              ? 'bg-brand-soft text-brand'
                                                               : 'bg-red-100 text-red-800'
                                                     }`}
                                                 >
                                                     {item.status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-3.5 text-xs text-ink-muted uppercase">
+                                            <td className="text-ink-muted px-6 py-3.5 text-xs uppercase">
                                                 {item.method}
                                             </td>
-                                            <td className="px-6 py-3.5 text-right text-xs text-ink-muted">
+                                            <td className="text-ink-muted px-6 py-3.5 text-right text-xs">
                                                 {item.attended_at}
                                             </td>
                                         </tr>

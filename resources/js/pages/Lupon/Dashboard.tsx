@@ -123,12 +123,12 @@ function LuponDashboard({
             <Head title="Lupon Overview" />
 
             <div className="mx-auto max-w-7xl space-y-6">
-                <div className="rounded-2xl bg-[#315b30] p-6 text-white shadow-sm">
+                <div className="rounded-2xl bg-brand-deep p-6 text-white shadow-card">
                     <div>
                         <p className="text-xs font-semibold tracking-[0.16em] text-white/70 uppercase">
                             Katarungang Pambarangay
                         </p>
-                        <h1 className="mt-2 text-2xl font-bold">
+                        <h1 className="mt-2 text-2xl font-bold text-white">
                             Case Desk Overview
                         </h1>
                         <p className="mt-1 text-sm text-white/75">
@@ -141,13 +141,13 @@ function LuponDashboard({
                     <div className="mt-5 flex flex-wrap gap-2.5">
                         <Link
                             href="/lupon/complaints"
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#315b30] shadow-sm transition hover:bg-[#f7f6f0]"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-4 py-2 text-sm font-semibold text-brand-deep shadow-card transition hover:bg-canvas"
                         >
                             Review intake
                         </Link>
                         <Link
                             href="/lupon/cases/create"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/40 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/40 bg-surface/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-surface/20"
                         >
                             Log walk-in case
                         </Link>
@@ -158,15 +158,15 @@ function LuponDashboard({
                     {cards.map(([label, value, hint]) => (
                         <div
                             key={label}
-                            className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+                            className="rounded-xl border border-line-soft bg-surface p-4 shadow-card"
                         >
-                            <p className="text-xs font-semibold tracking-wide text-stone-500 uppercase">
+                            <p className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
                                 {label}
                             </p>
-                            <p className="mt-2 text-3xl font-bold text-stone-900">
+                            <p className="mt-2 text-3xl font-bold text-ink-strong">
                                 {value}
                             </p>
-                            <p className="mt-1 text-xs text-stone-500">
+                            <p className="mt-1 text-xs text-ink-muted">
                                 {hint}
                             </p>
                         </div>
@@ -174,13 +174,13 @@ function LuponDashboard({
                 </section>
 
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+                    <section className="rounded-2xl border border-line-soft bg-surface p-5 shadow-card">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="font-bold text-stone-900">
+                                <h2 className="font-bold text-ink-strong">
                                     Urgent attention
                                 </h2>
-                                <p className="mt-1 text-sm text-stone-500">
+                                <p className="mt-1 text-sm text-ink-muted">
                                     15-day mediation and conciliation
                                     checkpoints.
                                 </p>
@@ -192,9 +192,9 @@ function LuponDashboard({
                                 All cases
                             </Link>
                         </div>
-                        <div className="mt-4 divide-y divide-stone-100">
+                        <div className="mt-4 divide-y divide-line-soft">
                             {deadlines.length === 0 ? (
-                                <p className="py-5 text-sm text-stone-500">
+                                <p className="py-5 text-sm text-ink-muted">
                                     No active cases approaching a 15-day
                                     checkpoint.
                                 </p>
@@ -206,10 +206,10 @@ function LuponDashboard({
                                         className="flex items-center justify-between gap-3 py-3"
                                     >
                                         <div className="min-w-0">
-                                            <p className="font-semibold text-stone-800">
+                                            <p className="font-semibold text-ink-strong">
                                                 {deadline.caseNumber}
                                             </p>
-                                            <p className="truncate text-sm text-stone-500">
+                                            <p className="truncate text-sm text-ink-muted">
                                                 {deadline.title}
                                             </p>
                                         </div>
@@ -226,13 +226,13 @@ function LuponDashboard({
                         </div>
                     </section>
 
-                    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+                    <section className="rounded-2xl border border-line-soft bg-surface p-5 shadow-card">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="font-bold text-stone-900">
+                                <h2 className="font-bold text-ink-strong">
                                     This week&apos;s hearings
                                 </h2>
-                                <p className="mt-1 text-sm text-stone-500">
+                                <p className="mt-1 text-sm text-ink-muted">
                                     Scheduled summons and proceedings.
                                 </p>
                             </div>
@@ -243,9 +243,9 @@ function LuponDashboard({
                                 Calendar
                             </Link>
                         </div>
-                        <div className="mt-4 divide-y divide-stone-100">
+                        <div className="mt-4 divide-y divide-line-soft">
                             {schedule.length === 0 ? (
-                                <p className="py-5 text-sm text-stone-500">
+                                <p className="py-5 text-sm text-ink-muted">
                                     No hearings scheduled for the next seven
                                     days.
                                 </p>
@@ -257,14 +257,14 @@ function LuponDashboard({
                                         className="flex items-center justify-between gap-3 py-3"
                                     >
                                         <div>
-                                            <p className="font-semibold text-stone-800">
+                                            <p className="font-semibold text-ink-strong">
                                                 {hearing.caseNumber}
                                             </p>
-                                            <p className="text-sm text-stone-500">
+                                            <p className="text-sm text-ink-muted">
                                                 {hearing.caseTitle}
                                             </p>
                                         </div>
-                                        <div className="text-right text-xs text-stone-600">
+                                        <div className="text-right text-xs text-ink-muted">
                                             <p className="font-semibold">
                                                 {hearing.date}
                                                 {hearing.time
@@ -283,13 +283,13 @@ function LuponDashboard({
                     </section>
                 </div>
 
-                <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+                <section className="rounded-2xl border border-line-soft bg-surface p-5 shadow-card">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="font-bold text-stone-900">
+                            <h2 className="font-bold text-ink-strong">
                                 Recent case activity
                             </h2>
-                            <p className="mt-1 text-sm text-stone-500">
+                            <p className="mt-1 text-sm text-ink-muted">
                                 Latest recorded case updates in your barangay.
                             </p>
                         </div>
@@ -300,9 +300,9 @@ function LuponDashboard({
                             All cases
                         </Link>
                     </div>
-                    <div className="mt-4 divide-y divide-stone-100">
+                    <div className="mt-4 divide-y divide-line-soft">
                         {recentActivity.length === 0 ? (
-                            <p className="py-5 text-sm text-stone-500">
+                            <p className="py-5 text-sm text-ink-muted">
                                 No case activity has been recorded yet.
                             </p>
                         ) : (
@@ -313,21 +313,21 @@ function LuponDashboard({
                                     className="flex items-center justify-between gap-3 py-3"
                                 >
                                     <div className="min-w-0">
-                                        <p className="font-semibold text-stone-800">
+                                        <p className="font-semibold text-ink-strong">
                                             {activity.caseNumber ??
                                                 'Lupon case'}
                                         </p>
-                                        <p className="truncate text-sm text-stone-500">
+                                        <p className="truncate text-sm text-ink-muted">
                                             {activity.caseTitle}
                                         </p>
-                                        <p className="mt-0.5 truncate text-xs text-stone-400">
+                                        <p className="mt-0.5 truncate text-xs text-ink-faint">
                                             {activity.label}
                                             {activity.notes
                                                 ? ` · ${activity.notes}`
                                                 : ''}
                                         </p>
                                     </div>
-                                    <span className="shrink-0 text-right text-xs text-stone-500">
+                                    <span className="shrink-0 text-right text-xs text-ink-muted">
                                         {activity.occurredAt}
                                     </span>
                                 </Link>

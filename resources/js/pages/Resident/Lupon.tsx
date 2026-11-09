@@ -224,10 +224,10 @@ function LuponContent({
         <ResidentLayout active="lupon">
             <div className="mx-auto w-full max-w-7xl">
                 <div className="mb-5 sm:mb-6">
-                    <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                    <h1 className="text-xl font-bold text-ink-strong sm:text-2xl">
                         Lupon Assistance
                     </h1>
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">
                         File a complaint and keep track of your complaint with
                         the Lupong Tagapamayapa.
                     </p>
@@ -239,7 +239,7 @@ function LuponContent({
                     </div>
                 )}
 
-                <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-sm">
+                <div className="mb-5 rounded-2xl border border-line-soft bg-surface p-1.5 shadow-card">
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
                         <button
                             type="button"
@@ -255,7 +255,7 @@ function LuponContent({
                             className={`min-h-11 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
                                 activeTab === 'file'
                                     ? 'bg-brand text-white shadow-card'
-                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                                    : 'text-ink-muted hover:bg-canvas hover:text-ink-strong'
                             }`}
                         >
                             File a Complaint
@@ -267,7 +267,7 @@ function LuponContent({
                             className={`min-h-11 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
                                 activeTab === 'complaints'
                                     ? 'bg-brand text-white shadow-card'
-                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                                    : 'text-ink-muted hover:bg-canvas hover:text-ink-strong'
                             }`}
                         >
                             My Complaints ({complaints.total})
@@ -285,7 +285,7 @@ function LuponContent({
                             className={`min-h-11 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
                                 activeTab === 'against'
                                     ? 'bg-brand text-white shadow-card'
-                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                                    : 'text-ink-muted hover:bg-canvas hover:text-ink-strong'
                             }`}
                         >
                             Complaints Against Me (
@@ -308,26 +308,26 @@ function LuponContent({
                                         description="Your verified resident information will be used as the complainant."
                                     />
 
-                                    <div className="mt-5 rounded-xl border border-[#d9e7d5] bg-[#f4f8f2] p-4">
+                                    <div className="mt-5 rounded-xl border border-line-soft bg-brand-soft p-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-brand">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand">
                                                 <UserIcon />
                                             </div>
 
                                             <div className="min-w-0">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <p className="font-semibold text-gray-900">
+                                                    <p className="font-semibold text-ink-strong">
                                                         {resident.fullName}
                                                     </p>
-                                                    <span className="rounded-full bg-[#dcebd8] px-2 py-0.5 text-[10px] font-bold tracking-wide text-brand uppercase">
+                                                    <span className="rounded-full bg-brand-muted px-2 py-0.5 text-[10px] font-bold tracking-wide text-brand uppercase">
                                                         Verified
                                                     </span>
                                                 </div>
 
-                                                <p className="mt-1 text-sm text-gray-500">
+                                                <p className="mt-1 text-sm text-ink-muted">
                                                     {resident.residentNumber}
                                                 </p>
-                                                <p className="mt-1 text-sm leading-5 text-gray-600">
+                                                <p className="mt-1 text-sm leading-5 text-ink-muted">
                                                     {resident.address}
                                                 </p>
                                             </div>
@@ -541,7 +541,7 @@ function LuponContent({
                                                 className={`${inputClass} resize-none`}
                                             />
 
-                                            <p className="mt-1.5 text-xs leading-5 text-gray-400">
+                                            <p className="mt-1.5 text-xs leading-5 text-ink-faint">
                                                 Include only information that is
                                                 relevant to the complaint.
                                             </p>
@@ -568,7 +568,7 @@ function LuponContent({
                                     </div>
                                 </SectionCard>
 
-                                <div className="rounded-xl border bg-white p-5">
+                                <div className="rounded-xl border bg-surface p-5">
                                     <EvidenceInput
                                         files={data.evidence}
                                         onChange={(files) =>
@@ -586,7 +586,7 @@ function LuponContent({
                                     <button
                                         type="submit"
                                         disabled={!canContinue}
-                                        className="min-h-12 w-full rounded-xl bg-[#3f6f3d] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:min-w-36"
+                                        className="min-h-12 w-full rounded-xl bg-brand px-6 py-3 text-sm font-semibold text-white shadow-card transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:min-w-36"
                                     >
                                         Continue
                                     </button>
@@ -598,15 +598,15 @@ function LuponContent({
                             <div className="space-y-5">
                                 <SectionCard>
                                     <div className="flex items-start gap-3">
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-brand">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
                                             <ReviewIcon />
                                         </div>
 
                                         <div>
-                                            <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                                            <h2 className="text-base font-bold text-ink-strong sm:text-lg">
                                                 Review Your Complaint
                                             </h2>
-                                            <p className="mt-1 text-sm leading-6 text-gray-500">
+                                            <p className="mt-1 text-sm leading-6 text-ink-muted">
                                                 Please make sure the information
                                                 below is correct before
                                                 submitting.
@@ -685,7 +685,7 @@ function LuponContent({
                                         <p className="text-sm font-semibold text-ink-strong">
                                             Complaint Details
                                         </p>
-                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
+                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink-muted">
                                             {data.narrative}
                                         </p>
                                     </div>
@@ -696,7 +696,7 @@ function LuponContent({
                                         <p className="text-sm font-semibold text-ink-strong">
                                             Requested Action
                                         </p>
-                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
+                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink-muted">
                                             {data.requestedAction}
                                         </p>
                                     </div>
@@ -706,7 +706,7 @@ function LuponContent({
                                     <button
                                         type="button"
                                         onClick={() => setStep('form')}
-                                        className="min-h-12 rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                                        className="min-h-12 rounded-xl border border-line bg-surface px-6 py-3 text-sm font-semibold text-ink transition hover:bg-canvas"
                                     >
                                         Back
                                     </button>
@@ -715,7 +715,7 @@ function LuponContent({
                                         type="button"
                                         onClick={handleSubmitComplaint}
                                         disabled={processing}
-                                        className="min-h-12 rounded-xl bg-[#3f6f3d] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-40"
+                                        className="min-h-12 rounded-xl bg-brand px-6 py-3 text-sm font-semibold text-white shadow-card transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-40"
                                     >
                                         {processing
                                             ? 'Submitting...'
@@ -727,22 +727,22 @@ function LuponContent({
 
                         {step === 'success' && justSubmitted && (
                             <div className="mx-auto max-w-2xl">
-                                <div className="rounded-2xl border border-gray-200 bg-white px-5 py-8 text-center shadow-sm sm:px-8 sm:py-10">
-                                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#e7f2e3] text-brand">
+                                <div className="rounded-2xl border border-line-soft bg-surface px-5 py-8 text-center shadow-card sm:px-8 sm:py-10">
+                                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-soft text-brand">
                                         <LargeCheckIcon />
                                     </div>
 
-                                    <h2 className="mt-5 text-xl font-bold text-gray-900 sm:text-2xl">
+                                    <h2 className="mt-5 text-xl font-bold text-ink-strong sm:text-2xl">
                                         Complaint Submitted
                                     </h2>
 
-                                    <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-gray-500">
+                                    <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-ink-muted">
                                         Your complaint has been sent to the
                                         Lupong Tagapamayapa for review.
                                     </p>
 
-                                    <div className="mx-auto mt-6 max-w-md rounded-xl border border-gray-200 bg-gray-50 p-4">
-                                        <p className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                                    <div className="mx-auto mt-6 max-w-md rounded-xl border border-line-soft bg-canvas p-4">
+                                        <p className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
                                             Case Reference
                                         </p>
 
@@ -750,14 +750,14 @@ function LuponContent({
                                             {justSubmitted.reference}
                                         </p>
 
-                                        <div className="my-4 border-t border-gray-200" />
+                                        <div className="my-4 border-t border-line-soft" />
 
                                         <div className="flex items-center justify-between gap-4 text-left">
                                             <div>
-                                                <p className="text-xs text-gray-400">
+                                                <p className="text-xs text-ink-faint">
                                                     Current Status
                                                 </p>
-                                                <p className="mt-1 text-sm font-semibold text-gray-800">
+                                                <p className="mt-1 text-sm font-semibold text-ink-strong">
                                                     {justSubmitted.status}
                                                 </p>
                                             </div>
@@ -768,7 +768,7 @@ function LuponContent({
                                         </div>
                                     </div>
 
-                                    <p className="mx-auto mt-5 max-w-lg text-xs leading-5 text-gray-400">
+                                    <p className="mx-auto mt-5 max-w-lg text-xs leading-5 text-ink-faint">
                                         Keep your case reference number. You can
                                         view future updates under My Complaints.
                                         Open the docketed case to see hearing
@@ -779,7 +779,7 @@ function LuponContent({
                                         <button
                                             type="button"
                                             onClick={openMyComplaints}
-                                            className="min-h-11 rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#315b30]"
+                                            className="min-h-11 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep"
                                         >
                                             View My Complaints
                                         </button>
@@ -787,7 +787,7 @@ function LuponContent({
                                         <button
                                             type="button"
                                             onClick={handleNewComplaint}
-                                            className="min-h-11 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                                            className="min-h-11 rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-canvas"
                                         >
                                             File Another Complaint
                                         </button>
@@ -803,10 +803,10 @@ function LuponContent({
                         {!selectedComplaint && (
                             <div className="space-y-4">
                                 <div>
-                                    <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                                    <h2 className="text-base font-bold text-ink-strong sm:text-lg">
                                         My Complaints
                                     </h2>
-                                    <p className="mt-1 text-sm text-gray-500">
+                                    <p className="mt-1 text-sm text-ink-muted">
                                         View your submitted complaints and their
                                         current status.
                                     </p>
@@ -849,7 +849,7 @@ function LuponContent({
                                 <button
                                     type="button"
                                     onClick={() => setSelectedComplaint(null)}
-                                    className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
+                                    className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-ink-muted transition hover:bg-secondary"
                                 >
                                     <BackIcon />
                                     Back to My Complaints
@@ -858,13 +858,13 @@ function LuponContent({
                                 <SectionCard>
                                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                         <div>
-                                            <p className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                                            <p className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
                                                 Case Reference
                                             </p>
-                                            <h2 className="mt-1 text-xl font-bold text-gray-900">
+                                            <h2 className="mt-1 text-xl font-bold text-ink-strong">
                                                 {selectedComplaint.reference}
                                             </h2>
-                                            <p className="mt-1 text-sm text-gray-500">
+                                            <p className="mt-1 text-sm text-ink-muted">
                                                 Submitted{' '}
                                                 {
                                                     selectedComplaint.submittedDate
@@ -879,7 +879,7 @@ function LuponContent({
                                 </SectionCard>
 
                                 {!selectedComplaint.case && (
-                                    <p className="rounded-xl border bg-white p-4 text-sm text-slate-600">
+                                    <p className="rounded-xl border bg-surface p-4 text-sm text-ink-muted">
                                         Lupon staff will review your complaint
                                         before docketing it and scheduling a
                                         hearing.
@@ -924,7 +924,7 @@ function LuponContent({
                                         <p className="text-sm font-semibold text-ink-strong">
                                             Complaint Details
                                         </p>
-                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
+                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink-muted">
                                             {selectedComplaint.narrative}
                                         </p>
                                     </div>
@@ -935,7 +935,7 @@ function LuponContent({
                                         <p className="text-sm font-semibold text-ink-strong">
                                             Requested Action
                                         </p>
-                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
+                                        <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink-muted">
                                             {selectedComplaint.requestedAction}
                                         </p>
                                     </div>
@@ -951,7 +951,7 @@ function LuponContent({
                                                 <p className="text-sm font-semibold text-ink-strong">
                                                     Note from Lupon
                                                 </p>
-                                                <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
+                                                <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink-muted">
                                                     {
                                                         selectedComplaint.luponNote
                                                     }
@@ -974,7 +974,7 @@ function LuponContent({
                                                 behavior: 'smooth',
                                             });
                                         }}
-                                        className="min-h-11 w-full rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#315b30] sm:w-auto"
+                                        className="min-h-11 w-full rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep sm:w-auto"
                                     >
                                         Track Complaint Status
                                     </button>
@@ -1000,10 +1000,10 @@ function LuponContent({
                 {activeTab === 'against' && (
                     <div className="space-y-4">
                         <div>
-                            <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                            <h2 className="text-base font-bold text-ink-strong sm:text-lg">
                                 Complaints Against Me
                             </h2>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-ink-muted">
                                 Official Lupon cases where you have been named
                                 and staff-verified as a respondent.
                             </p>
@@ -1015,15 +1015,15 @@ function LuponContent({
                                 {complaintsAgainstMe.data.map((item) => (
                                     <div
                                         key={item.id}
-                                        className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#3f6f3d]/50"
+                                        className="rounded-2xl border border-line-soft bg-surface p-5 shadow-card transition hover:border-brand/50"
                                     >
                                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                             <div className="space-y-1.5">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="text-base font-bold text-gray-900">
+                                                    <span className="text-base font-bold text-ink-strong">
                                                         {item.caseNumber}
                                                     </span>
-                                                    <span className="rounded-full bg-[#e8f1e4] px-2.5 py-0.5 text-xs font-semibold text-brand">
+                                                    <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand">
                                                         {item.phase} Phase
                                                     </span>
                                                     <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
@@ -1031,20 +1031,20 @@ function LuponContent({
                                                     </span>
                                                 </div>
 
-                                                <p className="text-sm font-semibold text-gray-800">
+                                                <p className="text-sm font-semibold text-ink-strong">
                                                     Nature of Dispute:{' '}
                                                     {item.caseType}
                                                 </p>
 
                                                 <div className="mt-2 grid gap-1 text-xs text-ink-muted sm:grid-cols-2 sm:gap-x-8">
                                                     <p>
-                                                        <span className="text-gray-400">
+                                                        <span className="text-ink-faint">
                                                             Complainant:
                                                         </span>{' '}
                                                         {item.complainantName}
                                                     </p>
                                                     <p>
-                                                        <span className="text-gray-400">
+                                                        <span className="text-ink-faint">
                                                             Filed Date:
                                                         </span>{' '}
                                                         {item.filedDate}
@@ -1067,7 +1067,7 @@ function LuponContent({
                                                             )
                                                         </p>
                                                     ) : (
-                                                        <p className="text-gray-400 italic">
+                                                        <p className="text-ink-faint italic">
                                                             No hearing scheduled
                                                             yet
                                                         </p>
@@ -1077,7 +1077,7 @@ function LuponContent({
 
                                             <a
                                                 href={`/resident/lupon/cases/${item.id}`}
-                                                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white shadow-card hover:bg-brand-deep"
                                             >
                                                 View Proceedings →
                                             </a>
@@ -1090,12 +1090,12 @@ function LuponContent({
                                 />
                             </div>
                         ) : (
-                            <div className="rounded-2xl border border-dashed border-gray-300 bg-[#fafaf7] p-10 text-center">
+                            <div className="rounded-2xl border border-dashed border-line bg-canvas p-10 text-center">
                                 <span className="text-3xl">🛡️</span>
-                                <h3 className="mt-3 text-base font-semibold text-gray-800">
+                                <h3 className="mt-3 text-base font-semibold text-ink-strong">
                                     No complaints against you
                                 </h3>
-                                <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-gray-500">
+                                <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-ink-muted">
                                     You have no active cases where you are named
                                     and verified as a respondent. If a case is
                                     filed and staff verifies your account, it
@@ -1127,7 +1127,7 @@ function ComplaintPayment({ complaint }: { complaint: Complaint }) {
     return (
         <div
             role="status"
-            className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-gray-800"
+            className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-ink-strong"
         >
             <h3 className="font-bold">
                 {paid
@@ -1174,7 +1174,7 @@ function ComplaintTracking({
             <button
                 type="button"
                 onClick={onBack}
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-ink-muted transition hover:bg-secondary"
             >
                 <BackIcon />
                 Back to Complaint Details
@@ -1183,13 +1183,13 @@ function ComplaintTracking({
             <SectionCard>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <p className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                        <p className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
                             Complaint Tracking
                         </p>
-                        <h2 className="mt-1 text-xl font-bold text-gray-900">
+                        <h2 className="mt-1 text-xl font-bold text-ink-strong">
                             {complaint.reference}
                         </h2>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             {complaint.complaintType}
                         </p>
                     </div>
@@ -1198,20 +1198,20 @@ function ComplaintTracking({
                 </div>
             </SectionCard>
 
-            <div className="rounded-2xl border border-[#d8e6d3] bg-[#f4f8f2] p-4 shadow-sm sm:p-5">
-                <p className="text-xs font-semibold tracking-wide text-[#5d8058] uppercase">
+            <div className="rounded-2xl border border-line-soft bg-brand-soft p-4 shadow-card sm:p-5">
+                <p className="text-xs font-semibold tracking-wide text-brand-deep uppercase">
                     Current Status
                 </p>
-                <p className="mt-1 text-lg font-bold text-[#315b30]">
+                <p className="mt-1 text-lg font-bold text-brand-deep">
                     {complaint.trackingStatus ?? complaint.status}
                 </p>
                 {complaint.caseProgress &&
                     complaint.caseProgress !== complaint.trackingStatus && (
-                        <p className="mt-1 text-sm leading-6 text-gray-600">
+                        <p className="mt-1 text-sm leading-6 text-ink-muted">
                             Case progress: {complaint.caseProgress}
                         </p>
                     )}
-                <p className="mt-2 text-sm leading-6 text-gray-600">
+                <p className="mt-2 text-sm leading-6 text-ink-muted">
                     {getStatusDescription(complaint.status)}
                 </p>
             </div>
@@ -1222,22 +1222,22 @@ function ComplaintTracking({
                     <p className="text-sm font-semibold text-ink-strong">
                         Note from Lupon
                     </p>
-                    <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
+                    <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink-muted">
                         {complaint.luponNote}
                     </p>
                 </SectionCard>
             )}
 
             {complaint.case && (
-                <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-[#3f6f3d]/30 bg-[#f4f8f2] p-5 shadow-sm sm:flex-row">
+                <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-brand/30 bg-brand-soft p-5 shadow-card sm:flex-row">
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-lg">⚖️</span>
-                            <span className="font-bold text-gray-900">
+                            <span className="font-bold text-ink-strong">
                                 Case Created: {complaint.case.caseNumber}
                             </span>
                         </div>
-                        <p className="mt-1 text-xs text-gray-600">
+                        <p className="mt-1 text-xs text-ink-muted">
                             This complaint has been docketed.{' '}
                             <a
                                 className="font-bold underline"
@@ -1251,7 +1251,7 @@ function ComplaintTracking({
 
                     <a
                         href={`/resident/lupon/cases/${complaint.case.id}`}
-                        className="rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                        className="rounded-xl bg-brand px-5 py-2.5 text-xs font-semibold text-white shadow-card hover:bg-brand-deep"
                     >
                         View Case Proceedings →
                     </a>
@@ -1260,10 +1260,10 @@ function ComplaintTracking({
 
             <SectionCard>
                 <div className="mb-6">
-                    <h3 className="font-bold text-gray-900">
+                    <h3 className="font-bold text-ink-strong">
                         Complaint Progress
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                         Follow the progress of your complaint.
                     </p>
                 </div>
@@ -1281,7 +1281,7 @@ function ComplaintTracking({
                                     <div
                                         className={`absolute top-9 left-[17px] h-[calc(100%-12px)] w-0.5 ${
                                             item.state === 'completed'
-                                                ? 'bg-[#7da477]'
+                                                ? 'bg-brand'
                                                 : 'bg-gray-200'
                                         }`}
                                     />
@@ -1289,19 +1289,19 @@ function ComplaintTracking({
 
                                 <div className="relative z-10 shrink-0">
                                     {item.state === 'completed' && (
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#3f6f3d] text-white shadow-sm">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-white shadow-card">
                                             <CheckIcon />
                                         </div>
                                     )}
 
                                     {item.state === 'current' && (
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-[#3f6f3d] bg-white">
-                                            <span className="h-3 w-3 rounded-full bg-[#3f6f3d]" />
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-brand bg-surface">
+                                            <span className="h-3 w-3 rounded-full bg-brand" />
                                         </div>
                                     )}
 
                                     {item.state === 'future' && (
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-gray-300 bg-white">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-line bg-surface">
                                             <span className="h-2.5 w-2.5 rounded-full bg-gray-200" />
                                         </div>
                                     )}
@@ -1314,15 +1314,15 @@ function ComplaintTracking({
                                         <p
                                             className={`text-sm font-semibold ${
                                                 item.state === 'future'
-                                                    ? 'text-gray-400'
-                                                    : 'text-gray-900'
+                                                    ? 'text-ink-faint'
+                                                    : 'text-ink-strong'
                                             }`}
                                         >
                                             {item.label}
                                         </p>
 
                                         {item.state === 'current' && (
-                                            <span className="rounded-full bg-[#e8f1e4] px-2 py-0.5 text-[10px] font-bold tracking-wide text-brand uppercase">
+                                            <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-bold tracking-wide text-brand uppercase">
                                                 Current
                                             </span>
                                         )}
@@ -1331,8 +1331,8 @@ function ComplaintTracking({
                                     <p
                                         className={`mt-1 text-xs leading-5 ${
                                             item.state === 'future'
-                                                ? 'text-gray-400'
-                                                : 'text-gray-500'
+                                                ? 'text-ink-faint'
+                                                : 'text-ink-muted'
                                         }`}
                                     >
                                         {item.description}
@@ -1345,7 +1345,7 @@ function ComplaintTracking({
             </SectionCard>
 
             {!complaint.case && (
-                <p className="rounded-xl border bg-white p-4 text-sm text-slate-600">
+                <p className="rounded-xl border bg-surface p-4 text-sm text-ink-muted">
                     A case and its first Kapitan hearing are created only after
                     staff records the barangay payment and official receipt.
                 </p>
@@ -1426,27 +1426,27 @@ function ComplaintCard({
     onView: () => void;
 }) {
     return (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 sm:p-5">
+        <div className="rounded-2xl border border-line-soft bg-surface p-4 shadow-card transition hover:border-line sm:p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-bold text-gray-900">
+                        <p className="font-bold text-ink-strong">
                             {complaint.reference}
                         </p>
                         <StatusBadge status={complaint.status} />
                     </div>
 
-                    <p className="mt-2 text-sm font-semibold text-gray-800">
+                    <p className="mt-2 text-sm font-semibold text-ink-strong">
                         {complaint.complaintType}
                     </p>
 
-                    <div className="mt-3 grid gap-2 text-sm text-gray-500 sm:grid-cols-2 sm:gap-x-8">
+                    <div className="mt-3 grid gap-2 text-sm text-ink-muted sm:grid-cols-2 sm:gap-x-8">
                         <p>
-                            <span className="text-gray-400">Respondent:</span>{' '}
+                            <span className="text-ink-faint">Respondent:</span>{' '}
                             {complaint.respondent}
                         </p>
                         <p>
-                            <span className="text-gray-400">Submitted:</span>{' '}
+                            <span className="text-ink-faint">Submitted:</span>{' '}
                             {complaint.submittedDate}
                         </p>
                     </div>
@@ -1455,7 +1455,7 @@ function ComplaintCard({
                 <button
                     type="button"
                     onClick={onView}
-                    className="min-h-10 shrink-0 rounded-xl border border-[#bcd2b6] bg-white px-4 py-2 text-sm font-semibold text-brand transition hover:bg-[#f0f6ee]"
+                    className="min-h-10 shrink-0 rounded-xl border border-brand-muted bg-surface px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand-soft"
                 >
                     View Details
                 </button>
@@ -1513,7 +1513,7 @@ function StatusBadge({ status }: { status: ComplaintStatus }) {
 
 function SectionCard({ children }: { children: React.ReactNode }) {
     return (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
+        <div className="rounded-2xl border border-line-soft bg-surface p-4 shadow-card sm:p-5 lg:p-6">
             {children}
         </div>
     );
@@ -1530,13 +1530,13 @@ function SectionHeading({
 }) {
     return (
         <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-sm font-bold text-brand">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-bold text-brand">
                 {number}
             </div>
 
             <div>
-                <h2 className="font-bold text-gray-900">{title}</h2>
-                <p className="mt-1 text-sm leading-5 text-gray-500">
+                <h2 className="font-bold text-ink-strong">{title}</h2>
+                <p className="mt-1 text-sm leading-5 text-ink-muted">
                     {description}
                 </p>
             </div>
@@ -1559,13 +1559,13 @@ function Field({
 }) {
     return (
         <div>
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+            <label className="mb-1.5 block text-sm font-semibold text-ink">
                 {label}
 
                 {required && <span className="ml-1 text-red-500">*</span>}
 
                 {optional && (
-                    <span className="ml-1 text-xs font-normal text-gray-400">
+                    <span className="ml-1 text-xs font-normal text-ink-faint">
                         (Optional)
                     </span>
                 )}
@@ -1594,8 +1594,8 @@ function ReviewSection({
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
                 {items.map(([label, value]) => (
                     <div key={label}>
-                        <p className="text-xs text-gray-400">{label}</p>
-                        <p className="mt-1 text-sm leading-5 font-medium break-words text-gray-700">
+                        <p className="text-xs text-ink-faint">{label}</p>
+                        <p className="mt-1 text-sm leading-5 font-medium break-words text-ink">
                             {value}
                         </p>
                     </div>
@@ -1606,19 +1606,19 @@ function ReviewSection({
 }
 
 function Divider() {
-    return <div className="my-5 border-t border-gray-100" />;
+    return <div className="my-5 border-t border-line-soft" />;
 }
 
 function EmptyComplaints({ onFile }: { onFile: () => void }) {
     return (
-        <div className="rounded-2xl border border-gray-200 bg-white px-5 py-12 text-center shadow-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+        <div className="rounded-2xl border border-line-soft bg-surface px-5 py-12 text-center shadow-card">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-ink-faint">
                 <ComplaintIcon />
             </div>
 
-            <h3 className="mt-4 font-bold text-gray-900">No complaints yet</h3>
+            <h3 className="mt-4 font-bold text-ink-strong">No complaints yet</h3>
 
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-ink-muted">
                 Complaints you submit will appear here together with their
                 current status.
             </p>
@@ -1626,7 +1626,7 @@ function EmptyComplaints({ onFile }: { onFile: () => void }) {
             <button
                 type="button"
                 onClick={onFile}
-                className="mt-5 min-h-11 rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#315b30]"
+                className="mt-5 min-h-11 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep"
             >
                 File a Complaint
             </button>
@@ -1659,18 +1659,18 @@ const inputClass = `
     w-full
     rounded-xl
     border
-    border-gray-300
-    bg-white
+    border-line
+    bg-surface
     px-3.5
     py-2.5
     text-base
-    text-gray-800
+    text-ink-strong
     outline-none
     transition
-    placeholder:text-gray-400
-    focus:border-[#3f6f3d]
+    placeholder:text-ink-faint
+    focus:border-brand
     focus:ring-2
-    focus:ring-[#3f6f3d]/15
+    focus:ring-brand/15
 
     sm:text-sm
 `;

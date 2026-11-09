@@ -322,15 +322,15 @@ function CaseShow({ auth, caseData, officials }: Props) {
                 <div className="flex items-center justify-between">
                     <Link
                         href="/lupon/cases"
-                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-gray-900"
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold text-ink-muted transition hover:bg-surface hover:text-ink-strong"
                     >
                         ← Back to Cases
                     </Link>
 
                     {caseData.complaint ? (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-ink-muted">
                             Originating Complaint:{' '}
-                            <span className="font-semibold text-gray-800">
+                            <span className="font-semibold text-ink-strong">
                                 {caseData.complaint.reference}
                             </span>
                         </span>
@@ -342,14 +342,14 @@ function CaseShow({ auth, caseData, officials }: Props) {
                 </div>
 
                 {/* Case Banner */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="rounded-2xl border border-line-soft bg-surface p-6 shadow-card">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
-                                <h1 className="text-2xl font-bold text-gray-900">
+                                <h1 className="text-2xl font-bold text-ink-strong">
                                     {caseData.caseNumber}
                                 </h1>
-                                <span className="rounded-full bg-[#e8f1e4] px-3 py-0.5 text-xs font-semibold text-[#3f6f3d]">
+                                <span className="rounded-full bg-brand-soft px-3 py-0.5 text-xs font-semibold text-brand">
                                     {caseData.phase} Phase
                                 </span>
                                 <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-0.5 text-xs font-semibold text-blue-700">
@@ -362,10 +362,10 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                 )}
                             </div>
 
-                            <p className="text-base font-semibold text-gray-800">
+                            <p className="text-base font-semibold text-ink-strong">
                                 {caseData.title}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-ink-muted">
                                 Filed on {caseData.filedDate}
                                 {caseData.assignedStaffName &&
                                     ` • Assigned to ${caseData.assignedStaffName}`}
@@ -379,7 +379,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                 </div>
 
                 <CaseWorkspace
-                    overview={<><CaseOverview caseData={caseData} />{caseData.paymentVerification && <section className="rounded-xl border bg-white p-4 text-sm"><h2 className="font-bold">Payment verification</h2><p>Verified: {caseData.paymentVerification.verified_at} · Staff #{caseData.paymentVerification.actor_id}</p><p>Actual payment date: {caseData.paymentVerification.payment_date}</p></section>}</>}
+                    overview={<><CaseOverview caseData={caseData} />{caseData.paymentVerification && <section className="rounded-xl border bg-surface p-4 text-sm"><h2 className="font-bold">Payment verification</h2><p>Verified: {caseData.paymentVerification.verified_at} · Staff #{caseData.paymentVerification.actor_id}</p><p>Actual payment date: {caseData.paymentVerification.payment_date}</p></section>}</>}
                     key={caseData.id}
                     workflow={caseData.workflow}
                     hearings={caseData.hearings}
@@ -390,12 +390,12 @@ function CaseShow({ auth, caseData, officials }: Props) {
                         hearings: (
                             <>
                                 <ProceedingsPanel caseId={caseData.id} status={caseData.status} evidence={caseData.evidence} arbitration={caseData.arbitrationRecord} disposition={caseData.dispositionRecord} />
-                                <p className="text-sm text-slate-600">
+                                <p className="text-sm text-ink-muted">
                                     Dito magtakda ng meeting at mag-update ng
                                     hearing record pagkatapos ng aktuwal na
                                     pagdinig.
                                 </p>{' '}
-                                <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                                <section className="space-y-4 rounded-2xl border border-line-soft bg-surface p-5 shadow-card">
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <h2 className="font-bold">
                                             Mga pagdinig
@@ -449,7 +449,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                         ),
                         documents: (
                             <>
-                                <p className="text-sm text-slate-600">
+                                <p className="text-sm text-ink-muted">
                                     Unahin ang fee o waiver kung kailangan, saka
                                     piliin ang dokumento at kaukulang pagdinig.
                                     Itala ang pag-abot kapag aktuwal nang
@@ -488,9 +488,9 @@ function CaseShow({ auth, caseData, officials }: Props) {
                             <>
                                 {' '}
                                 {/* Parties Card */}
-                                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                                    <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                                        <h2 className="text-base font-bold text-gray-900">
+                                <div className="rounded-2xl border border-line-soft bg-surface p-6 shadow-card">
+                                    <div className="flex items-center justify-between border-b border-line-soft pb-4">
+                                        <h2 className="text-base font-bold text-ink-strong">
                                             Mga partido sa kaso
                                         </h2>
                                         <button
@@ -498,7 +498,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                             onClick={() =>
                                                 setShowPartyModal(true)
                                             }
-                                            className="rounded-lg border border-[#3f6f3d] px-3 py-1 text-xs font-semibold text-[#3f6f3d] hover:bg-[#f0f6ee]"
+                                            className="rounded-lg border border-brand px-3 py-1 text-xs font-semibold text-brand hover:bg-brand-soft"
                                         >
                                             + Add Complainant
                                         </button>
@@ -506,7 +506,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
 
                                     <div className="mt-4 grid gap-6 sm:grid-cols-2">
                                         <div>
-                                            <h3 className="text-xs font-bold tracking-wider text-gray-400 uppercase">
+                                            <h3 className="text-xs font-bold tracking-wider text-ink-faint uppercase">
                                                 Complainants
                                             </h3>
                                             <div className="mt-3 space-y-3">
@@ -514,24 +514,24 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                     (c) => (
                                                         <div
                                                             key={c.id}
-                                                            className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm"
+                                                            className="rounded-xl border border-line-soft bg-canvas p-3 text-sm"
                                                         >
                                                             <div className="flex items-center justify-between">
-                                                                <span className="font-semibold text-gray-900">
+                                                                <span className="font-semibold text-ink-strong">
                                                                     {c.name}
                                                                 </span>
                                                                 {c.isPrimary && (
-                                                                    <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
+                                                                    <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-ink">
                                                                         Primary
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <p className="mt-1 text-xs text-gray-500">
+                                                            <p className="mt-1 text-xs text-ink-muted">
                                                                 {c.address ||
                                                                     'Address not provided'}
                                                             </p>
                                                             {c.contactNumber && (
-                                                                <p className="text-xs text-gray-500">
+                                                                <p className="text-xs text-ink-muted">
                                                                     📞{' '}
                                                                     {
                                                                         c.contactNumber
@@ -539,7 +539,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                 </p>
                                                             )}
                                                             {c.residentNumber && (
-                                                                <p className="mt-1 text-[11px] font-medium text-[#3f6f3d]">
+                                                                <p className="mt-1 text-[11px] font-medium text-brand">
                                                                     Resident ID:{' '}
                                                                     {
                                                                         c.residentNumber
@@ -553,7 +553,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                         </div>
 
                                         <div>
-                                            <h3 className="text-xs font-bold tracking-wider text-gray-400 uppercase">
+                                            <h3 className="text-xs font-bold tracking-wider text-ink-faint uppercase">
                                                 Respondents
                                             </h3>
                                             <div className="mt-3 space-y-3">
@@ -561,24 +561,24 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                     (r) => (
                                                         <div
                                                             key={r.id}
-                                                            className="space-y-2 rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 text-sm"
+                                                            className="space-y-2 rounded-xl border border-line-soft bg-canvas/70 p-3.5 text-sm"
                                                         >
                                                             <div className="flex items-center justify-between">
-                                                                <span className="font-semibold text-gray-900">
+                                                                <span className="font-semibold text-ink-strong">
                                                                     {r.name}
                                                                 </span>
                                                                 {r.isPrimary && (
-                                                                    <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
+                                                                    <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-ink">
                                                                         Primary
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <p className="text-xs text-gray-500">
+                                                            <p className="text-xs text-ink-muted">
                                                                 {r.address ||
                                                                     'Address not provided'}
                                                             </p>
                                                             {r.contactNumber && (
-                                                                <p className="text-xs text-gray-500">
+                                                                <p className="text-xs text-ink-muted">
                                                                     📞{' '}
                                                                     {
                                                                         r.contactNumber
@@ -587,9 +587,9 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                             )}
 
                                                             {/* Account Association Section */}
-                                                            <div className="mt-2.5 space-y-2 rounded-lg border border-gray-200 bg-white p-2.5">
+                                                            <div className="mt-2.5 space-y-2 rounded-lg border border-line-soft bg-surface p-2.5">
                                                                 <div className="flex items-center justify-between">
-                                                                    <span className="text-[11px] font-semibold text-gray-500">
+                                                                    <span className="text-[11px] font-semibold text-ink-muted">
                                                                         Portal
                                                                         Account:
                                                                     </span>
@@ -600,7 +600,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                             Staff-Verified
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                                                                        <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-ink-muted">
                                                                             Unlinked
                                                                             /
                                                                             Offline
@@ -611,7 +611,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                 {r.associationStatus ===
                                                                     'verified' &&
                                                                     r.residentName && (
-                                                                        <div className="text-xs text-gray-700">
+                                                                        <div className="text-xs text-ink">
                                                                             <p className="font-medium">
                                                                                 Linked:{' '}
                                                                                 {
@@ -619,7 +619,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                                 }
                                                                             </p>
                                                                             {r.residentNumber && (
-                                                                                <p className="text-[11px] text-gray-500">
+                                                                                <p className="text-[11px] text-ink-muted">
                                                                                     ID:{' '}
                                                                                     {
                                                                                         r.residentNumber
@@ -627,7 +627,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                                 </p>
                                                                             )}
                                                                             {r.verifiedAt && (
-                                                                                <p className="text-[10px] text-gray-400">
+                                                                                <p className="text-[10px] text-ink-faint">
                                                                                     Verified:{' '}
                                                                                     {
                                                                                         r.verifiedAt
@@ -637,7 +637,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                         </div>
                                                                     )}
 
-                                                                <div className="flex gap-2 border-t border-gray-100 pt-1">
+                                                                <div className="flex gap-2 border-t border-line-soft pt-1">
                                                                     {r.associationStatus ===
                                                                     'verified' ? (
                                                                         <>
@@ -649,7 +649,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                                         'link_verify',
                                                                                     )
                                                                                 }
-                                                                                className="text-xs font-semibold text-[#3f6f3d] hover:underline"
+                                                                                className="text-xs font-semibold text-brand hover:underline"
                                                                             >
                                                                                 Change
                                                                                 Account
@@ -676,7 +676,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                                                     'link_verify',
                                                                                 )
                                                                             }
-                                                                            className="rounded-lg bg-[#3f6f3d] px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                                                            className="rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-white shadow-card hover:bg-brand-deep"
                                                                         >
                                                                             Link
                                                                             &
@@ -695,18 +695,18 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     </div>
                                 </div>
                                 {caseData.origin === 'manual' && (
-                                    <section className="space-y-2 rounded-xl border bg-white p-5">
+                                    <section className="space-y-2 rounded-xl border bg-surface p-5">
                                         <h2 className="font-bold">
                                             Walk-in dispute record
                                         </h2>
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-xs text-ink-muted">
                                             {caseData.intake.incidentDate} ·{' '}
                                             {caseData.intake.incidentLocation}
                                         </p>
                                         <p className="text-sm whitespace-pre-wrap">
                                             {caseData.intake.narrative}
                                         </p>
-                                        <p className="text-sm whitespace-pre-wrap text-slate-600">
+                                        <p className="text-sm whitespace-pre-wrap text-ink-muted">
                                             Requested action:{' '}
                                             {caseData.intake.requestedAction}
                                         </p>
@@ -714,18 +714,18 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                 )}
                                 {/* Right Col: Originating Complaint or Manual Case Information */}
                                 <div className="space-y-6">
-                                    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                                        <h2 className="border-b border-gray-100 pb-3 text-base font-bold text-gray-900">
+                                    <div className="rounded-2xl border border-line-soft bg-surface p-6 shadow-card">
+                                        <h2 className="border-b border-line-soft pb-3 text-base font-bold text-ink-strong">
                                             {caseData.complaint
                                                 ? 'Originating Complaint Details'
                                                 : 'Manual Walk-in Details'}
                                         </h2>
-                                        <div className="mt-4 space-y-3 text-xs leading-5 text-gray-600">
+                                        <div className="mt-4 space-y-3 text-xs leading-5 text-ink-muted">
                                             <div>
-                                                <span className="font-semibold text-gray-400 uppercase">
+                                                <span className="font-semibold text-ink-faint uppercase">
                                                     Nature
                                                 </span>
-                                                <p className="text-sm font-medium text-gray-900">
+                                                <p className="text-sm font-medium text-ink-strong">
                                                     {caseData.caseType}
                                                 </p>
                                             </div>
@@ -733,10 +733,10 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                             {caseData.complaint ? (
                                                 <>
                                                     <div>
-                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                        <span className="font-semibold text-ink-faint uppercase">
                                                             Incident Location
                                                         </span>
-                                                        <p className="text-gray-800">
+                                                        <p className="text-ink-strong">
                                                             {caseData.complaint
                                                                 .incidentLocation ||
                                                                 'N/A'}
@@ -744,10 +744,10 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                     </div>
 
                                                     <div>
-                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                        <span className="font-semibold text-ink-faint uppercase">
                                                             Incident Date
                                                         </span>
-                                                        <p className="text-gray-800">
+                                                        <p className="text-ink-strong">
                                                             {caseData.complaint
                                                                 .incidentDate ||
                                                                 'N/A'}
@@ -755,11 +755,11 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                     </div>
 
                                                     <div>
-                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                        <span className="font-semibold text-ink-faint uppercase">
                                                             Complainant
                                                             Narrative
                                                         </span>
-                                                        <p className="mt-1 rounded-lg border border-gray-200 bg-gray-50 p-2.5 whitespace-pre-line text-gray-800">
+                                                        <p className="mt-1 rounded-lg border border-line-soft bg-canvas p-2.5 whitespace-pre-line text-ink-strong">
                                                             {
                                                                 caseData
                                                                     .complaint
@@ -769,10 +769,10 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                     </div>
 
                                                     <div>
-                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                        <span className="font-semibold text-ink-faint uppercase">
                                                             Requested Action
                                                         </span>
-                                                        <p className="mt-1 rounded-lg border border-gray-200 bg-gray-50 p-2.5 whitespace-pre-line text-gray-800">
+                                                        <p className="mt-1 rounded-lg border border-line-soft bg-canvas p-2.5 whitespace-pre-line text-ink-strong">
                                                             {
                                                                 caseData
                                                                     .complaint
@@ -784,7 +784,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                     {caseData.complaint
                                                         .luponNote && (
                                                         <div>
-                                                            <span className="font-semibold text-gray-400 uppercase">
+                                                            <span className="font-semibold text-ink-faint uppercase">
                                                                 Intake Review
                                                                 Note
                                                             </span>
@@ -801,28 +801,28 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                             ) : (
                                                 <>
                                                     <div>
-                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                        <span className="font-semibold text-ink-faint uppercase">
                                                             Registration Type
                                                         </span>
-                                                        <p className="font-medium text-gray-800">
+                                                        <p className="font-medium text-ink-strong">
                                                             Walk-in Direct Entry
                                                             (Manual Case)
                                                         </p>
                                                     </div>
                                                     <div>
-                                                        <span className="font-semibold text-gray-400 uppercase">
+                                                        <span className="font-semibold text-ink-faint uppercase">
                                                             Filed Date
                                                         </span>
-                                                        <p className="text-gray-800">
+                                                        <p className="text-ink-strong">
                                                             {caseData.filedDate}
                                                         </p>
                                                     </div>
                                                     {caseData.createdByName && (
                                                         <div>
-                                                            <span className="font-semibold text-gray-400 uppercase">
+                                                            <span className="font-semibold text-ink-faint uppercase">
                                                                 Encoded By
                                                             </span>
-                                                            <p className="text-gray-800">
+                                                            <p className="text-ink-strong">
                                                                 {
                                                                     caseData.createdByName
                                                                 }
@@ -849,8 +849,8 @@ function CaseShow({ auth, caseData, officials }: Props) {
             {showHearingModal &&
                 createPortal(
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-                            <h3 className="text-lg font-bold text-gray-900">
+                        <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl">
+                            <h3 className="text-lg font-bold text-ink-strong">
                                 {previousHearingId
                                     ? 'Unresolved — schedule next hearing'
                                     : 'Schedule Case Hearing'}
@@ -860,14 +860,14 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                 className="mt-4 space-y-4"
                             >
                                 <Errors errors={errors} />
-                                <p className="text-sm text-stone-600">
+                                <p className="text-sm text-ink-muted">
                                     {caseData.phase} phase · maximum 3 hearings.{' '}
                                     {hearingDeadline
                                         ? `Allowed until ${hearingDeadline} (15-day phase period).`
                                         : 'The first meeting starts the 15-day period.'}
                                 </p>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Hearing Date
                                     </label>
                                     <input
@@ -882,12 +882,12 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                         onChange={(e) =>
                                             setHearingDate(e.target.value)
                                         }
-                                        className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                        className="mt-1 w-full rounded-xl border border-line p-2.5 text-sm"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Time
                                     </label>
                                     <input
@@ -897,12 +897,12 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                         onChange={(e) =>
                                             setHearingTime(e.target.value)
                                         }
-                                        className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                        className="mt-1 w-full rounded-xl border border-line p-2.5 text-sm"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Venue
                                     </label>
                                     <input
@@ -911,12 +911,12 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                         onChange={(e) =>
                                             setVenue(e.target.value)
                                         }
-                                        className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                        className="mt-1 w-full rounded-xl border border-line p-2.5 text-sm"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Proceedings Phase
                                     </label>
                                     <select
@@ -924,7 +924,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                         onChange={(e) =>
                                             setHearingPhase(e.target.value)
                                         }
-                                        className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                        className="mt-1 w-full rounded-xl border border-line p-2.5 text-sm"
                                     >
                                         <option value={caseData.phase}>
                                             {caseData.phase === 'Kapitan'
@@ -940,7 +940,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                         onClick={() =>
                                             setShowHearingModal(false)
                                         }
-                                        className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
+                                        className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink"
                                     >
                                         Cancel
                                     </button>
@@ -948,7 +948,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                         type="submit"
                                         disabled={saving}
                                         aria-busy={saving}
-                                        className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                                        className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-deep"
                                     >
                                         {saving
                                             ? 'Saving hearing schedule…'
@@ -965,8 +965,8 @@ function CaseShow({ auth, caseData, officials }: Props) {
             {/* Modal: Add Complainant */}
             {showPartyModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-                        <h3 className="text-lg font-bold text-gray-900">
+                    <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl">
+                        <h3 className="text-lg font-bold text-ink-strong">
                             Add Complainant
                         </h3>
                         <form
@@ -975,7 +975,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                         >
                             <Errors errors={errors} />
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Full Name
                                 </label>
                                 <input
@@ -985,12 +985,12 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     onChange={(e) =>
                                         setPartyName(e.target.value)
                                     }
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                    className="mt-1 w-full rounded-xl border border-line p-2.5 text-sm"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Address
                                 </label>
                                 <input
@@ -999,12 +999,12 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     onChange={(e) =>
                                         setPartyAddress(e.target.value)
                                     }
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                    className="mt-1 w-full rounded-xl border border-line p-2.5 text-sm"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Contact Number
                                 </label>
                                 <input
@@ -1013,7 +1013,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     onChange={(e) =>
                                         setPartyContact(e.target.value)
                                     }
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                    className="mt-1 w-full rounded-xl border border-line p-2.5 text-sm"
                                 />
                             </div>
 
@@ -1021,7 +1021,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                 <button
                                     type="button"
                                     onClick={() => setShowPartyModal(false)}
-                                    className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
+                                    className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink"
                                 >
                                     Cancel
                                 </button>
@@ -1029,7 +1029,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     type="submit"
                                     disabled={saving}
                                     aria-busy={saving}
-                                    className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                                    className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-deep"
                                 >
                                     {saving ? 'Saving complainant…' : 'Save'}
                                 </button>
@@ -1043,8 +1043,8 @@ function CaseShow({ auth, caseData, officials }: Props) {
             {showSettlementModal &&
                 createPortal(
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                        <div className="max-h-[88vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-6 shadow-xl">
-                            <h3 className="text-lg font-bold text-gray-900">
+                        <div className="max-h-[88vh] w-full max-w-3xl overflow-auto rounded-2xl bg-surface p-6 shadow-xl">
+                            <h3 className="text-lg font-bold text-ink-strong">
                                 Amicable Settlement
                             </h3>
                             {caseData.settlement ? (
@@ -1073,7 +1073,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                 </>
                             ) : (
                                 <>
-                                    <p className="mt-2 text-sm text-stone-600">
+                                    <p className="mt-2 text-sm text-ink-muted">
                                         Itala kung paano nagkasundo ang
                                         magkabilang panig at ang napagkasunduang
                                         obligasyon. Pagkatapos i-save, lalabas
@@ -1085,7 +1085,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     >
                                         <Errors errors={errors} />
                                         <div>
-                                            <label className="block text-xs font-semibold text-gray-700">
+                                            <label className="block text-xs font-semibold text-ink">
                                                 Settlement Type
                                             </label>
                                             <select
@@ -1095,7 +1095,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                         e.target.value,
                                                     )
                                                 }
-                                                className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                                className="mt-1 w-full rounded-xl border border-line p-2.5 text-sm"
                                             >
                                                 <option value="Amicable Settlement">
                                                     Amicable Settlement
@@ -1104,7 +1104,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs font-semibold text-gray-700">
+                                            <label className="block text-xs font-semibold text-ink">
                                                 Date of Agreement
                                             </label>
                                             <input
@@ -1116,12 +1116,12 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                         e.target.value,
                                                     )
                                                 }
-                                                className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                                className="mt-1 w-full rounded-xl border border-line p-2.5 text-sm"
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs font-semibold text-gray-700">
+                                            <label className="block text-xs font-semibold text-ink">
                                                 Dahilan ng settlement /
                                                 napagkasunduang terms
                                             </label>
@@ -1135,7 +1135,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                     )
                                                 }
                                                 placeholder="Enter stipulations, agreements, or obligations decided upon by the parties..."
-                                                className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                                                className="mt-1 w-full rounded-xl border border-line p-2.5 text-sm"
                                             />
                                         </div>
 
@@ -1147,7 +1147,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                         false,
                                                     )
                                                 }
-                                                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
+                                                className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink"
                                             >
                                                 Cancel
                                             </button>
@@ -1155,7 +1155,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                                 type="submit"
                                                 disabled={saving}
                                                 aria-busy={saving}
-                                                className="rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                                                className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-deep"
                                             >
                                                 {saving
                                                     ? 'Saving settlement…'
@@ -1174,15 +1174,15 @@ function CaseShow({ auth, caseData, officials }: Props) {
             {/* Modal: Associate / Unlink Respondent Resident Account */}
             {showAssociateModal && selectedParty && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-                        <h3 className="text-lg font-bold text-gray-900">
+                    <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl">
+                        <h3 className="text-lg font-bold text-ink-strong">
                             {associationAction === 'link_verify'
                                 ? 'Verify & Link Resident Account'
                                 : 'Unlink Resident Account'}
                         </h3>
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-ink-muted">
                             Respondent:{' '}
-                            <span className="font-semibold text-gray-800">
+                            <span className="font-semibold text-ink-strong">
                                 {selectedParty.name}
                             </span>
                         </p>
@@ -1194,7 +1194,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                             <Errors errors={errors} />
                             {associationAction === 'link_verify' ? (
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Select Verified Barangay Resident{' '}
                                         <span className="text-red-500">*</span>
                                     </label>
@@ -1212,7 +1212,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                             setSelectedResidentId(resident.id);
                                         }}
                                     />
-                                    <p className="mt-1 text-[11px] text-gray-500">
+                                    <p className="mt-1 text-[11px] text-ink-muted">
                                         Once verified, this case will be visible
                                         in the resident's "Complaints Against
                                         Me" portal tab.
@@ -1228,7 +1228,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                             )}
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Verification Notes
                                 </label>
                                 <textarea
@@ -1242,7 +1242,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                             ? 'e.g. Identity verified via Barangay ID / physical appearance'
                                             : 'Reason for unlinking'
                                     }
-                                    className="mt-1 w-full rounded-xl border border-gray-300 p-2.5 text-xs text-gray-800"
+                                    className="mt-1 w-full rounded-xl border border-line p-2.5 text-xs text-ink-strong"
                                 />
                             </div>
 
@@ -1251,7 +1251,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     type="button"
                                     disabled={associationLoading}
                                     onClick={() => setShowAssociateModal(false)}
-                                    className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                    className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
                                 >
                                     Cancel
                                 </button>
@@ -1259,9 +1259,9 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     type="submit"
                                     aria-busy={saving || associationLoading}
                                     disabled={saving || associationLoading}
-                                    className={`rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm ${
+                                    className={`rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-card ${
                                         associationAction === 'link_verify'
-                                            ? 'bg-[#3f6f3d] hover:bg-[#315b30]'
+                                            ? 'bg-brand hover:bg-brand-deep'
                                             : 'bg-red-600 hover:bg-red-700'
                                     }`}
                                 >

@@ -110,7 +110,7 @@ export default function PartyIntake({
                     type="button"
                     disabled={loading}
                     onClick={() => void resolve(query)}
-                    className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                    className="rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
                 >
                     {loading ? 'Looking up…' : 'Look up'}
                 </button>

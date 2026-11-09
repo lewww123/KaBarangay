@@ -8,7 +8,7 @@ export default function DocumentIssueControl({ documentId }: { documentId: numbe
             <p>Review the document before release. The configurable system template is not a prescribed official form and requires legal review before official use.</p>
             <label className="block">Actual issuance date and time<input required type="datetime-local" className="mt-1 block rounded border p-2" value={form.data.issued_at} onChange={e => form.setData('issued_at', e.target.value)} /></label>
             <label className="flex gap-2"><input required type="checkbox" checked={form.data.content_reviewed} onChange={e => form.setData('content_reviewed', e.target.checked)} />I reviewed the actual content and required signatures for release.</label>
-            <Errors errors={form.errors} /><button disabled={form.processing} className="rounded bg-[#3f6f3d] px-3 py-2 text-white">Save issuance</button>
+            <Errors errors={form.errors} /><button disabled={form.processing} className="rounded bg-brand px-3 py-2 text-white">Save issuance</button>
         </form>
     </details>;
 }

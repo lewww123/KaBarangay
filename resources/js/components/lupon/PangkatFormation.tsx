@@ -58,7 +58,7 @@ export default function PangkatFormation({
             <h2 className="text-lg font-semibold">
                 Proceed to Lupon — Pangkat conciliation
             </h2>
-            <p className="text-sm text-stone-600">
+            <p className="text-sm text-ink-muted">
                 Kumpletuhin ang 3 Pangkat members at unang hearing. Pag-save,
                 mamamarkahang Done ang Kapitan phase at magiging current ang
                 Lupon phase.
@@ -105,7 +105,7 @@ export default function PangkatFormation({
                         </datalist>
                     </label>
                 ))}
-                <p className="text-xs text-stone-500">
+                <p className="text-xs text-ink-muted">
                     Mula sa barangay Lupon roster ang mga mungkahi. Kung wala pa
                     sa roster, ilagay ang buong pangalan ng appointed member.
                 </p>
@@ -173,7 +173,7 @@ export default function PangkatFormation({
             </label>
             <fieldset className="space-y-3 rounded-lg border p-3">
                 <legend className="px-1 font-semibold">Lupon hearing #1</legend>
-                <p className="text-sm text-stone-600">
+                <p className="text-sm text-ink-muted">
                     Unang hearing: within 3 days mula sa pagbuo ng Pangkat.
                     Hanggang 3 hearing sa Lupon phase, sa loob ng initial 15-day
                     conciliation period mula sa unang meeting. Ang approved
@@ -229,7 +229,7 @@ export default function PangkatFormation({
                     new Set(members.map((name) => name.trim().toLowerCase()))
                         .size !== 3
                 }
-                className="rounded-lg bg-emerald-800 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+                className="rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
             >
                 {form.processing
                     ? 'Saving Pangkat and scheduling hearing…'

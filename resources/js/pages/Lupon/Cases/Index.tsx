@@ -136,12 +136,12 @@ function CasesIndex({
 
             <div className="mx-auto max-w-7xl space-y-6 p-2 font-sans sm:p-4">
                 {/* Header */}
-                <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-4 rounded-2xl border border-line-soft bg-surface p-6 shadow-card sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-gray-800">
+                        <h1 className="text-2xl font-semibold text-ink-strong">
                             Lupon Cases
                         </h1>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             Manage Katarungang Pambarangay cases, mediation, and
                             conciliation proceedings.
                         </p>
@@ -151,14 +151,14 @@ function CasesIndex({
                         {canCreateCases && (
                             <Link
                                 href="/lupon/cases/create"
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white shadow-card hover:bg-brand-deep"
                             >
                                 + Add Case
                             </Link>
                         )}
                         <Link
                             href="/lupon/complaints"
-                            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+                            className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-card hover:bg-canvas"
                         >
                             📋 Intake Queue
                         </Link>
@@ -198,7 +198,7 @@ function CasesIndex({
                 <div
                     role="tablist"
                     aria-label="Filter cases by stage"
-                    className="flex flex-wrap gap-1 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm"
+                    className="flex flex-wrap gap-1 rounded-2xl border border-line-soft bg-surface p-2 shadow-card"
                 >
                     {caseTabs.map((tab) => {
                         const isActive = stage === tab.id;
@@ -222,13 +222,13 @@ function CasesIndex({
                                 onClick={() => selectStage(tab.id)}
                                 className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
                                     isActive
-                                        ? 'bg-[#3f6f3d] text-white shadow-sm'
-                                        : 'text-gray-600 hover:bg-[#f4f7ef] hover:text-[#3f6f3d]'
+                                        ? 'bg-brand text-white shadow-card'
+                                        : 'text-ink-muted hover:bg-brand-soft hover:text-brand'
                                 }`}
                             >
                                 {tab.label}
                                 <span
-                                    className={`rounded-full px-2 py-0.5 text-xs ${isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}
+                                    className={`rounded-full px-2 py-0.5 text-xs ${isActive ? 'bg-surface/20 text-white' : 'bg-secondary text-ink-muted'}`}
                                 >
                                     {count}
                                 </span>
@@ -238,7 +238,7 @@ function CasesIndex({
                 </div>
 
                 {/* Filter and Search Bar */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="rounded-2xl border border-line-soft bg-surface p-4 shadow-card">
                     <form
                         onSubmit={handleSearch}
                         className="flex flex-col gap-3 sm:flex-row sm:items-center"
@@ -249,7 +249,7 @@ function CasesIndex({
                                 placeholder="Search by case #, title, or party name..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-800 outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink-strong outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
                             />
                         </div>
 
@@ -260,7 +260,7 @@ function CasesIndex({
                                     setPhase(e.target.value);
                                     applyFilter({ phase: e.target.value });
                                 }}
-                                className="rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#3f6f3d]"
+                                className="rounded-xl border border-line px-3 py-2.5 text-sm text-ink outline-none focus:border-brand"
                             >
                                 <option value="">All Phases</option>
                                 {phases.map((p) => (
@@ -276,7 +276,7 @@ function CasesIndex({
                                     setStatus(e.target.value);
                                     applyFilter({ status: e.target.value });
                                 }}
-                                className="rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#3f6f3d]"
+                                className="rounded-xl border border-line px-3 py-2.5 text-sm text-ink outline-none focus:border-brand"
                             >
                                 <option value="">All Statuses</option>
                                 {statuses.map((s) => (
@@ -288,7 +288,7 @@ function CasesIndex({
 
                             <button
                                 type="submit"
-                                className="rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                className="rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-deep"
                             >
                                 Filter
                             </button>
@@ -313,12 +313,12 @@ function CasesIndex({
 
                 {/* Cases List */}
                 {cases.data.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-gray-300 bg-[#fafaf7] p-12 text-center">
+                    <div className="rounded-2xl border border-dashed border-line bg-canvas p-12 text-center">
                         <span className="text-3xl">📂</span>
-                        <h3 className="mt-3 text-base font-semibold text-gray-800">
+                        <h3 className="mt-3 text-base font-semibold text-ink-strong">
                             No cases found
                         </h3>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             {filters.search ||
                             filters.status ||
                             filters.phase ||
@@ -332,15 +332,15 @@ function CasesIndex({
                         {cases.data.map((c) => (
                             <div
                                 key={c.id}
-                                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#3f6f3d]/60"
+                                className="rounded-2xl border border-line-soft bg-surface p-5 shadow-card transition hover:border-brand/60"
                             >
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div className="space-y-1.5">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <span className="text-lg font-bold text-gray-900">
+                                            <span className="text-lg font-bold text-ink-strong">
                                                 {c.caseNumber}
                                             </span>
-                                            <span className="rounded-full bg-[#e8f1e4] px-2.5 py-0.5 text-xs font-semibold text-[#3f6f3d]">
+                                            <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand">
                                                 {c.phase} Phase
                                             </span>
                                             <StatusBadge status={c.status} />
@@ -358,18 +358,18 @@ function CasesIndex({
                                         </div>
 
                                         {c.complaintReference && (
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-xs text-ink-muted">
                                                 Complaint reference:{' '}
                                                 {c.complaintReference}
                                             </p>
                                         )}
-                                        <p className="text-sm font-semibold text-gray-800">
+                                        <p className="text-sm font-semibold text-ink-strong">
                                             {c.title}
                                         </p>
 
-                                        <div className="mt-2 grid gap-1.5 text-xs text-gray-500 sm:grid-cols-2 sm:gap-x-8">
+                                        <div className="mt-2 grid gap-1.5 text-xs text-ink-muted sm:grid-cols-2 sm:gap-x-8">
                                             <p>
-                                                <span className="text-gray-400">
+                                                <span className="text-ink-faint">
                                                     Complainant:
                                                 </span>{' '}
                                                 {c.complainantName}
@@ -377,7 +377,7 @@ function CasesIndex({
                                                     ` (+${c.complainantsCount - 1} more)`}
                                             </p>
                                             <p>
-                                                <span className="text-gray-400">
+                                                <span className="text-ink-faint">
                                                     Respondent:
                                                 </span>{' '}
                                                 {c.respondentName}
@@ -385,14 +385,14 @@ function CasesIndex({
                                                     ` (+${c.respondentsCount - 1} more)`}
                                             </p>
                                             <p>
-                                                <span className="text-gray-400">
+                                                <span className="text-ink-faint">
                                                     Filed Date:
                                                 </span>{' '}
                                                 {c.filedDate}
                                             </p>
                                             {c.latestHearing && (
                                                 <p>
-                                                    <span className="text-gray-400">
+                                                    <span className="text-ink-faint">
                                                         Latest Hearing:
                                                     </span>{' '}
                                                     #{c.latestHearing.number} on{' '}
@@ -405,7 +405,7 @@ function CasesIndex({
 
                                     <Link
                                         href={`/lupon/cases/${c.id}`}
-                                        className="shrink-0 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#315b30]"
+                                        className="shrink-0 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white shadow-card hover:bg-brand-deep"
                                     >
                                         View Case Details →
                                     </Link>
@@ -416,8 +416,8 @@ function CasesIndex({
                 )}
 
                 {cases.total > 0 && (
-                    <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-sm text-gray-500">
+                    <div className="flex flex-col gap-3 rounded-2xl border border-line-soft bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm text-ink-muted">
                             Showing{' '}
                             {(cases.current_page - 1) * cases.per_page + 1}–
                             {Math.min(
@@ -432,9 +432,9 @@ function CasesIndex({
                         >
                             {cases.links.map((link, index) => {
                                 const label = link.label
-                                    .replace('&laquo;', '‹')
-                                    .replace('&raquo;', '›');
-                                const classes = `min-w-9 rounded-lg px-3 py-2 text-center text-sm font-medium ${link.active ? 'bg-[#3f6f3d] text-white' : 'text-gray-600 hover:bg-[#f4f7ef]'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`;
+                                    .replace('&laquo;', '«')
+                                    .replace('&raquo;', '»');
+                                const classes = `min-w-9 rounded-lg px-3 py-2 text-center text-sm font-medium ${link.active ? 'bg-brand text-white' : 'text-ink-muted hover:bg-brand-soft'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`;
 
                                 return link.url ? (
                                     <Link
@@ -477,12 +477,12 @@ function MetricCard({
     color: string;
 }) {
     return (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase">
+        <div className="rounded-2xl border border-line-soft bg-surface p-4 shadow-card">
+            <p className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
                 {label}
             </p>
             <p
-                className={`mt-1 text-2xl font-bold ${{ green: 'text-emerald-800', amber: 'text-amber-800', red: 'text-red-800' }[color] ?? 'text-slate-900'}`}
+                className={`mt-1 text-2xl font-bold ${{ green: 'text-emerald-800', amber: 'text-amber-800', red: 'text-red-800' }[color] ?? 'text-ink-strong'}`}
             >
                 {value}
             </p>
