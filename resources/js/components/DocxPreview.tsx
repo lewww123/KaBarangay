@@ -120,14 +120,14 @@ export default function DocxPreview({
     return (
         <div className="space-y-3" aria-busy={loading}>
             {loading && (
-                <p role="status" className="text-center text-sm text-gray-600">
+                <p role="status" className="text-center text-sm text-ink-muted">
                     Preparing full-design document preview…
                 </p>
             )}
             {error && (
                 <p
                     role="alert"
-                    className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                    className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
                 >
                     {error}
                 </p>

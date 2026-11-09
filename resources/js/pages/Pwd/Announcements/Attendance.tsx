@@ -4,6 +4,7 @@ import PwdLayout from '@/layouts/PwdLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import withDeferredPage from '@/components/withDeferredPage';
 import OfflineAttendance from '@/components/announcements/OfflineAttendance';
+import AttendanceResidentSelect from '@/components/announcements/AttendanceResidentSelect';
 
 type AttendanceStatus = 'present' | 'claimed' | 'absent';
 type AttendanceTab = 'present' | 'claimed';
@@ -343,6 +344,21 @@ function PwdAttendanceSheet({
             return;
         }
 
+        if (
+            targetStatus === 'claimed' &&
+            !attendances.some(
+                (item) =>
+                    item.resident?.id === residentId && item.status === 'present',
+            )
+        ) {
+            setFeedback({
+                text: 'This resident is not present.',
+                type: 'warning',
+            });
+            resetScanState();
+            return;
+        }
+
         let outcomeSettled = false;
 
         try {
@@ -443,6 +459,21 @@ function PwdAttendanceSheet({
         }
 
         const targetStatus = activeTab;
+
+        if (
+            targetStatus === 'claimed' &&
+            !attendances.some(
+                (item) =>
+                    item.resident?.id === residentId && item.status === 'present',
+            )
+        ) {
+            setFeedback({
+                text: 'This resident is not present.',
+                type: 'warning',
+            });
+            return;
+        }
+
         const markUrl = `/pwd/announcements/${announcement.id}/attendance/mark`;
 
         setFeedback(null);
@@ -550,29 +581,29 @@ function PwdAttendanceSheet({
             />
 
             <div className="mx-auto max-w-7xl space-y-6 pb-10">
-                <div className="flex flex-col gap-4 rounded-xl border border-gray-200/80 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-4 rounded-xl border border-line-soft/80 bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-[#3f6f3d] uppercase">
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-brand uppercase">
                                 {announcement.category}
                             </span>
-                            <span className="text-xs text-gray-400">•</span>
-                            <span className="text-xs font-medium text-gray-500">
+                            <span className="text-xs text-ink-faint">•</span>
+                            <span className="text-xs font-medium text-ink-muted">
                                 {announcement.location
-                                    ? `📍 ${announcement.location}`
-                                    : '📍 Walang nakasaad na lokasyon'}
+                                    ? `${announcement.location}`
+                                    : 'Walang nakasaad na lokasyon'}
                             </span>
                         </div>
-                        <h1 className="text-xl font-extrabold tracking-tight text-gray-900">
+                        <h1 className="text-xl font-semibold tracking-tight text-ink-strong">
                             {announcement.title}
                         </h1>
                     </div>
 
                     <a
                         href="/pwd/announcements"
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-4 py-2 text-xs font-semibold text-ink shadow-card transition hover:bg-canvas"
                     >
-                        <span>←</span> Bumalik sa Announcements
+                        <span></span> Bumalik sa Announcements
                     </a>
                 </div>
 
@@ -581,7 +612,7 @@ function PwdAttendanceSheet({
                         role={statusTone === 'error' ? 'alert' : 'status'}
                         aria-live="polite"
                         aria-atomic="true"
-                        className={`flex items-start gap-2.5 rounded-xl border p-3.5 text-xs font-bold ${feedbackToneClasses[statusTone]}`}
+                        className={`flex items-start gap-2.5 rounded-xl border p-3.5 text-xs font-semibold ${feedbackToneClasses[statusTone]}`}
                     >
                         <span
                             className={`mt-1 h-2 w-2 shrink-0 rounded-full ${feedbackDotClasses[statusTone]} ${statusTone === 'info' ? 'animate-pulse' : ''}`}
@@ -592,20 +623,20 @@ function PwdAttendanceSheet({
                 )}
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-                    <div className="flex flex-col justify-between space-y-4 rounded-xl border border-gray-200/80 bg-white p-6 shadow-sm lg:col-span-7">
+                    <div className="flex flex-col justify-between space-y-4 rounded-xl border border-line-soft/80 bg-white p-6 shadow-card lg:col-span-7">
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                            <div className="flex items-center justify-between border-b border-line-soft pb-3">
                                 <div className="flex items-center gap-2.5">
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-sm text-[#3f6f3d]">
+                                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-sm text-brand">
                                         📷
                                     </span>
                                     <div>
-                                        <h3 className="text-sm font-bold text-gray-900">
+                                        <h3 className="text-sm font-semibold text-ink-strong">
                                             QR Code / Barcode Scanner
                                         </h3>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-ink-muted">
                                             Kasalukuyang mode:{' '}
-                                            <strong className="text-[#3f6f3d] uppercase">
+                                            <strong className="text-brand uppercase">
                                                 {activeTab}
                                             </strong>
                                         </p>
@@ -623,7 +654,7 @@ function PwdAttendanceSheet({
                                 <div className="space-y-1.5">
                                     <label
                                         htmlFor="qr-token-input"
-                                        className="block text-xs font-bold text-gray-700"
+                                        className="block text-xs font-semibold text-ink"
                                     >
                                         QR Token Input
                                     </label>
@@ -645,7 +676,7 @@ function PwdAttendanceSheet({
                                             isProcessingScan || manualProcessing
                                         }
                                         placeholder={`I-scan para itala bilang ${activeTab}...`}
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50/50 p-3 font-mono text-xs outline-none read-only:cursor-wait read-only:bg-gray-100 focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d]"
+                                        className="w-full rounded-lg border border-line bg-canvas/50 p-3 font-mono text-xs outline-none read-only:cursor-wait read-only:bg-secondary focus:border-brand focus:ring-1 focus:ring-[#3b6fa8]"
                                         autoFocus
                                     />
                                     <p className="text-[11px] text-gray-500">
@@ -659,7 +690,7 @@ function PwdAttendanceSheet({
                                     disabled={
                                         isProcessingScan || manualProcessing
                                     }
-                                    className="w-full rounded-lg bg-[#3f6f3d] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-wait disabled:opacity-70"
+                                    className="w-full rounded-lg bg-brand py-2.5 text-xs font-semibold text-white shadow-card transition hover:bg-brand-deep disabled:cursor-wait disabled:opacity-70"
                                 >
                                     {isProcessingScan
                                         ? 'Vine-verify at itinatala...'
@@ -669,19 +700,17 @@ function PwdAttendanceSheet({
                         </div>
                     </div>
 
-                    <div className="flex flex-col justify-between space-y-4 rounded-xl border border-gray-200/80 bg-white p-6 shadow-sm lg:col-span-5">
+                    <div className="flex flex-col justify-between space-y-4 rounded-xl border border-line-soft/80 bg-white p-6 shadow-card lg:col-span-5">
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2.5 border-b border-gray-100 pb-3">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-sm text-amber-800">
-                                    ✍️
-                                </span>
+                            <div className="flex items-center gap-2.5 border-b border-line-soft pb-3">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning-soft text-sm text-warning" aria-hidden="true"></span>
                                 <div>
-                                    <h3 className="text-sm font-bold text-gray-900">
+                                    <h3 className="text-sm font-semibold text-ink-strong">
                                         Manual Entry
                                     </h3>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-ink-muted">
                                         Mag-record para sa{' '}
-                                        <strong className="text-[#3f6f3d] uppercase">
+                                        <strong className="text-brand uppercase">
                                             {activeTab}
                                         </strong>{' '}
                                         nang walang QR.
@@ -697,37 +726,14 @@ function PwdAttendanceSheet({
                                 className="space-y-3 pt-1"
                             >
                                 <div className="space-y-1.5">
-                                    <label
-                                        htmlFor="manual-resident"
-                                        className="block text-xs font-bold text-gray-700"
-                                    >
-                                        Piliin ang Residente
-                                    </label>
-                                    <select
-                                        id="manual-resident"
+                                    <AttendanceResidentSelect
+                                        residents={residents}
                                         value={manualResidentId}
-                                        onChange={(event) =>
-                                            setManualResidentId(
-                                                event.target.value,
-                                            )
-                                        }
+                                        onChange={setManualResidentId}
                                         disabled={
                                             isProcessingScan || manualProcessing
                                         }
-                                        className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-xs outline-none focus:border-[#3f6f3d] disabled:cursor-wait disabled:bg-gray-100"
-                                        required
-                                    >
-                                        <option value="">
-                                            -- Pumili ng Residente --
-                                        </option>
-                                        {residents.map((res) => (
-                                            <option key={res.id} value={res.id}>
-                                                {res.last_name},{' '}
-                                                {res.first_name} (
-                                                {res.resident_number})
-                                            </option>
-                                        ))}
-                                    </select>
+                                    />
                                     <p className="text-[11px] text-gray-500">
                                         Para sa rehistradong residente na walang
                                         ma-scan na QR code.
@@ -739,7 +745,7 @@ function PwdAttendanceSheet({
                                     disabled={
                                         isProcessingScan || manualProcessing
                                     }
-                                    className="w-full rounded-lg bg-[#3f6f3d] py-3 text-xs font-bold text-white shadow-sm transition hover:bg-[#315b30] disabled:cursor-wait disabled:opacity-70"
+                                    className="w-full rounded-lg bg-brand py-3 text-xs font-semibold text-white shadow-card transition hover:bg-brand-deep disabled:cursor-wait disabled:opacity-70"
                                 >
                                     {manualProcessing
                                         ? 'Itinatala...'
@@ -750,18 +756,18 @@ function PwdAttendanceSheet({
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm">
-                    <div className="flex flex-col items-start justify-between gap-3 border-b border-gray-200/80 bg-gray-50/70 px-6 py-3 sm:flex-row sm:items-center">
+                <div className="overflow-hidden rounded-xl border border-line-soft/80 bg-white shadow-card">
+                    <div className="flex flex-col items-start justify-between gap-3 border-b border-line-soft bg-canvas/70 px-6 py-3 sm:flex-row sm:items-center">
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('present')}
                                 disabled={isProcessingScan || manualProcessing}
                                 aria-pressed={activeTab === 'present'}
-                                className={`rounded-lg px-4 py-2 text-xs font-bold transition disabled:cursor-wait disabled:opacity-60 ${
+                                className={`rounded-lg px-4 py-2 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'present'
-                                        ? 'bg-[#3f6f3d] text-white shadow-sm'
-                                        : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-100'
+                                        ? 'bg-brand text-white shadow-card'
+                                        : 'border border-line bg-white text-ink-muted hover:bg-canvas'
                                 }`}
                             >
                                 📋 Event Present / Dumalo (
@@ -778,10 +784,10 @@ function PwdAttendanceSheet({
                                 onClick={() => setActiveTab('claimed')}
                                 disabled={isProcessingScan || manualProcessing}
                                 aria-pressed={activeTab === 'claimed'}
-                                className={`rounded-lg px-4 py-2 text-xs font-bold transition disabled:cursor-wait disabled:opacity-60 ${
+                                className={`rounded-lg px-4 py-2 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'claimed'
-                                        ? 'bg-[#3f6f3d] text-white shadow-sm'
-                                        : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-100'
+                                        ? 'bg-brand text-white shadow-card'
+                                        : 'border border-line bg-white text-ink-muted hover:bg-canvas'
                                 }`}
                             >
                                 🎁 Aid Claimed / Naka-receive (
@@ -796,8 +802,8 @@ function PwdAttendanceSheet({
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-gray-600">
-                            <thead className="border-b border-gray-100 bg-white text-[11px] font-bold tracking-wider text-gray-400 uppercase">
+                        <table className="w-full text-left text-sm text-ink-muted">
+                            <thead className="border-b border-line-soft bg-white text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
                                 <tr>
                                     <th className="px-6 py-3.5">
                                         Pangalan ng Residente
@@ -810,12 +816,12 @@ function PwdAttendanceSheet({
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 text-xs">
+                            <tbody className="divide-y divide-line-soft text-xs">
                                 {filteredAttendances.length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={5}
-                                            className="p-10 text-center text-gray-400 italic"
+                                            className="p-10 text-center text-ink-faint italic"
                                         >
                                             Wala pang nakatalang rekord para sa
                                             tab na ito ({activeTab}).
@@ -825,13 +831,13 @@ function PwdAttendanceSheet({
                                     filteredAttendances.map((item) => (
                                         <tr
                                             key={item.id}
-                                            className="hover:bg-gray-50/80"
+                                            className="hover:bg-canvas/80"
                                         >
-                                            <td className="px-6 py-3.5 font-semibold text-gray-900">
+                                            <td className="px-6 py-3.5 font-semibold text-ink-strong">
                                                 {item.resident?.last_name},{' '}
                                                 {item.resident?.first_name}
                                             </td>
-                                            <td className="px-6 py-3.5 font-mono text-gray-500">
+                                            <td className="px-6 py-3.5 font-mono text-ink-muted">
                                                 {item.resident?.resident_number}
                                             </td>
                                             <td className="px-6 py-3.5">
@@ -842,17 +848,17 @@ function PwdAttendanceSheet({
                                                             ? 'bg-emerald-100 text-emerald-800'
                                                             : item.status ===
                                                                 'present'
-                                                              ? 'bg-[#edf4ea] text-[#3f6f3d]'
+                                                              ? 'bg-[#edf4ea] text-brand'
                                                               : 'bg-red-100 text-red-800'
                                                     }`}
                                                 >
                                                     {item.status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-3.5 text-xs text-gray-500 uppercase">
+                                            <td className="px-6 py-3.5 text-xs text-ink-muted uppercase">
                                                 {item.method}
                                             </td>
-                                            <td className="px-6 py-3.5 text-right text-xs text-gray-500">
+                                            <td className="px-6 py-3.5 text-right text-xs text-ink-muted">
                                                 {item.attended_at}
                                             </td>
                                         </tr>

@@ -274,15 +274,15 @@ function ProfileContent() {
 
     return (
         <ResidentLayout active="profile">
-            <div className="mx-auto w-full max-w-6xl">
+            <div className="mx-auto w-full max-w-4xl">
                 {/* PAGE HEADER */}
 
                 <div className="mb-5">
-                    <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                    <h1 className="text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                         My Profile
                     </h1>
 
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                         View your resident information and manage your contact
                         details.
                     </p>
@@ -299,34 +299,34 @@ function ProfileContent() {
 
                 {/* PROFILE SUMMARY */}
 
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                <div className="rounded-xl border border-line-soft bg-white p-4 shadow-card sm:p-5">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
                                 <ProfileLargeIcon />
                             </div>
 
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
+                                    <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                                         {profile.fullName}
                                     </h2>
 
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f1e4] px-2.5 py-1 text-[11px] font-semibold text-[#3f6f3d]">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-semibold text-brand">
                                         <SmallCheckIcon />
                                         Verified
                                     </span>
                                 </div>
 
-                                <p className="mt-1 text-sm font-medium text-gray-500">
+                                <p className="mt-1 text-sm font-medium text-ink-muted">
                                     {profile.residentId}
                                 </p>
 
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-ink-muted">
                                     {profile.purok}, {profile.barangay}
                                 </p>
 
-                                <p className="mt-1 text-sm font-semibold text-[#3f6f3d]">
+                                <p className="mt-1 text-sm font-semibold text-brand">
                                     {classification}
                                 </p>
                             </div>
@@ -337,7 +337,7 @@ function ProfileContent() {
                         <button
                             type="button"
                             onClick={() => setShowQrModal(true)}
-                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#3f6f3d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#315b30]"
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep"
                         >
                             <QrIcon />
                             Show My QR
@@ -407,19 +407,19 @@ function ProfileContent() {
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                     {/* CONTACT INFORMATION */}
 
-                    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                    <div className="rounded-xl border border-line-soft bg-white p-4 shadow-card sm:p-5">
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
                                     <ContactIcon />
                                 </div>
 
                                 <div>
-                                    <h2 className="text-sm font-bold text-gray-900 sm:text-base">
+                                    <h2 className="text-sm font-semibold text-ink-strong sm:text-base">
                                         Contact Information
                                     </h2>
 
-                                    <p className="mt-0.5 text-xs text-gray-500">
+                                    <p className="mt-0.5 text-xs text-ink-muted">
                                         Editable contact details
                                     </p>
                                 </div>
@@ -429,7 +429,7 @@ function ProfileContent() {
                                 <button
                                     type="button"
                                     onClick={() => setEditingContact(true)}
-                                    className="text-sm font-semibold text-[#3f6f3d] hover:text-[#315b30]"
+                                    className="text-sm font-semibold text-brand hover:text-brand-deep"
                                 >
                                     Edit
                                 </button>
@@ -466,7 +466,7 @@ function ProfileContent() {
                                                     resendEmailVerification
                                                 }
                                                 disabled={resendingVerification}
-                                                className="text-xs font-semibold text-[#3f6f3d] hover:underline disabled:opacity-60"
+                                                className="text-xs font-semibold text-brand hover:underline disabled:opacity-60"
                                             >
                                                 {resendingVerification
                                                     ? 'Sending...'
@@ -510,7 +510,7 @@ function ProfileContent() {
                                         type="button"
                                         onClick={handleCancelEdit}
                                         disabled={savingContact}
-                                        className="min-h-10 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="min-h-10 rounded-xl border border-line bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         Cancel
                                     </button>
@@ -518,7 +518,7 @@ function ProfileContent() {
                                     <button
                                         type="submit"
                                         disabled={savingContact}
-                                        className="min-h-10 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="min-h-10 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {savingContact ? 'Saving...' : 'Save'}
                                     </button>
@@ -539,7 +539,7 @@ function ProfileContent() {
                         />
 
                         <div>
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-ink-faint">
                                 Account Status
                             </p>
 
@@ -601,14 +601,14 @@ function ProfileContent() {
                         onClick={() => setShowQrModal(false)}
                     />
 
-                    <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+                    <div className="relative z-10 w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl">
                         <div className="flex items-start justify-between gap-3">
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900">
+                                <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                                     My QR Code
                                 </h2>
 
-                                <p className="mt-1 text-xs leading-5 text-gray-500">
+                                <p className="mt-1 text-xs leading-5 text-ink-muted">
                                     Present this code to authorized barangay
                                     staff.
                                 </p>
@@ -617,7 +617,7 @@ function ProfileContent() {
                             <button
                                 type="button"
                                 onClick={() => setShowQrModal(false)}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-secondary"
                                 aria-label="Close QR"
                             >
                                 <CloseIcon />
@@ -627,7 +627,7 @@ function ProfileContent() {
                         {/* REAL QR CODE */}
 
                         <div className="mt-5 flex justify-center">
-                            <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+                            <div className="rounded-xl border border-line-soft bg-white p-3 shadow-card">
                                 {profile.qrToken ? (
                                     <QRCodeSVG
                                         value={qrVerificationUrl}
@@ -639,13 +639,13 @@ function ProfileContent() {
                                         aria-label="Resident QR Code"
                                     />
                                 ) : (
-                                    <div className="flex h-[230px] w-[230px] items-center justify-center rounded-lg bg-gray-50 p-6 text-center">
+                                    <div className="flex h-[230px] w-[230px] items-center justify-center rounded-lg bg-canvas p-6 text-center">
                                         <div>
-                                            <p className="text-sm font-semibold text-gray-700">
+                                            <p className="text-sm font-semibold text-ink">
                                                 QR Code unavailable
                                             </p>
 
-                                            <p className="mt-1 text-xs leading-5 text-gray-500">
+                                            <p className="mt-1 text-xs leading-5 text-ink-muted">
                                                 Please contact the barangay
                                                 office.
                                             </p>
@@ -656,19 +656,19 @@ function ProfileContent() {
                         </div>
 
                         <div className="mt-4 text-center">
-                            <p className="font-bold text-gray-900">
+                            <p className="font-semibold text-ink-strong">
                                 {profile.fullName}
                             </p>
 
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-ink-muted">
                                 {profile.residentId}
                             </p>
 
-                            <p className="mt-2 text-sm font-semibold text-[#3f6f3d]">
+                            <p className="mt-2 text-sm font-semibold text-brand">
                                 {classification}
                             </p>
 
-                            <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-[#e8f1e4] px-2.5 py-1 text-xs font-semibold text-[#3f6f3d]">
+                            <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand">
                                 <SmallCheckIcon />
                                 Verified Resident
                             </span>
@@ -739,7 +739,7 @@ function NotificationAlert({
                 {/* MESSAGE */}
 
                 <div className="min-w-0 flex-1">
-                    <p className={`text-sm font-bold ${style.title} `}>
+                    <p className={`text-sm font-semibold ${style.title} `}>
                         {notification.title}
                     </p>
 
@@ -779,13 +779,13 @@ function CompactCard({
     children: ReactNode;
 }) {
     return (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="rounded-xl border border-line-soft bg-white p-4 shadow-card sm:p-5">
             <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
                     {icon}
                 </div>
 
-                <h2 className="text-sm font-bold text-gray-900 sm:text-base">
+                <h2 className="text-sm font-semibold text-ink-strong sm:text-base">
                     {title}
                 </h2>
             </div>
@@ -804,9 +804,9 @@ function CompactCard({
 function CompactRow({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <p className="text-xs text-gray-400">{label}</p>
+            <p className="text-xs text-ink-faint">{label}</p>
 
-            <p className="mt-1 text-sm leading-5 font-semibold break-words text-gray-700">
+            <p className="mt-1 text-sm leading-5 font-semibold break-words text-ink">
                 {value}
             </p>
         </div>
@@ -822,7 +822,7 @@ function CompactRow({ label, value }: { label: string; value: string }) {
 function Field({ label, children }: { label: string; children: ReactNode }) {
     return (
         <div>
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+            <label className="mb-1.5 block text-sm font-semibold text-ink">
                 {label}
             </label>
 
@@ -842,18 +842,18 @@ const inputClass = `
     w-full
     rounded-xl
     border
-    border-gray-300
+    border-line
     bg-white
     px-3
     text-base
-    text-gray-800
+    text-ink-strong
     outline-none
     transition
-    focus:border-[#3f6f3d]
+    focus:border-brand
     focus:ring-2
-    focus:ring-[#3f6f3d]/15
-    disabled:bg-gray-50
-    disabled:text-gray-400
+    focus:ring-brand/15
+    disabled:bg-canvas
+    disabled:text-ink-faint
     sm:text-sm
 `;
 

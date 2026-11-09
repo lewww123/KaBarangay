@@ -25,18 +25,18 @@ export default function AnnouncementAttendanceOption({
                 disabled={disabled}
                 aria-describedby={helpId}
                 className={cn(
-                    'mt-0.5 h-4 w-4 rounded border-gray-300 text-[#3f6f3d] focus:ring-[#3f6f3d]',
+                    'mt-0.5 h-4 w-4 rounded border-line text-brand focus:ring-[#3b6fa8]',
                     disabled && 'opacity-60',
                 )}
             />
             <div>
                 <label
                     htmlFor={id}
-                    className="text-xs font-semibold text-gray-700"
+                    className="text-xs font-semibold text-ink"
                 >
                     Enable Attendance Sheet
                 </label>
-                <p id={helpId} className="mt-0.5 text-[10px] text-gray-500">
+                <p id={helpId} className="mt-0.5 text-[10px] text-ink-muted">
                     Optional. Turn this on only if this event needs resident
                     attendance tracking or aid-claim recording. The attendance
                     sheet becomes available when the program is published.

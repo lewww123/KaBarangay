@@ -41,12 +41,12 @@ function OrgChartContent({ tree, resident }: Props) {
         <ResidentLayout active="org-chart">
             <Head title="Organizational Chart | Barangay San Jose" />
 
-            <div className="mx-auto w-full max-w-6xl space-y-6">
+            <div className="mx-auto w-full max-w-4xl space-y-5">
                 <div>
-                    <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                    <h1 className="text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                         Barangay Organizational Chart
                     </h1>
-                    <p className="mt-1 max-w-2xl text-sm leading-relaxed text-gray-500">
+                    <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink-muted">
                         Official structure of barangay positions and offices.
                         Select a position to view its details and official
                         photo.
@@ -54,14 +54,14 @@ function OrgChartContent({ tree, resident }: Props) {
                 </div>
 
                 {positions.length === 0 ? (
-                    <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
-                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                    <div className="rounded-xl border border-line-soft bg-white p-10 text-center shadow-card">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-soft text-brand">
                             <BuildingIcon className="h-8 w-8" />
                         </div>
-                        <h2 className="mt-4 text-sm font-bold text-gray-800">
+                        <h2 className="mt-4 text-sm font-semibold text-ink-strong">
                             Organizational chart not yet published
                         </h2>
-                        <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-gray-500">
+                        <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-ink-muted">
                             The barangay has not published its organizational
                             chart yet. Please check back later.
                         </p>
@@ -69,11 +69,11 @@ function OrgChartContent({ tree, resident }: Props) {
                 ) : (
                     <div className="grid gap-5">
                         <div className="min-w-0">
-                            <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
-                                <h2 className="text-sm font-bold text-gray-900">
+                            <div className="mb-4 flex items-center justify-between border-b border-line-soft pb-3">
+                                <h2 className="text-sm font-semibold text-ink-strong">
                                     Published Positions
                                 </h2>
-                                <span className="text-xs font-medium text-gray-400">
+                                <span className="text-xs font-medium text-ink-faint">
                                     {positions.length} position
                                     {positions.length === 1 ? '' : 's'}
                                 </span>
@@ -88,7 +88,7 @@ function OrgChartContent({ tree, resident }: Props) {
                             />
                         </div>
 
-                        <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                        <aside className="h-fit rounded-xl border border-line-soft bg-white p-5 shadow-card">
                             {selected ? (
                                 <div>
                                     <div className="flex justify-center">
@@ -99,24 +99,24 @@ function OrgChartContent({ tree, resident }: Props) {
                                     </div>
 
                                     <div className="mt-4 text-center">
-                                        <p className="text-[10px] font-bold tracking-wider text-[#3f6f3d] uppercase">
+                                        <p className="text-[10px] font-semibold tracking-wider text-brand uppercase">
                                             Published Position
                                         </p>
-                                        <h2 className="mt-1 text-base font-bold text-gray-900">
+                                        <h2 className="mt-1 text-base font-semibold tracking-tight text-ink-strong">
                                             {selected.title}
                                         </h2>
-                                        <p className="mt-1 text-sm font-medium text-gray-800">
+                                        <p className="mt-1 text-sm font-medium text-ink-strong">
                                             {selected.assigned_person ? (
                                                 <span>
                                                     {selected.assigned_person}
                                                 </span>
                                             ) : (
-                                                <span className="text-gray-400 italic">
+                                                <span className="text-ink-faint italic">
                                                     Vacant
                                                 </span>
                                             )}
                                         </p>
-                                        <p className="mt-2 text-xs text-gray-500">
+                                        <p className="mt-2 text-xs text-ink-muted">
                                             {selected.has_photo
                                                 ? 'Official photo on file.'
                                                 : 'No official photo is on file for this position.'}
@@ -124,8 +124,8 @@ function OrgChartContent({ tree, resident }: Props) {
                                     </div>
 
                                     {selected.children.length > 0 && (
-                                        <div className="mt-5 border-t border-gray-100 pt-4">
-                                            <p className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
+                                        <div className="mt-5 border-t border-line-soft pt-4">
+                                            <p className="text-[10px] font-semibold tracking-wider text-ink-faint uppercase">
                                                 Directly under this position
                                             </p>
                                             <ul className="mt-2 space-y-1.5">
@@ -133,11 +133,11 @@ function OrgChartContent({ tree, resident }: Props) {
                                                     (child) => (
                                                         <li
                                                             key={child.id}
-                                                            className="flex items-start gap-2 text-xs text-gray-600"
+                                                            className="flex items-start gap-2 text-xs text-ink-muted"
                                                         >
-                                                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3f6f3d]" />
+                                                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-brand" />
                                                             <span>
-                                                                <span className="font-medium text-gray-900">
+                                                                <span className="font-medium text-ink-strong">
                                                                     {
                                                                         child.title
                                                                     }
@@ -150,7 +150,7 @@ function OrgChartContent({ tree, resident }: Props) {
                                                                         }
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="text-gray-400 italic">
+                                                                    <span className="text-ink-faint italic">
                                                                         Vacant
                                                                     </span>
                                                                 )}
@@ -164,13 +164,13 @@ function OrgChartContent({ tree, resident }: Props) {
                                 </div>
                             ) : (
                                 <div className="py-6 text-center">
-                                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 text-gray-400">
+                                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-canvas text-ink-faint">
                                         <PersonIcon className="h-6 w-6" />
                                     </div>
-                                    <h2 className="mt-3 text-sm font-bold text-gray-800">
+                                    <h2 className="mt-3 text-sm font-semibold text-ink-strong">
                                         Select a position
                                     </h2>
-                                    <p className="mx-auto mt-1 max-w-[220px] text-xs leading-relaxed text-gray-500">
+                                    <p className="mx-auto mt-1 max-w-[220px] text-xs leading-relaxed text-ink-muted">
                                         Choose any position in the chart to see
                                         its official photo and reporting
                                         structure.
@@ -178,7 +178,7 @@ function OrgChartContent({ tree, resident }: Props) {
                                 </div>
                             )}
 
-                            <p className="mt-5 border-t border-gray-100 pt-4 text-[11px] leading-relaxed text-gray-400">
+                            <p className="mt-5 border-t border-line-soft pt-4 text-[11px] leading-relaxed text-ink-faint">
                                 Only positions published by barangay staff
                                 appear here. No personal information is
                                 displayed unless an official photo is on file.
@@ -187,7 +187,7 @@ function OrgChartContent({ tree, resident }: Props) {
                     </div>
                 )}
 
-                <p className="text-center text-[11px] text-gray-400">
+                <p className="text-center text-[11px] text-ink-faint">
                     Viewed as {resident.full_name}
                 </p>
             </div>
@@ -248,14 +248,14 @@ function ResidentPhoto({
                 alt={`${node.title} official photo`}
                 loading="lazy"
                 decoding="async"
-                className={`${dimension} shrink-0 rounded-full border border-gray-200 object-cover`}
+                className={`${dimension} shrink-0 rounded-full border border-line-soft object-cover`}
             />
         );
     }
 
     return (
         <div
-            className={`${dimension} flex shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 bg-gray-50 text-gray-400`}
+            className={`${dimension} flex shrink-0 items-center justify-center rounded-full border border-dashed border-line bg-canvas text-ink-faint`}
             aria-label="No photo on file"
         >
             <svg

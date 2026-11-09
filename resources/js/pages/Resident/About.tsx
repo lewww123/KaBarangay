@@ -9,11 +9,11 @@ export default function About() {
                 ======================================================== */}
 
                 <div className="mb-5 sm:mb-6">
-                    <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                    <h1 className="text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                         About KaBarangay
                     </h1>
 
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">
                         Learn more about KaBarangay and the services available
                         through the Resident Portal.
                     </p>
@@ -23,18 +23,18 @@ export default function About() {
                     INTRO
                 ======================================================== */}
 
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#e8f1e4] text-[#3f6f3d]">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
                             <BarangayIcon />
                         </div>
 
                         <div className="min-w-0">
-                            <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
+                            <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                                 KaBarangay Resident Portal
                             </h2>
 
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">
                                 KaBarangay is a digital resident portal designed
                                 to make barangay services easier, faster, and
                                 more accessible. Residents can access selected
@@ -50,13 +50,13 @@ export default function About() {
                     SERVICES
                 ======================================================== */}
 
-                <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="mt-4 rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-6">
                     <div className="mb-5">
-                        <h2 className="text-base font-bold text-gray-900">
+                        <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                             What You Can Do
                         </h2>
 
-                        <p className="mt-1 text-sm leading-5 text-gray-500">
+                        <p className="mt-1 text-sm leading-5 text-ink-muted">
                             Services currently available in the Resident Portal.
                         </p>
                     </div>
@@ -124,20 +124,20 @@ export default function About() {
                     {/* PRIVACY */}
 
                     <InfoCard icon={<ShieldIcon />} title="Privacy & Security">
-                        <p className="text-sm leading-6 text-gray-600">
+                        <p className="text-sm leading-6 text-ink-muted">
                             Resident information is intended only for authorized
                             barangay services, verification, and official
                             transactions. Access to personal records should be
                             limited to authorized users.
                         </p>
 
-                        <div className="mt-3 rounded-xl border border-[#dce8d8] bg-[#f5f9f3] p-3">
+                        <div className="mt-3 rounded-xl border border-line-soft bg-canvas p-3">
                             <div className="flex items-start gap-2">
-                                <div className="mt-0.5 shrink-0 text-[#3f6f3d]">
+                                <div className="mt-0.5 shrink-0 text-brand">
                                     <CheckIcon />
                                 </div>
 
-                                <p className="text-xs leading-5 text-gray-600">
+                                <p className="text-xs leading-5 text-ink-muted">
                                     Your QR code should use a secure resident
                                     identifier instead of directly storing
                                     sensitive personal details.
@@ -151,19 +151,19 @@ export default function About() {
                     HELP
                 ======================================================== */}
 
-                <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="mt-4 rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-start gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f1e4] text-[#3f6f3d]">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
                                 <HelpIcon />
                             </div>
 
                             <div>
-                                <h2 className="text-base font-bold text-gray-900">
+                                <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                                     Need Help?
                                 </h2>
 
-                                <p className="mt-1 max-w-xl text-sm leading-6 text-gray-500">
+                                <p className="mt-1 max-w-xl text-sm leading-6 text-ink-muted">
                                     You may visit the barangay office for
                                     assistance or use KaBarangay Assistant while
                                     using the Resident Portal.
@@ -177,8 +177,8 @@ export default function About() {
                     SYSTEM INFO
                 ======================================================== */}
 
-                <div className="mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                    <div className="flex flex-col gap-2 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-4 rounded-xl border border-line-soft bg-white px-4 py-3 shadow-card">
+                    <div className="flex flex-col gap-2 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between">
                         <p>KaBarangay Resident Portal</p>
 
                         <p>Version 1.0</p>
@@ -205,16 +205,16 @@ function ServiceItem({
     description: string;
 }) {
     return (
-        <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+        <div className="rounded-xl border border-line-soft bg-canvas/60 p-4">
             <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-[#3f6f3d] shadow-sm">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-brand shadow-card">
                     {icon}
                 </div>
 
                 <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-900">{title}</p>
+                    <p className="text-sm font-semibold text-ink-strong">{title}</p>
 
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                    <p className="mt-1 text-xs leading-5 text-ink-muted">
                         {description}
                     </p>
                 </div>
@@ -239,13 +239,13 @@ function InfoCard({
     children: React.ReactNode;
 }) {
     return (
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
             <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f1e4] text-[#3f6f3d]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
                     {icon}
                 </div>
 
-                <h2 className="text-base font-bold text-gray-900">{title}</h2>
+                <h2 className="text-base font-semibold tracking-tight text-ink-strong">{title}</h2>
             </div>
 
             <div className="mt-4 space-y-3">{children}</div>
@@ -262,9 +262,9 @@ function InfoCard({
 function InfoRow({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <p className="text-xs text-gray-400">{label}</p>
+            <p className="text-xs text-ink-faint">{label}</p>
 
-            <p className="mt-1 text-sm font-semibold text-gray-700">{value}</p>
+            <p className="mt-1 text-sm font-semibold text-ink">{value}</p>
         </div>
     );
 }

@@ -1,4 +1,8 @@
 export const luponStatuses = {
+    arbitration_active: 'Arbitration active',
+    arbitration_awarded: 'Arbitration award',
+    executed: 'Executed',
+    court_forwarded: 'Forwarded to court',
     filed: 'Filed',
     mediation_active: 'Mediation active',
     pangkat_formed: 'Pangkat formed',
@@ -57,6 +61,7 @@ export type LuponDocument = {
     status: 'pending' | 'ready' | 'superseded';
     hearingId: number | null;
     generatedAt: string | null;
+    issuedAt?: string | null;
     servedAt: string | null;
     url: string | null;
 };

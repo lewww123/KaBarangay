@@ -76,6 +76,8 @@ export function protectSession(initialPage: Page) {
             .then(async response => {
                 if (!response.ok) throw new Error('Session check unavailable');
                 const session = await response.json();
+                // The server could not read account state: that is inconclusive, not a logout or an account switch.
+                if (session.identity === 'unresolved') return;
                 if (active && scope() === expectedScope && session.scope !== expectedScope) lock();
             })
             .catch(() => { /* Keep the existing offline policy when the network is unavailable. */ })

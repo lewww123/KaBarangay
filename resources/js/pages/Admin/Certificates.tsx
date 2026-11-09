@@ -72,8 +72,8 @@ const statusStyles: Record<string, string> = {
     'Needs Action': 'bg-[#fff0e5] text-[#a65316]',
     'For Payment': 'bg-[#f3ecff] text-[#6f42a5]',
     Processing: 'bg-[#eef3fb] text-[#416b9c]',
-    'Ready for Claim': 'bg-[#edf4ea] text-[#3f6f3d]',
-    Released: 'bg-gray-100 text-gray-600',
+    'Ready for Claim': 'bg-canvas text-brand',
+    Released: 'bg-secondary text-ink-muted',
     Rejected: 'bg-[#fdecec] text-[#a33a3a]',
 };
 
@@ -200,10 +200,10 @@ function CertificatesContent({
 
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-gray-800">
+                    <h1 className="text-2xl font-semibold text-ink-strong">
                         Certificate Requests
                     </h1>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                         Monitor aggregate certificate request activity submitted
                         by residents.
                     </p>
@@ -226,25 +226,25 @@ function CertificatesContent({
                 />
             </div>
 
-            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-line-soft bg-white p-3.5 shadow-card sm:flex-row sm:items-center sm:justify-between">
                 <input
                     type="search"
                     aria-label="Search certificate requests"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by reference, resident, resident no., certificate, or purpose..."
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d] sm:w-96"
+                    className="w-full rounded-lg border border-line px-3 py-1.5 text-xs outline-none focus:border-brand sm:w-96"
                 />
 
                 <div className="flex items-center gap-2">
-                    <label className="text-xs font-medium text-gray-500">
+                    <label className="text-xs font-medium text-ink-muted">
                         Status:
                     </label>
                     <select
                         aria-label="Filter by status"
                         value={filterStatus}
                         onChange={(e) => changeStatus(e.target.value)}
-                        className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                        className="rounded-lg border border-line px-3 py-1.5 text-xs outline-none focus:border-brand"
                     >
                         <option value="">All Statuses</option>
                         {statuses.map((status) => (
@@ -258,7 +258,7 @@ function CertificatesContent({
                         <button
                             type="button"
                             onClick={clearFilters}
-                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                            className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas"
                         >
                             Clear
                         </button>
@@ -266,7 +266,7 @@ function CertificatesContent({
                 </div>
             </div>
 
-            <div className="mb-3 text-xs text-gray-500">
+            <div className="mb-3 text-xs text-ink-muted">
                 {paginator.total === 0
                     ? hasFilters
                         ? 'No requests match the current filters.'
@@ -276,10 +276,10 @@ function CertificatesContent({
                       }`}
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-line-soft bg-white shadow-card">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-gray-600">
-                        <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
+                    <table className="w-full text-left text-sm text-ink-muted">
+                        <thead className="border-b border-line-soft bg-canvas text-xs font-semibold text-ink-muted uppercase">
                             <tr>
                                 <th className="px-5 py-3">Reference</th>
                                 <th className="px-5 py-3">Resident</th>
@@ -293,7 +293,7 @@ function CertificatesContent({
                                 <tr>
                                     <td
                                         colSpan={5}
-                                        className="p-8 text-center text-sm text-gray-500"
+                                        className="p-8 text-center text-sm text-ink-muted"
                                     >
                                         {hasFilters
                                             ? 'No requests match the current filters.'
@@ -304,18 +304,18 @@ function CertificatesContent({
                                 rows.map((request) => (
                                     <tr
                                         key={request.id}
-                                        className="hover:bg-gray-50/80"
+                                        className="hover:bg-canvas/80"
                                     >
-                                        <td className="px-5 py-3.5 font-mono text-xs font-semibold text-gray-800">
+                                        <td className="px-5 py-3.5 font-mono text-xs font-semibold text-ink-strong">
                                             {request.reference}
                                         </td>
                                         <td className="px-5 py-3.5">
-                                            <p className="font-semibold text-gray-900">
+                                            <p className="font-semibold text-ink-strong">
                                                 {request.resident.name}
                                             </p>
                                             {request.resident
                                                 .resident_number && (
-                                                <p className="text-xs text-gray-400">
+                                                <p className="text-xs text-ink-faint">
                                                     {
                                                         request.resident
                                                             .resident_number
@@ -324,19 +324,19 @@ function CertificatesContent({
                                             )}
                                         </td>
                                         <td className="px-5 py-3.5">
-                                            <p className="text-gray-800">
+                                            <p className="text-ink-strong">
                                                 {request.certificate}
                                             </p>
-                                            <p className="text-xs text-gray-400">
+                                            <p className="text-xs text-ink-faint">
                                                 {request.purpose}
                                             </p>
                                         </td>
-                                        <td className="px-5 py-3.5 text-xs text-gray-500">
+                                        <td className="px-5 py-3.5 text-xs text-ink-muted">
                                             {formatPeso(request.fee)}
                                         </td>
                                         <td className="px-5 py-3.5">
                                             <span
-                                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[request.status] ?? 'bg-gray-100 text-gray-600'}`}
+                                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[request.status] ?? 'bg-secondary text-ink-muted'}`}
                                             >
                                                 {request.status}
                                             </span>
@@ -369,8 +369,8 @@ function Pagination<T>({
     }
 
     return (
-        <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3">
-            <span className="text-xs text-gray-500">
+        <div className="flex items-center justify-between border-t border-line-soft px-5 py-3">
+            <span className="text-xs text-ink-muted">
                 Page {paginator.current_page} of {paginator.last_page}
             </span>
 
@@ -382,7 +382,7 @@ function Pagination<T>({
                         paginator.prev_page_url &&
                         onNavigate(paginator.prev_page_url)
                     }
-                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     Previous
                 </button>
@@ -394,7 +394,7 @@ function Pagination<T>({
                         paginator.next_page_url &&
                         onNavigate(paginator.next_page_url)
                     }
-                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     Next
                 </button>
@@ -414,15 +414,15 @@ function StatCard({
 }) {
     return (
         <div
-            className={`rounded-lg border p-4 shadow-sm ${highlight ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white' : 'border-gray-200 bg-white'}`}
+            className={`rounded-lg border p-4 shadow-card ${highlight ? 'border-brand bg-brand text-white' : 'border-line-soft bg-white'}`}
         >
             <p
-                className={`text-[11px] font-medium tracking-wide uppercase ${highlight ? 'text-white/80' : 'text-gray-400'}`}
+                className={`text-[11px] font-medium tracking-wide uppercase ${highlight ? 'text-white/80' : 'text-ink-faint'}`}
             >
                 {label}
             </p>
             <p
-                className={`mt-2 text-2xl font-semibold ${highlight ? 'text-white' : 'text-gray-800'}`}
+                className={`mt-2 text-2xl font-semibold ${highlight ? 'text-white' : 'text-ink-strong'}`}
             >
                 {value}
             </p>

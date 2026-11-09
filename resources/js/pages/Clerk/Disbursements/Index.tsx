@@ -173,15 +173,15 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
             <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <p className="text-xs font-semibold tracking-wide text-[#3f6f3d] uppercase">
+                        <p className="text-xs font-semibold tracking-wide text-brand uppercase">
                             Financial transparency
                         </p>
 
-                        <h1 className="mt-1 text-2xl font-bold text-gray-900">
+                        <h1 className="mt-1 text-2xl font-semibold text-ink-strong">
                             Disbursement Documents
                         </h1>
 
-                        <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                        <p className="mt-1 max-w-2xl text-sm text-ink-muted">
                             Upload PDF and CSV records, review them privately,
                             and publish selected documents to residents.
                         </p>
@@ -190,7 +190,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                     <button
                         type="button"
                         onClick={openUpload}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#3f6f3d] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#315b30]"
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white shadow-card transition hover:bg-brand-deep"
                     >
                         <UploadIcon />
                         Upload document
@@ -216,8 +216,8 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                     />
                 </section>
 
-                <section className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                    <div className="border-b border-gray-100 p-4">
+                <section className="mt-6 overflow-hidden rounded-xl border border-line-soft bg-white shadow-card">
+                    <div className="border-b border-line-soft p-4">
                         <div className="flex flex-wrap gap-2">
                             {STATUS_TABS.map((tab) => (
                                 <button
@@ -228,8 +228,8 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                     }
                                     className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                                         filters.status === tab.value
-                                            ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
-                                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                                            ? 'border-brand bg-brand text-white'
+                                            : 'border-line-soft bg-white text-ink-muted hover:bg-canvas'
                                     }`}
                                 >
                                     {tab.label} ({stats[tab.countKey]})
@@ -255,13 +255,13 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                         setSearch(event.target.value)
                                     }
                                     placeholder="Search by title or file name"
-                                    className="min-h-10 w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-sm transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                    className="min-h-10 w-full rounded-lg border border-line bg-white py-2 pr-3 pl-9 text-sm transition outline-none focus:border-brand focus:ring-2 focus:ring-[#3b6fa8]/20"
                                 />
                             </label>
 
                             <button
                                 type="submit"
-                                className="min-h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                                className="min-h-10 rounded-lg border border-line bg-white px-4 text-sm font-semibold text-ink transition hover:bg-canvas"
                             >
                                 Search
                             </button>
@@ -282,7 +282,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                             },
                                         );
                                     }}
-                                    className="min-h-10 rounded-lg px-3 text-sm font-medium text-gray-500 transition hover:text-gray-800"
+                                    className="min-h-10 rounded-lg px-3 text-sm font-medium text-ink-muted transition hover:text-ink-strong"
                                 >
                                     Clear
                                 </button>
@@ -292,15 +292,15 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
 
                     {documents.data.length === 0 ? (
                         <div className="px-4 py-16 text-center">
-                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-ink-faint">
                                 <DocumentIcon />
                             </div>
 
-                            <h2 className="mt-3 text-sm font-semibold text-gray-800">
+                            <h2 className="mt-3 text-sm font-semibold text-ink-strong">
                                 No disbursement documents found
                             </h2>
 
-                            <p className="mx-auto mt-1 max-w-md text-xs text-gray-500">
+                            <p className="mx-auto mt-1 max-w-md text-xs text-ink-muted">
                                 Upload a PDF or CSV document, or adjust the
                                 current filters.
                             </p>
@@ -308,7 +308,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                             <button
                                 type="button"
                                 onClick={openUpload}
-                                className="mt-4 rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#315b30]"
+                                className="mt-4 rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-deep"
                             >
                                 Upload document
                             </button>
@@ -327,8 +327,8 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                     )}
 
                     {documents.last_page > 1 && (
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-4">
-                            <p className="text-xs text-gray-500">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft px-4 py-4">
+                            <p className="text-xs text-ink-muted">
                                 Showing {documents.from ?? 0} to{' '}
                                 {documents.to ?? 0} of {documents.total}{' '}
                                 documents
@@ -358,12 +358,12 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                                 },
                                             );
                                         }}
-                                        className={`rounded-md px-3 py-1.5 text-xs ${
+                                        className={`rounded-lg px-3 py-1.5 text-xs ${
                                             link.active
-                                                ? 'bg-[#3f6f3d] text-white'
+                                                ? 'bg-brand text-white'
                                                 : link.url
-                                                  ? 'border border-gray-300 text-gray-600 hover:bg-gray-50'
-                                                  : 'cursor-not-allowed border border-gray-200 text-gray-300'
+                                                  ? 'border border-line text-ink-muted hover:bg-canvas'
+                                                  : 'cursor-not-allowed border border-line-soft text-gray-300'
                                         }`}
                                         dangerouslySetInnerHTML={{
                                             __html: link.label,
@@ -378,14 +378,14 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
 
             {showUpload && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
-                        <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
+                    <div className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-xl">
+                        <div className="flex items-start justify-between border-b border-line-soft px-5 py-4">
                             <div>
-                                <h2 className="text-lg font-semibold text-gray-900">
+                                <h2 className="text-lg font-semibold text-ink-strong">
                                     Upload disbursement document
                                 </h2>
 
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="mt-1 text-xs text-ink-muted">
                                     PDF or CSV, up to 5 MB. New uploads stay in
                                     draft until published.
                                 </p>
@@ -395,7 +395,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                 type="button"
                                 onClick={closeUpload}
                                 disabled={form.processing}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint transition hover:bg-secondary hover:text-ink disabled:opacity-50"
                                 aria-label="Close upload form"
                             >
                                 <CloseIcon />
@@ -407,7 +407,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                             className="space-y-4 px-5 py-5"
                         >
                             <label className="block">
-                                <span className="text-xs font-semibold text-gray-700">
+                                <span className="text-xs font-semibold text-ink">
                                     Document title
                                 </span>
 
@@ -423,7 +423,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                     required
                                     autoFocus
                                     placeholder="e.g. 2026 Educational Assistance Payout"
-                                    className="mt-1.5 min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                    className="mt-1.5 min-h-10 w-full rounded-lg border border-line px-3 text-sm transition outline-none focus:border-brand focus:ring-2 focus:ring-[#3b6fa8]/20"
                                 />
 
                                 {form.errors.title && (
@@ -434,9 +434,9 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                             </label>
 
                             <label className="block">
-                                <span className="text-xs font-semibold text-gray-700">
+                                <span className="text-xs font-semibold text-ink">
                                     Description{' '}
-                                    <span className="font-normal text-gray-400">
+                                    <span className="font-normal text-ink-faint">
                                         (optional)
                                     </span>
                                 </span>
@@ -452,7 +452,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                     rows={3}
                                     maxLength={2000}
                                     placeholder="Add context for staff reviewing this document."
-                                    className="mt-1.5 w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
+                                    className="mt-1.5 w-full resize-y rounded-lg border border-line px-3 py-2 text-sm transition outline-none focus:border-brand focus:ring-2 focus:ring-[#3b6fa8]/20"
                                 />
 
                                 {form.errors.description && (
@@ -463,7 +463,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                             </label>
 
                             <label className="block">
-                                <span className="text-xs font-semibold text-gray-700">
+                                <span className="text-xs font-semibold text-ink">
                                     PDF or CSV file
                                 </span>
 
@@ -478,11 +478,11 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                             event.target.files?.[0] ?? null,
                                         )
                                     }
-                                    className="mt-1.5 block w-full cursor-pointer rounded-lg border border-gray-300 text-sm text-gray-600 file:mr-3 file:border-0 file:bg-gray-50 file:px-3 file:py-2.5 file:text-xs file:font-semibold file:text-gray-700"
+                                    className="mt-1.5 block w-full cursor-pointer rounded-lg border border-line text-sm text-ink-muted file:mr-3 file:border-0 file:bg-canvas file:px-3 file:py-2.5 file:text-xs file:font-semibold file:text-ink"
                                 />
 
                                 {form.data.document && (
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-ink-muted">
                                         Selected: {form.data.document.name} (
                                         {formatFileSize(
                                             form.data.document.size,
@@ -500,27 +500,27 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
 
                             {form.processing && (
                                 <div>
-                                    <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                                    <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
                                         <div
-                                            className="h-full rounded-full bg-[#3f6f3d] transition-all"
+                                            className="h-full rounded-full bg-brand transition-all"
                                             style={{
                                                 width: `${uploadProgress}%`,
                                             }}
                                         />
                                     </div>
 
-                                    <p className="mt-1 text-right text-[11px] text-gray-500">
+                                    <p className="mt-1 text-right text-[11px] text-ink-muted">
                                         Uploading {uploadProgress}%
                                     </p>
                                 </div>
                             )}
 
-                            <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+                            <div className="flex justify-end gap-2 border-t border-line-soft pt-4">
                                 <button
                                     type="button"
                                     onClick={closeUpload}
                                     disabled={form.processing}
-                                    className="min-h-10 rounded-lg border border-gray-300 px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+                                    className="min-h-10 rounded-lg border border-line px-4 text-sm font-semibold text-ink transition hover:bg-canvas disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
@@ -531,7 +531,7 @@ function ClerkDisbursementsIndex({ documents, filters, stats, user }: Props) {
                                         form.processing ||
                                         form.data.document === null
                                     }
-                                    className="min-h-10 rounded-lg bg-[#3f6f3d] px-4 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="min-h-10 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {form.processing
                                         ? 'Uploading...'
@@ -570,26 +570,26 @@ function DocumentRow({
                         {disbursementStatusLabel(status)}
                     </span>
 
-                    <span className="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
+                    <span className="rounded-lg border border-line-soft bg-canvas px-2 py-0.5 text-[11px] font-semibold text-ink-muted">
                         {disbursementFileType(document)}
                     </span>
 
-                    <span className="text-[11px] text-gray-400">
+                    <span className="text-[11px] text-ink-faint">
                         {formatFileSize(document.file_size)}
                     </span>
                 </div>
 
-                <h3 className="mt-2 truncate text-sm font-semibold text-gray-900">
+                <h3 className="mt-2 truncate text-sm font-semibold text-ink-strong">
                     {document.title}
                 </h3>
 
                 {document.description && (
-                    <p className="mt-1 line-clamp-2 max-w-3xl text-xs text-gray-500">
+                    <p className="mt-1 line-clamp-2 max-w-3xl text-xs text-ink-muted">
                         {document.description}
                     </p>
                 )}
 
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-500">
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-muted">
                     <span className="max-w-full truncate">
                         {document.original_name}
                     </span>
@@ -621,14 +621,14 @@ function DocumentRow({
             <div className="flex shrink-0 flex-wrap gap-2">
                 <Link
                     href={document.preview_url}
-                    className="inline-flex min-h-9 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                    className="inline-flex min-h-9 items-center justify-center rounded-lg border border-line bg-white px-3 text-xs font-semibold text-ink transition hover:bg-canvas"
                 >
                     Preview
                 </Link>
 
                 <a
                     href={document.download_url}
-                    className="inline-flex min-h-9 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                    className="inline-flex min-h-9 items-center justify-center rounded-lg border border-line bg-white px-3 text-xs font-semibold text-ink transition hover:bg-canvas"
                 >
                     Download
                 </a>
@@ -638,7 +638,7 @@ function DocumentRow({
                         type="button"
                         disabled={busy}
                         onClick={() => onAction(document, 'publish')}
-                        className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#3f6f3d] px-3 text-xs font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex min-h-9 items-center justify-center rounded-lg bg-brand px-3 text-xs font-semibold text-white transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {busy ? 'Publishing...' : 'Publish'}
                     </button>
@@ -669,16 +669,16 @@ function StatCard({
     tone: 'slate' | 'amber' | 'emerald' | 'gray';
 }) {
     const tones = {
-        slate: 'border-slate-200 bg-white text-slate-900',
+        slate: 'border-line-soft bg-white text-ink-strong',
         amber: 'border-amber-200 bg-amber-50 text-amber-900',
         emerald: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-        gray: 'border-gray-200 bg-gray-50 text-gray-700',
+        gray: 'border-line-soft bg-canvas text-ink',
     };
 
     return (
         <div className={`rounded-xl border p-4 ${tones[tone]}`}>
             <p className="text-xs font-medium opacity-70">{label}</p>
-            <p className="mt-1 text-2xl font-bold">{value}</p>
+            <p className="mt-1 text-2xl font-semibold">{value}</p>
         </div>
     );
 }
@@ -705,7 +705,7 @@ function UploadIcon() {
 function SearchIcon() {
     return (
         <svg
-            className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+            className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-ink-faint"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

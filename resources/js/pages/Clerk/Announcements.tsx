@@ -156,16 +156,16 @@ export default function Announcements({
             <div className="mx-auto max-w-7xl space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
+                        <h1 className="text-2xl font-semibold text-ink-strong">
                             Barangay Announcements
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-ink-muted">
                             Create advisories and track event attendance.
                         </p>
                     </div>
                     <button
                         onClick={openCreateModal}
-                        className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-medium text-white"
+                        className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white"
                     >
                         + New Announcement
                     </button>
@@ -176,13 +176,13 @@ export default function Announcements({
                     {announcements.map((item) => (
                         <div
                             key={item.id}
-                            className="space-y-3 rounded-lg border bg-white p-6 shadow-sm"
+                            className="space-y-3 rounded-lg border bg-white p-6 shadow-card"
                         >
                             <div className="flex items-start justify-between">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
                                         <span
-                                            className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                            className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${
                                                 item.approval_status ===
                                                 'approved'
                                                     ? 'bg-green-100 text-green-800'
@@ -192,16 +192,16 @@ export default function Announcements({
                                                       : 'bg-yellow-100 text-yellow-800'
                                             }`}
                                         >
-                                            ● {item.approval_status}
+                                            {item.approval_status}
                                         </span>
-                                        <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800 uppercase">
+                                        <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-800 uppercase">
                                             {item.category}
                                         </span>
-                                        <span className="rounded bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-800 uppercase">
+                                        <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-semibold text-ink-strong uppercase">
                                             Target: {item.target_audience}
                                         </span>
                                     </div>
-                                    <h3 className="text-lg font-bold text-gray-800">
+                                    <h3 className="text-lg font-semibold text-ink-strong">
                                         {item.title}
                                     </h3>
                                 </div>
@@ -212,7 +212,7 @@ export default function Announcements({
                                                 onClick={() =>
                                                     openAttendanceSheet(item)
                                                 }
-                                                className="rounded bg-blue-600 px-3 py-1.5 text-xs font-bold text-white"
+                                                className="rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white"
                                             >
                                                 Attendance Sheet
                                             </button>
@@ -228,7 +228,7 @@ export default function Announcements({
                                 </div>
                             </div>
 
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-ink-muted">
                                 {item.content}
                             </p>
 
@@ -236,7 +236,7 @@ export default function Announcements({
                             {item.approval_status === 'rejected' &&
                                 item.rejection_reason && (
                                     <div className="rounded border-l-4 border-red-500 bg-red-50 p-3 text-xs text-red-700">
-                                        <span className="font-bold">
+                                        <span className="font-semibold">
                                             Rejection Reason:{' '}
                                         </span>
                                         {item.rejection_reason}
@@ -250,14 +250,14 @@ export default function Announcements({
                 {isModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                         <div className="w-full max-w-lg space-y-4 rounded-lg bg-white p-6 shadow-xl">
-                            <h3 className="text-lg font-bold">
+                            <h3 className="text-lg font-semibold">
                                 {editingItem
                                     ? 'Edit & Resubmit Announcement'
                                     : 'New Announcement'}
                             </h3>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
-                                    <label className="mb-1 block text-xs font-bold text-gray-600 uppercase">
+                                    <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                         Title
                                     </label>
                                     <input
@@ -273,7 +273,7 @@ export default function Announcements({
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="mb-1 block text-xs font-bold text-gray-600 uppercase">
+                                        <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                             Category
                                         </label>
                                         <select
@@ -302,7 +302,7 @@ export default function Announcements({
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="mb-1 block text-xs font-bold text-gray-600 uppercase">
+                                        <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                             Target Audience
                                         </label>
                                         <select
@@ -317,7 +317,7 @@ export default function Announcements({
                                                 userRole === 'senior_staff' ||
                                                 userRole === 'pwd_staff'
                                             }
-                                            className="w-full rounded border bg-white p-2 text-sm disabled:bg-gray-100"
+                                            className="w-full rounded border bg-white p-2 text-sm disabled:bg-secondary"
                                         >
                                             <option value="all">
                                                 All Residents
@@ -331,7 +331,7 @@ export default function Announcements({
                                 </div>
 
                                 <div>
-                                    <label className="mb-1 block text-xs font-bold text-gray-600 uppercase">
+                                    <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase">
                                         Content
                                     </label>
                                     <textarea
@@ -356,7 +356,7 @@ export default function Announcements({
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="rounded bg-[#3f6f3d] px-4 py-2 text-sm font-bold text-white"
+                                        className="rounded bg-brand px-4 py-2 text-sm font-semibold text-white"
                                     >
                                         Submit for Approval
                                     </button>

@@ -4,13 +4,16 @@ import type {
     LuponOfficials,
     LuponEvidenceFile,
 } from '@/components/lupon/types';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import LuponLayout from '@/layouts/LuponLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import withDeferredPage from '@/components/withDeferredPage';
 
 type ComplaintStatus =
+    | 'Pending Payment'
+    | 'Payment Verification'
+    | 'Payment Verified'
     | 'Submitted'
     | 'Under Review'
     | 'For Payment'
@@ -33,6 +36,7 @@ type Complaint = {
     requestedAction: string;
     evidence: LuponEvidenceFile[];
     status: ComplaintStatus;
+    source?: 'walk-in' | 'online';
     luponNote?: string | null;
     assessedFee?: string | null;
     submittedDate: string;
@@ -52,16 +56,22 @@ type Paginator<T> = {
     next_page_url: string | null;
 };
 
+type QueueTab = 'Under Review' | 'For Payment' | 'Closed';
+
 type PageProps = {
     auth: {
         user: { name?: string };
         staffAssignments?: { department: string; position: string }[];
     };
     officials: LuponOfficials;
+    queueMode?: 'complaints' | 'payments';
+    canVerifyPayments?: boolean;
     userName?: string;
     barangayName?: string | null;
     complaints: Paginator<Complaint>;
     statuses: ComplaintStatus[];
+    queueTabs?: QueueTab[];
+    activeQueueTab?: QueueTab | null;
     activeStatusFilter: ComplaintStatus | null;
     stats: {
         pendingCount: number;
@@ -75,7 +85,7 @@ export default withDeferredPage(
     ['complaints', 'stats'],
     (props) => (
         <LuponLayout
-            active="complaints"
+            active={props.queueMode === 'payments' ? 'payments' : 'complaints'}
             user={props.auth.user}
             barangayName={props.barangayName}
         >
@@ -89,8 +99,12 @@ function LuponComplaints({
     userName,
     officials,
     barangayName = null,
+    queueMode = 'complaints',
+    canVerifyPayments = false,
     complaints,
     statuses,
+    queueTabs = ['Under Review', 'For Payment'],
+    activeQueueTab = 'Under Review',
     activeStatusFilter,
     stats,
     flash,
@@ -145,13 +159,27 @@ function LuponComplaints({
 
         router.get(
             status
-                ? `/lupon/complaints?status=${encodeURIComponent(status)}`
-                : '/lupon/complaints',
+                ? `/lupon/${queueMode === 'payments' ? 'payments' : 'complaints'}?status=${encodeURIComponent(status)}`
+                : queueMode === 'payments' ? '/lupon/payments' : '/lupon/complaints',
             {},
             {
                 preserveState: true,
                 preserveScroll: true,
-                only: ['complaints', 'activeStatusFilter'],
+                only: ['complaints', 'activeStatusFilter', 'activeQueueTab'],
+            },
+        );
+    };
+
+    const applyTab = (tab: QueueTab) => {
+        setSelected(null);
+
+        router.get(
+            `/lupon/complaints?tab=${encodeURIComponent(tab)}`,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['complaints', 'activeStatusFilter', 'activeQueueTab'],
             },
         );
     };
@@ -189,39 +217,74 @@ function LuponComplaints({
         );
     };
 
+    const hasOfficialCase = !!selected?.case;
+    const feeAssessed = Number(selected?.assessedFee ?? 0) > 0;
+    // Stage 1 asks for the fee; stage 3 asks for the verified payment. A record
+    // can satisfy only one of them, so the two forms never render together.
+    const needsAssessment =
+        !!selected &&
+        !hasOfficialCase &&
+        !feeAssessed &&
+        ['Submitted', 'Under Review', 'Pending Payment', 'Payment Verification'].includes(selected.status);
+    const readyForCase =
+        !!selected &&
+        !hasOfficialCase &&
+        feeAssessed &&
+        ['For Payment', 'Pending Payment', 'Payment Verification'].includes(selected.status);
+    const canActOnRecord =
+        !!selected &&
+        !hasOfficialCase &&
+        !['Accepted', 'Payment Verified', 'Rejected'].includes(selected.status);
+
     return (
         <LuponLayout
-            active="complaints"
+            active={queueMode === 'payments' ? 'payments' : 'complaints'}
             user={auth.user}
             barangayName={barangayName}
         >
-            <Head title="Lupon Complaints" />
+            <Head title={queueMode === 'payments' ? 'Payment Verification' : 'Complaint Submissions'} />
 
             <div className="mx-auto max-w-7xl space-y-6 p-2 font-sans sm:p-4">
                 <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h1 className="text-2xl font-semibold text-gray-800">
-                        Complaints
-                    </h1>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Review complaints, request payment, and record the OR
-                        before creating a case
-                        {userName ? ` — signed in as ${userName}` : ''}.
-                    </p>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h1 className="text-2xl font-semibold text-gray-800">
+                                {queueMode === 'payments' ? 'Payment Verification' : 'Complaint Submissions'}
+                            </h1>
+                            <p className="mt-1 text-sm text-gray-500">
+                                {queueMode === 'payments'
+                                    ? 'Record the actual payment and OR before creating a case'
+                                    : 'Review a complaint and assess its filing fee, then create the case once payment is verified'}
+                                {userName ? ` — signed in as ${userName}` : ''}.
+                            </p>
+                        </div>
 
-                    <div className="mt-4 flex flex-wrap gap-3">
-                        <StatPill
-                            label="Pending review"
-                            value={stats.pendingCount}
-                        />
-
-                        {statuses.map((status) => (
-                            <StatPill
-                                key={status}
-                                label={status}
-                                value={stats.byStatus[status] ?? 0}
-                            />
-                        ))}
+                        {queueMode === 'complaints' && (
+                            <Link
+                                href="/lupon/complaints/walk-in"
+                                className="inline-flex min-h-11 items-center rounded-xl border border-[#3f6f3d] bg-[#f0f6ee] px-5 py-2.5 text-sm font-semibold text-[#3f6f3d] hover:bg-[#e4efe1]"
+                            >
+                                Walk-in complaint
+                            </Link>
+                        )}
                     </div>
+
+                    {queueMode === 'payments' && (
+                        <div className="mt-4 flex flex-wrap gap-3">
+                            <StatPill
+                                label="Pending review"
+                                value={stats.pendingCount}
+                            />
+
+                            {statuses.map((status) => (
+                                <StatPill
+                                    key={status}
+                                    label={status}
+                                    value={stats.byStatus[status] ?? 0}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {flash?.success && (
@@ -245,22 +308,47 @@ function LuponComplaints({
                 )}
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <FilterChip
-                            label="All"
-                            active={activeStatusFilter === null}
-                            onClick={() => applyFilter(null)}
-                        />
+                    {queueMode === 'complaints' ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                            {queueTabs.map((tab) => (
+                                <FilterChip
+                                    key={tab}
+                                    label={tab}
+                                    active={activeQueueTab === tab}
+                                    onClick={() => applyTab(tab)}
+                                />
+                            ))}
 
-                        {statuses.map((status) => (
+                            <button
+                                type="button"
+                                onClick={() => applyTab('Closed')}
+                                className={`ml-1 min-h-10 px-3 py-2 text-sm font-semibold transition ${
+                                    activeQueueTab === 'Closed'
+                                        ? 'text-[#3f6f3d] underline'
+                                        : 'text-gray-500 hover:text-[#3f6f3d]'
+                                }`}
+                            >
+                                Closed complaints
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-wrap items-center gap-2">
                             <FilterChip
-                                key={status}
-                                label={status}
-                                active={activeStatusFilter === status}
-                                onClick={() => applyFilter(status)}
+                                label="All"
+                                active={activeStatusFilter === null}
+                                onClick={() => applyFilter(null)}
                             />
-                        ))}
-                    </div>
+
+                            {statuses.map((status) => (
+                                <FilterChip
+                                    key={status}
+                                    label={status}
+                                    active={activeStatusFilter === status}
+                                    onClick={() => applyFilter(status)}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {complaints.data.length === 0 ? (
@@ -269,9 +357,11 @@ function LuponComplaints({
                             No complaints found
                         </h2>
                         <p className="mx-auto mt-2 max-w-xl text-sm text-gray-500">
-                            {activeStatusFilter
-                                ? `There are no complaints with the status "${activeStatusFilter}" in this barangay.`
-                                : 'No complaints have been submitted in this barangay yet.'}
+                            {queueMode === 'payments'
+                                ? activeStatusFilter
+                                    ? `There are no complaints with the status "${activeStatusFilter}" in this barangay.`
+                                    : 'No complaints have been submitted in this barangay yet.'
+                                : `Nothing is waiting in the "${activeQueueTab}" queue in this barangay.`}
                         </p>
                     </div>
                 ) : (
@@ -281,6 +371,11 @@ function LuponComplaints({
                                 key={complaint.id}
                                 complaint={complaint}
                                 expanded={selected?.id === complaint.id}
+                                stageLabel={
+                                    queueMode === 'complaints'
+                                        ? stageOf(complaint)
+                                        : undefined
+                                }
                                 onToggle={() => {
                                     setSelected(
                                         selected?.id === complaint.id
@@ -347,7 +442,14 @@ function LuponComplaints({
                                 </p>
                             </div>
 
-                            <StatusBadge status={selected.status} />
+                            <div className="flex flex-wrap items-center gap-2">
+                                {selected.source === 'walk-in' && (
+                                    <SourceBadge />
+                                )}
+                                {queueMode === 'payments' && (
+                                    <StatusBadge status={selected.status} />
+                                )}
+                            </div>
                         </div>
 
                         <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -358,6 +460,14 @@ function LuponComplaints({
                             <Detail
                                 label="Resident Number"
                                 value={selected.resident.residentNumber || '—'}
+                            />
+                            <Detail
+                                label="Source"
+                                value={
+                                    selected.source === 'walk-in'
+                                        ? 'Walk-in intake recorded at the barangay desk'
+                                        : 'Submitted online by the resident'
+                                }
                             />
                             <Detail
                                 label="Respondent"
@@ -391,6 +501,16 @@ function LuponComplaints({
                                 label="Incident location"
                                 value={selected.incidentLocation}
                             />
+                            {Number(selected.assessedFee) > 0 && (
+                                <Detail
+                                    label="Assessed filing fee"
+                                    value={`₱${Number(
+                                        selected.assessedFee,
+                                    ).toLocaleString('en-PH', {
+                                        minimumFractionDigits: 2,
+                                    })}`}
+                                />
+                            )}
                         </div>
 
                         <div className="mt-5">
@@ -425,27 +545,33 @@ function LuponComplaints({
                         <div className="mt-6 border-t border-gray-100 pt-5">
                             <EvidenceList files={selected.evidence ?? []} />
                             <p className="text-sm font-bold text-gray-900">
-                                Review and payment
+                                {readyForCase
+                                    ? 'Case creation'
+                                    : needsAssessment
+                                        ? 'Complaint review'
+                                        : 'Recorded review'}
                             </p>
 
-                            <div className="mt-3">
-                                <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                                    Note
-                                    <span className="ml-1 text-xs font-normal text-gray-400">
-                                        (Required when rejecting)
-                                    </span>
-                                </label>
+                            {canActOnRecord && (
+                                <div className="mt-3">
+                                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+                                        Note
+                                        <span className="ml-1 text-xs font-normal text-gray-400">
+                                            (Required when rejecting)
+                                        </span>
+                                    </label>
 
-                                <textarea
-                                    rows={3}
-                                    value={note}
-                                    onChange={(event) =>
-                                        setNote(event.target.value)
-                                    }
-                                    placeholder="Optional note, or the reason when rejecting..."
-                                    className="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-800 transition outline-none placeholder:text-gray-400 focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15 sm:text-sm"
-                                />
-                            </div>
+                                    <textarea
+                                        rows={3}
+                                        value={note}
+                                        onChange={(event) =>
+                                            setNote(event.target.value)
+                                        }
+                                        placeholder="Optional note, or the reason when rejecting..."
+                                        className="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-800 transition outline-none placeholder:text-gray-400 focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15 sm:text-sm"
+                                    />
+                                </div>
+                            )}
 
                             {actionError && (
                                 <p className="mt-2 text-sm text-red-600">
@@ -453,51 +579,43 @@ function LuponComplaints({
                                 </p>
                             )}
 
-                            {!selected.case &&
-                                [
-                                    'Submitted',
-                                    'Under Review',
-                                    'Accepted',
-                                ].includes(selected.status) && (
-                                    <div className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                                        <label className="block text-sm font-semibold text-gray-800">
-                                            Assessed filing fee (₱)
-                                            <input
-                                                type="number"
-                                                min="0.01"
-                                                max="999999.99"
-                                                step="0.01"
-                                                value={assessedFee}
-                                                onChange={(event) =>
-                                                    setAssessedFee(
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                className="mt-1 block w-full rounded-lg border bg-white p-2"
-                                            />
-                                        </label>
-                                        <p className="text-xs text-gray-600">
-                                            Complete the review and enter the
-                                            assessed fee. The resident will be
-                                            asked to pay at the barangay office.
-                                            This does not create a case.
-                                        </p>
-                                        <ActionButton
-                                            label={
-                                                pendingAction
-                                                    ? 'Saving review…'
-                                                    : 'Review completed — request payment'
+                            {needsAssessment && canVerifyPayments && (
+                                <div className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                    <label className="block text-sm font-semibold text-gray-800">
+                                        Assessed filing fee (₱)
+                                        <input
+                                            type="number"
+                                            min="0.01"
+                                            max="999999.99"
+                                            step="0.01"
+                                            value={assessedFee}
+                                            onChange={(event) =>
+                                                setAssessedFee(
+                                                    event.target.value,
+                                                )
                                             }
-                                            disabled={pendingAction}
-                                            onClick={() =>
-                                                requestPayment(selected)
-                                            }
-                                            tone="amber"
+                                            className="mt-1 block w-full rounded-lg border bg-white p-2"
                                         />
-                                    </div>
-                                )}
-                            {selected.status === 'For Payment' &&
-                                !selected.case && (
+                                    </label>
+                                    <p className="text-xs text-gray-600">
+                                        Complete the review and enter the
+                                        assessed fee. The resident will be asked
+                                        to pay at the barangay office. This does
+                                        not create a case.
+                                    </p>
+                                    <ActionButton
+                                        label={
+                                            pendingAction
+                                                ? 'Saving assessment…'
+                                                : 'Submit Assessment'
+                                        }
+                                        disabled={pendingAction}
+                                        onClick={() => requestPayment(selected)}
+                                        tone="amber"
+                                    />
+                                </div>
+                            )}
+                            {readyForCase && canVerifyPayments && (
                                     <div className="mt-4">
                                         <PromoteComplaint
                                             key={selected.id}
@@ -510,12 +628,7 @@ function LuponComplaints({
                                     </div>
                                 )}
                             <div className="mt-4 flex flex-wrap gap-3">
-                                {!selected.case &&
-                                    [
-                                        'Submitted',
-                                        'Under Review',
-                                        'For Payment',
-                                    ].includes(selected.status) && (
+                                {canActOnRecord && (
                                         <ActionButton
                                             label={
                                                 pendingAction
@@ -542,9 +655,10 @@ function LuponComplaints({
                                 )}
                             </div>
                             <p className="mt-3 text-xs leading-5 text-gray-400">
-                                Statuses follow recorded review and payment
-                                actions. Open the docketed case to manage
-                                hearings, outcomes, evidence and documents.
+                                Only a recorded payment verified by the
+                                barangay secretary can create a case. Open the
+                                docketed case to manage hearings, outcomes,
+                                evidence, and documents.
                             </p>
                         </div>
                     </div>
@@ -557,10 +671,12 @@ function LuponComplaints({
 function ComplaintRow({
     complaint,
     expanded,
+    stageLabel,
     onToggle,
 }: {
     complaint: Complaint;
     expanded: boolean;
+    stageLabel?: string;
     onToggle: () => void;
 }) {
     return (
@@ -577,7 +693,11 @@ function ComplaintRow({
                         <p className="font-bold text-gray-900">
                             {complaint.reference}
                         </p>
-                        <StatusBadge status={complaint.status} />
+                        <StatusBadge
+                            status={complaint.status}
+                            label={stageLabel}
+                        />
+                        {complaint.source === 'walk-in' && <SourceBadge />}
                     </div>
 
                     <p className="mt-2 text-sm font-semibold text-gray-800">
@@ -613,6 +733,36 @@ function ComplaintRow({
                 </button>
             </div>
         </div>
+    );
+}
+
+/**
+ * Queue stage for a row. Historical status labels collapse onto the two
+ * operational stages so the list matches the tabs above it.
+ */
+function stageOf(complaint: Complaint): string {
+    if (complaint.case || complaint.status === 'Payment Verified') {
+        return 'Case Created';
+    }
+
+    if (complaint.status === 'Accepted' || complaint.status === 'Rejected') {
+        return complaint.status;
+    }
+
+    return [
+        'For Payment',
+        'Pending Payment',
+        'Payment Verification',
+    ].includes(complaint.status)
+        ? 'For Payment'
+        : 'Under Review';
+}
+
+function SourceBadge() {
+    return (
+        <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+            Walk-in
+        </span>
     );
 }
 
@@ -660,8 +810,17 @@ function Detail({ label, value }: { label: string; value: string }) {
     );
 }
 
-function StatusBadge({ status }: { status: ComplaintStatus }) {
+function StatusBadge({
+    status,
+    label,
+}: {
+    status: ComplaintStatus;
+    label?: string;
+}) {
     const styles: Record<ComplaintStatus, string> = {
+        'Pending Payment': 'bg-orange-50 text-orange-800 border-orange-200',
+        'Payment Verification': 'bg-amber-50 text-amber-800 border-amber-200',
+        'Payment Verified': 'bg-green-50 text-green-700 border-green-200',
         Submitted: 'bg-blue-50 text-blue-700 border-blue-200',
         'Under Review': 'bg-amber-50 text-amber-700 border-amber-200',
         'For Payment': 'bg-orange-50 text-orange-800 border-orange-200',
@@ -669,11 +828,17 @@ function StatusBadge({ status }: { status: ComplaintStatus }) {
         Rejected: 'bg-red-50 text-red-700 border-red-200',
     };
 
+    const shown = label ?? status;
+
     return (
         <span
-            className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-bold ${styles[status]}`}
+            className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-bold ${
+                shown === 'Case Created'
+                    ? styles['Payment Verified']
+                    : styles[shown as ComplaintStatus] ?? styles.Submitted
+            }`}
         >
-            {status}
+            {shown}
         </span>
     );
 }

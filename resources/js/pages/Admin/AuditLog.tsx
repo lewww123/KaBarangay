@@ -309,11 +309,11 @@ function AuditLogContent({
 
             <AdminLayout active="audit-log">
                 <div className="mb-6">
-                    <h1 className="text-2xl font-semibold text-gray-800">
+                    <h1 className="text-2xl font-semibold text-ink-strong">
                         Audit Log
                     </h1>
 
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                         System activity and security monitoring
                     </p>
                 </div>
@@ -324,21 +324,21 @@ function AuditLogContent({
                     aria-live="polite"
                 >
                     {isLoading && (
-                        <span className="text-xs text-gray-500">Loading…</span>
+                        <span className="text-xs text-ink-muted">Loading…</span>
                     )}
                 </div>
 
                 {navigationError && (
                     <div
                         role="alert"
-                        className="mb-3 flex flex-col gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
+                        className="mb-3 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
                     >
                         <span>{navigationError}</span>
                         <button
                             type="button"
                             onClick={retryNavigation}
                             disabled={isLoading}
-                            className="self-start rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="self-start rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {isLoading ? 'Retrying…' : 'Retry'}
                         </button>
@@ -359,10 +359,10 @@ function AuditLogContent({
 
                     <section>
                         <div className="mb-3 flex items-baseline gap-3">
-                            <h2 className="text-base font-semibold text-gray-800">
+                            <h2 className="text-base font-semibold text-ink-strong">
                                 Security Logs
                             </h2>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-ink-muted">
                                 Failed login thresholds and authentication
                                 activity
                             </p>
@@ -403,8 +403,8 @@ function PaginationControls({
     if (paginator.last_page <= 1) return null;
 
     return (
-        <div className="flex flex-col gap-2 border-t border-gray-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-xs text-gray-500">
+        <div className="flex flex-col gap-2 border-t border-line-soft px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-xs text-ink-muted">
                 Page {paginator.current_page} of {paginator.last_page}
             </span>
 
@@ -415,12 +415,12 @@ function PaginationControls({
                         type="button"
                         onClick={() => navigateToPage(link.url)}
                         disabled={!link.url}
-                        className={`rounded-md px-3 py-1.5 text-xs ${
+                        className={`rounded-lg px-3 py-1.5 text-xs ${
                             link.active
-                                ? 'bg-[#3f6f3d] text-white'
+                                ? 'bg-brand text-white'
                                 : link.url
-                                  ? 'border border-gray-300 text-gray-600 hover:bg-gray-50'
-                                  : 'cursor-not-allowed text-gray-400'
+                                  ? 'border border-line text-ink-muted hover:bg-canvas'
+                                  : 'cursor-not-allowed text-ink-faint'
                         }`}
                         dangerouslySetInnerHTML={{
                             __html: link.label,
@@ -457,10 +457,10 @@ function ActivityLogSection({
         <section>
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                    <h2 className="text-base font-semibold text-gray-800">
+                    <h2 className="text-base font-semibold text-ink-strong">
                         Audit Logs
                     </h2>
-                    <p className="text-xs text-gray-500" aria-live="polite">
+                    <p className="text-xs text-ink-muted" aria-live="polite">
                         {paginator.total === 0
                             ? hasFilters
                                 ? 'No records match the current filter.'
@@ -474,7 +474,7 @@ function ActivityLogSection({
                 <div className="flex items-center gap-2">
                     <label
                         htmlFor="event-filter"
-                        className="text-sm text-gray-600"
+                        className="text-sm text-ink-muted"
                     >
                         Event
                     </label>
@@ -483,7 +483,7 @@ function ActivityLogSection({
                         value={selectedEvent}
                         disabled={isLoading}
                         onChange={(e) => applyFilter(e.target.value)}
-                        className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <option value="">All events</option>
                         {eventOptions.map((event) => (
@@ -496,34 +496,34 @@ function ActivityLogSection({
             </div>
 
             <div
-                className="overflow-hidden rounded-lg border border-gray-200 bg-white"
+                className="overflow-hidden rounded-lg border border-line-soft bg-white"
                 aria-busy={isLoading}
             >
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[700px]">
-                        <thead className="bg-[#f0ebe1]">
-                            <tr className="border-b border-[#e6ddcd]">
+                        <thead className="bg-canvas">
+                            <tr className="border-b border-[#c2cbd4]">
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     DATE/TIME
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     SECTOR
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     STAFF NAME
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     ACTION
                                 </th>
@@ -535,7 +535,7 @@ function ActivityLogSection({
                                 <tr>
                                     <td
                                         colSpan={4}
-                                        className="px-5 py-10 text-center text-sm text-gray-500"
+                                        className="px-5 py-10 text-center text-sm text-ink-muted"
                                     >
                                         {hasFilters
                                             ? 'No audit records match the selected event filter.'
@@ -546,24 +546,24 @@ function ActivityLogSection({
                                 rows.map((log) => (
                                     <tr
                                         key={log.id}
-                                        className="border-b border-gray-100 last:border-0"
+                                        className="border-b border-line-soft last:border-0"
                                     >
-                                        <td className="px-5 py-3 text-sm whitespace-nowrap text-gray-600">
+                                        <td className="px-5 py-3 text-sm whitespace-nowrap text-ink-muted">
                                             {log.created_at ?? '—'}
                                         </td>
 
-                                        <td className="px-5 py-3 text-sm text-gray-600">
+                                        <td className="px-5 py-3 text-sm text-ink-muted">
                                             {sectorForEvent(log.event)}
                                         </td>
 
-                                        <td className="px-5 py-3 text-sm text-gray-700">
+                                        <td className="px-5 py-3 text-sm text-ink">
                                             {log.actor ? (
                                                 <div>
                                                     <span className="font-medium">
                                                         {log.actor.name}
                                                     </span>
                                                     {log.actor.position && (
-                                                        <p className="mt-1 text-xs text-gray-500">
+                                                        <p className="mt-1 text-xs text-ink-muted">
                                                             {log.actor.position}
                                                             {log.actor
                                                                 .department_label
@@ -573,7 +573,7 @@ function ActivityLogSection({
                                                     )}
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-400">
+                                                <span className="text-ink-faint">
                                                     System
                                                 </span>
                                             )}
@@ -618,10 +618,10 @@ function LoginAttemptsSection({
     return (
         <section className="flex h-full flex-col">
             <div className="mb-3 flex items-center gap-3">
-                <h3 className="text-sm font-semibold text-gray-800">
+                <h3 className="text-sm font-semibold text-ink-strong">
                     Login Attempts
                 </h3>
-                <p className="text-xs text-gray-500" aria-live="polite">
+                <p className="text-xs text-ink-muted" aria-live="polite">
                     {!available
                         ? 'Login attempt data is temporarily unavailable.'
                         : paginator.total === 0
@@ -631,34 +631,34 @@ function LoginAttemptsSection({
             </div>
 
             <div
-                className="flex flex-1 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white"
+                className="flex flex-1 flex-col overflow-hidden rounded-lg border border-line-soft bg-white"
                 aria-busy={isLoading}
             >
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[420px]">
-                        <thead className="bg-[#f0ebe1]">
-                            <tr className="border-b border-[#e6ddcd]">
+                        <thead className="bg-canvas">
+                            <tr className="border-b border-[#c2cbd4]">
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     ACTOR
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     CHANNEL
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     TIME
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     STATUS
                                 </th>
@@ -670,7 +670,7 @@ function LoginAttemptsSection({
                                 <tr>
                                     <td
                                         colSpan={4}
-                                        className="px-5 py-10 text-center text-sm text-gray-500"
+                                        className="px-5 py-10 text-center text-sm text-ink-muted"
                                     >
                                         Login attempt data is temporarily
                                         unavailable. Please try again later.
@@ -680,7 +680,7 @@ function LoginAttemptsSection({
                                 <tr>
                                     <td
                                         colSpan={4}
-                                        className="px-5 py-10 text-center text-sm text-gray-500"
+                                        className="px-5 py-10 text-center text-sm text-ink-muted"
                                     >
                                         No login attempts found. Attempts will
                                         appear here as login activity is
@@ -691,18 +691,18 @@ function LoginAttemptsSection({
                                 rows.map((attempt) => (
                                     <tr
                                         key={attempt.id}
-                                        className="border-b border-gray-100 last:border-0"
+                                        className="border-b border-line-soft last:border-0"
                                     >
-                                        <td className="px-5 py-3 text-sm text-gray-700">
+                                        <td className="px-5 py-3 text-sm text-ink">
                                             {attempt.actor_label ||
                                                 formatLabel(attempt.actor_type)}
                                         </td>
 
-                                        <td className="px-5 py-3 text-sm text-gray-600">
+                                        <td className="px-5 py-3 text-sm text-ink-muted">
                                             {formatLabel(attempt.channel)}
                                         </td>
 
-                                        <td className="px-5 py-3 text-sm whitespace-nowrap text-gray-600">
+                                        <td className="px-5 py-3 text-sm whitespace-nowrap text-ink-muted">
                                             {attempt.attempted_at ?? '—'}
                                         </td>
 
@@ -737,7 +737,7 @@ function StatusBadge({ status }: { status: string }) {
     return (
         <span
             className={`rounded-full px-3 py-1 text-xs whitespace-nowrap ${
-                styles[status] ?? 'bg-gray-100 text-gray-600'
+                styles[status] ?? 'bg-secondary text-ink-muted'
             }`}
         >
             {formatLabel(status)}
@@ -763,10 +763,10 @@ function SuspiciousActivitySection({
     return (
         <section className="flex h-full flex-col">
             <div className="mb-3 flex items-center gap-3">
-                <h3 className="text-sm font-semibold text-gray-800">
+                <h3 className="text-sm font-semibold text-ink-strong">
                     Suspicious Activity
                 </h3>
-                <p className="text-xs text-gray-500" aria-live="polite">
+                <p className="text-xs text-ink-muted" aria-live="polite">
                     {!available
                         ? 'Suspicious activity data is temporarily unavailable.'
                         : paginator.total === 0
@@ -776,34 +776,34 @@ function SuspiciousActivitySection({
             </div>
 
             <div
-                className="flex flex-1 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white"
+                className="flex flex-1 flex-col overflow-hidden rounded-lg border border-line-soft bg-white"
                 aria-busy={isLoading}
             >
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[520px]">
-                        <thead className="bg-[#f0ebe1]">
-                            <tr className="border-b border-[#e6ddcd]">
+                        <thead className="bg-canvas">
+                            <tr className="border-b border-[#c2cbd4]">
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     DETECTED
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     ALERT
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     ATTEMPTS
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#8a7f6a]"
+                                    className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-[#6e747c]"
                                 >
                                     WINDOW
                                 </th>
@@ -815,7 +815,7 @@ function SuspiciousActivitySection({
                                 <tr>
                                     <td
                                         colSpan={4}
-                                        className="px-5 py-10 text-center text-sm text-gray-500"
+                                        className="px-5 py-10 text-center text-sm text-ink-muted"
                                     >
                                         Suspicious activity data is temporarily
                                         unavailable. Please try again later.
@@ -825,7 +825,7 @@ function SuspiciousActivitySection({
                                 <tr>
                                     <td
                                         colSpan={4}
-                                        className="px-5 py-10 text-center text-sm text-gray-500"
+                                        className="px-5 py-10 text-center text-sm text-ink-muted"
                                     >
                                         No suspicious activity found. Repeated
                                         failed logins will appear here.
@@ -835,9 +835,9 @@ function SuspiciousActivitySection({
                                 rows.map((alert) => (
                                     <tr
                                         key={alert.id}
-                                        className="border-b border-gray-100 last:border-0"
+                                        className="border-b border-line-soft last:border-0"
                                     >
-                                        <td className="px-5 py-3 text-sm whitespace-nowrap text-gray-600">
+                                        <td className="px-5 py-3 text-sm whitespace-nowrap text-ink-muted">
                                             {alert.created_at ?? '—'}
                                         </td>
 
@@ -847,11 +847,11 @@ function SuspiciousActivitySection({
                                             </span>
                                         </td>
 
-                                        <td className="px-5 py-3 text-sm text-gray-600">
+                                        <td className="px-5 py-3 text-sm text-ink-muted">
                                             {alert.attempt_count}
                                         </td>
 
-                                        <td className="px-5 py-3 text-sm text-gray-600">
+                                        <td className="px-5 py-3 text-sm text-ink-muted">
                                             {formatDuration(
                                                 alert.window_seconds,
                                             )}

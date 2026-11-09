@@ -40,7 +40,7 @@ interface DashboardProps {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-    approved: 'bg-[#e8f1e4] text-[#3f6f3d] border-[#b8d6bf]',
+    approved: 'bg-brand-soft text-brand border-[#b8d6bf]',
     pending: 'bg-amber-50 text-amber-700 border-amber-200',
     rejected: 'bg-red-50 text-red-700 border-red-200',
 };
@@ -75,10 +75,10 @@ export default function Dashboard({
             <div className="mx-auto max-w-7xl space-y-6">
                 <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                     <div>
-                        <h1 className="text-xl font-bold text-gray-800 md:text-2xl">
+                        <h1 className="text-xl font-semibold text-ink-strong md:text-2xl">
                             Welcome, {displayName}
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-ink-muted">
                             Overview of your barangay's residents, updates, and
                             programs.
                         </p>
@@ -91,55 +91,55 @@ export default function Dashboard({
                 >
                     {/* REAL STATS */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <div className="rounded-r-lg border-l-4 border-[#3f6f3d] bg-white p-4 shadow-sm sm:p-5">
-                            <h3 className="mb-1 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                        <div className="rounded-r-lg border-l-4 border-brand bg-white p-4 shadow-card sm:p-5">
+                            <h3 className="mb-1 text-xs font-semibold tracking-wider text-ink-muted uppercase">
                                 Active Residents
                             </h3>
-                            <p className="text-2xl font-bold text-gray-800 sm:text-3xl">
+                            <p className="text-2xl font-semibold text-ink-strong sm:text-3xl">
                                 {stats?.totalResidents ?? 0}
                             </p>
                         </div>
-                        <div className="rounded-r-lg border-l-4 border-green-500 bg-white p-4 shadow-sm sm:p-5">
-                            <h3 className="mb-1 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                        <div className="rounded-r-lg border-l-4 border-green-500 bg-white p-4 shadow-card sm:p-5">
+                            <h3 className="mb-1 text-xs font-semibold tracking-wider text-ink-muted uppercase">
                                 Published Updates & Programs
                             </h3>
-                            <p className="text-2xl font-bold text-gray-800 sm:text-3xl">
+                            <p className="text-2xl font-semibold text-ink-strong sm:text-3xl">
                                 {stats?.approvedAnnouncements ?? 0}
                             </p>
                         </div>
-                        <div className="rounded-r-lg border-l-4 border-amber-500 bg-white p-4 shadow-sm sm:p-5">
-                            <h3 className="mb-1 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                        <div className="rounded-r-lg border-l-4 border-amber-500 bg-white p-4 shadow-card sm:p-5">
+                            <h3 className="mb-1 text-xs font-semibold tracking-wider text-ink-muted uppercase">
                                 Draft Programs
                             </h3>
-                            <p className="text-2xl font-bold text-gray-800 sm:text-3xl">
+                            <p className="text-2xl font-semibold text-ink-strong sm:text-3xl">
                                 {stats?.draftPrograms ?? 0}
                             </p>
                         </div>
                     </div>
 
                     {/* RECENT ANNOUNCEMENTS */}
-                    <div className="overflow-hidden rounded-lg border border-[#e6ddcd] bg-white shadow-sm">
-                        <div className="flex items-center justify-between border-b border-[#e6ddcd] px-4 py-4 sm:px-6">
-                            <h2 className="text-sm font-semibold tracking-wider text-gray-700 uppercase">
+                    <div className="overflow-hidden rounded-lg border border-[#c2cbd4] bg-white shadow-card">
+                        <div className="flex items-center justify-between border-b border-[#c2cbd4] px-4 py-4 sm:px-6">
+                            <h2 className="text-sm font-semibold tracking-wider text-ink uppercase">
                                 Recent Updates & Programs
                             </h2>
                             <Link
                                 href="/clerk/updates"
-                                className="text-xs font-medium text-[#3f6f3d] hover:text-[#315b30]"
+                                className="text-xs font-medium text-brand hover:text-brand-deep"
                             >
                                 Manage updates &rarr;
                             </Link>
                         </div>
 
                         {recentAnnouncements.length === 0 ? (
-                            <p className="px-4 py-8 text-center text-sm text-gray-500 sm:px-6">
+                            <p className="px-4 py-8 text-center text-sm text-ink-muted sm:px-6">
                                 No updates or programs yet.
                             </p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[600px] border-collapse text-left">
                                     <thead>
-                                        <tr className="border-b border-[#e6ddcd] bg-[#f0ebe1] text-xs tracking-wider text-[#8a7f6a] uppercase">
+                                        <tr className="border-b border-[#c2cbd4] bg-canvas text-xs tracking-wider text-[#6e747c] uppercase">
                                             <th className="px-4 py-3 font-medium sm:px-6">
                                                 Title
                                             </th>
@@ -156,12 +156,12 @@ export default function Dashboard({
                                             (announcement) => (
                                                 <tr
                                                     key={announcement.id}
-                                                    className="transition-colors hover:bg-gray-50"
+                                                    className="transition-colors hover:bg-canvas"
                                                 >
-                                                    <td className="px-4 py-4 font-medium text-gray-900 sm:px-6">
+                                                    <td className="px-4 py-4 font-medium text-ink-strong sm:px-6">
                                                         {announcement.title}
                                                     </td>
-                                                    <td className="px-4 py-4 whitespace-nowrap text-gray-600 sm:px-6">
+                                                    <td className="px-4 py-4 whitespace-nowrap text-ink-muted sm:px-6">
                                                         {announcement.category ||
                                                             '—'}
                                                     </td>
@@ -172,7 +172,7 @@ export default function Dashboard({
                                                                     announcement
                                                                         .approval_status
                                                                 ] ??
-                                                                'border-gray-200 bg-gray-50 text-gray-600'
+                                                                'border-line-soft bg-canvas text-ink-muted'
                                                             }`}
                                                         >
                                                             {statusLabel(

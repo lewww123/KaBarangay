@@ -27,6 +27,7 @@ export function hearingSummary<
 }
 
 export type CaseSection =
+    | 'summons'
     | 'overview'
     | 'hearings'
     | 'documents'
@@ -34,8 +35,10 @@ export type CaseSection =
     | 'details'
     | 'history';
 export const caseSections: { id: CaseSection; label: string }[] = [
-    { id: 'overview', label: 'Case details' },
+    { id: 'overview', label: 'Overview' },
+    { id: 'summons', label: 'Summons' },
     { id: 'hearings', label: 'Hearings' },
+    { id: 'documents', label: 'Documents' },
     { id: 'history', label: 'History' },
 ];
 

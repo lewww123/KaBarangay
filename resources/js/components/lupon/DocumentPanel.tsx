@@ -1,3 +1,4 @@
+import DocumentIssueControl from './DocumentIssueControl';
 import { caseSaveOptions } from './CaseSaveFeedback';
 import { useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
@@ -17,6 +18,7 @@ export default function DocumentPanel({
     caseId,
     status,
     paymentStatus,
+    canVerifyPayments,
     actingCaptainId,
     documents,
     officials,
@@ -27,6 +29,7 @@ export default function DocumentPanel({
     caseId: number;
     status: LuponStatus;
     paymentStatus: string;
+    canVerifyPayments: boolean;
     actingCaptainId?: number | null;
     documents: LuponDocument[];
     officials: LuponOfficials;
@@ -145,7 +148,14 @@ export default function DocumentPanel({
                 required signatures before release; record actual notice service
                 separately.
             </p>
-            {paymentStatus === 'unpaid' && (
+            {!canVerifyPayments && paymentStatus === 'unpaid' && (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
+                    Only the Lupon Secretary can verify the filing fee or a
+                    waiver. Ask the Secretary to record it before releasing a
+                    notice.
+                </p>
+            )}
+            {canVerifyPayments && paymentStatus === 'unpaid' && (
                 <details
                     open
                     className="rounded-lg border border-amber-200 bg-amber-50 p-3"
@@ -379,6 +389,8 @@ export default function DocumentPanel({
                                                       : ''}
                                             </p>
                                         </div>
+                                        {document.status === 'ready' && !document.issuedAt && <DocumentIssueControl documentId={document.id} />}
+                                        {document.issuedAt && <p className="text-xs text-slate-600">Issued: {new Date(document.issuedAt).toLocaleString('en-PH')}</p>}
                                         {document.status === 'ready' && (
                                             <div className="flex flex-wrap gap-2 text-xs font-semibold">
                                                 <button
@@ -402,7 +414,7 @@ export default function DocumentPanel({
                                                     'summons',
                                                     'notice_of_hearing',
                                                 ].includes(document.kind) &&
-                                                    !document.servedAt && (
+                                                    !document.servedAt && document.issuedAt && (
                                                         <button
                                                             type="button"
                                                             disabled={

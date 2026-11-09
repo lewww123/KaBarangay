@@ -51,7 +51,7 @@ function PopulationContent({ stats, puroks }: Props) {
             <AdminLayout active="population">
                 {/* PAGE HEADER */}
                 <div className="mb-5">
-                    <h1 className="text-2xl font-semibold text-[#315b30]">
+                    <h1 className="text-2xl font-semibold text-brand-deep">
                         Population Monitoring
                     </h1>
 
@@ -91,11 +91,11 @@ function PopulationContent({ stats, puroks }: Props) {
                 <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
                     {/* PUROK BREAKDOWN */}
                     <section>
-                        <h2 className="mb-3 text-lg font-semibold text-[#315b30]">
+                        <h2 className="mb-3 text-lg font-semibold text-brand-deep">
                             Purok Breakdown
                         </h2>
 
-                        <div className="overflow-hidden rounded-xl border border-[#d9d0c3] bg-white">
+                        <div className="overflow-hidden rounded-xl border border-[#c2cbd4] bg-white">
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[850px]">
                                     <thead className="bg-[#eee7dc]">
@@ -124,19 +124,19 @@ function PopulationContent({ stats, puroks }: Props) {
                                                     key={purok.id}
                                                     className="border-b border-[#eee9e2] last:border-0"
                                                 >
-                                                    <td className="px-4 py-4 text-sm font-semibold text-gray-800">
+                                                    <td className="px-4 py-4 text-sm font-semibold text-ink-strong">
                                                         {purok.name}
                                                     </td>
 
-                                                    <td className="px-4 py-4 text-sm font-semibold text-[#315b30]">
+                                                    <td className="px-4 py-4 text-sm font-semibold text-brand-deep">
                                                         {purok.total}
                                                     </td>
 
-                                                    <td className="px-4 py-4 text-sm text-gray-500">
+                                                    <td className="px-4 py-4 text-sm text-ink-muted">
                                                         {purok.seniors}
                                                     </td>
 
-                                                    <td className="px-4 py-4 text-sm text-gray-500">
+                                                    <td className="px-4 py-4 text-sm text-ink-muted">
                                                         {purok.pwd}
                                                     </td>
 
@@ -151,7 +151,7 @@ function PopulationContent({ stats, puroks }: Props) {
                                                                 />
                                                             </div>
 
-                                                            <span className="w-10 text-right text-xs text-gray-500">
+                                                            <span className="w-10 text-right text-xs text-ink-muted">
                                                                 {percentage}%
                                                             </span>
                                                         </div>
@@ -164,7 +164,7 @@ function PopulationContent({ stats, puroks }: Props) {
                             </div>
 
                             {puroks.length === 0 && (
-                                <p className="px-5 py-10 text-center text-sm text-gray-400">
+                                <p className="px-5 py-10 text-center text-sm text-ink-faint">
                                     No puroks have been defined for this
                                     barangay yet.
                                 </p>
@@ -174,11 +174,11 @@ function PopulationContent({ stats, puroks }: Props) {
 
                     {/* SECTOR DISTRIBUTION */}
                     <section>
-                        <h2 className="mb-3 text-lg font-semibold text-[#315b30]">
+                        <h2 className="mb-3 text-lg font-semibold text-brand-deep">
                             Sector Distribution
                         </h2>
 
-                        <div className="rounded-xl border border-[#d9d0c3] bg-white p-4">
+                        <div className="rounded-xl border border-[#c2cbd4] bg-white p-4">
                             <DistributionRow
                                 label="Total Residents"
                                 value={stats.totalResidents}
@@ -208,7 +208,7 @@ function PopulationContent({ stats, puroks }: Props) {
                                 last
                             />
 
-                            <p className="mt-3 text-xs text-gray-400">
+                            <p className="mt-3 text-xs text-ink-faint">
                                 Senior and PWD membership can overlap (
                                 {stats.seniorAndPwd} resident
                                 {stats.seniorAndPwd === 1 ? '' : 's'} in both),
@@ -217,12 +217,12 @@ function PopulationContent({ stats, puroks }: Props) {
                         </div>
 
                         {/* EXCLUDED FROM POPULATION */}
-                        <div className="mt-4 rounded-xl border border-[#d9d0c3] bg-[#fafaf7] p-4">
+                        <div className="mt-4 rounded-xl border border-[#c2cbd4] bg-surface p-4">
                             <h3 className="text-xs font-semibold tracking-wide text-[#a7846b] uppercase">
                                 Not Counted as Population
                             </h3>
 
-                            <p className="mt-1 text-xs text-gray-400">
+                            <p className="mt-1 text-xs text-ink-faint">
                                 Only active permanent residents are included in
                                 the totals above.
                             </p>
@@ -246,7 +246,7 @@ function PopulationContent({ stats, puroks }: Props) {
                 </div>
 
                 {!hasPopulation && (
-                    <p className="mt-5 rounded-xl border border-[#d9d0c3] bg-white px-5 py-4 text-sm text-gray-400">
+                    <p className="mt-5 rounded-xl border border-[#c2cbd4] bg-white px-5 py-4 text-sm text-ink-faint">
                         No active permanent residents have been recorded for
                         this barangay yet.
                     </p>
@@ -270,7 +270,7 @@ function SummaryCard({
     type: 'residents' | 'senior' | 'pwd' | 'regular';
 }) {
     const styles = {
-        residents: 'border-[#3db85a] bg-[#dff0e2] text-[#315b30]',
+        residents: 'border-[#3db85a] bg-[#dff0e2] text-brand-deep',
         senior: 'border-[#579fea] bg-[#dcecff] text-[#0d4d91]',
         pwd: 'border-[#e4ad25] bg-[#fff2c9] text-[#8a6500]',
         regular: 'border-[#b8a38d] bg-[#eee6dc] text-[#765236]',
@@ -319,23 +319,23 @@ function DistributionRow({
     const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0;
 
     const barStyles = {
-        general: 'bg-[#3f6f3d]',
+        general: 'bg-brand',
         regular: 'bg-[#9b8065]',
         senior: 'bg-[#73bf61]',
         pwd: 'bg-[#e4ad25]',
     };
 
     const valueStyles = {
-        general: 'text-[#315b30]',
+        general: 'text-brand-deep',
         regular: 'text-[#8e755c]',
         senior: 'text-[#63aa53]',
         pwd: 'text-[#8a6500]',
     };
 
     return (
-        <div className={`py-3 ${!last ? 'border-b border-gray-100' : ''}`}>
+        <div className={`py-3 ${!last ? 'border-b border-line-soft' : ''}`}>
             <div className="mb-1.5 flex items-center justify-between gap-3">
-                <span className="text-xs font-medium text-gray-700">
+                <span className="text-xs font-medium text-ink">
                     {label}
                 </span>
 
@@ -361,8 +361,8 @@ function DistributionRow({
 function ExcludedRow({ label, value }: { label: string; value: number }) {
     return (
         <div className="flex items-center justify-between gap-3">
-            <dt className="text-xs text-gray-600">{label}</dt>
-            <dd className="text-xs font-semibold text-gray-700">{value}</dd>
+            <dt className="text-xs text-ink-muted">{label}</dt>
+            <dd className="text-xs font-semibold text-ink">{value}</dd>
         </div>
     );
 }

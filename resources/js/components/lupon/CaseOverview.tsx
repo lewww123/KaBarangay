@@ -44,7 +44,7 @@ export default function CaseOverview({ caseData }: { caseData: OverviewCase }) {
                         key={label}
                         className="rounded-xl border border-stone-200 bg-white p-4"
                     >
-                        <h2 className="font-bold text-stone-900">{label}</h2>
+                        <h2 className="font-semibold text-stone-900">{label}</h2>
                         {parties.length ? (
                             <ul className="mt-3 divide-y divide-stone-100">
                                 {parties.map((party) => (
@@ -78,7 +78,7 @@ export default function CaseOverview({ caseData }: { caseData: OverviewCase }) {
                 ))}
             </div>
             <section className="rounded-xl border border-stone-200 bg-white p-4">
-                <h2 className="font-bold">Complaint details</h2>
+                <h2 className="font-semibold">Complaint details</h2>
                 <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                     <div>
                         <dt className="text-stone-500">
@@ -97,7 +97,7 @@ export default function CaseOverview({ caseData }: { caseData: OverviewCase }) {
                     Location: {complaint.incidentLocation || 'Not recorded'}
                 </p>
                 <details className="mt-3">
-                    <summary className="cursor-pointer text-sm font-semibold text-[#3f6f3d]">
+                    <summary className="cursor-pointer text-sm font-semibold text-brand">
                         Read salaysay and requested action
                     </summary>
                     <p className="mt-3 text-sm whitespace-pre-wrap">

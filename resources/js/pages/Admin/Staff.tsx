@@ -274,10 +274,10 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                             <p className="font-semibold text-gray-900">
                                                 {assignment.resident.name}
                                             </p>
-                                            <p className="mt-1 text-xs text-gray-500">
+                                            <p className="mt-1 text-xs text-ink-muted">
                                                 {assignment.user_email}
                                             </p>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-xs text-ink-muted">
                                                 {
                                                     assignment.resident
                                                         .resident_number
@@ -304,11 +304,11 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                             <button
                                                 type="button"
                                                 onClick={() => edit(assignment)}
-                                                className="mr-4 font-semibold text-[#3f6f3d]"
+                                                className="mr-4 font-semibold text-brand"
                                             >
                                                 Edit
                                             </button>
-                                            {assignment.is_active && (
+                                            {assignment.is_active ? (
                                                 <button
                                                     type="button"
                                                     onClick={() =>
@@ -323,6 +323,22 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                                     className="text-red-700"
                                                 >
                                                     Deactivate
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        router.patch(
+                                                            `/admin/staff/${assignment.id}/activate`,
+                                                            {},
+                                                            {
+                                                                preserveScroll: true,
+                                                            },
+                                                        )
+                                                    }
+                                                    className="font-semibold text-brand"
+                                                >
+                                                    Activate
                                                 </button>
                                             )}
                                         </td>
@@ -438,7 +454,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                         {!selectedResident && searching && (
                             <p
                                 role="status"
-                                className="mt-2 text-xs text-gray-500"
+                                className="mt-2 text-xs text-ink-muted"
                             >
                                 Searching residents…
                             </p>
@@ -458,7 +474,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                         <span className="block font-medium">
                                             {resident.name}
                                         </span>
-                                        <span className="text-xs text-gray-500">
+                                        <span className="text-xs text-ink-muted">
                                             {resident.resident_number}
                                         </span>
                                     </button>
@@ -469,7 +485,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                             searched &&
                             !searching &&
                             residents.length === 0 && (
-                                <p className="mt-2 text-xs text-gray-500">
+                                <p className="mt-2 text-xs text-ink-muted">
                                     No eligible resident found. An active
                                     resident account and linked user are
                                     required.

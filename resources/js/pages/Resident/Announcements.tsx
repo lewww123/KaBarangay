@@ -193,17 +193,17 @@ function AnnouncementsContent({
                 }
             />
 
-            <div className="mx-auto max-w-4xl space-y-6">
+            <div className="mx-auto max-w-4xl space-y-5">
                 {/* HEADER SECTION */}
-                <div className="border-b border-gray-200 pb-5">
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+                <div className="pb-1">
+                    <h1 className="text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                         {isUpdates
                             ? period === 'past'
                                 ? 'Past Updates'
                                 : 'Current Updates'
                             : 'Barangay Updates & Advisories'}
                     </h1>
-                    <p className="mt-2 text-sm text-gray-500 sm:text-base">
+                    <p className="mt-1 max-w-2xl text-sm text-ink-muted">
                         {isUpdates
                             ? period === 'past'
                                 ? 'Browse completed informational updates from your barangay.'
@@ -213,16 +213,27 @@ function AnnouncementsContent({
                 </div>
 
                 {isUpdates && (
-                    <nav aria-label="Update history" className="flex gap-2">
+                    <nav
+                        aria-label="Update history"
+                        className="inline-flex gap-1 rounded-lg border border-line-soft bg-canvas p-1"
+                    >
                         <Link
                             href="/resident/updates?period=current"
-                            className={`rounded-full px-4 py-2 text-sm font-semibold ${period === 'current' ? 'bg-[#2f5e3a] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                            className={`inline-flex h-8 items-center rounded-md px-3 text-xs font-medium transition-colors ${
+                                period === 'current'
+                                    ? 'bg-white text-ink-strong shadow-card'
+                                    : 'text-ink-muted hover:text-ink-strong'
+                            }`}
                         >
                             Current Updates
                         </Link>
                         <Link
                             href="/resident/updates?period=past"
-                            className={`rounded-full px-4 py-2 text-sm font-semibold ${period === 'past' ? 'bg-[#2f5e3a] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                            className={`inline-flex h-8 items-center rounded-md px-3 text-xs font-medium transition-colors ${
+                                period === 'past'
+                                    ? 'bg-white text-ink-strong shadow-card'
+                                    : 'text-ink-muted hover:text-ink-strong'
+                            }`}
                         >
                             Past Updates
                         </Link>
@@ -236,14 +247,14 @@ function AnnouncementsContent({
                             ? 'Search and filter updates'
                             : 'Search and filter announcements'
                     }
-                    className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+                    className="rounded-xl border border-line-soft bg-white p-4 shadow-card"
                 >
                     <form onSubmit={handleSubmit}>
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
                             <div className="min-w-0 flex-1">
                                 <label
                                     htmlFor="announcement-search"
-                                    className="mb-1.5 block text-xs font-bold text-gray-700"
+                                    className="mb-1.5 block text-xs font-semibold text-ink"
                                 >
                                     {isUpdates
                                         ? 'Search updates'
@@ -251,7 +262,7 @@ function AnnouncementsContent({
                                 </label>
 
                                 <div className="relative">
-                                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-ink-faint">
                                         <SearchIcon />
                                     </span>
 
@@ -264,7 +275,7 @@ function AnnouncementsContent({
                                             setQuery(event.target.value)
                                         }
                                         placeholder="Search by title or content"
-                                        className="h-11 w-full rounded-xl border border-gray-300 bg-white py-2 pr-3 pl-10 text-sm text-gray-800 transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15"
+                                        className="h-11 w-full rounded-xl border border-line bg-white py-2 pr-3 pl-10 text-sm text-ink-strong transition outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
                                     />
                                 </div>
                             </div>
@@ -273,7 +284,7 @@ function AnnouncementsContent({
                                 <div>
                                     <label
                                         htmlFor="announcement-category"
-                                        className="mb-1.5 block text-xs font-bold text-gray-700"
+                                        className="mb-1.5 block text-xs font-semibold text-ink"
                                     >
                                         Category
                                     </label>
@@ -286,7 +297,7 @@ function AnnouncementsContent({
                                                 event.target.value,
                                             )
                                         }
-                                        className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-800 transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15"
+                                        className="h-11 w-full rounded-xl border border-line bg-white px-3 text-sm text-ink-strong transition outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
                                     >
                                         <option value="">All categories</option>
 
@@ -301,7 +312,7 @@ function AnnouncementsContent({
                                 <div>
                                     <label
                                         htmlFor="announcement-importance"
-                                        className="mb-1.5 block text-xs font-bold text-gray-700"
+                                        className="mb-1.5 block text-xs font-semibold text-ink"
                                     >
                                         Importance
                                     </label>
@@ -314,7 +325,7 @@ function AnnouncementsContent({
                                                 event.target.value,
                                             )
                                         }
-                                        className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-800 transition outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/15"
+                                        className="h-11 w-full rounded-xl border border-line bg-white px-3 text-sm text-ink-strong transition outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
                                     >
                                         <option value="">All importance</option>
 
@@ -334,7 +345,7 @@ function AnnouncementsContent({
                                 <button
                                     type="submit"
                                     disabled={filtering}
-                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-[#3f6f3d] px-4 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-brand px-4 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {filtering ? 'Searching…' : 'Search'}
                                 </button>
@@ -344,7 +355,7 @@ function AnnouncementsContent({
                                         type="button"
                                         onClick={clearFilters}
                                         disabled={filtering}
-                                        className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="inline-flex h-11 items-center justify-center rounded-xl border border-line bg-white px-4 text-sm font-semibold text-ink transition hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         Clear
                                     </button>
@@ -356,7 +367,7 @@ function AnnouncementsContent({
 
                 {/* RESULTS SUMMARY */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-gray-500 sm:text-sm">
+                    <p className="text-xs font-medium text-ink-muted sm:text-sm">
                         {announcements.total > 0
                             ? `Showing ${announcements.from}–${announcements.to} of ${announcements.total} ${isUpdates ? 'update' : 'announcement'}${announcements.total === 1 ? '' : 's'}`
                             : `No ${isUpdates ? (period === 'past' ? 'past updates' : 'current updates') : 'announcements'} found`}
@@ -366,7 +377,7 @@ function AnnouncementsContent({
                         <button
                             type="button"
                             onClick={clearFilters}
-                            className="text-xs font-semibold text-[#3f6f3d] hover:text-[#315b30] sm:text-sm"
+                            className="text-xs font-semibold text-brand hover:text-brand-deep sm:text-sm"
                         >
                             Reset search and filters
                         </button>
@@ -376,15 +387,15 @@ function AnnouncementsContent({
                 {/* ANNOUNCEMENTS LIST */}
                 <div className="space-y-4">
                     {announcements.data.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#edf4ea] text-[#3f6f3d]">
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-line-soft bg-white p-12 text-center shadow-card">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-canvas text-brand">
                                 {hasActiveFilters ? (
                                     <SearchIcon />
                                 ) : (
                                     <MegaphoneIcon />
                                 )}
                             </div>
-                            <h3 className="mt-4 text-base font-semibold text-gray-900">
+                            <h3 className="mt-4 text-base font-semibold tracking-tight text-ink-strong">
                                 {hasActiveFilters
                                     ? 'No announcements match your search'
                                     : isUpdates
@@ -393,7 +404,7 @@ function AnnouncementsContent({
                                           : 'No current updates'
                                       : 'No active announcements'}
                             </h3>
-                            <p className="mt-1 max-w-md text-sm text-gray-500">
+                            <p className="mt-1 max-w-md text-sm text-ink-muted">
                                 {hasActiveFilters
                                     ? 'Try a different keyword, category, or importance level.'
                                     : 'Please check back later for official updates from your barangay.'}
@@ -403,7 +414,7 @@ function AnnouncementsContent({
                                 <button
                                     type="button"
                                     onClick={clearFilters}
-                                    className="mt-4 rounded-lg bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#315b30]"
+                                    className="mt-4 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-deep"
                                 >
                                     Clear search and filters
                                 </button>
@@ -413,12 +424,12 @@ function AnnouncementsContent({
                         announcements.data.map((item) => (
                             <article
                                 key={item.id}
-                                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#cfddca] hover:shadow-md sm:p-6"
+                                className="rounded-xl border border-line-soft bg-white p-5 shadow-card transition hover:border-line hover:shadow-md sm:p-6"
                             >
                                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                                     <div className="flex flex-wrap items-center gap-2">
                                         <span
-                                            className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold tracking-wider uppercase ${getCategoryBadgeStyle(item.category)}`}
+                                            className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold tracking-wider uppercase ${getCategoryBadgeStyle(item.category)}`}
                                         >
                                             {formatCategoryLabel(item.category)}
                                         </span>
@@ -426,7 +437,7 @@ function AnnouncementsContent({
                                         {item.importance &&
                                             item.importance !== 'normal' && (
                                                 <span
-                                                    className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold tracking-wider uppercase ${getImportanceBadgeStyle(item.importance)}`}
+                                                    className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold tracking-wider uppercase ${getImportanceBadgeStyle(item.importance)}`}
                                                 >
                                                     {formatImportanceLabel(
                                                         item.importance,
@@ -436,7 +447,7 @@ function AnnouncementsContent({
 
                                         {item.target_audience &&
                                             item.target_audience !== 'all' && (
-                                                <span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-xs font-semibold tracking-wider text-gray-600 uppercase">
+                                                <span className="inline-flex items-center rounded-md bg-secondary px-2.5 py-1 text-xs font-semibold tracking-wider text-ink-muted uppercase">
                                                     {formatAudienceLabel(
                                                         item.target_audience,
                                                     )}
@@ -444,27 +455,27 @@ function AnnouncementsContent({
                                             )}
                                     </div>
 
-                                    <time className="text-xs font-medium text-gray-400">
+                                    <time className="text-xs font-medium text-ink-faint">
                                         {formatDate(item.created_at)}
                                     </time>
                                 </div>
 
-                                <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
+                                <h2 className="text-base font-semibold tracking-tight text-ink-strong">
                                     <Link
                                         href={`${basePath}/${item.id}${isUpdates ? `?period=${period}` : ''}`}
-                                        className="hover:text-[#3f6f3d]"
+                                        className="hover:text-brand"
                                     >
                                         {item.title}
                                     </Link>
                                 </h2>
 
-                                <p className="mt-2.5 text-sm leading-relaxed whitespace-pre-line text-gray-600 sm:text-base">
+                                <p className="mt-2.5 text-sm leading-relaxed whitespace-pre-line text-ink-muted sm:text-base">
                                     {item.content}
                                 </p>
 
                                 {item.event_start_at && (
-                                    <div className="mt-4 flex flex-col gap-2 rounded-xl border border-[#d6e3d2] bg-[#f7faf6] p-3.5 text-xs font-medium text-gray-700 sm:flex-row sm:items-center sm:gap-6 sm:text-sm">
-                                        <div className="flex items-center gap-2 text-[#315b30]">
+                                    <div className="mt-4 flex flex-col gap-2 rounded-xl border border-line-soft bg-surface p-3.5 text-xs font-medium text-ink sm:flex-row sm:items-center sm:gap-6 sm:text-sm">
+                                        <div className="flex items-center gap-2 text-brand-deep">
                                             <CalendarIcon />
                                             <span>
                                                 <strong>Schedule:</strong>{' '}
@@ -475,7 +486,7 @@ function AnnouncementsContent({
                                         </div>
 
                                         {item.location && (
-                                            <div className="flex items-center gap-2 text-[#315b30]">
+                                            <div className="flex items-center gap-2 text-brand-deep">
                                                 <LocationIcon />
                                                 <span>
                                                     <strong>Venue:</strong>{' '}
@@ -488,9 +499,9 @@ function AnnouncementsContent({
 
                                 <div className="mt-4 flex items-center justify-between gap-3">
                                     {item.author?.name ? (
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-xs text-ink-faint">
                                             Posted by:{' '}
-                                            <span className="font-medium text-gray-600">
+                                            <span className="font-medium text-ink-muted">
                                                 {item.author.name}
                                             </span>
                                         </p>
@@ -500,7 +511,7 @@ function AnnouncementsContent({
 
                                     <Link
                                         href={`${basePath}/${item.id}${isUpdates ? `?period=${period}` : ''}`}
-                                        className="shrink-0 text-xs font-semibold text-[#3f6f3d] hover:text-[#315b30]"
+                                        className="shrink-0 text-xs font-semibold text-brand hover:text-brand-deep"
                                     >
                                         View details
                                     </Link>
@@ -545,7 +556,7 @@ function getCategoryBadgeStyle(category: string) {
         return 'bg-amber-100 text-amber-800';
     }
 
-    return 'bg-[#e8f1e4] text-[#3f6f3d]';
+    return 'bg-brand-soft text-brand';
 }
 
 function getImportanceBadgeStyle(importance: string) {
@@ -555,9 +566,9 @@ function getImportanceBadgeStyle(importance: string) {
         case 'high':
             return 'bg-amber-100 text-amber-800';
         case 'low':
-            return 'bg-gray-100 text-gray-600';
+            return 'bg-secondary text-ink-muted';
         default:
-            return 'bg-[#e8f1e4] text-[#3f6f3d]';
+            return 'bg-brand-soft text-brand';
     }
 }
 

@@ -243,16 +243,16 @@ function SeniorAnnouncementsIndex({
             />
 
             <div className="space-y-5">
-                <div className="flex flex-col gap-3 rounded-lg border-b border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                <div className="flex flex-col gap-3 rounded-lg border-b border-line-soft bg-white p-4 shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-5">
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900">
+                        <h1 className="text-xl font-semibold text-ink-strong">
                             {isUpdate
                                 ? 'Senior Citizens Updates'
                                 : isProgram
                                   ? 'Senior Citizens Programs'
                                   : 'Senior Citizens Sector Announcements'}
                         </h1>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-ink-muted">
                             {isUpdate
                                 ? 'Publish informational notices and advisories for Senior Citizens.'
                                 : isProgram
@@ -264,7 +264,7 @@ function SeniorAnnouncementsIndex({
                     <button
                         type="button"
                         onClick={openCreateModal}
-                        className="inline-flex items-center justify-center gap-2 rounded-md bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-[#315b30]"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-brand-deep"
                     >
                         {isUpdate
                             ? '+ Publish Update'
@@ -276,7 +276,7 @@ function SeniorAnnouncementsIndex({
 
 
                     {!isUpdate && (
-                        <div className="rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm">
+                        <div className="rounded-lg border border-line-soft bg-white p-3.5 shadow-card">
                             <AnnouncementLifecycleTabs
                                 activeTab={activeTab}
                                 counts={tabCounts}
@@ -285,7 +285,7 @@ function SeniorAnnouncementsIndex({
                         </div>
                     )}
 
-                    <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-3 rounded-lg border border-line-soft bg-white p-3.5 shadow-card sm:flex-row sm:items-center sm:justify-between">
                         <input
                             type="text"
                             value={searchQuery}
@@ -295,13 +295,13 @@ function SeniorAnnouncementsIndex({
                                     ? 'Search updates...'
                                     : 'Search announcements...'
                             }
-                            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d] sm:w-72"
+                            className="w-full rounded-lg border border-line px-3 py-1.5 text-xs outline-none focus:border-brand sm:w-72"
                         />
 
                         <div className="flex flex-wrap items-center gap-2">
                             {!isUpdate && (
                                 <>
-                                    <label className="text-xs font-medium text-gray-500">
+                                    <label className="text-xs font-medium text-ink-muted">
                                         Type:
                                     </label>
                                     <select
@@ -309,7 +309,7 @@ function SeniorAnnouncementsIndex({
                                         onChange={(e) =>
                                             setSelectedType(e.target.value)
                                         }
-                                        className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                                        className="rounded-lg border border-line px-3 py-1.5 text-xs outline-none focus:border-brand"
                                     >
                                         <option value="ALL">All Types</option>
                                         <option value="event">Events</option>
@@ -320,7 +320,7 @@ function SeniorAnnouncementsIndex({
                                 </>
                             )}
 
-                            <label className="ml-2 text-xs font-medium text-gray-500">
+                            <label className="ml-2 text-xs font-medium text-ink-muted">
                                 Category:
                             </label>
                             <select
@@ -328,7 +328,7 @@ function SeniorAnnouncementsIndex({
                                 onChange={(e) =>
                                     setSelectedCategory(e.target.value)
                                 }
-                                className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                                className="rounded-lg border border-line px-3 py-1.5 text-xs outline-none focus:border-brand"
                             >
                                 <option value="ALL">All Categories</option>
                                 <option value="General">General</option>
@@ -341,7 +341,7 @@ function SeniorAnnouncementsIndex({
                                 )}
                             </select>
 
-                            <label className="ml-2 text-xs font-medium text-gray-500">
+                            <label className="ml-2 text-xs font-medium text-ink-muted">
                                 Importance:
                             </label>
                             <select
@@ -349,7 +349,7 @@ function SeniorAnnouncementsIndex({
                                 onChange={(e) =>
                                     setSelectedImportance(e.target.value)
                                 }
-                                className="rounded-md border border-gray-300 px-3 py-1.5 text-xs outline-none focus:border-[#3f6f3d]"
+                                className="rounded-lg border border-line px-3 py-1.5 text-xs outline-none focus:border-brand"
                             >
                                 <option value="ALL">All Importance</option>
                                 {ANNOUNCEMENT_IMPORTANCE_OPTIONS.map(
@@ -366,10 +366,10 @@ function SeniorAnnouncementsIndex({
                         </div>
                     </div>
 
-                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <div className="overflow-hidden rounded-lg border border-line-soft bg-white shadow-card">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm text-gray-600">
-                                <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
+                            <table className="w-full text-left text-sm text-ink-muted">
+                                <thead className="border-b border-line-soft bg-canvas text-xs font-semibold text-ink-muted uppercase">
                                     <tr>
                                         <th className="px-5 py-3">Title</th>
                                         <th className="px-5 py-3">Type</th>
@@ -391,7 +391,7 @@ function SeniorAnnouncementsIndex({
                                         <tr>
                                             <td
                                                 colSpan={7}
-                                                className="p-8 text-center text-sm text-gray-500"
+                                                className="p-8 text-center text-sm text-ink-muted"
                                             >
                                                 No Senior Citizen announcements
                                                 found in this tab.
@@ -401,9 +401,9 @@ function SeniorAnnouncementsIndex({
                                         filteredAnnouncements.map((item) => (
                                             <tr
                                                 key={item.id}
-                                                className="hover:bg-gray-50/80"
+                                                className="hover:bg-canvas/80"
                                             >
-                                                <td className="px-5 py-3.5 font-semibold text-gray-900">
+                                                <td className="px-5 py-3.5 font-semibold text-ink-strong">
                                                     {item.title}
                                                     {!isEventAnnouncement(
                                                         item,
@@ -421,12 +421,12 @@ function SeniorAnnouncementsIndex({
                                                 </td>
                                                 <td className="px-5 py-3.5">
                                                     <span
-                                                        className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                                        className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${
                                                             isEventAnnouncement(
                                                                 item,
                                                             )
                                                                 ? 'bg-purple-100 text-purple-800'
-                                                                : 'bg-slate-100 text-slate-600'
+                                                                : 'bg-secondary text-ink-muted'
                                                         }`}
                                                     >
                                                         {formatAnnouncementType(
@@ -435,7 +435,7 @@ function SeniorAnnouncementsIndex({
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3.5">
-                                                    <span className="rounded bg-[#e8f1e4] px-2 py-0.5 text-xs font-bold text-[#3f6f3d] uppercase">
+                                                    <span className="rounded bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand uppercase">
                                                         {item.category}
                                                     </span>
                                                 </td>
@@ -449,13 +449,13 @@ function SeniorAnnouncementsIndex({
                                                 <td className="px-5 py-3.5">
                                                     {item.completed_at ? (
                                                         <div className="flex flex-col items-start gap-1">
-                                                            <span className="rounded bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800 uppercase">
+                                                            <span className="rounded bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 uppercase">
                                                                 {isUpdate
                                                                     ? 'Completed'
                                                                     : 'Done'}
                                                             </span>
                                                             {isUpdate && (
-                                                                <span className="text-[10px] text-gray-500">
+                                                                <span className="text-[10px] text-ink-muted">
                                                                     {formatApprovalStatusLabel(
                                                                         item.approval_status,
                                                                     )}
@@ -464,7 +464,7 @@ function SeniorAnnouncementsIndex({
                                                         </div>
                                                     ) : (
                                                         <span
-                                                            className={`rounded px-2.5 py-1 text-xs font-bold uppercase ${
+                                                            className={`rounded px-2.5 py-1 text-xs font-semibold uppercase ${
                                                                 item.approval_status ===
                                                                 'approved'
                                                                     ? 'bg-emerald-100 text-emerald-800'
@@ -480,7 +480,7 @@ function SeniorAnnouncementsIndex({
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-5 py-3.5 text-xs text-gray-500">
+                                                <td className="px-5 py-3.5 text-xs text-ink-muted">
                                                     {isUpdate
                                                         ? formatAnnouncementPostedAt(
                                                               item.created_at,
@@ -492,7 +492,7 @@ function SeniorAnnouncementsIndex({
                                                 <td className="space-x-2 px-5 py-3.5 text-right">
                                                     <Link
                                                         href={`${basePath}/${item.id}`}
-                                                        className="inline-flex rounded border border-[#cbdcc6] bg-[#f4f8f2] px-2.5 py-1 text-xs font-medium text-[#3f6f3d] hover:bg-[#e8f1e4]"
+                                                        className="inline-flex rounded border border-[#c2cbd4] bg-surface px-2.5 py-1 text-xs font-medium text-brand hover:bg-brand-soft"
                                                     >
                                                         Details
                                                     </Link>
@@ -504,7 +504,7 @@ function SeniorAnnouncementsIndex({
                                                                 'senior',
                                                                 item.id,
                                                             )}
-                                                            className="inline-flex rounded bg-[#3f6f3d] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#315b30]"
+                                                            className="inline-flex rounded bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-deep"
                                                         >
                                                             Attendance
                                                         </Link>
@@ -544,7 +544,7 @@ function SeniorAnnouncementsIndex({
                                                         disabled={Boolean(
                                                             item.completed_at,
                                                         )}
-                                                        className="inline-flex rounded border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        className="inline-flex rounded border border-line px-2.5 py-1 text-xs font-medium text-ink hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
                                                     >
                                                         Edit
                                                     </button>
@@ -572,8 +572,8 @@ function SeniorAnnouncementsIndex({
                 {showModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                         <div className="w-full max-w-lg space-y-4 rounded-lg bg-white p-6 shadow-xl">
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                                <h2 className="text-base font-bold text-gray-900">
+                            <div className="flex items-center justify-between border-b border-line-soft pb-3">
+                                <h2 className="text-base font-semibold text-ink-strong">
                                     {editingItem
                                         ? isUpdate
                                             ? 'Edit Senior Update'
@@ -588,15 +588,15 @@ function SeniorAnnouncementsIndex({
                                 </h2>
                                 <button
                                     onClick={() => setShowModal(false)}
-                                    className="text-gray-400 hover:text-gray-600"
+                                    className="text-ink-faint hover:text-ink-muted"
                                 >
-                                    ✕
+                                    
                                 </button>
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Title
                                     </label>
                                     <input
@@ -605,7 +605,7 @@ function SeniorAnnouncementsIndex({
                                         onChange={(e) =>
                                             setData('title', e.target.value)
                                         }
-                                        className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                        className="mt-1 w-full rounded-lg border border-line p-2 text-xs outline-none focus:border-brand"
                                         required
                                     />
                                     {errors.title && (
@@ -616,7 +616,7 @@ function SeniorAnnouncementsIndex({
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Content
                                     </label>
                                     <textarea
@@ -625,7 +625,7 @@ function SeniorAnnouncementsIndex({
                                         onChange={(e) =>
                                             setData('content', e.target.value)
                                         }
-                                        className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                        className="mt-1 w-full rounded-lg border border-line p-2 text-xs outline-none focus:border-brand"
                                         required
                                     />
                                     {errors.content && (
@@ -637,7 +637,7 @@ function SeniorAnnouncementsIndex({
 
                                 {!forcedFormType && (
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700">
+                                        <label className="block text-xs font-semibold text-ink">
                                             Announcement Type
                                         </label>
                                         <div className="mt-1 grid grid-cols-2 gap-2">
@@ -648,14 +648,14 @@ function SeniorAnnouncementsIndex({
                                                         'informational',
                                                     )
                                                 }
-                                                className={`rounded-md border px-3 py-2 text-left text-xs font-semibold transition ${
+                                                className={`rounded-lg border px-3 py-2 text-left text-xs font-semibold transition ${
                                                     formType === 'informational'
-                                                        ? 'border-[#3f6f3d] bg-[#e8f1e4] text-[#315b30]'
-                                                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                                                        ? 'border-brand bg-brand-soft text-brand-deep'
+                                                        : 'border-line bg-white text-ink-muted hover:bg-canvas'
                                                 }`}
                                             >
                                                 Informational Update
-                                                <span className="mt-0.5 block text-[10px] font-normal text-gray-500">
+                                                <span className="mt-0.5 block text-[10px] font-normal text-ink-muted">
                                                     Advisory or notice without
                                                     an event schedule.
                                                 </span>
@@ -665,14 +665,14 @@ function SeniorAnnouncementsIndex({
                                                 onClick={() =>
                                                     handleTypeChange('event')
                                                 }
-                                                className={`rounded-md border px-3 py-2 text-left text-xs font-semibold transition ${
+                                                className={`rounded-lg border px-3 py-2 text-left text-xs font-semibold transition ${
                                                     formType === 'event'
-                                                        ? 'border-[#3f6f3d] bg-[#e8f1e4] text-[#315b30]'
-                                                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                                                        ? 'border-brand bg-brand-soft text-brand-deep'
+                                                        : 'border-line bg-white text-ink-muted hover:bg-canvas'
                                                 }`}
                                             >
                                                 Event
-                                                <span className="mt-0.5 block text-[10px] font-normal text-gray-500">
+                                                <span className="mt-0.5 block text-[10px] font-normal text-ink-muted">
                                                     Activity with a schedule and
                                                     venue.
                                                 </span>
@@ -683,7 +683,7 @@ function SeniorAnnouncementsIndex({
 
                                 {!isProgram && (
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700">
+                                        <label className="block text-xs font-semibold text-ink">
                                             Category
                                         </label>
                                         <select
@@ -693,7 +693,7 @@ function SeniorAnnouncementsIndex({
                                                     e.target.value,
                                                 )
                                             }
-                                            className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                            className="mt-1 w-full rounded-lg border border-line p-2 text-xs outline-none focus:border-brand"
                                         >
                                             <option value="General">
                                                 General Update
@@ -714,7 +714,7 @@ function SeniorAnnouncementsIndex({
                                 )}
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Importance
                                     </label>
                                     <select
@@ -725,7 +725,7 @@ function SeniorAnnouncementsIndex({
                                                 e.target.value,
                                             )
                                         }
-                                        className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                        className="mt-1 w-full rounded-lg border border-line p-2 text-xs outline-none focus:border-brand"
                                     >
                                         {ANNOUNCEMENT_IMPORTANCE_OPTIONS.map(
                                             (option) => (
@@ -749,7 +749,7 @@ function SeniorAnnouncementsIndex({
                                     <>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-700">
+                                                <label className="block text-xs font-semibold text-ink">
                                                     Event Date
                                                 </label>
                                                 <input
@@ -761,7 +761,7 @@ function SeniorAnnouncementsIndex({
                                                             e.target.value,
                                                         )
                                                     }
-                                                    className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                                    className="mt-1 w-full rounded-lg border border-line p-2 text-xs outline-none focus:border-brand"
                                                     required
                                                 />
                                                 {errors.event_start_at && (
@@ -772,7 +772,7 @@ function SeniorAnnouncementsIndex({
                                             </div>
 
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-700">
+                                                <label className="block text-xs font-semibold text-ink">
                                                     Location
                                                 </label>
                                                 <input
@@ -784,7 +784,7 @@ function SeniorAnnouncementsIndex({
                                                             e.target.value,
                                                         )
                                                     }
-                                                    className="mt-1 w-full rounded-md border border-gray-300 p-2 text-xs outline-none focus:border-[#3f6f3d]"
+                                                    className="mt-1 w-full rounded-lg border border-line p-2 text-xs outline-none focus:border-brand"
                                                     required
                                                 />
                                                 {errors.location && (
@@ -832,11 +832,11 @@ function SeniorAnnouncementsIndex({
                                     }
                                 />
 
-                                <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
+                                <div className="flex justify-end gap-2 border-t border-line-soft pt-3">
                                     <button
                                         type="button"
                                         onClick={() => setShowModal(false)}
-                                        className="rounded-md border border-gray-300 px-4 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                        className="rounded-lg border border-line px-4 py-1.5 text-xs font-medium text-ink hover:bg-canvas"
                                     >
                                         Cancel
                                     </button>
@@ -844,7 +844,7 @@ function SeniorAnnouncementsIndex({
                                         type="submit"
                                         disabled={processing}
                                         aria-busy={processing}
-                                        className="rounded-md bg-[#3f6f3d] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
+                                        className="rounded-lg bg-brand px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-deep disabled:opacity-60"
                                     >
                                         {processing
                                             ? 'Submitting...'
@@ -870,10 +870,10 @@ function SeniorAnnouncementsIndex({
                 {deletingId && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                         <div className="w-full max-w-sm space-y-3 rounded-lg bg-white p-5 shadow-xl">
-                            <h3 className="text-sm font-bold text-gray-900">
+                            <h3 className="text-sm font-semibold text-ink-strong">
                                 Delete Announcement?
                             </h3>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-ink-muted">
                                 Are you sure you want to delete this
                                 announcement? This action cannot be undone.
                             </p>
@@ -881,14 +881,14 @@ function SeniorAnnouncementsIndex({
                                 <button
                                     type="button"
                                     onClick={() => setDeletingId(null)}
-                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                    className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink hover:bg-canvas"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => handleDelete(deletingId)}
-                                    className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+                                    className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
                                 >
                                     Confirm Delete
                                 </button>

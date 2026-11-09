@@ -44,10 +44,10 @@ export default function ResidentDirectoryTable({
             {/* TOP BAR / ACTIONS */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-black tracking-tight text-gray-900">
+                    <h1 className="text-2xl font-semibold tracking-tight text-ink-strong">
                         {sectorLabel} Members
                     </h1>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-ink-muted">
                         Authorized roster of {sectorLabel.toLowerCase()} sector
                         members within the barangay.
                     </p>
@@ -55,10 +55,10 @@ export default function ResidentDirectoryTable({
 
                 <Link
                     href={createApplicationUrl}
-                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white shadow-sm transition ${
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold text-white shadow-card transition ${
                         sector === 'senior'
                             ? 'bg-amber-800 hover:bg-amber-900'
-                            : 'bg-[#3f6f3d] hover:bg-[#315b30]'
+                            : 'bg-brand hover:bg-brand-deep'
                     }`}
                 >
                     <span className="text-base leading-none">+</span>
@@ -67,10 +67,10 @@ export default function ResidentDirectoryTable({
             </div>
 
             {/* PRIVACY & ACCESS CONTROL NOTICE */}
-            <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white/80 p-4 text-xs text-gray-600 shadow-sm">
+            <div className="flex items-start gap-3 rounded-xl border border-line-soft bg-white/80 p-4 text-xs text-ink-muted shadow-card">
                 <span className="text-base">🔒</span>
                 <div>
-                    <span className="font-bold text-gray-800">
+                    <span className="font-semibold text-ink-strong">
                         Authorized Identifying Information:
                     </span>{' '}
                     This directory surfaces essential resident identity data for
@@ -81,7 +81,7 @@ export default function ResidentDirectoryTable({
             </div>
 
             {/* FILTERS & SEARCH */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="rounded-xl border border-line-soft bg-white p-4 shadow-card sm:p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="relative flex-1">
                         <input
@@ -89,13 +89,13 @@ export default function ResidentDirectoryTable({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Search by full name or resident number (e.g. BSJ-RES-000001)..."
-                            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 transition focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                            className="w-full rounded-xl border border-line bg-canvas/50 px-4 py-2.5 text-sm text-ink-strong placeholder-gray-400 transition focus:border-brand focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                         />
                         {search && (
                             <button
                                 type="button"
                                 onClick={() => setSearch('')}
-                                className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-gray-600"
+                                className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-ink-faint hover:text-ink-muted"
                             >
                                 Clear
                             </button>
@@ -109,7 +109,7 @@ export default function ResidentDirectoryTable({
                                 onChange={(e) =>
                                     setSelectedPurok(e.target.value)
                                 }
-                                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#3f6f3d] focus:bg-white focus:ring-1 focus:ring-[#3f6f3d] focus:outline-none"
+                                className="w-full rounded-xl border border-line bg-canvas/50 px-3.5 py-2.5 text-sm text-ink-strong focus:border-brand focus:bg-white focus:ring-1 focus:ring-[#3b6fa8] focus:outline-none"
                             >
                                 <option value="all">All Puroks</option>
                                 {puroks.map((p) => (
@@ -123,9 +123,9 @@ export default function ResidentDirectoryTable({
                 </div>
 
                 {/* TABLE */}
-                <div className="mt-5 overflow-x-auto rounded-xl border border-gray-100">
-                    <table className="w-full text-left text-sm text-gray-600">
-                        <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                <div className="mt-5 overflow-x-auto rounded-xl border border-line-soft">
+                    <table className="w-full text-left text-sm text-ink-muted">
+                        <thead className="border-b border-line-soft bg-canvas text-xs font-semibold tracking-wider text-ink-muted uppercase">
                             <tr>
                                 <th className="px-4 py-3.5">Resident ID</th>
                                 <th className="px-4 py-3.5">Full Name</th>
@@ -145,14 +145,14 @@ export default function ResidentDirectoryTable({
                                 <tr>
                                     <td
                                         colSpan={7}
-                                        className="px-4 py-12 text-center text-sm text-gray-500"
+                                        className="px-4 py-12 text-center text-sm text-ink-muted"
                                     >
                                         <div className="flex flex-col items-center justify-center space-y-2">
                                             <span className="text-3xl">📋</span>
-                                            <p className="font-semibold text-gray-700">
+                                            <p className="font-semibold text-ink">
                                                 No {sectorLabel} records found
                                             </p>
-                                            <p className="text-xs text-gray-400">
+                                            <p className="text-xs text-ink-faint">
                                                 {search ||
                                                 selectedPurok !== 'all'
                                                     ? 'Try adjusting your search criteria or purok filter.'
@@ -165,20 +165,20 @@ export default function ResidentDirectoryTable({
                                 filteredResidents.map((res) => (
                                     <tr
                                         key={res.id}
-                                        className="transition hover:bg-gray-50/80"
+                                        className="transition hover:bg-canvas/80"
                                     >
-                                        <td className="px-4 py-3.5 font-mono text-xs font-bold text-gray-900">
+                                        <td className="px-4 py-3.5 font-mono text-xs font-semibold text-ink-strong">
                                             {res.resident_number}
                                         </td>
                                         <td className="px-4 py-3.5">
-                                            <span className="font-semibold text-gray-900">
+                                            <span className="font-semibold text-ink-strong">
                                                 {res.full_name}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3.5 text-xs text-gray-600">
+                                        <td className="px-4 py-3.5 text-xs text-ink-muted">
                                             {res.sex || '—'}
                                         </td>
-                                        <td className="px-4 py-3.5 text-xs text-gray-600">
+                                        <td className="px-4 py-3.5 text-xs text-ink-muted">
                                             {res.purok || '—'}
                                         </td>
                                         <td className="px-4 py-3.5">
@@ -188,21 +188,21 @@ export default function ResidentDirectoryTable({
                                                     res.sectors.map((s) => (
                                                         <span
                                                             key={s.id}
-                                                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${
+                                                            className={`inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${
                                                                 s.slug ===
                                                                 'senior'
                                                                     ? 'bg-amber-100 text-amber-800'
                                                                     : s.slug ===
                                                                         'pwd'
                                                                       ? 'bg-indigo-100 text-indigo-800'
-                                                                      : 'bg-gray-100 text-gray-700'
+                                                                      : 'bg-secondary text-ink'
                                                             }`}
                                                         >
                                                             {s.name}
                                                         </span>
                                                     ))
                                                 ) : (
-                                                    <span className="text-xs text-gray-400">
+                                                    <span className="text-xs text-ink-faint">
                                                         Regular
                                                     </span>
                                                 )}
@@ -210,10 +210,10 @@ export default function ResidentDirectoryTable({
                                         </td>
                                         <td className="px-4 py-3.5">
                                             <span
-                                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
                                                     res.status === 'active'
                                                         ? 'bg-emerald-100 text-emerald-800'
-                                                        : 'bg-gray-100 text-gray-600'
+                                                        : 'bg-secondary text-ink-muted'
                                                 }`}
                                             >
                                                 {res.status}
@@ -221,11 +221,11 @@ export default function ResidentDirectoryTable({
                                         </td>
                                         <td className="px-4 py-3.5 text-center">
                                             {res.has_qr ? (
-                                                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                                <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
                                                     <span>✓</span> Active
                                                 </span>
                                             ) : (
-                                                <span className="text-xs text-gray-400">
+                                                <span className="text-xs text-ink-faint">
                                                     —
                                                 </span>
                                             )}
@@ -237,14 +237,14 @@ export default function ResidentDirectoryTable({
                     </table>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+                <div className="mt-4 flex items-center justify-between text-xs text-ink-muted">
                     <span>
                         Showing{' '}
-                        <strong className="text-gray-700">
+                        <strong className="text-ink">
                             {filteredResidents.length}
                         </strong>{' '}
                         of{' '}
-                        <strong className="text-gray-700">
+                        <strong className="text-ink">
                             {residents.length}
                         </strong>{' '}
                         registered residents

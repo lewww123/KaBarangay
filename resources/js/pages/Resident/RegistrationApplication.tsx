@@ -88,12 +88,12 @@ export default function RegistrationApplication({ application }: Props) {
 
 
     return (
-        <div className="min-h-screen bg-[#f7f6f0]">
+        <div className="min-h-screen bg-canvas">
             <Head title="Resident Application Status" />
-            <header className="border-b border-[#315b30] bg-[#3f6f3d]">
+            <header className="border-b border-brand-deep bg-brand">
                 <div className="mx-auto flex min-h-16 w-full max-w-4xl items-center justify-between px-4 sm:px-6">
                     <div className="text-white">
-                        <p className="text-base font-bold">KaBarangay</p>
+                        <p className="text-base font-semibold">KaBarangay</p>
                         <p className="text-xs text-white/80">
                             Secure application access
                         </p>
@@ -110,69 +110,69 @@ export default function RegistrationApplication({ application }: Props) {
             </header>
 
             <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
-                <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
-                    <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                <section className="rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-8">
+                    <p className="text-xs font-semibold tracking-wider text-ink-faint uppercase">
                         Application status
                     </p>
-                    <h1 className="mt-2 text-2xl font-bold text-gray-900">
+                    <h1 className="mt-2 text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
                         {STATUS_LABELS[application.status] ??
                             'Status unavailable'}
                     </h1>
-                    <p className="mt-2 text-sm leading-6 text-gray-600">
+                    <p className="mt-2 text-sm leading-6 text-ink-muted">
                         This page shows information for the application
                         authenticated in this session. It does not create a
                         Resident account or change your application.
                     </p>
 
-                    <dl className="mt-6 grid gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
+                    <dl className="mt-6 grid gap-4 rounded-xl border border-line-soft bg-canvas p-4 sm:grid-cols-2">
                         <div>
-                            <dt className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                            <dt className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
                                 Applicant
                             </dt>
-                            <dd className="mt-1 text-sm font-medium text-gray-800">
+                            <dd className="mt-1 text-sm font-medium text-ink-strong">
                                 {application.applicant_name}
                             </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                            <dt className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
                                 Application reference
                             </dt>
-                            <dd className="mt-1 font-mono text-sm break-all text-gray-800">
+                            <dd className="mt-1 font-mono text-sm break-all text-ink-strong">
                                 {application.reference}
                             </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                            <dt className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
                                 Barangay
                             </dt>
-                            <dd className="mt-1 text-sm text-gray-800">
+                            <dd className="mt-1 text-sm text-ink-strong">
                                 {application.barangay || '—'}
                             </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                            <dt className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
                                 Purok
                             </dt>
-                            <dd className="mt-1 text-sm text-gray-800">
+                            <dd className="mt-1 text-sm text-ink-strong">
                                 {application.purok || '—'}
                             </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                            <dt className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
                                 Submitted
                             </dt>
-                            <dd className="mt-1 text-sm text-gray-800">
+                            <dd className="mt-1 text-sm text-ink-strong">
                                 {application.submitted_at || '—'}
                             </dd>
                         </div>
                     </dl>
 
-                    <section className="mt-6 rounded-xl border border-[#d7e5d2] bg-[#f8fbf6] p-4 sm:p-5">
-                        <h2 className="text-sm font-semibold text-gray-800">Email notifications</h2>
-                        <p className="mt-2 text-sm text-gray-600">
+                    <section className="mt-6 rounded-xl border border-line-soft bg-surface p-4 sm:p-5">
+                        <h2 className="text-sm font-semibold text-ink-strong">Email notifications</h2>
+                        <p className="mt-2 text-sm text-ink-muted">
                             Email is optional. If supplied, it may receive the admin decision.
                         </p>
-                        <p className="mt-2 text-sm text-gray-600">
+                        <p className="mt-2 text-sm text-ink-muted">
                             Mobile number – Unverified. Verification is not yet available.
                         </p>
                     </section>
@@ -180,7 +180,7 @@ export default function RegistrationApplication({ application }: Props) {
                     {application.status === 'needs_correction' &&
                         correction && (
                             <section className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
-                                <h2 className="text-lg font-bold text-amber-950">
+                                <h2 className="text-lg font-semibold text-amber-950">
                                     Correction requested
                                 </h2>
                                 <p className="mt-2 text-sm leading-6 whitespace-pre-line text-amber-900">
@@ -193,7 +193,7 @@ export default function RegistrationApplication({ application }: Props) {
                                 >
                                     {correction.field_targets.length > 0 && (
                                         <fieldset className="space-y-4">
-                                            <legend className="text-sm font-semibold text-gray-800">
+                                            <legend className="text-sm font-semibold text-ink-strong">
                                                 Fields you may correct
                                             </legend>
                                             {correction.field_targets.map(
@@ -201,7 +201,7 @@ export default function RegistrationApplication({ application }: Props) {
                                                     <div key={target.key}>
                                                         <label
                                                             htmlFor={`correction-${target.key}`}
-                                                            className="mb-1 block text-sm font-medium text-gray-700"
+                                                            className="mb-1 block text-sm font-medium text-ink"
                                                         >
                                                             {target.label}
                                                         </label>
@@ -234,7 +234,7 @@ export default function RegistrationApplication({ application }: Props) {
                                                                     )
                                                                 }
                                                                 required
-                                                                className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                                                                className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
                                                             >
                                                                 <option value="">
                                                                     Select{' '}
@@ -298,7 +298,7 @@ export default function RegistrationApplication({ application }: Props) {
                                                                         target.key,
                                                                     )
                                                                 }
-                                                                className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                                                                className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
                                                             />
                                                         )}
                                                         {correctionForm.errors[
@@ -324,7 +324,7 @@ export default function RegistrationApplication({ application }: Props) {
 
                                     {correction.document_targets.length > 0 && (
                                         <fieldset className="space-y-4">
-                                            <legend className="text-sm font-semibold text-gray-800">
+                                            <legend className="text-sm font-semibold text-ink-strong">
                                                 Replacement documents
                                             </legend>
                                             {correction.document_targets.map(
@@ -332,7 +332,7 @@ export default function RegistrationApplication({ application }: Props) {
                                                     <div key={target.key}>
                                                         <label
                                                             htmlFor={`correction-document-${target.key}`}
-                                                            className="mb-1 block text-sm font-medium text-gray-700"
+                                                            className="mb-1 block text-sm font-medium text-ink"
                                                         >
                                                             {target.label}
                                                         </label>
@@ -361,7 +361,7 @@ export default function RegistrationApplication({ application }: Props) {
                                                                 )
                                                             }
                                                             required
-                                                            className="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm"
+                                                            className="block w-full rounded-lg border border-line bg-white p-2 text-sm"
                                                         />
                                                         {correctionForm.errors[
                                                             `documents.${target.key}`
@@ -393,7 +393,7 @@ export default function RegistrationApplication({ application }: Props) {
                                         </p>
                                     )}
 
-                                    <p className="text-xs leading-5 text-gray-600">
+                                    <p className="text-xs leading-5 text-ink-muted">
                                         Only the fields and documents listed
                                         above can be submitted. Your application
                                         remains the same application and returns
@@ -403,7 +403,7 @@ export default function RegistrationApplication({ application }: Props) {
                                     <button
                                         type="submit"
                                         disabled={correctionForm.processing}
-                                        className="min-h-11 rounded-lg bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="min-h-11 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {correctionForm.processing
                                             ? 'Submitting…'
@@ -422,7 +422,7 @@ export default function RegistrationApplication({ application }: Props) {
                         )}
 
                     {terminal && (
-                        <p className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                        <p className="mt-5 rounded-xl border border-line-soft bg-canvas p-4 text-sm text-ink-muted">
                             This application is read-only.
                         </p>
                     )}

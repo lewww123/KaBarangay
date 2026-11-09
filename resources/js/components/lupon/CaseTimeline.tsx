@@ -17,16 +17,16 @@ export default function CaseTimeline({
     if (!workflow) return null;
     return (
         <section
-            className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
+            className="space-y-4 rounded-xl border border-line-soft bg-white p-4 sm:p-5"
             aria-label="Case timeline"
         >
             <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="font-bold text-slate-900">
+                <h2 className="font-semibold text-ink-strong">
                     Recorded history & deadlines
                 </h2>
                 <LuponStatusBadge status={workflow.trackingStatus} />
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-ink-muted">
                 Meeting-based deadlines are tracked separately. Expiry does not
                 automatically issue a CFA.
             </p>
@@ -35,17 +35,17 @@ export default function CaseTimeline({
                     {workflow.deadlines.map((deadline) => (
                         <div
                             key={deadline.label}
-                            className={`rounded-lg border p-3 ${deadline.active !== false && deadline.daysRemaining < 0 ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
+                            className={`rounded-lg border p-3 ${deadline.active !== false && deadline.daysRemaining < 0 ? 'border-red-200 bg-red-50' : 'border-line-soft bg-canvas'}`}
                         >
-                            <p className="text-xs font-semibold text-slate-700">
+                            <p className="text-xs font-semibold text-ink">
                                 {deadline.label}
                             </p>
-                            <p className="mt-1 text-sm font-bold">
+                            <p className="mt-1 text-sm font-semibold">
                                 {new Date(deadline.date).toLocaleDateString(
                                     'en-PH',
                                 )}
                             </p>
-                            <p className="text-xs text-slate-600">
+                            <p className="text-xs text-ink-muted">
                                 {deadline.active === false
                                     ? 'Recorded deadline'
                                     : deadline.daysRemaining < 0
@@ -71,12 +71,12 @@ export default function CaseTimeline({
                                 aria-hidden="true"
                                 className="absolute top-1.5 -left-[21px] h-2 w-2 rounded-full bg-emerald-600"
                             />
-                            <p className="text-sm font-semibold text-slate-800">
+                            <p className="text-sm font-semibold text-ink-strong">
                                 {luponStatusLabel(event.to)}
                             </p>
                             <time
                                 dateTime={event.date}
-                                className="text-xs text-slate-500"
+                                className="text-xs text-ink-muted"
                             >
                                 {event.date.includes('T')
                                     ? new Date(event.date).toLocaleString(
@@ -97,7 +97,7 @@ export default function CaseTimeline({
                                 </p>
                             )}
                             {event.notes && (
-                                <p className="mt-1 text-xs whitespace-pre-wrap text-slate-600">
+                                <p className="mt-1 text-xs whitespace-pre-wrap text-ink-muted">
                                     {event.notes}
                                 </p>
                             )}
@@ -105,7 +105,7 @@ export default function CaseTimeline({
                     ))}
             </ol>
             {!workflow.events.length && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-ink-muted">
                     No case events supplied. History is not inferred from the
                     current status.
                 </p>

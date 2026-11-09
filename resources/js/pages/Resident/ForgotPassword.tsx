@@ -1,4 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
+import { LogoMark } from '@/components/Logo';
 
 export default function ForgotPassword() {
     const { flash } = usePage<{ flash?: { success?: string | null } }>().props;
@@ -14,24 +15,22 @@ export default function ForgotPassword() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#f7f6f0] px-4 py-10">
+        <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
             <Head title="Forgot Password" />
 
             <div className="w-full max-w-md">
                 <div className="mb-6 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-lg font-bold text-[#3f6f3d] shadow-sm">
-                        SJ
-                    </div>
-                    <h1 className="mt-4 text-xl font-bold text-gray-900">
+                    <LogoMark size="lg" className="mx-auto" />
+                    <h1 className="mt-4 text-xl font-semibold tracking-tight text-ink-strong">
                         Forgot Password
                     </h1>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                         Enter the email address on your resident account and we
                         will send you a reset link.
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
+                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card sm:p-7">
                     {flash?.success && (
                         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">
                             {flash.success}
@@ -42,7 +41,7 @@ export default function ForgotPassword() {
                         <div>
                             <label
                                 htmlFor="reset-email"
-                                className="block text-xs font-bold text-gray-700"
+                                className="block text-xs font-semibold text-ink"
                             >
                                 Email Address
                             </label>
@@ -54,7 +53,7 @@ export default function ForgotPassword() {
                                 onChange={(e) =>
                                     setData('email', e.target.value)
                                 }
-                                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d]"
+                                className="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
                                 placeholder="you@example.com"
                                 required
                             />
@@ -68,24 +67,24 @@ export default function ForgotPassword() {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full rounded-lg bg-[#3f6f3d] py-2.5 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-60"
+                            className="w-full rounded-lg bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-60"
                         >
                             {processing ? 'Sending...' : 'Send Reset Link'}
                         </button>
                     </form>
 
-                    <p className="mt-5 text-center text-xs text-gray-500">
+                    <p className="mt-5 text-center text-xs text-ink-muted">
                         Remembered your password?{' '}
                         <a
                             href="/resident/login"
-                            className="font-semibold text-[#3f6f3d] hover:underline"
+                            className="font-semibold text-brand hover:underline"
                         >
                             Back to login
                         </a>
                     </p>
                 </div>
 
-                <p className="mt-4 text-center text-[11px] leading-5 text-gray-400">
+                <p className="mt-4 text-center text-[11px] leading-5 text-ink-faint">
                     For security, this page does not confirm whether an account
                     exists.
                 </p>

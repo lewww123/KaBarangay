@@ -86,7 +86,7 @@ export default function BrandedCertificatePreview({
             <article
                 ref={sheetRef}
                 id="certificate-print-sheet"
-                className={`certificate-print-sheet isolate mx-auto overflow-hidden bg-white text-slate-900 shadow-lg ${isStore ? 'tricycle-sheet sari-store-sheet' : isTricycle ? 'tricycle-sheet' : ''}`}
+                className={`certificate-print-sheet isolate mx-auto overflow-hidden bg-white text-ink-strong shadow-lg ${isStore ? 'tricycle-sheet sari-store-sheet' : isTricycle ? 'tricycle-sheet' : ''}`}
             >
                 <style>{`
                 .certificate-preview-frame { --certificate-scale: min(0.55, var(--certificate-fit-scale, 0.55)); width: calc(210mm * var(--certificate-scale)); height: calc(297mm * var(--certificate-scale)); margin: 0 auto; position: relative; flex: none; }
@@ -398,7 +398,7 @@ export function CaptainSignature() {
     const official = useContext(CaptainContext);
     return (
         <div className="certificate-signature">
-            <p className="font-bold">
+            <p className="font-semibold">
                 {official?.name.toUpperCase() || '___________________'}
             </p>
             <p>{official?.title || 'Punong Barangay'}</p>

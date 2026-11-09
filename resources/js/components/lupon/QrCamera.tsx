@@ -81,7 +81,7 @@ export default function QrCamera({
         };
     }, [id]);
     return (
-        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div className="space-y-2 rounded-xl border border-line-soft bg-canvas p-3">
             <div
                 id={id}
                 className="mx-auto max-w-sm overflow-hidden rounded-lg"

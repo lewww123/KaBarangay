@@ -1,12 +1,25 @@
 import { Deferred, Head, router } from '@inertiajs/react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+    FormEvent,
+    useEffect,
+    useMemo,
+    useState,
+    useSyncExternalStore,
+} from 'react';
 import Pagination from '@/components/Pagination';
 import ResidentLayout from '@/layouts/ResidentLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import {
+    UNSYNCED_STATUSES,
     offlineCertificateStore,
     prepareOfflineCertificates,
+    queueOfflineCertificateRequest,
+    type LocalCertificateRequest,
 } from '@/lib/offlineCertificates';
+import {
+    readConnectivity,
+    subscribeConnectivity,
+} from '@/lib/offlineConnectivity';
 import type { PaginatedData } from '@/types';
 
 /*
@@ -17,7 +30,7 @@ import type { PaginatedData } from '@/types';
 
 type Tab = 'request' | 'requests';
 
-type Step = 'form' | 'review' | 'success';
+type Step = 'form' | 'review' | 'success' | 'queued';
 
 type RequestStatus =
     | 'Pending'
@@ -153,6 +166,48 @@ function CertificatesContent({
     const [cameFromAssistant, setCameFromAssistant] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [draftMessage, setDraftMessage] = useState('');
+    const [localRequests, setLocalRequests] = useState<
+        LocalCertificateRequest[]
+    >([]);
+    const { online, degraded } = useSyncExternalStore(
+        subscribeConnectivity,
+        readConnectivity,
+        readConnectivity,
+    );
+    const offlineForm = () => ({
+        certificate_id: (selectedCertificate as Certificate).id,
+        purpose: effectivePurpose,
+        business_name: businessName,
+        business_address: businessAddress,
+        additional_details: additionalDetails,
+        details,
+    });
+    const refreshLocalRequests = () => {
+        offlineCertificateStore()
+            .then((store) => store.list())
+            .then((items) =>
+                setLocalRequests(
+                    items.filter((item) =>
+                        UNSYNCED_STATUSES.includes(item.status),
+                    ),
+                ),
+            )
+            .catch(() => setLocalRequests([]));
+    };
+    useEffect(() => {
+        refreshLocalRequests();
+        window.addEventListener('kb-certificate-queue', refreshLocalRequests);
+        return () =>
+            window.removeEventListener(
+                'kb-certificate-queue',
+                refreshLocalRequests,
+            );
+        // Re-read the queue whenever connectivity flips, and after each page render.
+    }, [online]);
+    useEffect(() => {
+        if (activeTab !== 'requests') return;
+        refreshLocalRequests();
+    }, [activeTab, requests]);
     const saveOfflineDraft = async () => {
         if (!selectedCertificate || processing) return;
         setProcessing(true);
@@ -163,16 +218,9 @@ function CertificatesContent({
             } catch {
                 store = await prepareOfflineCertificates();
             }
-            await store.saveDraft({
-                certificate_id: selectedCertificate.id,
-                purpose: effectivePurpose,
-                business_name: businessName,
-                business_address: businessAddress,
-                additional_details: additionalDetails,
-                details,
-            });
+            await store.saveDraft(offlineForm());
             setDraftMessage(
-                'Draft saved on this device. Open Offline drafts & requests to review and queue it. It is not officially submitted yet.',
+                'Draft saved on this device. It is not submitted until you confirm it and the Barangay receives it.',
             );
         } catch (error) {
             setDraftMessage(
@@ -319,8 +367,42 @@ function CertificatesContent({
     |--------------------------------------------------------------------------
     */
 
+    const queueOfflineRequest = async () => {
+        setProcessing(true);
+        try {
+            await queueOfflineCertificateRequest(offlineForm());
+            window.dispatchEvent(new Event('kb-certificate-queue'));
+            try {
+                window.localStorage.removeItem(CERTIFICATE_FLOW_KEY);
+            } catch (error) {
+                console.error(
+                    'Unable to clear certificate assistant flow.',
+                    error,
+                );
+            }
+            setCameFromAssistant(false);
+            setDraftMessage('');
+            setStep('queued');
+            refreshLocalRequests();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error) {
+            setStep('review');
+            setDraftMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to save this request on this device.',
+            );
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     const handleSubmitRequest = () => {
         if (!selectedCertificate?.available || processing) return;
+        if (!online) {
+            void queueOfflineRequest();
+            return;
+        }
         setProcessing(true);
 
         router.post(
@@ -368,6 +450,13 @@ function CertificatesContent({
         );
     };
 
+    const unsyncedLocalRequests = localRequests.filter(
+        (item) =>
+            !requests.data.some(
+                (request) => request.reference === item.data.result?.reference,
+            ),
+    );
+
     return (
         <>
             <Head title="Certificate Request" />
@@ -384,12 +473,13 @@ function CertificatesContent({
                         Request a barangay certificate or track your submitted
                         request.
                     </p>
-                    <a
-                        href="/offline-certificates.html"
-                        className="mt-2 inline-block text-sm font-semibold text-[#3f6f3d] underline"
-                    >
-                        Offline drafts & pending requests
-                    </a>
+                    {!online && (
+                        <p className="mt-2 text-sm leading-6 text-amber-800">
+                            {degraded
+                                ? 'KaBarangay is reachable, but the barangay data service cannot read requests right now. You can still complete this request; it is saved on this device and sent automatically once the data service returns.'
+                                : 'You are offline. You can still complete this request; it is saved on this device and sent automatically once your internet connection returns.'}
+                        </p>
+                    )}
                     {draftMessage && (
                         <p
                             role="status"
@@ -439,7 +529,7 @@ function CertificatesContent({
                                 {cameFromAssistant && selectedCertificate && (
                                     <div className="mb-4 rounded-xl border border-[#d7e7d2] bg-[#f3f8f1] p-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-[#3f6f3d]">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-brand">
                                                 <CertificateOutlineIcon small />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -473,6 +563,7 @@ function CertificatesContent({
 
                                 <form
                                     onSubmit={handleContinue}
+                                    data-kb-offline-queue=""
                                     className="mx-auto w-full max-w-3xl"
                                 >
                                     {/* VERIFIED RESIDENT */}
@@ -487,7 +578,7 @@ function CertificatesContent({
                                                     resident profile.
                                                 </p>
                                             </div>
-                                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#edf4ea] px-3 py-1.5 text-sm font-semibold text-[#3f6f3d]">
+                                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#edf4ea] px-3 py-1.5 text-sm font-semibold text-brand">
                                                 <CheckSmallIcon /> Verified
                                             </span>
                                         </div>
@@ -652,7 +743,7 @@ function CertificatesContent({
                                                     <span className="text-sm font-medium text-gray-600">
                                                         Fee
                                                     </span>
-                                                    <span className="text-lg font-semibold text-[#3f6f3d]">
+                                                    <span className="text-lg font-semibold text-brand">
                                                         {selectedCertificate.fee >
                                                         0
                                                             ? `₱${selectedCertificate.fee.toLocaleString()}`
@@ -801,7 +892,7 @@ function CertificatesContent({
                                                             aria-readonly="true"
                                                             className={`${inputClass} cursor-not-allowed bg-gray-50 text-gray-600`}
                                                         />
-                                                        <p className="mt-2 text-xs text-gray-500">
+                                                        <p className="mt-2 text-xs text-ink-muted">
                                                             The verified
                                                             Resident account
                                                             holder is used as
@@ -1019,7 +1110,7 @@ function CertificatesContent({
                                                 processing ||
                                                 !selectedCertificate
                                             }
-                                            className="mt-3 min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 font-semibold text-[#3f6f3d] disabled:opacity-50"
+                                            className="mt-3 min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 font-semibold text-brand disabled:opacity-50"
                                         >
                                             Save draft on this device
                                         </button>
@@ -1112,7 +1203,7 @@ function CertificatesContent({
                                                 void saveOfflineDraft()
                                             }
                                             disabled={processing}
-                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-4 font-semibold text-[#3f6f3d] disabled:opacity-50"
+                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-4 font-semibold text-brand disabled:opacity-50"
                                         >
                                             Save draft on this device
                                         </button>
@@ -1132,7 +1223,9 @@ function CertificatesContent({
                                         >
                                             {processing
                                                 ? 'Submitting...'
-                                                : 'Submit Request'}
+                                                : online
+                                                  ? 'Submit Request'
+                                                  : 'Submit (sends when online)'}
                                         </button>
                                     </div>
                                 </section>
@@ -1177,7 +1270,7 @@ function CertificatesContent({
                                         <button
                                             type="button"
                                             onClick={resetForm}
-                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-5 text-base font-semibold text-[#3f6f3d] transition hover:bg-[#edf4ea]"
+                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-5 text-base font-semibold text-brand transition hover:bg-[#edf4ea]"
                                         >
                                             Request Another
                                         </button>
@@ -1186,6 +1279,61 @@ function CertificatesContent({
                                             onClick={() =>
                                                 setActiveTab('requests')
                                             }
+                                            className="min-h-12 rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
+                                        >
+                                            My Requests
+                                        </button>
+                                    </div>
+                                </section>
+                            </div>
+                        )}
+
+                        {/* SAVED ON DEVICE, NOT YET SENT */}
+                        {step === 'queued' && (
+                            <div className="mx-auto w-full max-w-xl">
+                                <section className="rounded-xl border border-amber-300 bg-amber-50 p-5 text-center sm:p-7">
+                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-white">
+                                        <ClockLargeIcon />
+                                    </div>
+                                    <h2 className="mt-5 text-xl font-semibold text-amber-950 sm:text-2xl">
+                                        {degraded
+                                            ? 'Waiting for the Barangay data service'
+                                            : 'Waiting for Internet Connection'}
+                                    </h2>
+                                    <p className="mt-2 text-sm leading-6 text-amber-900 sm:text-base">
+                                        Your request has been saved on this
+                                        device. It will be sent automatically
+                                        once{' '}
+                                        {degraded
+                                            ? 'the Barangay data service can read requests again'
+                                            : 'your internet connection returns'}
+                                        . The Barangay has not received it yet.
+                                    </p>
+                                    <div className="mt-6 rounded-xl bg-white p-4 text-left">
+                                        <InfoItem
+                                            label="Saved on this device"
+                                            value="No request number yet"
+                                        />
+                                        <div className="my-4 border-t border-gray-200" />
+                                        <InfoItem
+                                            label="Status"
+                                            value="Not yet received by the Barangay"
+                                        />
+                                    </div>
+                                    <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <button
+                                            type="button"
+                                            onClick={resetForm}
+                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-5 text-base font-semibold text-brand transition hover:bg-[#edf4ea]"
+                                        >
+                                            Request Another
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                refreshLocalRequests();
+                                                setActiveTab('requests');
+                                            }}
                                             className="min-h-12 rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
                                         >
                                             My Requests
@@ -1211,6 +1359,13 @@ function CertificatesContent({
                                 requests.
                             </p>
                         </div>
+                        {unsyncedLocalRequests.length > 0 && (
+                            <div className="mb-4 space-y-4">
+                                {unsyncedLocalRequests.map((item) => (
+                                    <LocalRequestRow key={item.id} item={item} />
+                                ))}
+                            </div>
+                        )}
                         {requests.data.length > 0 ? (
                             <div className="space-y-4">
                                 {requests.data.map((request) => (
@@ -1241,7 +1396,7 @@ function CertificatesContent({
                                                             request,
                                                         )
                                                     }
-                                                    className="min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 text-sm font-semibold text-[#3f6f3d] transition hover:bg-[#edf4ea] sm:w-auto"
+                                                    className="min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 text-sm font-semibold text-brand transition hover:bg-[#edf4ea] sm:w-auto"
                                                 >
                                                     View Details
                                                 </button>
@@ -1254,7 +1409,7 @@ function CertificatesContent({
                                     label="Certificate request"
                                 />
                             </div>
-                        ) : (
+                        ) : unsyncedLocalRequests.length === 0 ? (
                             <div className="rounded-xl border border-gray-200 bg-white p-7 text-center">
                                 <CertificateOutlineIcon />
                                 <h3 className="mt-4 text-lg font-semibold text-gray-800">
@@ -1274,7 +1429,7 @@ function CertificatesContent({
                                     Request Certificate
                                 </button>
                             </div>
-                        )}
+                        ) : null}
                     </section>
                 )}
 
@@ -1525,7 +1680,7 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                     completed
                                         ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
                                         : current
-                                          ? 'border-[#3f6f3d] bg-[#e8f2e5] text-[#3f6f3d]'
+                                          ? 'border-[#3f6f3d] bg-[#e8f2e5] text-brand'
                                           : 'border-gray-300 bg-white text-gray-400'
                                 }`}
                             >
@@ -1541,12 +1696,12 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                     {step}
                                 </p>
                                 {completed && (
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-ink-muted">
                                         Completed
                                     </p>
                                 )}
                                 {current && (
-                                    <p className="mt-1 text-xs font-semibold text-[#3f6f3d]">
+                                    <p className="mt-1 text-xs font-semibold text-brand">
                                         Current status
                                     </p>
                                 )}
@@ -1585,7 +1740,7 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                         completed
                                             ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
                                             : current
-                                              ? 'border-[#3f6f3d] bg-[#e8f2e5] text-[#3f6f3d]'
+                                              ? 'border-[#3f6f3d] bg-[#e8f2e5] text-brand'
                                               : 'border-gray-300 bg-white text-gray-400'
                                     }`}
                                 >
@@ -1604,7 +1759,7 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                     {step}
                                 </p>
                                 {current && (
-                                    <span className="mt-1 text-[11px] font-semibold text-[#3f6f3d]">
+                                    <span className="mt-1 text-[11px] font-semibold text-brand">
                                         Current
                                     </span>
                                 )}
@@ -1617,7 +1772,7 @@ function RequestTracker({ status }: { status: RequestStatus }) {
             {/* STATUS MESSAGE */}
             <div className="mt-4 rounded-xl border border-[#d8e8d4] bg-[#f4f8f2] p-4">
                 <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-[#3f6f3d]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-brand">
                         <CurrentStatusIcon status={status} />
                     </div>
                     <div>
@@ -1848,7 +2003,7 @@ function getStatusMessage(status: RequestStatus) {
 function InfoItem({ label, value }: { label: string; value: string }) {
     return (
         <div className="min-w-0">
-            <p className="text-xs font-medium text-gray-500 sm:text-sm">
+            <p className="text-xs font-medium text-ink-muted sm:text-sm">
                 {label}
             </p>
             <p className="mt-1 text-sm font-semibold break-words text-gray-800 sm:text-base">
@@ -1897,7 +2052,7 @@ function StatusBadge({ status }: { status: RequestStatus }) {
         'Needs Action': 'bg-[#fff0e5] text-[#a65316]',
         'For Payment': 'bg-[#f3ecff] text-[#6f42a5]',
         Processing: 'bg-[#eef3fb] text-[#416b9c]',
-        'Ready for Claim': 'bg-[#edf4ea] text-[#3f6f3d]',
+        'Ready for Claim': 'bg-[#edf4ea] text-brand',
         Released: 'bg-gray-100 text-gray-600',
         Rejected: 'bg-[#fdecec] text-[#a33a3a]',
     };
@@ -1917,6 +2072,58 @@ function StatusBadge({ status }: { status: RequestStatus }) {
 |--------------------------------------------------------------------------
 */
 
+/*
+|--------------------------------------------------------------------------
+| Locally saved request (not yet confirmed by the server)
+|--------------------------------------------------------------------------
+*/
+
+const LOCAL_SYNC_LABEL: Record<string, string> = {
+    pending: 'Waiting for Internet Connection',
+    syncing: 'Sending to the Barangay…',
+    'login-required': 'Sign in online to send this request',
+    'needs-review': 'Needs your review before it can be sent',
+};
+
+function LocalRequestRow({ item }: { item: LocalCertificateRequest }) {
+    return (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                    <p className="text-base font-semibold break-words text-amber-950 sm:text-lg">
+                        {item.data.certificateName}
+                    </p>
+                    <p className="mt-1 text-sm font-medium break-words text-amber-900">
+                        {item.data.form?.purpose || 'No purpose recorded'}
+                    </p>
+                    <p className="mt-1 text-sm text-amber-800">
+                        Saved locally:{' '}
+                        {new Date(item.createdAt).toLocaleDateString('en-PH', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                        })}
+                    </p>
+                    <p className="mt-2 text-xs leading-5 text-amber-900 sm:text-sm">
+                        Saved on this device. Not yet received by the Barangay.
+                        This is not an official request status.
+                    </p>
+                    {item.data.error && (
+                        <p className="mt-2 rounded-lg border border-amber-300 bg-white p-2 text-xs leading-5 text-amber-950 sm:text-sm">
+                            {item.data.error}
+                        </p>
+                    )}
+                </div>
+                <span className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-amber-400 bg-white px-3 py-1 text-xs font-semibold text-amber-900">
+                    <span aria-hidden className="h-2 w-2 rounded-full bg-amber-500" />
+                    {LOCAL_SYNC_LABEL[item.status] ||
+                        'Waiting for Internet Connection'}
+                </span>
+            </div>
+        </div>
+    );
+}
+
 function CheckLargeIcon() {
     return (
         <svg
@@ -1929,6 +2136,24 @@ function CheckLargeIcon() {
             strokeLinejoin="round"
         >
             <path d="M5 12.5l4 4L19 7" />
+        </svg>
+    );
+}
+
+function ClockLargeIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-6 w-6"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+        >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3.5 2" />
         </svg>
     );
 }
@@ -1989,7 +2214,7 @@ function CertificateOutlineIcon({ small = false }: { small?: boolean }) {
         <svg
             viewBox="0 0 24 24"
             fill="none"
-            className={small ? 'h-4 w-4' : 'mx-auto h-10 w-10 text-[#3f6f3d]'}
+            className={small ? 'h-4 w-4' : 'mx-auto h-10 w-10 text-brand'}
             stroke="currentColor"
             strokeWidth="1.8"
             strokeLinecap="round"

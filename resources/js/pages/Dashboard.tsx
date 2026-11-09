@@ -117,7 +117,7 @@ export default function Dashboard({
                                     </p>
                                 </div>
 
-                                <p className="text-xs font-medium text-[#3f6f3d]">
+                                <p className="text-xs font-medium text-[#3b6fa8]">
                                     Total Programs: {stats.totalPrograms} ·
                                     Total Announcements:{' '}
                                     {stats.totalAnnouncements}
@@ -159,7 +159,7 @@ export default function Dashboard({
 
                                 <Link
                                     href="/admin/audit-log"
-                                    className="text-xs font-medium text-[#3f6f3d] hover:underline"
+                                    className="text-xs font-medium text-[#3b6fa8] hover:underline"
                                 >
                                     View all
                                 </Link>
@@ -202,7 +202,7 @@ export default function Dashboard({
 
                             <Link
                                 href="/admin/reports"
-                                className="text-xs font-medium text-[#3f6f3d] hover:underline"
+                                className="text-xs font-medium text-[#3b6fa8] hover:underline"
                             >
                                 View Reports
                             </Link>
@@ -240,7 +240,7 @@ function SummaryCard({
     return (
         <Link
             href={href}
-            className="rounded-lg bg-[#3f6f3d] p-5 text-white shadow-sm transition hover:bg-[#355f33]"
+            className="rounded-lg bg-[#3b6fa8] p-5 text-white shadow-sm transition hover:bg-[#355f33]"
         >
             <p className="text-xs font-medium tracking-wide text-white/80 uppercase">
                 {title}
@@ -263,7 +263,7 @@ function PuroksSummaryCard({
     onToggle: () => void;
 }) {
     return (
-        <div className="relative rounded-lg bg-[#3f6f3d] p-5 text-white shadow-sm">
+        <div className="relative rounded-lg bg-[#3b6fa8] p-5 text-white shadow-sm">
             <button
                 type="button"
                 onClick={onToggle}
@@ -330,7 +330,7 @@ function AnnouncementRow({
                 <button
                     type="button"
                     onClick={() => setExpanded(!expanded)}
-                    className="shrink-0 text-xs font-medium text-[#3f6f3d] hover:underline"
+                    className="shrink-0 text-xs font-medium text-[#3b6fa8] hover:underline"
                     aria-expanded={expanded}
                 >
                     {expanded ? 'Hide details' : 'View details'}
@@ -366,7 +366,7 @@ function Notification({
             className={`flex items-center justify-between gap-4 px-4 py-4 transition hover:bg-gray-50 ${!last ? 'border-b border-gray-100' : ''}`}
         >
             <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#edf4ea] text-sm font-semibold text-[#3f6f3d]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef1f5] text-sm font-semibold text-[#3b6fa8]">
                     {icon}
                 </div>
                 <div className="min-w-0">
@@ -397,7 +397,7 @@ function ActivityCard({
     return (
         <Link
             href={href}
-            className="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-[#3f6f3d] hover:shadow-sm"
+            className="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-[#3b6fa8] hover:shadow-sm"
         >
             <p className="text-xs font-medium tracking-wide text-gray-400 uppercase">
                 {title}

@@ -1,19 +1,21 @@
+import OfflineConnectivityIndicator from '@/components/OfflineConnectivityIndicator';
 import { protectSession } from '@/lib/protectedSession';
 import { router } from '@inertiajs/react';
 import type { Page } from '@inertiajs/core';
 import { useEffect, useState } from 'react';
+import {
+    notifyConnectivity,
+    updateConnectivity,
+} from '@/lib/offlineConnectivity';
 import { offlineSnapshot } from '@/lib/offlineSnapshot';
 import {
+    UNSYNCED_STATUSES,
     offlineCertificateStore,
     prepareOfflineCertificates,
 } from '@/lib/offlineCertificates';
 
-type OfflineState = {
-    online: boolean;
-    ready: boolean;
-    savedAt?: number;
-    message?: string;
-};
+const PROBE_MS = 25000;
+
 type WorkerReply = { ok: boolean; savedAt?: number };
 const eligible = (page: Page) =>
     typeof page.props.offlineScope === 'string' &&
@@ -24,46 +26,47 @@ const eligible = (page: Page) =>
 
 export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
     useEffect(() => protectSession(initialPage), [initialPage]);
-    const [state, setState] = useState<OfflineState>({
-        online: true,
-        ready: false,
-    });
     const [privatePage, setPrivatePage] = useState(eligible(initialPage));
-    const [pendingCertificates, setPendingCertificates] = useState(0);
-    const [queueMessage, setQueueMessage] = useState('');
-    const [syncing, setSyncing] = useState(false);
-    const [isResident, setIsResident] = useState(
-        initialPage.component.startsWith('Resident/'),
-    );
+    const countPending = (items: { status: string }[]) =>
+        items.filter((item) => UNSYNCED_STATUSES.includes(item.status)).length;
     const syncNow = async () => {
-        setSyncing(true);
+        updateConnectivity({ syncing: true });
+        const before = await offlineCertificateStore()
+            .then(async (store) => countPending(await store.list()))
+            .catch(() => 0);
         try {
             const store = await offlineCertificateStore();
             const result = await store.sync();
-            setPendingCertificates(
-                (await store.list()).filter((item) =>
-                    ['pending', 'syncing', 'login-required'].includes(
-                        item.status,
-                    ),
-                ).length,
-            );
-            setQueueMessage(
-                result.loginRequired
-                    ? 'Sign in to sync your own requests.'
-                    : result.offline || result.retryLater
-                      ? 'Requests remain pending sync.'
-                      : result.busy
-                        ? 'Sync is running in another tab.'
-                        : 'Sync checked. Open local requests for results.',
-            );
+            const after = countPending(await store.list());
+            updateConnectivity({ pending: after });
+            if (after < before) {
+                notifyConnectivity(
+                    'success',
+                    after === 0
+                        ? 'Your request has been sent successfully.'
+                        : `${before - after} request${before - after === 1 ? '' : 's'} sent successfully. The rest are still waiting.`,
+                );
+                if (location.pathname.startsWith('/resident/certificates'))
+                    router.reload({ only: ['requests'] });
+            } else if (result.loginRequired)
+                notifyConnectivity(
+                    'error',
+                    'Sign in online to send your saved requests.',
+                );
+            else if (after > 0 && (result.offline || result.retryLater))
+                notifyConnectivity(
+                    'error',
+                    'Your requests are still saved on this device. They will send automatically.',
+                );
         } catch (error) {
-            setQueueMessage(
+            notifyConnectivity(
+                'error',
                 error instanceof Error
                     ? error.message
                     : 'Offline requests are not ready.',
             );
         } finally {
-            setSyncing(false);
+            updateConnectivity({ syncing: false });
         }
     };
 
@@ -73,14 +76,92 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
         let closed = false;
         let loggingOut = false;
         let networkAvailable = navigator.onLine;
+        let dataAvailable = true;
         let preparedScope: unknown = null;
         let preparing = false;
+        const isOnline = () =>
+            navigator.onLine && networkAvailable && dataAvailable;
+        const publish = () =>
+            updateConnectivity({
+                online: isOnline(),
+                degraded: networkAvailable && !dataAvailable,
+            });
+        let probeFailures = 0;
+        const probe = async () => {
+            const controller = new AbortController();
+            const abort = setTimeout(() => controller.abort(), 8000);
+            let identity: string | null = null;
+            try {
+                const response = await fetch('/offline/session', {
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                    signal: controller.signal,
+                    headers: { Accept: 'application/json' },
+                });
+                // The status says a process answered; only the identity it reports says
+                // whether the account database answered with it.
+                identity =
+                    ((await response
+                        .json()
+                        .catch(() => null)) as { identity?: string } | null)
+                        ?.identity ?? null;
+            } catch {
+                identity = null;
+            } finally {
+                clearTimeout(abort);
+            }
+            const recovered = !networkAvailable || !dataAvailable;
+            // Connectivity and identity are separate measurements. Any answer proves this
+            // server is up; only an identity that had to read the account tables proves
+            // the data service is readable enough to trust a submission.
+            if (identity === 'verified') {
+                probeFailures = 0;
+                networkAvailable = true;
+                dataAvailable = true;
+                publish();
+                if (recovered) restore();
+                return;
+            }
+            if (identity === 'anonymous') {
+                // A signed-out probe never touches the account tables, so it confirms
+                // reachability and nothing about the data service. It may relax the
+                // offline gate only where there is no authenticated context to queue
+                // for, and it must never be recorded as proof that submissions are safe
+                // while a private page — and therefore a live session — is still open.
+                probeFailures = 0;
+                networkAvailable = true;
+                if (!eligible(page)) dataAvailable = true;
+                publish();
+                return;
+            }
+            if (identity === null) {
+                // navigator.onLine stays true on captive portals and dead uplinks.
+                if (++probeFailures < 2 || !networkAvailable) return;
+                networkAvailable = false;
+                dataAvailable = false;
+                publish();
+                return;
+            }
+            // 'unresolved': Laravel is answering but cannot read account state, so the
+            // device must queue instead of submitting. One answer is enough proof.
+            probeFailures = 0;
+            networkAvailable = true;
+            dataAvailable = false;
+            // Always published: a reconnect that lands on an outage has to move the copy
+            // off "your internet is down" even though queueing was already blocked.
+            publish();
+        };
+        const restore = () => {
+            schedule();
+            void prepareQueue().then(() => {
+                if (page.component.startsWith('Resident/')) void syncNow();
+            });
+        };
         const prepareQueue = async () => {
             if (
                 !worker ||
                 preparing ||
-                !navigator.onLine ||
-                !networkAvailable ||
+                !isOnline() ||
                 !eligible(page) ||
                 !page.component.startsWith('Resident/')
             )
@@ -90,15 +171,9 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
             try {
                 await prepareOfflineCertificates();
                 preparedScope = page.props.offlineScope;
-                if (!closed) {
-                    setQueueMessage('Offline certificate drafts are ready.');
-                    void syncNow();
-                }
+                if (!closed) void syncNow();
             } catch {
-                if (!closed)
-                    setQueueMessage(
-                        'Open Certificate Requests online to prepare offline drafts.',
-                    );
+                // Preparation needs one online visit; nothing to queue yet.
             } finally {
                 preparing = false;
             }
@@ -106,9 +181,10 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
         const changedPage = (next: Page) => {
             page = next;
             setPrivatePage(eligible(page));
-            setIsResident(page.component.startsWith('Resident/'));
-            setPendingCertificates(0);
-            setQueueMessage('');
+            updateConnectivity({
+                pending: 0,
+                stale: page.props.offlineCached === true,
+            });
             schedule();
             void prepareQueue();
         };
@@ -137,8 +213,7 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                 loggingOut ||
                 saving ||
                 !worker ||
-                !navigator.onLine ||
-                !networkAvailable ||
+                !isOnline() ||
                 !eligible(page)
             )
                 return;
@@ -154,7 +229,7 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                 const assets = performance
                     .getEntriesByType('resource')
                     .map((item) => item.name);
-                const reply = await tell({
+                await tell({
                     type: 'KB_SAVE',
                     scope,
                     path: location.pathname + location.search,
@@ -162,23 +237,8 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                     html: offlineSnapshot(Date.now()),
                     assets,
                 });
-                if (!closed && page.props.offlineScope === scope)
-                    setState({
-                        online: navigator.onLine && networkAvailable,
-                        ready: reply.ok,
-                        savedAt: reply.savedAt,
-                        message: reply.ok
-                            ? undefined
-                            : 'Hindi pa handa ang offline copy ng page na ito.',
-                    });
             } catch {
-                if (!closed)
-                    setState({
-                        online: navigator.onLine && networkAvailable,
-                        ready: false,
-                        message:
-                            'Hindi available ang offline saving sa browser na ito.',
-                    });
+                // Snapshots are best effort; the app keeps working without one.
             } finally {
                 saving = false;
             }
@@ -233,27 +293,32 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                 }).catch(() => {});
                 return;
             }
-            if (navigator.onLine && networkAvailable) return;
+            if (isOnline()) return;
             if (visit.method.toLowerCase() === 'get') {
-                if (!visit.async) location.assign(visit.url.href);
-            } else
-                setState((current) => ({
-                    ...current,
-                    online: false,
-                    message:
-                        'Offline — kailangan ng internet para i-save ang aksiyong ito.',
-                }));
+                // Let the visit continue: the service worker answers it from the
+                // authorized page cache, and falls back to a saved copy when absent.
+                return;
+            }
+            notifyConnectivity(
+                'error',
+                networkAvailable
+                    ? 'The barangay data service is unavailable, so this action was not saved.'
+                    : 'Internet connection required to save this action.',
+            );
             return false;
         });
         const connection = () => {
-            networkAvailable = navigator.onLine;
-            setState((current) => ({ ...current, online: navigator.onLine }));
-            if (navigator.onLine) {
-                schedule();
-                void prepareQueue().then(() => {
-                    if (page.component.startsWith('Resident/')) void syncNow();
-                });
+            if (!navigator.onLine) {
+                networkAvailable = false;
+                dataAvailable = false;
+                probeFailures = 0;
+                publish();
+                return;
             }
+            // Reconnected, but reachability and readable account state still have to
+            // be proven before cached pages or queues are trusted again.
+            probeFailures = 0;
+            void probe();
         };
         const queueChanged = () => {
             if (!page.component.startsWith('Resident/')) return;
@@ -261,38 +326,36 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                 .then((store) => store.list())
                 .then((items) => {
                     if (!closed)
-                        setPendingCertificates(
-                            items.filter((item) =>
-                                [
-                                    'pending',
-                                    'syncing',
-                                    'login-required',
-                                ].includes(item.status),
-                            ).length,
-                        );
+                        updateConnectivity({ pending: countPending(items) });
                 })
-                .catch(() => {
-                    if (!closed) setPendingCertificates(0);
-                });
+                .catch(() => {});
         };
         const workerMessage = (event: MessageEvent) => {
             if (event.data?.type === 'KB_NETWORK_OFFLINE') {
                 networkAvailable = false;
-                setState((current) => ({ ...current, online: false }));
+                dataAvailable = false;
+                publish();
+            }
+            if (event.data?.type === 'KB_DATA_UNAVAILABLE') {
+                networkAvailable = true;
+                dataAvailable = false;
+                publish();
             }
             if (event.data?.type === 'KB_CERT_QUEUE_CHANGED') queueChanged();
         };
         const blockSubmit = (event: Event) => {
-            if (!navigator.onLine || !networkAvailable) {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                setState((current) => ({
-                    ...current,
-                    online: false,
-                    message:
-                        'Offline — kailangan ng internet para magsumite ng form.',
-                }));
-            }
+            const form = event.target as HTMLFormElement | null;
+            // Forms marked as offline-queueable handle their own offline submit.
+            if (isOnline() || form?.dataset?.kbOfflineQueue !== undefined)
+                return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            notifyConnectivity(
+                'error',
+                networkAvailable
+                    ? 'The barangay data service is unavailable, so nothing was submitted.'
+                    : 'Internet connection required to submit this form.',
+            );
         };
         window.addEventListener('online', connection);
         window.addEventListener('offline', connection);
@@ -301,14 +364,17 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
         const syncTimer = setInterval(() => {
             if (
                 page.component.startsWith('Resident/') &&
-                networkAvailable &&
-                navigator.onLine &&
+                isOnline() &&
                 preparedScope
             )
                 void syncNow();
         }, 30000);
+        const probeTimer = setInterval(() => {
+            if (navigator.onLine) void probe();
+        }, PROBE_MS);
         navigator.serviceWorker?.addEventListener('message', workerMessage);
-        setState((current) => ({ ...current, online: navigator.onLine }));
+        publish();
+        void probe();
         if ('serviceWorker' in navigator && !import.meta.env.DEV) {
             void (async () => {
                 try {
@@ -346,11 +412,10 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                     void prepareQueue();
                 } catch {
                     if (!closed)
-                        setState((current) => ({
-                            ...current,
-                            message:
-                                'Hindi available ang offline saving sa browser na ito.',
-                        }));
+                        notifyConnectivity(
+                            'error',
+                            'This browser cannot save offline copies.',
+                        );
                 }
             })();
         }
@@ -366,6 +431,7 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
             document.removeEventListener('submit', blockSubmit, true);
             window.removeEventListener('kb-certificate-queue', queueChanged);
             clearInterval(syncTimer);
+            clearInterval(probeTimer);
             navigator.serviceWorker?.removeEventListener(
                 'message',
                 workerMessage,
@@ -374,68 +440,7 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
     }, [initialPage]);
 
     if (!privatePage) return null;
-    // Temporarily hide the shared panel for every module while background offline support remains active.
     return (
-        <aside
-            hidden
-            data-kb-offline-control
-            role="status"
-            aria-live="polite"
-            className={`fixed bottom-3 left-3 z-[80] max-w-[calc(100vw-6rem)] rounded-xl border px-3 py-2 text-xs shadow-lg ${state.online ? 'border-stone-200 bg-white text-stone-700' : 'border-amber-300 bg-amber-50 text-amber-950'}`}
-        >
-            <p className="font-semibold">
-                {!state.online
-                    ? 'Offline · saved pages'
-                    : state.ready
-                      ? 'Saved for offline'
-                      : 'Preparing offline copy…'}
-            </p>
-            {state.savedAt && (
-                <p className="mt-1">
-                    Huling na-save:{' '}
-                    {new Date(state.savedAt).toLocaleTimeString('en-PH', {
-                        timeZone: 'Asia/Manila',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                    })}
-                </p>
-            )}
-            {state.message && <p className="mt-1">{state.message}</p>}
-            {!state.online && (
-                <p className="mt-1">
-                    {isResident
-                        ? 'Use offline drafts to prepare a certificate request.'
-                        : 'Internet is required for live updates.'}
-                </p>
-            )}
-            <a
-                href="/offline.html"
-                className="mt-1 inline-block font-semibold underline"
-            >
-                Mga saved page
-            </a>
-            {isResident && (
-                <div className="mt-2 border-t pt-2">
-                    <a
-                        href="/offline-certificates.html"
-                        className="font-semibold underline"
-                    >
-                        Offline drafts & requests
-                        {pendingCertificates > 0
-                            ? ` (${pendingCertificates} pending)`
-                            : ''}
-                    </a>
-                    {queueMessage && <p className="mt-1">{queueMessage}</p>}
-                    <button
-                        type="button"
-                        onClick={() => void syncNow()}
-                        disabled={!state.online || syncing}
-                        className="mt-1 rounded border px-2 py-1 disabled:opacity-50"
-                    >
-                        {syncing ? 'Syncing…' : 'Sync now'}
-                    </button>
-                </div>
-            )}
-        </aside>
+        <OfflineConnectivityIndicator onRetry={() => void syncNow()} />
     );
 }

@@ -1,5 +1,14 @@
 import { Link, router } from '@inertiajs/react';
 import type { ReactNode } from 'react';
+import DesktopOnly from '@/components/DesktopOnly';
+import { LogoMark } from '@/components/Logo';
+import {
+    ClipboardCheck,
+    LayoutDashboard,
+    LogOut,
+    Megaphone,
+    Users,
+} from 'lucide-react';
 
 type SeniorPage =
     | 'dashboard'
@@ -17,133 +26,102 @@ type SeniorLayoutProps = {
     };
 };
 
-export default function SeniorLayout({
-    children,
-    active,
-    user,
-}: SeniorLayoutProps) {
+type NavItem = {
+    label: string;
+    to: string;
+    icon: typeof LayoutDashboard;
+    active: boolean;
+};
+
+export default function SeniorLayout({ children, active, user }: SeniorLayoutProps) {
     const handleLogout = () => {
         router.post('/logout');
     };
 
+    const navItems: NavItem[] = [
+        { label: 'Dashboard', to: '/senior/dashboard', icon: LayoutDashboard, active: active === 'dashboard' },
+        { label: 'Members', to: '/senior/residents', icon: Users, active: active === 'residents' },
+        { label: 'Applications', to: '/senior/applications', icon: ClipboardCheck, active: active === 'applications' },
+        { label: 'Updates', to: '/senior/updates', icon: Megaphone, active: active === 'updates' },
+        { label: 'Programs', to: '/senior/programs', icon: Megaphone, active: active === 'programs' },
+    ];
+
     return (
-        <div className="min-h-screen bg-[#f7f6f0] text-gray-800">
-            {/* TOP HEADER */}
-            <header className="flex min-h-14 items-center justify-between bg-[#3f6f3d] px-4 py-3 text-white sm:px-5">
-                <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-[#3f6f3d]">
-                        SJ
+        <div className="min-h-screen bg-canvas text-ink">
+            <div className="hidden lg:block">
+                <header className="flex min-h-14 items-center justify-between border-b border-line-soft bg-surface px-5 py-3">
+                    <div className="flex items-center gap-3">
+                        <LogoMark tone="onBrand" size="sm" />
+                        <div className="leading-tight">
+                            <p className="text-sm font-semibold text-ink-strong">
+                                Barangay San Jose
+                            </p>
+                            <p className="text-xs text-ink-muted">
+                                Senior Citizens Portal
+                            </p>
+                        </div>
                     </div>
 
-                    <span className="text-sm font-semibold">
-                        Barangay San Jose{' '}
-                        <span className="font-normal opacity-80">
-                            | Senior Citizens Portal
+                    <div className="flex items-center gap-3">
+                        <span className="hidden text-sm text-ink-muted sm:inline">
+                            {user?.name || 'Senior Staff'}
                         </span>
-                    </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <span className="hidden text-sm sm:inline">
-                        {user?.name || 'Senior Staff'}
-                    </span>
-
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#315b30] font-semibold">
-                        {user?.name ? user.name.charAt(0).toUpperCase() : 'S'}
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand">
+                            {(user?.name || 'S').charAt(0).toUpperCase()}
+                        </div>
                     </div>
+                </header>
+
+                <div className="flex min-h-[calc(100vh-57px)]">
+                    <aside className="flex w-60 shrink-0 flex-col border-r border-line-soft bg-surface px-3 py-5">
+                        <p className="mb-3 px-3 text-[10px] font-semibold tracking-wide text-ink-faint uppercase">
+                            Senior Desk Access
+                        </p>
+
+                        <nav className="space-y-1">
+                            {navItems.map((item) => (
+                                <SidebarLink key={item.to} {...item} />
+                            ))}
+                        </nav>
+
+                        <div className="mt-auto border-t border-line-soft pt-4">
+                            <button
+                                type="button"
+                                onClick={handleLogout}
+                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-danger-soft"
+                            >
+                                <LogOut className="size-4" />
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </aside>
+
+                    <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-7">
+                        {children}
+                    </main>
                 </div>
-            </header>
+            </div>
 
-            <div className="flex flex-col lg:flex-row">
-                {/* SIDEBAR */}
-                <aside className="flex min-h-0 w-full flex-col border-b border-gray-200 bg-white px-3 py-4 lg:min-h-[calc(100vh-56px)] lg:w-52 lg:border-r lg:border-b-0 lg:py-5">
-                    <p className="mb-3 px-3 text-[10px] font-semibold tracking-wide text-gray-400 uppercase">
-                        Senior Desk Access
-                    </p>
-
-                    {/* MAIN NAVIGATION */}
-                    <nav className="grid grid-cols-2 gap-1 lg:block lg:space-y-1">
-                        <SidebarLink
-                            href="/senior/dashboard"
-                            icon="📊"
-                            label="Dashboard"
-                            active={active === 'dashboard'}
-                        />
-
-                        <SidebarLink
-                            href="/senior/residents"
-                            icon="👥"
-                            label="Members"
-                            active={active === 'residents'}
-                        />
-
-                        <SidebarLink
-                            href="/senior/applications"
-                            icon="📝"
-                            label="Applications"
-                            active={active === 'applications'}
-                        />
-
-                        <SidebarLink
-                            href="/senior/updates"
-                            icon="U"
-                            label="Updates"
-                            active={active === 'updates'}
-                        />
-
-                        <SidebarLink
-                            href="/senior/programs"
-                            icon="P"
-                            label="Programs"
-                            active={active === 'programs'}
-                        />
-                    </nav>
-
-                    {/* LOGOUT */}
-                    <div className="mt-4 border-t border-gray-200 pt-4 lg:mt-auto">
-                        <button
-                            type="button"
-                            onClick={handleLogout}
-                            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
-                        >
-                            <span className="w-4 text-center">↪</span>
-                            <span>Logout</span>
-                        </button>
-                    </div>
-                </aside>
-
-                {/* PAGE CONTENT */}
-                <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-7">
-                    {children}
-                </main>
+            <div className="lg:hidden">
+                <DesktopOnly />
             </div>
         </div>
     );
 }
 
-function SidebarLink({
-    href,
-    icon,
-    label,
-    active = false,
-}: {
-    href: string;
-    icon: string;
-    label: string;
-    active?: boolean;
-}) {
+function SidebarLink({ label, to, icon: Icon, active }: NavItem) {
     return (
         <Link
             prefetch="hover"
             cacheFor="10s"
-            href={href}
-            className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition ${
+            href={to}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                 active
-                    ? 'bg-[#e8f1e4] text-[#3f6f3d]'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                    ? 'bg-brand-soft text-brand'
+                    : 'text-ink-muted hover:bg-canvas hover:text-ink'
             }`}
         >
-            <span className="w-4 text-center">{icon}</span>
+            <Icon className="size-4 shrink-0" />
             <span>{label}</span>
         </Link>
     );

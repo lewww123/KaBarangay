@@ -31,6 +31,9 @@ type ComplaintAgainstMe = {
  * deliberately not part of this batch.
  */
 type ComplaintStatus =
+    | 'Pending Payment'
+    | 'Payment Verification'
+    | 'Payment Verified'
     | 'Submitted'
     | 'Under Review'
     | 'For Payment'
@@ -51,6 +54,7 @@ type Complaint = {
     narrative: string;
     requestedAction: string;
     trackingStatus: string;
+    caseProgress?: string | null;
     evidence: LuponEvidenceFile[];
     status: ComplaintStatus;
     luponNote?: string | null;
@@ -68,6 +72,7 @@ type Complaint = {
 };
 
 type ComplaintForm = {
+    submission_token: string;
     evidence: File[];
     respondentName: string;
     respondentResidentStatus: string;
@@ -82,6 +87,7 @@ type ComplaintForm = {
 };
 
 const emptyForm: ComplaintForm = {
+    submission_token: '',
     evidence: [],
     respondentName: '',
     respondentResidentStatus: '',
@@ -148,7 +154,7 @@ function LuponContent({
     const [showTracking, setShowTracking] = useState(false);
 
     const { data, setData, post, processing, errors, reset } =
-        useForm<ComplaintForm>(emptyForm);
+        useForm<ComplaintForm>({ ...emptyForm, submission_token: globalThis.crypto.randomUUID() });
 
     const canContinue = useMemo(
         () =>
@@ -196,6 +202,7 @@ function LuponContent({
 
     const handleNewComplaint = () => {
         reset();
+        setData('submission_token', globalThis.crypto.randomUUID());
         setSelectedComplaint(null);
         setShowTracking(false);
         setStep('form');
@@ -247,7 +254,7 @@ function LuponContent({
                             }}
                             className={`min-h-11 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
                                 activeTab === 'file'
-                                    ? 'bg-[#3f6f3d] text-white shadow-sm'
+                                    ? 'bg-brand text-white shadow-card'
                                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                             }`}
                         >
@@ -259,7 +266,7 @@ function LuponContent({
                             onClick={openMyComplaints}
                             className={`min-h-11 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
                                 activeTab === 'complaints'
-                                    ? 'bg-[#3f6f3d] text-white shadow-sm'
+                                    ? 'bg-brand text-white shadow-card'
                                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                             }`}
                         >
@@ -277,7 +284,7 @@ function LuponContent({
                             }}
                             className={`min-h-11 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
                                 activeTab === 'against'
-                                    ? 'bg-[#3f6f3d] text-white shadow-sm'
+                                    ? 'bg-brand text-white shadow-card'
                                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                             }`}
                         >
@@ -303,7 +310,7 @@ function LuponContent({
 
                                     <div className="mt-5 rounded-xl border border-[#d9e7d5] bg-[#f4f8f2] p-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-[#3f6f3d]">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-brand">
                                                 <UserIcon />
                                             </div>
 
@@ -312,7 +319,7 @@ function LuponContent({
                                                     <p className="font-semibold text-gray-900">
                                                         {resident.fullName}
                                                     </p>
-                                                    <span className="rounded-full bg-[#dcebd8] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[#3f6f3d] uppercase">
+                                                    <span className="rounded-full bg-[#dcebd8] px-2 py-0.5 text-[10px] font-bold tracking-wide text-brand uppercase">
                                                         Verified
                                                     </span>
                                                 </div>
@@ -591,7 +598,7 @@ function LuponContent({
                             <div className="space-y-5">
                                 <SectionCard>
                                     <div className="flex items-start gap-3">
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-[#3f6f3d]">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-brand">
                                             <ReviewIcon />
                                         </div>
 
@@ -675,7 +682,7 @@ function LuponContent({
                                     <Divider />
 
                                     <div>
-                                        <p className="text-sm font-bold text-gray-900">
+                                        <p className="text-sm font-semibold text-ink-strong">
                                             Complaint Details
                                         </p>
                                         <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
@@ -686,7 +693,7 @@ function LuponContent({
                                     <Divider />
 
                                     <div>
-                                        <p className="text-sm font-bold text-gray-900">
+                                        <p className="text-sm font-semibold text-ink-strong">
                                             Requested Action
                                         </p>
                                         <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
@@ -721,7 +728,7 @@ function LuponContent({
                         {step === 'success' && justSubmitted && (
                             <div className="mx-auto max-w-2xl">
                                 <div className="rounded-2xl border border-gray-200 bg-white px-5 py-8 text-center shadow-sm sm:px-8 sm:py-10">
-                                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#e7f2e3] text-[#3f6f3d]">
+                                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#e7f2e3] text-brand">
                                         <LargeCheckIcon />
                                     </div>
 
@@ -739,7 +746,7 @@ function LuponContent({
                                             Case Reference
                                         </p>
 
-                                        <p className="mt-1 text-lg font-bold text-[#3f6f3d]">
+                                        <p className="mt-1 text-lg font-bold text-brand">
                                             {justSubmitted.reference}
                                         </p>
 
@@ -914,7 +921,7 @@ function LuponContent({
                                     <Divider />
 
                                     <div>
-                                        <p className="text-sm font-bold text-gray-900">
+                                        <p className="text-sm font-semibold text-ink-strong">
                                             Complaint Details
                                         </p>
                                         <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
@@ -925,7 +932,7 @@ function LuponContent({
                                     <Divider />
 
                                     <div>
-                                        <p className="text-sm font-bold text-gray-900">
+                                        <p className="text-sm font-semibold text-ink-strong">
                                             Requested Action
                                         </p>
                                         <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
@@ -941,7 +948,7 @@ function LuponContent({
                                             <Divider />
 
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900">
+                                                <p className="text-sm font-semibold text-ink-strong">
                                                     Note from Lupon
                                                 </p>
                                                 <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
@@ -1016,7 +1023,7 @@ function LuponContent({
                                                     <span className="text-base font-bold text-gray-900">
                                                         {item.caseNumber}
                                                     </span>
-                                                    <span className="rounded-full bg-[#e8f1e4] px-2.5 py-0.5 text-xs font-semibold text-[#3f6f3d]">
+                                                    <span className="rounded-full bg-[#e8f1e4] px-2.5 py-0.5 text-xs font-semibold text-brand">
                                                         {item.phase} Phase
                                                     </span>
                                                     <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
@@ -1029,7 +1036,7 @@ function LuponContent({
                                                     {item.caseType}
                                                 </p>
 
-                                                <div className="mt-2 grid gap-1 text-xs text-gray-500 sm:grid-cols-2 sm:gap-x-8">
+                                                <div className="mt-2 grid gap-1 text-xs text-ink-muted sm:grid-cols-2 sm:gap-x-8">
                                                     <p>
                                                         <span className="text-gray-400">
                                                             Complainant:
@@ -1043,7 +1050,7 @@ function LuponContent({
                                                         {item.filedDate}
                                                     </p>
                                                     {item.nextHearing ? (
-                                                        <p className="font-medium text-[#3f6f3d] sm:col-span-2">
+                                                        <p className="font-medium text-brand sm:col-span-2">
                                                             📅 Next Hearing:{' '}
                                                             {
                                                                 item.nextHearing
@@ -1104,7 +1111,18 @@ function LuponContent({
 }
 
 function ComplaintPayment({ complaint }: { complaint: Complaint }) {
-    if (complaint.status !== 'For Payment' && !complaint.case) return null;
+    const amount = complaint.case?.feeAmount ?? complaint.assessedFee;
+    const inPaymentStage = [
+        'Pending Payment',
+        'Payment Verification',
+        'Payment Verified',
+        'For Payment',
+    ].includes(complaint.status);
+
+    if ((!inPaymentStage && !complaint.case) || (!complaint.case && Number(amount ?? 0) <= 0)) {
+        return null;
+    }
+
     const paid = complaint.case?.paymentStatus === 'paid';
     return (
         <div
@@ -1119,10 +1137,10 @@ function ComplaintPayment({ complaint }: { complaint: Complaint }) {
                       : 'For Payment — pay at the barangay office'}
             </h3>
             <p className="mt-2">
-                Filing fee: ₱
-                {Number(
-                    complaint.case?.feeAmount ?? complaint.assessedFee ?? 0,
-                ).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                {paid || complaint.case ? 'Filing fee' : 'Amount to Pay'}: ₱
+                {Number(amount ?? 0).toLocaleString('en-PH', {
+                    minimumFractionDigits: 2,
+                })}
             </p>
             {complaint.case?.orNumber && (
                 <p className="mt-1">
@@ -1187,6 +1205,12 @@ function ComplaintTracking({
                 <p className="mt-1 text-lg font-bold text-[#315b30]">
                     {complaint.trackingStatus ?? complaint.status}
                 </p>
+                {complaint.caseProgress &&
+                    complaint.caseProgress !== complaint.trackingStatus && (
+                        <p className="mt-1 text-sm leading-6 text-gray-600">
+                            Case progress: {complaint.caseProgress}
+                        </p>
+                    )}
                 <p className="mt-2 text-sm leading-6 text-gray-600">
                     {getStatusDescription(complaint.status)}
                 </p>
@@ -1195,7 +1219,7 @@ function ComplaintTracking({
             <ComplaintPayment complaint={complaint} />
             {complaint.luponNote && (
                 <SectionCard>
-                    <p className="text-sm font-bold text-gray-900">
+                    <p className="text-sm font-semibold text-ink-strong">
                         Note from Lupon
                     </p>
                     <p className="mt-2 text-sm leading-6 whitespace-pre-line text-gray-600">
@@ -1298,7 +1322,7 @@ function ComplaintTracking({
                                         </p>
 
                                         {item.state === 'current' && (
-                                            <span className="rounded-full bg-[#e8f1e4] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[#3f6f3d] uppercase">
+                                            <span className="rounded-full bg-[#e8f1e4] px-2 py-0.5 text-[10px] font-bold tracking-wide text-brand uppercase">
                                                 Current
                                             </span>
                                         )}
@@ -1379,7 +1403,7 @@ function getTrackingSteps(
         ];
     }
 
-    const currentIndex = hasCase ? 3 : status === 'For Payment' ? 2 : 1;
+    const currentIndex = hasCase ? 3 : ['For Payment', 'Pending Payment', 'Payment Verification'].includes(status) ? 2 : 1;
 
     return baseSteps.map((item, index) => {
         let state: TrackingState = 'future';
@@ -1431,7 +1455,7 @@ function ComplaintCard({
                 <button
                     type="button"
                     onClick={onView}
-                    className="min-h-10 shrink-0 rounded-xl border border-[#bcd2b6] bg-white px-4 py-2 text-sm font-semibold text-[#3f6f3d] transition hover:bg-[#f0f6ee]"
+                    className="min-h-10 shrink-0 rounded-xl border border-[#bcd2b6] bg-white px-4 py-2 text-sm font-semibold text-brand transition hover:bg-[#f0f6ee]"
                 >
                     View Details
                 </button>
@@ -1440,8 +1464,35 @@ function ComplaintCard({
     );
 }
 
+/**
+ * Residents follow three stages only: review, payment, and the official case.
+ * Historical intake labels collapse onto the stage they meant.
+ */
+function statusLabel(status: ComplaintStatus): string {
+    if (status === 'Submitted' || status === 'Under Review') {
+        return 'Under Review';
+    }
+
+    if (
+        status === 'Pending Payment' ||
+        status === 'Payment Verification' ||
+        status === 'For Payment'
+    ) {
+        return 'For Payment';
+    }
+
+    if (status === 'Payment Verified') {
+        return 'Case Created';
+    }
+
+    return status;
+}
+
 function StatusBadge({ status }: { status: ComplaintStatus }) {
     const styles: Record<ComplaintStatus, string> = {
+        'Pending Payment': 'bg-orange-50 text-orange-800 border-orange-200',
+        'Payment Verification': 'bg-amber-50 text-amber-800 border-amber-200',
+        'Payment Verified': 'bg-emerald-50 text-emerald-800 border-emerald-200',
         Submitted: 'bg-blue-50 text-blue-700 border-blue-200',
         'Under Review': 'bg-amber-50 text-amber-700 border-amber-200',
         'For Payment': 'bg-orange-50 text-orange-800 border-orange-200',
@@ -1449,11 +1500,13 @@ function StatusBadge({ status }: { status: ComplaintStatus }) {
         Rejected: 'bg-red-50 text-red-700 border-red-200',
     };
 
+    const shown = statusLabel(status);
+
     return (
         <span
-            className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-bold ${styles[status]}`}
+            className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-bold ${styles[shown as ComplaintStatus] ?? styles['Payment Verified']}`}
         >
-            {status === 'Submitted' ? 'For Review' : status}
+            {shown}
         </span>
     );
 }
@@ -1477,7 +1530,7 @@ function SectionHeading({
 }) {
     return (
         <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-sm font-bold text-[#3f6f3d]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e8f1e4] text-sm font-bold text-brand">
                 {number}
             </div>
 
@@ -1536,7 +1589,7 @@ function ReviewSection({
 }) {
     return (
         <div>
-            <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+            <h3 className="text-sm font-semibold text-ink-strong">{title}</h3>
 
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
                 {items.map(([label, value]) => (
@@ -1583,6 +1636,9 @@ function EmptyComplaints({ onFile }: { onFile: () => void }) {
 
 function getStatusDescription(status: ComplaintStatus) {
     const descriptions: Record<ComplaintStatus, string> = {
+        'Pending Payment': 'Visit the barangay hall to pay the assessed filing fee. No official case exists until the Secretary verifies payment.',
+        'Payment Verification': 'The Secretary is checking the actual payment and official receipt.',
+        'Payment Verified': 'Payment verified and linked to the official case.',
         Submitted:
             'Your complaint has been submitted and is waiting for Lupon review.',
         'Under Review':

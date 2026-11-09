@@ -118,10 +118,10 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                 {/* HEADER */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                        <h1 className="text-xl font-semibold text-ink-strong sm:text-2xl">
                             Citizen&apos;s Charter Directory
                         </h1>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             Upload, publish, and manage official barangay
                             service standards and procedures.
                         </p>
@@ -130,9 +130,9 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                     <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#315b30]"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-card transition hover:bg-brand-deep"
                     >
-                        <span>➕</span>
+                        <span></span>
                         <span>Add New Service</span>
                     </button>
                 </div>
@@ -151,44 +151,44 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
 
                 {/* STATS TILES */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                        <div className="text-xs font-medium tracking-wider text-gray-400 uppercase">
+                    <div className="rounded-xl border border-line-soft bg-white p-4 shadow-card">
+                        <div className="text-xs font-medium tracking-wider text-ink-faint uppercase">
                             Total Services
                         </div>
-                        <div className="mt-2 text-2xl font-bold text-gray-900">
+                        <div className="mt-2 text-2xl font-semibold text-ink-strong">
                             {stats.total}
                         </div>
                     </div>
-                    <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 shadow-sm">
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 shadow-card">
                         <div className="text-xs font-medium tracking-wider text-blue-600 uppercase">
                             Draft Revisions
                         </div>
-                        <div className="mt-2 text-2xl font-bold text-blue-900">
+                        <div className="mt-2 text-2xl font-semibold text-blue-900">
                             {stats.draft}
                         </div>
                     </div>
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-card">
                         <div className="text-xs font-medium tracking-wider text-emerald-600 uppercase">
                             Published Live
                         </div>
-                        <div className="mt-2 text-2xl font-bold text-emerald-900">
+                        <div className="mt-2 text-2xl font-semibold text-emerald-900">
                             {stats.published}
                         </div>
                     </div>
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
-                        <div className="text-xs font-medium tracking-wider text-gray-500 uppercase">
+                    <div className="rounded-xl border border-line-soft bg-canvas p-4 shadow-card">
+                        <div className="text-xs font-medium tracking-wider text-ink-muted uppercase">
                             Archived
                         </div>
-                        <div className="mt-2 text-2xl font-bold text-gray-700">
+                        <div className="mt-2 text-2xl font-semibold text-ink">
                             {stats.archived}
                         </div>
                     </div>
                 </div>
 
                 {/* CONTROLS (TABS & SEARCH) */}
-                <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 rounded-xl border border-line-soft bg-white p-4 shadow-card sm:flex-row sm:items-center sm:justify-between">
                     {/* STATUS TABS */}
-                    <div className="flex flex-wrap gap-1 border-b border-gray-100 pb-2 sm:border-b-0 sm:pb-0">
+                    <div className="flex flex-wrap gap-1 border-b border-line-soft pb-2 sm:border-b-0 sm:pb-0">
                         {STATUS_TABS.map((tab) => {
                             const isCurrent = filters.status === tab.value;
                             return (
@@ -198,8 +198,8 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                     onClick={() => visit({ status: tab.value })}
                                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                                         isCurrent
-                                            ? 'bg-[#3f6f3d] text-white shadow-xs'
-                                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                            ? 'bg-brand text-white shadow-xs'
+                                            : 'text-ink-muted hover:bg-secondary hover:text-ink-strong'
                                     }`}
                                 >
                                     <span>{tab.label}</span>
@@ -207,7 +207,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                         className={`py-0.2 rounded-full px-1.5 text-[10px] ${
                                             isCurrent
                                                 ? 'bg-white/25 text-white'
-                                                : 'bg-gray-100 text-gray-600'
+                                                : 'bg-secondary text-ink-muted'
                                         }`}
                                     >
                                         {stats[tab.countKey]}
@@ -227,11 +227,11 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                             placeholder="Search service title, category..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                            className="w-full rounded-lg border border-line px-3 py-1.5 text-xs focus:border-brand focus:outline-hidden"
                         />
                         <button
                             type="submit"
-                            className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-200"
+                            className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-ink transition hover:bg-line-soft"
                         >
                             Filter
                         </button>
@@ -239,14 +239,14 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                 </div>
 
                 {/* SERVICE LIST TABLE */}
-                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <div className="overflow-hidden rounded-xl border border-line-soft bg-white shadow-card">
                     {services.data.length === 0 ? (
                         <div className="p-12 text-center">
-                            <div className="text-3xl">📋</div>
-                            <h3 className="mt-3 text-sm font-bold text-gray-800">
+                            <div className="text-3xl"></div>
+                            <h3 className="mt-3 text-sm font-semibold text-ink-strong">
                                 No Citizen&apos;s Charter services found
                             </h3>
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="mt-1 text-xs text-ink-muted">
                                 {filters.search || filters.status !== 'all'
                                     ? 'Try adjusting your search query or status filter.'
                                     : 'Get started by adding an official service and uploading its corresponding PDF.'}
@@ -255,7 +255,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
-                                <thead className="border-b border-gray-200 bg-gray-50 text-[11px] font-semibold tracking-wider text-gray-500 uppercase">
+                                <thead className="border-b border-line-soft bg-canvas text-[11px] font-semibold tracking-wider text-ink-muted uppercase">
                                     <tr>
                                         <th className="px-4 py-3">
                                             Service Title
@@ -271,7 +271,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100 text-gray-700">
+                                <tbody className="divide-y divide-gray-100 text-ink">
                                     {services.data.map((service) => {
                                         const badge = charterStatusBadge(
                                             service.status,
@@ -283,7 +283,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                         return (
                                             <tr
                                                 key={service.id}
-                                                className="transition hover:bg-gray-50/70"
+                                                className="transition hover:bg-canvas/70"
                                             >
                                                 <td className="px-4 py-3.5">
                                                     <Link
@@ -291,12 +291,12 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                                             service.show_url ||
                                                             `/clerk/citizen-charter/${service.id}`
                                                         }
-                                                        className="font-bold text-gray-900 hover:text-[#3f6f3d]"
+                                                        className="font-semibold text-ink-strong hover:text-brand"
                                                     >
                                                         {service.title}
                                                     </Link>
                                                     {service.description && (
-                                                        <p className="mt-0.5 line-clamp-1 max-w-md text-[11px] text-gray-400">
+                                                        <p className="mt-0.5 line-clamp-1 max-w-md text-[11px] text-ink-faint">
                                                             {
                                                                 service.description
                                                             }
@@ -304,29 +304,29 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                                     )}
                                                 </td>
 
-                                                <td className="px-4 py-3.5 text-gray-600">
+                                                <td className="px-4 py-3.5 text-ink-muted">
                                                     {service.category || (
-                                                        <span className="text-gray-400">
+                                                        <span className="text-ink-faint">
                                                             Uncategorized
                                                         </span>
                                                     )}
                                                 </td>
 
                                                 <td className="px-4 py-3.5">
-                                                    <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-700">
+                                                    <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-semibold text-ink">
                                                         v{versionNum}
                                                     </span>
                                                 </td>
 
                                                 <td className="px-4 py-3.5">
                                                     <span
-                                                        className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${badge.classes}`}
+                                                        className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${badge.classes}`}
                                                     >
                                                         {badge.label}
                                                     </span>
                                                 </td>
 
-                                                <td className="px-4 py-3.5 text-gray-500">
+                                                <td className="px-4 py-3.5 text-ink-muted">
                                                     {formatCharterDate(
                                                         service.published_at,
                                                     )}
@@ -338,10 +338,10 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                                             service.show_url ||
                                                             `/clerk/citizen-charter/${service.id}`
                                                         }
-                                                        className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-2.5 py-1 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
+                                                        className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-ink transition hover:bg-secondary"
                                                     >
                                                         <span>Manage</span>
-                                                        <span>→</span>
+                                                        <span></span>
                                                     </Link>
                                                 </td>
                                             </tr>
@@ -354,7 +354,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
 
                     {/* PAGINATION */}
                     {services.last_page > 1 && (
-                        <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50/50 px-4 py-3 text-xs text-gray-600">
+                        <div className="flex items-center justify-between border-t border-line-soft bg-canvas/50 px-4 py-3 text-xs text-ink-muted">
                             <div>
                                 Showing{' '}
                                 <span className="font-semibold">
@@ -393,11 +393,11 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                         dangerouslySetInnerHTML={{
                                             __html: link.label,
                                         }}
-                                        className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
                                             link.active
-                                                ? 'bg-[#3f6f3d] text-white'
+                                                ? 'bg-brand text-white'
                                                 : link.url
-                                                  ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+                                                  ? 'border border-line bg-white text-ink hover:bg-secondary'
                                                   : 'cursor-not-allowed text-gray-300'
                                         }`}
                                     />
@@ -411,17 +411,17 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
             {/* CREATE SERVICE MODAL */}
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-                        <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                            <h2 className="text-base font-bold text-gray-900">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+                        <div className="flex items-center justify-between border-b border-line-soft pb-3">
+                            <h2 className="text-base font-semibold text-ink-strong">
                                 Add Citizen&apos;s Charter Service
                             </h2>
                             <button
                                 type="button"
                                 onClick={() => setShowCreateModal(false)}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="text-ink-faint hover:text-ink-muted"
                             >
-                                ✕
+                                
                             </button>
                         </div>
 
@@ -430,7 +430,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                             className="mt-4 space-y-4"
                         >
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Service Title{' '}
                                     <span className="text-red-500">*</span>
                                 </label>
@@ -442,7 +442,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                     onChange={(e) =>
                                         form.setData('title', e.target.value)
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                 />
                                 {form.errors.title && (
                                     <p className="mt-1 text-xs text-red-600">
@@ -453,7 +453,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
 
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Category (Optional)
                                     </label>
                                     <input
@@ -466,7 +466,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                                 e.target.value,
                                             )
                                         }
-                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                        className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                     />
                                     {form.errors.category && (
                                         <p className="mt-1 text-xs text-red-600">
@@ -476,7 +476,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700">
+                                    <label className="block text-xs font-semibold text-ink">
                                         Display Order
                                     </label>
                                     <input
@@ -489,7 +489,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                                 e.target.value,
                                             )
                                         }
-                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                        className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                     />
                                     {form.errors.display_order && (
                                         <p className="mt-1 text-xs text-red-600">
@@ -500,7 +500,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Description / Summary (Optional)
                                 </label>
                                 <textarea
@@ -513,7 +513,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                             e.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3f6f3d] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                 />
                                 {form.errors.description && (
                                     <p className="mt-1 text-xs text-red-600">
@@ -523,7 +523,7 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Official Service Document (PDF only){' '}
                                     <span className="text-red-500">*</span>
                                 </label>
@@ -538,9 +538,9 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                             e.target.files?.[0] || null,
                                         )
                                     }
-                                    className="mt-1 block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f1e4] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#3f6f3d] hover:file:bg-[#d6e7ce]"
+                                    className="mt-1 block w-full text-xs text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-brand-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand hover:file:bg-[#d6e4f2]"
                                 />
-                                <p className="mt-1 text-[11px] text-gray-400">
+                                <p className="mt-1 text-[11px] text-ink-faint">
                                     PDF file only. Max 2 MB per runtime upload
                                     limit. Scanned PDFs supported.
                                 </p>
@@ -551,18 +551,18 @@ function ClerkCitizenCharterIndex({ services, filters, stats, user }: Props) {
                                 )}
                             </div>
 
-                            <div className="flex items-center justify-end gap-2 border-t border-gray-200 pt-4">
+                            <div className="flex items-center justify-end gap-2 border-t border-line-soft pt-4">
                                 <button
                                     type="button"
                                     onClick={() => setShowCreateModal(false)}
-                                    className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
+                                    className="rounded-lg border border-line px-4 py-2 text-xs font-semibold text-ink transition hover:bg-secondary"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={form.processing}
-                                    className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-50"
+                                    className="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-deep disabled:opacity-50"
                                 >
                                     {form.processing
                                         ? 'Saving...'

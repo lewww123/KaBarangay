@@ -1,3 +1,4 @@
+import ProceedingsPanel, { type ArbitrationRecord } from '@/components/lupon/ProceedingsPanel';
 import {
     caseSaveOptions,
     CaseSaveFeedback,
@@ -62,6 +63,10 @@ type Props = {
         documents: LuponDocument[];
         evidence: LuponEvidenceFile[];
         paymentStatus: string;
+        canVerifyPayments: boolean;
+        arbitrationRecord?: ArbitrationRecord | null;
+        dispositionRecord?: { event_date: string; notes: string } | null;
+        paymentVerification?: { verified_at: string; payment_date: string; actor_id: number; or_number?: string; amount?: string } | null;
         actingCaptainId?: number | null;
         intake: {
             narrative?: string | null;
@@ -374,7 +379,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                 </div>
 
                 <CaseWorkspace
-                    overview={<CaseOverview caseData={caseData} />}
+                    overview={<><CaseOverview caseData={caseData} />{caseData.paymentVerification && <section className="rounded-xl border bg-white p-4 text-sm"><h2 className="font-bold">Payment verification</h2><p>Verified: {caseData.paymentVerification.verified_at} · Staff #{caseData.paymentVerification.actor_id}</p><p>Actual payment date: {caseData.paymentVerification.payment_date}</p></section>}</>}
                     key={caseData.id}
                     workflow={caseData.workflow}
                     hearings={caseData.hearings}
@@ -384,6 +389,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                     panels={{
                         hearings: (
                             <>
+                                <ProceedingsPanel caseId={caseData.id} status={caseData.status} evidence={caseData.evidence} arbitration={caseData.arbitrationRecord} disposition={caseData.dispositionRecord} />
                                 <p className="text-sm text-slate-600">
                                     Dito magtakda ng meeting at mag-update ng
                                     hearing record pagkatapos ng aktuwal na
@@ -453,6 +459,9 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                     caseId={caseData.id}
                                     status={caseData.status}
                                     paymentStatus={caseData.paymentStatus}
+                                    canVerifyPayments={
+                                        caseData.canVerifyPayments
+                                    }
                                     actingCaptainId={caseData.actingCaptainId}
                                     documents={caseData.documents}
                                     officials={officials}

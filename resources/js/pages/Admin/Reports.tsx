@@ -101,23 +101,23 @@ export default function Reports({
             <Head title="Admin Reports" />
             <AdminLayout active="reports">
                 <div className="mb-6">
-                    <p className="text-sm font-medium text-[#3f6f3d]">
+                    <p className="text-sm font-medium text-brand">
                         Management overview
                     </p>
-                    <h1 className="mt-1 text-2xl font-semibold text-gray-800">
+                    <h1 className="mt-1 text-2xl font-semibold text-ink-strong">
                         Admin Reports
                     </h1>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                         Barangay-scoped summaries for planning and monitoring.
                     </p>
                 </div>
 
                 <form
                     onSubmit={applyFilters}
-                    className="mb-6 rounded-xl border border-[#e7e4d8] bg-[#fafaf7] p-4"
+                    className="mb-6 rounded-xl border border-[#dfe4ea] bg-surface p-4"
                 >
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-sm font-medium text-ink">
                             Reporting period
                             <select
                                 value={filters.period}
@@ -127,7 +127,7 @@ export default function Reports({
                                         period: event.target.value,
                                     })
                                 }
-                                className="mt-1 block w-full rounded-lg border-gray-300 bg-white text-sm"
+                                className="mt-1 block w-full rounded-lg border-line bg-white text-sm"
                             >
                                 <option value="daily">Daily</option>
                                 <option value="weekly">Weekly</option>
@@ -139,7 +139,7 @@ export default function Reports({
 
                         {filters.period === 'range' ? (
                             <>
-                                <label className="text-sm font-medium text-gray-700">
+                                <label className="text-sm font-medium text-ink">
                                     From
                                     <input
                                         type="date"
@@ -150,7 +150,7 @@ export default function Reports({
                                                 date_from: event.target.value,
                                             })
                                         }
-                                        className="mt-1 block w-full rounded-lg border-gray-300 bg-white text-sm"
+                                        className="mt-1 block w-full rounded-lg border-line bg-white text-sm"
                                     />
                                     {errors.date_from && (
                                         <span className="mt-1 block text-xs text-red-700">
@@ -158,7 +158,7 @@ export default function Reports({
                                         </span>
                                     )}
                                 </label>
-                                <label className="text-sm font-medium text-gray-700">
+                                <label className="text-sm font-medium text-ink">
                                     To
                                     <input
                                         type="date"
@@ -169,7 +169,7 @@ export default function Reports({
                                                 date_to: event.target.value,
                                             })
                                         }
-                                        className="mt-1 block w-full rounded-lg border-gray-300 bg-white text-sm"
+                                        className="mt-1 block w-full rounded-lg border-line bg-white text-sm"
                                     />
                                     {errors.date_to && (
                                         <span className="mt-1 block text-xs text-red-700">
@@ -179,7 +179,7 @@ export default function Reports({
                                 </label>
                             </>
                         ) : (
-                            <label className="text-sm font-medium text-gray-700">
+                            <label className="text-sm font-medium text-ink">
                                 {filters.period === 'daily'
                                     ? 'Day'
                                     : filters.period === 'weekly'
@@ -221,7 +221,7 @@ export default function Reports({
                                                   : event.target.value;
                                         setFilters({ ...filters, date });
                                     }}
-                                    className="mt-1 block w-full rounded-lg border-gray-300 bg-white text-sm"
+                                    className="mt-1 block w-full rounded-lg border-line bg-white text-sm"
                                 />
                                 {errors.date && (
                                     <span className="mt-1 block text-xs text-red-700">
@@ -231,7 +231,7 @@ export default function Reports({
                             </label>
                         )}
 
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-sm font-medium text-ink">
                             Report category
                             <select
                                 value={filters.category}
@@ -241,7 +241,7 @@ export default function Reports({
                                         category: event.target.value,
                                     })
                                 }
-                                className="mt-1 block w-full rounded-lg border-gray-300 bg-white text-sm"
+                                className="mt-1 block w-full rounded-lg border-line bg-white text-sm"
                             >
                                 {Object.entries(categoryLabels).map(
                                     ([value, label]) => (
@@ -262,17 +262,17 @@ export default function Reports({
                         <button
                             type="submit"
                             disabled={loading}
-                            className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#345b32] disabled:opacity-60"
+                            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-[#345b32] disabled:opacity-60"
                         >
                             {loading ? 'Generating…' : 'Generate report'}
                         </button>
                         <a
                             href={exportUrl}
-                            className="rounded-lg border border-[#3f6f3d] px-4 py-2 text-sm font-semibold text-[#3f6f3d] hover:bg-white"
+                            className="rounded-lg border border-brand px-4 py-2 text-sm font-semibold text-brand hover:bg-white"
                         >
                             Export aggregate CSV
                         </a>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-ink-muted">
                             Activity: {window.label} · {window.timezone}.
                             Population cards are current snapshots. Category
                             selection filters detail sections and export; the
@@ -298,17 +298,17 @@ export default function Reports({
                             <div>
                                 <h2
                                     id="summary-heading"
-                                    className="text-base font-semibold text-gray-800"
+                                    className="text-base font-semibold text-ink-strong"
                                 >
                                     Management summary
                                 </h2>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-ink-muted">
                                     Resident totals match the approved Residents
                                     directory; service totals use the selected
                                     period.
                                 </p>
                             </div>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-ink-muted">
                                 {categoryLabels[filters.category]}
                             </span>
                         </div>
@@ -429,8 +429,8 @@ export default function Reports({
                                 title="Programs & attendance reports"
                                 subtitle="Only approved, published Event or attendance-required announcements with an event date are included."
                             />
-                            <div className="mb-4 rounded-xl border border-[#e7e4d8] bg-white p-4 text-sm text-gray-700">
-                                <span className="font-semibold text-[#3f6f3d]">
+                            <div className="mb-4 rounded-xl border border-[#dfe4ea] bg-white p-4 text-sm text-ink">
+                                <span className="font-semibold text-brand">
                                     {programs.count.toLocaleString()}
                                 </span>{' '}
                                 approved and published programs in the selected
@@ -489,7 +489,7 @@ function Metric({
     note: string;
 }) {
     return (
-        <div className="rounded-xl bg-[#3f6f3d] p-5 text-white shadow-sm">
+        <div className="rounded-xl bg-brand p-5 text-white shadow-card">
             <p className="text-xs font-medium text-white/80">{title}</p>
             <p className="mt-2 text-3xl font-semibold tabular-nums">
                 {value.toLocaleString()}
@@ -510,10 +510,10 @@ function SectionHeading({
 }) {
     return (
         <div className="mb-3">
-            <h2 id={id} className="text-base font-semibold text-gray-800">
+            <h2 id={id} className="text-base font-semibold text-ink-strong">
                 {title}
             </h2>
-            <p className="mt-1 text-xs leading-5 text-gray-500">{subtitle}</p>
+            <p className="mt-1 text-xs leading-5 text-ink-muted">{subtitle}</p>
         </div>
     );
 }
@@ -529,12 +529,12 @@ function Chart({
 }) {
     const maximum = Math.max(1, ...points.map((point) => point.count));
     return (
-        <div className="rounded-xl border border-[#e7e4d8] bg-white p-4">
-            <h3 className="mb-3 text-sm font-semibold text-gray-800">
+        <div className="rounded-xl border border-[#dfe4ea] bg-white p-4">
+            <h3 className="mb-3 text-sm font-semibold text-ink-strong">
                 {title}
             </h3>
             {points.every((point) => point.count === 0) ? (
-                <p className="rounded-lg bg-[#fafaf7] px-3 py-4 text-sm text-gray-500">
+                <p className="rounded-lg bg-surface px-3 py-4 text-sm text-ink-muted">
                     {empty}
                 </p>
             ) : (
@@ -548,7 +548,7 @@ function Chart({
                             className="grid grid-cols-[minmax(5rem,8rem)_1fr_3rem] items-center gap-2 text-xs"
                         >
                             <span
-                                className="truncate text-gray-600"
+                                className="truncate text-ink-muted"
                                 title={point.label}
                             >
                                 {point.label}
@@ -565,7 +565,7 @@ function Chart({
                                     }}
                                 />
                             </span>
-                            <span className="text-right font-semibold text-gray-800 tabular-nums">
+                            <span className="text-right font-semibold text-ink-strong tabular-nums">
                                 {point.count.toLocaleString()}
                             </span>
                         </li>

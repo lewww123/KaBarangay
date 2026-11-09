@@ -66,13 +66,13 @@ export default function ClerkDisbursementShow({
             <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
                 <Link
                     href="/clerk/disbursements"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 transition hover:text-[#3f6f3d]"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-muted transition hover:text-brand"
                 >
                     <BackIcon />
                     Back to disbursement documents
                 </Link>
 
-                <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <section className="mt-4 rounded-xl border border-line-soft bg-white p-5 shadow-card">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -82,21 +82,21 @@ export default function ClerkDisbursementShow({
                                     {disbursementStatusLabel(status)}
                                 </span>
 
-                                <span className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-600">
+                                <span className="rounded-lg border border-line-soft bg-canvas px-2 py-1 text-[11px] font-semibold text-ink-muted">
                                     {disbursementFileType(document)}
                                 </span>
 
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-ink-faint">
                                     {formatFileSize(document.file_size)}
                                 </span>
                             </div>
 
-                            <h1 className="mt-3 text-2xl font-bold break-words text-gray-900">
+                            <h1 className="mt-3 text-2xl font-semibold break-words text-ink-strong">
                                 {document.title}
                             </h1>
 
                             {document.description && (
-                                <p className="mt-2 max-w-3xl text-sm whitespace-pre-wrap text-gray-600">
+                                <p className="mt-2 max-w-3xl text-sm whitespace-pre-wrap text-ink-muted">
                                     {document.description}
                                 </p>
                             )}
@@ -105,7 +105,7 @@ export default function ClerkDisbursementShow({
                         <div className="flex shrink-0 flex-wrap gap-2">
                             <a
                                 href={document.download_url}
-                                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-line bg-white px-4 text-sm font-semibold text-ink transition hover:bg-canvas"
                             >
                                 Download original
                             </a>
@@ -115,7 +115,7 @@ export default function ClerkDisbursementShow({
                                     type="button"
                                     disabled={busy}
                                     onClick={() => runAction('publish')}
-                                    className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#3f6f3d] px-4 text-sm font-semibold text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {busy ? 'Publishing...' : 'Publish'}
                                 </button>
@@ -134,7 +134,7 @@ export default function ClerkDisbursementShow({
                         </div>
                     </div>
 
-                    <dl className="mt-5 grid gap-3 border-t border-gray-100 pt-5 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                    <dl className="mt-5 grid gap-3 border-t border-line-soft pt-5 text-xs sm:grid-cols-2 lg:grid-cols-4">
                         <Detail
                             label="Original file"
                             value={document.original_name}
@@ -169,7 +169,7 @@ export default function ClerkDisbursementShow({
                     )}
 
                     {status === 'archived' && (
-                        <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                        <p className="mt-4 rounded-lg border border-line-soft bg-canvas px-3 py-2 text-xs text-ink-muted">
                             Archived on{' '}
                             {formatDisbursementDateTime(document.archived_at)}.
                             Archived documents cannot be republished.
@@ -179,11 +179,11 @@ export default function ClerkDisbursementShow({
 
                 <section className="mt-5">
                     <div className="mb-3 flex items-center justify-between">
-                        <h2 className="text-sm font-semibold text-gray-900">
+                        <h2 className="text-sm font-semibold text-ink-strong">
                             Private preview
                         </h2>
 
-                        <p className="text-[11px] text-gray-500">
+                        <p className="text-[11px] text-ink-muted">
                             Staff-only view of the uploaded original
                         </p>
                     </div>
@@ -201,8 +201,8 @@ export default function ClerkDisbursementShow({
 function Detail({ label, value }: { label: string; value: string }) {
     return (
         <div className="min-w-0">
-            <dt className="font-medium text-gray-400">{label}</dt>
-            <dd className="mt-1 break-words text-gray-700">{value}</dd>
+            <dt className="font-medium text-ink-faint">{label}</dt>
+            <dd className="mt-1 break-words text-ink">{value}</dd>
         </div>
     );
 }

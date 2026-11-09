@@ -40,6 +40,7 @@ type PendingRegistration = {
     mobile: string;
     email: string | null;
     barangay: string | null;
+    purok_id?: number | null;
     purok: string | null;
     sectors: Sector[];
     documents: RegistrationDocument[];
@@ -78,6 +79,15 @@ type Stats = {
     totalHouseholds: number;
 };
 
+type TabCounts = {
+    allResidents?: number;
+    households?: number;
+    addedByAdmin?: number;
+    pendingRegistrations?: number;
+    needsCorrectionRegistrations?: number;
+    rejectedRegistrations?: number;
+};
+
 type Purok = {
     id: number;
     name: string;
@@ -91,6 +101,36 @@ type Household = {
     head: string;
     purok: string | null;
     members_count: number;
+};
+
+type HouseholdMemberDetails = {
+    id: number;
+    name: string;
+    first_name: string;
+    last_name: string;
+    relationship: string;
+    birthdate: string | null;
+    sex: string | null;
+    mobile: string | null;
+    email: string | null;
+    is_head: boolean;
+};
+
+type HouseholdFullDetails = {
+    id: number;
+    code: string;
+    purok_id: number;
+    purok_name: string | null;
+    head_resident_id: number | null;
+    head: {
+        id: number;
+        name: string;
+        mobile: string | null;
+        email: string | null;
+    } | null;
+    members_count: number;
+    members: HouseholdMemberDetails[];
+    created_at: string | null;
 };
 
 type Paginator<T> = {
@@ -138,6 +178,7 @@ type ResidentDetails = {
     source: string;
     approved_at: string | null;
     barangay: string | null;
+    purok_id?: number | null;
     purok: string | null;
     account_exists: boolean;
     account_active: boolean;
@@ -153,6 +194,12 @@ type ResidentDetails = {
         }>;
     } | null;
     sectors: Sector[];
+    designations?: string[];
+    staff_assignments?: Array<{
+        barangay: string | null;
+        department: string | null;
+        position: string | null;
+    }>;
     decision_notification?: {
         id: number;
         status: string;
@@ -180,6 +227,7 @@ type RegistrationDetails = {
     matched_at: string | null;
     last_resubmitted_at: string | null;
     barangay: string | null;
+    purok_id?: number | null;
     purok: string | null;
     sectors: Sector[];
     documents: RegistrationDocument[];
@@ -227,8 +275,10 @@ type Props = {
         resident_search?: string;
         registration_search?: string;
         purok_id?: number | null;
+        tab?: Tab;
     };
     stats?: Stats;
+    tabCounts?: TabCounts;
     flash?: { success?: string | null; error?: string | null };
 };
 
@@ -282,8 +332,23 @@ const RESIDENT_PARTIAL_PROPS = [
     'rejectedRegistrations',
     'addedByAdmin',
     'households',
+    'tabCounts',
     'filters',
 ];
+
+const TAB_DATA_PROP: Record<Tab, string> = {
+    all: 'allResidents',
+    added_by_admin: 'addedByAdmin',
+    households: 'households',
+    pending: 'pendingRegistrations',
+    needs_correction: 'needsCorrectionRegistrations',
+    rejected: 'rejectedRegistrations',
+};
+
+const normalizeTab = (tab?: string): Tab =>
+    tab && Object.prototype.hasOwnProperty.call(TAB_DATA_PROP, tab)
+        ? (tab as Tab)
+        : 'all';
 
 export default function Residents({
     allResidents,
@@ -300,6 +365,7 @@ export default function Residents({
         pendingRegistrations: 0,
         totalHouseholds: 0,
     },
+    tabCounts,
     flash,
 }: Props) {
     const safePuroks = Array.isArray(puroks) ? puroks : [];
@@ -333,6 +399,32 @@ export default function Residents({
         rejectedRegistrations ?? emptyPaginator<PendingRegistration>();
     const householdPaginator = households ?? emptyPaginator<HouseholdRow>();
 
+    const allResidentsTotal =
+        allResidents != null
+            ? allPaginator.total
+            : (tabCounts?.allResidents ?? 0);
+    const householdTotal =
+        households != null
+            ? householdPaginator.total
+            : (tabCounts?.households ?? 0);
+    const addedByAdminTotal =
+        addedByAdmin != null
+            ? addedByAdminPaginator.total
+            : (tabCounts?.addedByAdmin ?? 0);
+    const needsCorrectionTotal =
+        needsCorrectionRegistrations != null
+            ? needsCorrectionPaginator.total
+            : (tabCounts?.needsCorrectionRegistrations ?? 0);
+    const rejectedTotal =
+        rejectedRegistrations != null
+            ? rejectedPaginator.total
+            : (tabCounts?.rejectedRegistrations ?? 0);
+    const pendingTotal =
+        livePending.total ??
+        (pendingRegistrations != null
+            ? pendingPaginator.total
+            : (tabCounts?.pendingRegistrations ?? stats.pendingRegistrations));
+
     const pendingRows = Array.isArray(pendingPaginator.data)
         ? pendingPaginator.data
         : [];
@@ -349,7 +441,9 @@ export default function Residents({
         ? addedByAdminPaginator.data
         : [];
 
-    const [activeTab, setActiveTab] = useState<Tab>('all');
+    const [activeTab, setActiveTab] = useState<Tab>(() =>
+        normalizeTab(filters?.tab),
+    );
     useEffect(() => {
         if (activeTab === 'pending') {
             void livePending.refresh();
@@ -383,6 +477,28 @@ export default function Residents({
     const detailsRequestId = useRef(0);
 
     const [showCreateResident, setShowCreateResident] = useState(false);
+    const [editingResident, setEditingResident] = useState<ResidentDetails | null>(null);
+    const [loadingEditResidentId, setLoadingEditResidentId] = useState<number | null>(null);
+
+    const editResidentForm = useForm({
+        purok_id: '',
+        first_name: '',
+        middle_name: '',
+        last_name: '',
+        suffix: '',
+        birthdate: '',
+        sex: '',
+        civil_status: '',
+        address_line: '',
+        mobile: '',
+        email: '',
+        household_mode: 'preserve',
+        household_id: '',
+        household_relationship: '',
+    });
+    const [editHouseholdSearch, setEditHouseholdSearch] = useState('');
+    const [editHouseholdMatches, setEditHouseholdMatches] = useState<Household[]>([]);
+
     const createResidentForm = useForm({
         purok_id: '',
         first_name: '',
@@ -405,15 +521,22 @@ export default function Residents({
     const lastQueried = useRef(filters?.resident_search ?? '');
     const lastQueriedRegistration = useRef(filters?.registration_search ?? '');
 
-    useEffect(() => {
-        if (
-            typeof window !== 'undefined' &&
-            new URLSearchParams(window.location.search).get('tab') ===
-                'households'
-        ) {
-            setActiveTab('households');
+    const tabIsLoaded = (tab: Tab): boolean => {
+        switch (tab) {
+            case 'all':
+                return allResidents != null;
+            case 'households':
+                return households != null;
+            case 'added_by_admin':
+                return addedByAdmin != null;
+            case 'pending':
+                return pendingRegistrations != null;
+            case 'needs_correction':
+                return needsCorrectionRegistrations != null;
+            case 'rejected':
+                return rejectedRegistrations != null;
         }
-    }, []);
+    };
 
     /*
      * Partial reloads keep every tab's independent pagination state intact so
@@ -450,6 +573,40 @@ export default function Residents({
             },
             {
                 only,
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
+
+    const selectTab = (tab: Tab) => {
+        if (tab === activeTab) {
+            return;
+        }
+
+        setActiveTab(tab);
+
+        if (tabIsLoaded(tab)) {
+            return;
+        }
+
+        router.get(
+            '/admin/residents',
+            {
+                resident_search: approvedSearch.trim() || undefined,
+                registration_search: registrationSearch.trim() || undefined,
+                tab: tab === 'households' ? 'households' : undefined,
+                purok: selectedPurokId ?? undefined,
+                added_page: addedByAdminPaginator.current_page,
+                all_page: allPaginator.current_page,
+                pending_page: pendingPaginator.current_page,
+                needs_correction_page: needsCorrectionPaginator.current_page,
+                rejected_page: rejectedPaginator.current_page,
+                household_page: householdPaginator.current_page,
+            },
+            {
+                only: [TAB_DATA_PROP[tab], 'filters'],
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
@@ -530,6 +687,283 @@ export default function Residents({
         };
     }, [householdSearch, createResidentForm.data.household_mode]);
 
+    useEffect(() => {
+        if (
+            editResidentForm.data.household_mode !== 'existing' ||
+            editHouseholdSearch.trim().length < 2
+        ) {
+            setEditHouseholdMatches([]);
+            return;
+        }
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+            fetch(
+                `/admin/residents/households/search?q=${encodeURIComponent(editHouseholdSearch.trim())}`,
+                {
+                    headers: { Accept: 'application/json' },
+                    signal: controller.signal,
+                },
+            )
+                .then((response) =>
+                    response.ok ? response.json() : Promise.reject(),
+                )
+                .then((payload: { data?: Household[] }) =>
+                    setEditHouseholdMatches(
+                        Array.isArray(payload.data) ? payload.data : [],
+                    ),
+                )
+                .catch(() => setEditHouseholdMatches([]));
+        }, 250);
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [editHouseholdSearch, editResidentForm.data.household_mode]);
+
+    // Household Management States
+    const [showCreateHousehold, setShowCreateHousehold] = useState(false);
+    const [viewingHousehold, setViewingHousehold] = useState<HouseholdFullDetails | null>(null);
+    const [editingHousehold, setEditingHousehold] = useState<HouseholdFullDetails | null>(null);
+    const [loadingHouseholdId, setLoadingHouseholdId] = useState<number | null>(null);
+    const [transferringMember, setTransferringMember] = useState<HouseholdMemberDetails | null>(null);
+
+    const createHouseholdForm = useForm({
+        purok_id: '',
+        household_code: '',
+        head_resident_id: '',
+        members: [] as Array<{
+            resident_id: number;
+            resident_name: string;
+            household_relationship: string;
+        }>,
+    });
+    const [createHouseholdResidentSearch, setCreateHouseholdResidentSearch] = useState('');
+    const [createHouseholdResidentMatches, setCreateHouseholdResidentMatches] = useState<Array<{ id: number; full_name: string; purok: string }>>([]);
+
+    // Household codes are immutable after creation, so the edit form only
+    // carries the mutable location and head assignment.
+    const editHouseholdForm = useForm({
+        purok_id: '',
+        head_resident_id: '',
+    });
+
+    const addMemberForm = useForm({
+        resident_id: '',
+        household_relationship: 'Member',
+        is_head: false,
+    });
+    const [addMemberResidentSearch, setAddMemberResidentSearch] = useState('');
+    const [addMemberResidentMatches, setAddMemberResidentMatches] = useState<Array<{ id: number; full_name: string; purok: string }>>([]);
+    const [selectedAddMemberResident, setSelectedAddMemberResident] = useState<{
+        id: number;
+        full_name: string;
+    } | null>(null);
+
+    const transferMemberForm = useForm({
+        target_household_id: '',
+        household_relationship: 'Member',
+        is_head: false,
+    });
+    const [transferHouseholdSearch, setTransferHouseholdSearch] = useState('');
+    const [transferHouseholdMatches, setTransferHouseholdMatches] = useState<Household[]>([]);
+
+    useEffect(() => {
+        if (createHouseholdResidentSearch.trim().length < 2) {
+            setCreateHouseholdResidentMatches([]);
+            return;
+        }
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+            fetch(`/admin/residents/search?q=${encodeURIComponent(createHouseholdResidentSearch.trim())}`, {
+                headers: { Accept: 'application/json' },
+                signal: controller.signal,
+            })
+                .then((res) => (res.ok ? res.json() : Promise.reject()))
+                .then((data: { residents?: Array<{ id: number; full_name: string; purok: string }> }) =>
+                    setCreateHouseholdResidentMatches(Array.isArray(data.residents) ? data.residents : [])
+                )
+                .catch(() => setCreateHouseholdResidentMatches([]));
+        }, 250);
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [createHouseholdResidentSearch]);
+
+    useEffect(() => {
+        // Once a resident is chosen, the filled name must not trigger a new
+        // suggestion fetch that would reopen the dropdown.
+        if (selectedAddMemberResident) {
+            setAddMemberResidentMatches([]);
+            return;
+        }
+        if (addMemberResidentSearch.trim().length < 2) {
+            setAddMemberResidentMatches([]);
+            return;
+        }
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+            fetch(`/admin/residents/search?q=${encodeURIComponent(addMemberResidentSearch.trim())}`, {
+                headers: { Accept: 'application/json' },
+                signal: controller.signal,
+            })
+                .then((res) => (res.ok ? res.json() : Promise.reject()))
+                .then((data: { residents?: Array<{ id: number; full_name: string; purok: string }> }) =>
+                    setAddMemberResidentMatches(Array.isArray(data.residents) ? data.residents : [])
+                )
+                .catch(() => setAddMemberResidentMatches([]));
+        }, 250);
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [addMemberResidentSearch, selectedAddMemberResident]);
+
+    useEffect(() => {
+        if (transferHouseholdSearch.trim().length < 2) {
+            setTransferHouseholdMatches([]);
+            return;
+        }
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+            fetch(`/admin/residents/households/search?q=${encodeURIComponent(transferHouseholdSearch.trim())}`, {
+                headers: { Accept: 'application/json' },
+                signal: controller.signal,
+            })
+                .then((res) => (res.ok ? res.json() : Promise.reject()))
+                .then((data: { data?: Household[] }) =>
+                    setTransferHouseholdMatches(Array.isArray(data.data) ? data.data : [])
+                )
+                .catch(() => setTransferHouseholdMatches([]));
+        }, 250);
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [transferHouseholdSearch]);
+
+    const openViewHousehold = async (householdId: number) => {
+        setLoadingHouseholdId(householdId);
+        try {
+            const res = await fetch(`/admin/households/${householdId}`, {
+                headers: { Accept: 'application/json' },
+            });
+            if (res.ok) {
+                const payload = await res.json();
+                setViewingHousehold(payload.data);
+            }
+        } catch {
+            // failed
+        } finally {
+            setLoadingHouseholdId(null);
+        }
+    };
+
+    const openEditHousehold = async (householdId: number) => {
+        setLoadingHouseholdId(householdId);
+        try {
+            const res = await fetch(`/admin/households/${householdId}`, {
+                headers: { Accept: 'application/json' },
+            });
+            if (res.ok) {
+                const payload = await res.json();
+                const data: HouseholdFullDetails = payload.data;
+                setEditingHousehold(data);
+                editHouseholdForm.setData({
+                    purok_id: String(data.purok_id),
+                    head_resident_id: data.head_resident_id ? String(data.head_resident_id) : '',
+                });
+                // Start each household with a clean add-member selection.
+                addMemberForm.reset();
+                setAddMemberResidentSearch('');
+                setAddMemberResidentMatches([]);
+                setSelectedAddMemberResident(null);
+            }
+        } catch {
+            // failed
+        } finally {
+            setLoadingHouseholdId(null);
+        }
+    };
+
+    const submitCreateHousehold = (e: React.FormEvent) => {
+        e.preventDefault();
+        createHouseholdForm.post('/admin/households', {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowCreateHousehold(false);
+                createHouseholdForm.reset();
+                setCreateHouseholdResidentSearch('');
+                router.reload({ only: ['households', 'stats'] });
+            },
+        });
+    };
+
+    const submitEditHousehold = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingHousehold) return;
+        editHouseholdForm.put(`/admin/households/${editingHousehold.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditingHousehold(null);
+                router.reload({ only: ['households', 'stats'] });
+            },
+        });
+    };
+
+    const submitAddMember = (e: React.FormEvent) => {
+        e.preventDefault();
+        // A resident must be chosen from the autocomplete results; free text
+        // alone can never be submitted as an id.
+        if (
+            !editingHousehold ||
+            !selectedAddMemberResident ||
+            !addMemberForm.data.resident_id
+        ) {
+            return;
+        }
+        addMemberForm.post(`/admin/households/${editingHousehold.id}/members`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                addMemberForm.reset();
+                setAddMemberResidentSearch('');
+                setSelectedAddMemberResident(null);
+                openEditHousehold(editingHousehold.id);
+                router.reload({ only: ['households', 'stats'] });
+            },
+        });
+    };
+
+    const handleRemoveMember = (householdId: number, residentId: number) => {
+        if (!confirm('Are you sure you want to remove this resident from the household? The resident record will remain intact.')) {
+            return;
+        }
+        router.delete(`/admin/households/${householdId}/members/${residentId}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (editingHousehold) {
+                    openEditHousehold(householdId);
+                }
+                router.reload({ only: ['households', 'stats'] });
+            },
+        });
+    };
+
+    const submitTransferMember = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingHousehold || !transferringMember) return;
+        transferMemberForm.post(`/admin/households/${editingHousehold.id}/members/${transferringMember.id}/transfer`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setTransferringMember(null);
+                transferMemberForm.reset();
+                setTransferHouseholdSearch('');
+                openEditHousehold(editingHousehold.id);
+                router.reload({ only: ['households', 'stats'] });
+            },
+        });
+    };
+
     const navigateResidents = (url: string) => {
         const tabProps: Record<string, string> = {
             all: 'allResidents',
@@ -570,6 +1004,75 @@ export default function Residents({
 
     const openResidentDetails = (residentId: number) => {
         loadDetails('resident', residentId);
+    };
+
+    const openEditResident = async (residentId: number) => {
+        setLoadingEditResidentId(residentId);
+        setResidentActionError('');
+
+        try {
+            const response = await fetch(`/admin/residents/${residentId}/details`, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error(`Could not load resident details (HTTP ${response.status}).`);
+            }
+
+            const payload = await response.json();
+            const resident: ResidentDetails = payload.data;
+
+            editResidentForm.setData({
+                purok_id: resident.purok_id ? String(resident.purok_id) : '',
+                first_name: resident.first_name || '',
+                middle_name: resident.middle_name || '',
+                last_name: resident.last_name || '',
+                suffix: resident.suffix || '',
+                birthdate: resident.birthdate || '',
+                sex: resident.sex || '',
+                civil_status: resident.civil_status || '',
+                address_line: resident.address_line || '',
+                mobile: resident.mobile || '',
+                email: resident.email || '',
+                household_mode: resident.household ? 'preserve' : 'none',
+                household_id: resident.household ? String(resident.household.id) : '',
+                household_relationship: resident.household?.relationship || '',
+            });
+
+            if (resident.household) {
+                setEditHouseholdSearch(`${resident.household.code} · ${resident.household.head || 'No head'}`);
+            } else {
+                setEditHouseholdSearch('');
+            }
+            setEditHouseholdMatches([]);
+            setEditingResident(resident);
+        } catch (err: unknown) {
+            setResidentActionError(
+                err instanceof Error ? err.message : 'Unable to load resident for editing.',
+            );
+        } finally {
+            setLoadingEditResidentId(null);
+        }
+    };
+
+    const submitEditResident = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (!editingResident) {
+            return;
+        }
+
+        editResidentForm.put(`/admin/residents/${editingResident.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditingResident(null);
+                editResidentForm.reset();
+            },
+        });
     };
 
     const openRegistrationDetails = (registrationId: number) => {
@@ -693,15 +1196,14 @@ export default function Residents({
         );
     };
 
-    const toggleAccountStatus = (resident: Resident) => {
-        const next = !resident.accountActive;
+    const toggleAccountStatus = (resident: Resident | { id: number; fullName: string; accountActive: boolean | null }) => {
+        const next = !Boolean(resident.accountActive);
 
-        if (
-            !next &&
-            !window.confirm(
-                `Disable the login account for ${resident.fullName}? They will not be able to sign in.`,
-            )
-        ) {
+        const promptText = next
+            ? `Enable the login account for ${resident.fullName}? They will be able to sign in.`
+            : `Disable the login account for ${resident.fullName}? They will not be able to sign in.`;
+
+        if (!window.confirm(promptText)) {
             return;
         }
 
@@ -932,16 +1434,7 @@ export default function Residents({
                 </div>
 
                 <Deferred
-                    data={[
-                        'allResidents',
-                        'pendingRegistrations',
-                        'needsCorrectionRegistrations',
-                        'rejectedRegistrations',
-                        'puroks',
-                        'addedByAdmin',
-                        'households',
-                        'stats',
-                    ]}
+                    data={['stats', 'puroks', 'tabCounts']}
                     fallback={
                         <AdminPageSkeleton
                             metrics={2}
@@ -975,34 +1468,34 @@ export default function Residents({
                     <div className="mb-5 flex flex-col gap-4 border-b border-gray-200 sm:flex-row sm:items-end sm:justify-between">
                         <div className="flex overflow-x-auto">
                             <TabButton
-                                label={`All Residents (${allPaginator.total})`}
+                                label={`All Residents (${allResidentsTotal})`}
                                 active={activeTab === 'all'}
-                                onClick={() => setActiveTab('all')}
+                                onClick={() => selectTab('all')}
                             />
                             <TabButton
-                                label={`Households (${householdPaginator.total})`}
+                                label={`Households (${householdTotal})`}
                                 active={activeTab === 'households'}
-                                onClick={() => setActiveTab('households')}
+                                onClick={() => selectTab('households')}
                             />
                             <TabButton
-                                label={`Added by Admin (${addedByAdminPaginator.total})`}
+                                label={`Added by Admin (${addedByAdminTotal})`}
                                 active={activeTab === 'added_by_admin'}
-                                onClick={() => setActiveTab('added_by_admin')}
+                                onClick={() => selectTab('added_by_admin')}
                             />
                             <TabButton
-                                label={`Pending Accounts (${livePending.total ?? stats.pendingRegistrations})`}
+                                label={`Pending Accounts (${pendingTotal})`}
                                 active={activeTab === 'pending'}
-                                onClick={() => setActiveTab('pending')}
+                                onClick={() => selectTab('pending')}
                             />
                             <TabButton
-                                label={`Needs Correction (${needsCorrectionPaginator.total})`}
+                                label={`Needs Correction (${needsCorrectionTotal})`}
                                 active={activeTab === 'needs_correction'}
-                                onClick={() => setActiveTab('needs_correction')}
+                                onClick={() => selectTab('needs_correction')}
                             />
                             <TabButton
-                                label={`Rejected (${rejectedPaginator.total})`}
+                                label={`Rejected (${rejectedTotal})`}
                                 active={activeTab === 'rejected'}
-                                onClick={() => setActiveTab('rejected')}
+                                onClick={() => selectTab('rejected')}
                             />
                         </div>
 
@@ -1063,32 +1556,73 @@ export default function Residents({
                     )}
 
                     {activeTab === 'all' && (
-                        <AllResidentsTable
-                            paginator={allPaginator}
-                            onNavigate={navigateResidents}
-                            onViewResident={openResidentDetails}
-                        />
+                        <Deferred
+                            data="allResidents"
+                            fallback={
+                                <AdminPageSkeleton rows={7} columns={4} />
+                            }
+                        >
+                            <AllResidentsTable
+                                paginator={allPaginator}
+                                onNavigate={navigateResidents}
+                                onViewResident={openResidentDetails}
+                                onEditResident={openEditResident}
+                                onToggleAccount={toggleAccountStatus}
+                                loadingEditResidentId={loadingEditResidentId}
+                            />
+                        </Deferred>
                     )}
 
                     {activeTab === 'added_by_admin' && (
-                        <AddedByAdminResidentsTable
-                            residents={adminAddedResidents}
-                            paginator={addedByAdminPaginator}
-                            onNavigate={navigateResidents}
-                            onToggleStatus={toggleResidentStatus}
-                            onToggleAccount={toggleAccountStatus}
-                            onRevokeQr={revokeQrCredential}
-                            onReissueQr={reissueQrCredential}
-                            onView={(resident) =>
-                                openResidentDetails(resident.id)
+                        <Deferred
+                            data="addedByAdmin"
+                            fallback={
+                                <AdminPageSkeleton rows={7} columns={4} />
                             }
-                        />
+                        >
+                            <AddedByAdminResidentsTable
+                                residents={adminAddedResidents}
+                                paginator={addedByAdminPaginator}
+                                onNavigate={navigateResidents}
+                                onToggleStatus={toggleResidentStatus}
+                                onToggleAccount={toggleAccountStatus}
+                                onRevokeQr={revokeQrCredential}
+                                onReissueQr={reissueQrCredential}
+                                onView={(resident) =>
+                                    openResidentDetails(resident.id)
+                                }
+                            />
+                        </Deferred>
                     )}
                     {activeTab === 'households' && (
-                        <HouseholdsTable
-                            paginator={householdPaginator}
-                            onNavigate={navigateResidents}
-                        />
+                        <Deferred
+                            data="households"
+                            fallback={
+                                <AdminPageSkeleton rows={7} columns={4} />
+                            }
+                        >
+                            <div className="space-y-4">
+                                <div className="flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            createHouseholdForm.reset();
+                                            setShowCreateHousehold(true);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#345c32]"
+                                    >
+                                        + Create Household
+                                    </button>
+                                </div>
+                                <HouseholdsTable
+                                    paginator={householdPaginator}
+                                    onNavigate={navigateResidents}
+                                    onViewHousehold={openViewHousehold}
+                                    onEditHousehold={openEditHousehold}
+                                    loadingHouseholdId={loadingHouseholdId}
+                                />
+                            </div>
+                        </Deferred>
                     )}
 
                     {activeTab === 'pending' &&
@@ -1145,44 +1679,77 @@ export default function Residents({
                         )}
 
                     {activeTab === 'pending' && (
-                        <PendingRegistrationsTable
-                            applications={pendingRows}
-                            paginator={pendingPaginator}
-                            onNavigate={navigateResidents}
-                            searchActive={registrationSearch.trim() !== ''}
-                            onView={openApplicationReview}
-                            onReject={openReject}
-                            onApprove={openApplicationReview}
-                            processingApproveId={processingApproveId}
-                            onRetryNotification={retryDecisionNotification}
-                        />
+                        <Deferred
+                            data="pendingRegistrations"
+                            fallback={
+                                <AdminPageSkeleton rows={7} columns={4} />
+                            }
+                        >
+                            <PendingRegistrationsTable
+                                applications={pendingRows}
+                                paginator={pendingPaginator}
+                                onNavigate={navigateResidents}
+                                searchActive={
+                                    registrationSearch.trim() !== ''
+                                }
+                                onView={openApplicationReview}
+                                onReject={openReject}
+                                onApprove={openApplicationReview}
+                                processingApproveId={processingApproveId}
+                                onRetryNotification={
+                                    retryDecisionNotification
+                                }
+                            />
+                        </Deferred>
                     )}
 
                     {activeTab === 'needs_correction' && (
-                        <PendingRegistrationsTable
-                            applications={needsCorrectionRows}
-                            paginator={needsCorrectionPaginator}
-                            onNavigate={navigateResidents}
-                            searchActive={registrationSearch.trim() !== ''}
-                            onView={openApplicationReview}
-                            onReject={openReject}
-                            onApprove={openApplicationReview}
-                            processingApproveId={processingApproveId}
-                            onRetryNotification={retryDecisionNotification}
-                        />
+                        <Deferred
+                            data="needsCorrectionRegistrations"
+                            fallback={
+                                <AdminPageSkeleton rows={7} columns={4} />
+                            }
+                        >
+                            <PendingRegistrationsTable
+                                applications={needsCorrectionRows}
+                                paginator={needsCorrectionPaginator}
+                                onNavigate={navigateResidents}
+                                searchActive={
+                                    registrationSearch.trim() !== ''
+                                }
+                                onView={openApplicationReview}
+                                onReject={openReject}
+                                onApprove={openApplicationReview}
+                                processingApproveId={processingApproveId}
+                                onRetryNotification={
+                                    retryDecisionNotification
+                                }
+                            />
+                        </Deferred>
                     )}
 
                     {activeTab === 'rejected' && (
-                        <RejectedRegistrationsTable
-                            applications={rejectedRows}
-                            paginator={rejectedPaginator}
-                            onNavigate={navigateResidents}
-                            searchActive={registrationSearch.trim() !== ''}
-                            onView={(application) =>
-                                openRegistrationDetails(application.id)
+                        <Deferred
+                            data="rejectedRegistrations"
+                            fallback={
+                                <AdminPageSkeleton rows={7} columns={4} />
                             }
-                            onRetryNotification={retryDecisionNotification}
-                        />
+                        >
+                            <RejectedRegistrationsTable
+                                applications={rejectedRows}
+                                paginator={rejectedPaginator}
+                                onNavigate={navigateResidents}
+                                searchActive={
+                                    registrationSearch.trim() !== ''
+                                }
+                                onView={(application) =>
+                                    openRegistrationDetails(application.id)
+                                }
+                                onRetryNotification={
+                                    retryDecisionNotification
+                                }
+                            />
+                        </Deferred>
                     )}
                 </Deferred>
 
@@ -1681,12 +2248,950 @@ export default function Residents({
                     </ModalContainer>
                 )}
 
+                {editingResident && (
+                    <ModalContainer>
+                        <div className="my-auto w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-xl">
+                            <ModalHeader
+                                title={`Edit Resident · ${editingResident.resident_number}`}
+                                description="Update resident profile and household assignment."
+                                onClose={() => {
+                                    if (!editResidentForm.processing) {
+                                        setEditingResident(null);
+                                    }
+                                }}
+                            />
+
+                            <form
+                                onSubmit={submitEditResident}
+                                className="max-h-[70vh] space-y-4 overflow-y-auto px-5 py-5"
+                            >
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <CreateField
+                                        label="Purok"
+                                        error={editResidentForm.errors.purok_id}
+                                    >
+                                        <select
+                                            value={editResidentForm.data.purok_id}
+                                            onChange={(event) =>
+                                                editResidentForm.setData(
+                                                    'purok_id',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        >
+                                            <option value="">Select purok</option>
+                                            {safePuroks.map((purok) => (
+                                                <option key={purok.id} value={purok.id}>
+                                                    {purok.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </CreateField>
+
+                                    <CreateField
+                                        label="Household"
+                                        error={editResidentForm.errors.household_mode}
+                                    >
+                                        <select
+                                            value={editResidentForm.data.household_mode}
+                                            onChange={(event) => {
+                                                const mode = event.target.value;
+                                                editResidentForm.setData('household_mode', mode);
+                                                if (mode === 'none') {
+                                                    editResidentForm.setData('household_id', '');
+                                                    editResidentForm.setData('household_relationship', '');
+                                                } else if (mode === 'new') {
+                                                    editResidentForm.setData('household_id', '');
+                                                    editResidentForm.setData('household_relationship', 'Head');
+                                                }
+                                            }}
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                        >
+                                            {editingResident.household && (
+                                                <option value="preserve">
+                                                    Current ({editingResident.household.code})
+                                                </option>
+                                            )}
+                                            <option value="none">
+                                                No household assignment
+                                            </option>
+                                            <option value="existing">
+                                                Assign to existing household
+                                            </option>
+                                            <option value="new">
+                                                Create household, set as head
+                                            </option>
+                                        </select>
+                                    </CreateField>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <CreateField
+                                        label="First name"
+                                        error={editResidentForm.errors.first_name}
+                                    >
+                                        <input
+                                            value={editResidentForm.data.first_name}
+                                            onChange={(event) =>
+                                                editResidentForm.setData(
+                                                    'first_name',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        />
+                                    </CreateField>
+
+                                    <CreateField
+                                        label="Middle name"
+                                        error={editResidentForm.errors.middle_name}
+                                    >
+                                        <input
+                                            value={editResidentForm.data.middle_name}
+                                            onChange={(event) =>
+                                                editResidentForm.setData(
+                                                    'middle_name',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                        />
+                                    </CreateField>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <CreateField
+                                        label="Last name"
+                                        error={editResidentForm.errors.last_name}
+                                    >
+                                        <input
+                                            value={editResidentForm.data.last_name}
+                                            onChange={(event) =>
+                                                editResidentForm.setData(
+                                                    'last_name',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        />
+                                    </CreateField>
+
+                                    <CreateField
+                                        label="Suffix"
+                                        error={editResidentForm.errors.suffix}
+                                    >
+                                        <input
+                                            value={editResidentForm.data.suffix}
+                                            onChange={(event) =>
+                                                editResidentForm.setData(
+                                                    'suffix',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="Jr., Sr., III"
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                        />
+                                    </CreateField>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                    <CreateField
+                                        label="Birthdate"
+                                        error={editResidentForm.errors.birthdate}
+                                    >
+                                        <BirthdateInput
+                                            value={editResidentForm.data.birthdate}
+                                            onChange={(val) =>
+                                                editResidentForm.setData('birthdate', val)
+                                            }
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        />
+                                    </CreateField>
+
+                                    <CreateField
+                                        label="Sex"
+                                        error={editResidentForm.errors.sex}
+                                    >
+                                        <select
+                                            value={editResidentForm.data.sex}
+                                            onChange={(event) =>
+                                                editResidentForm.setData(
+                                                    'sex',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        >
+                                            <option value="">Select sex</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                    </CreateField>
+
+                                    <CreateField
+                                        label="Civil status"
+                                        error={editResidentForm.errors.civil_status}
+                                    >
+                                        <select
+                                            value={editResidentForm.data.civil_status}
+                                            onChange={(event) =>
+                                                editResidentForm.setData(
+                                                    'civil_status',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        >
+                                            <option value="">Select status</option>
+                                            <option value="Single">Single</option>
+                                            <option value="Married">Married</option>
+                                            <option value="Widowed">Widowed</option>
+                                            <option value="Separated">Separated</option>
+                                        </select>
+                                    </CreateField>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <CreateField
+                                        label="Mobile number"
+                                        error={editResidentForm.errors.mobile}
+                                    >
+                                        <input
+                                            value={editResidentForm.data.mobile}
+                                            onChange={(event) =>
+                                                editResidentForm.setData(
+                                                    'mobile',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="09XXXXXXXXX"
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        />
+                                    </CreateField>
+
+                                    <CreateField
+                                        label="Email"
+                                        error={editResidentForm.errors.email}
+                                    >
+                                        <input
+                                            type="email"
+                                            value={editResidentForm.data.email}
+                                            onChange={(event) =>
+                                                editResidentForm.setData(
+                                                    'email',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                        />
+                                    </CreateField>
+                                </div>
+
+                                {editResidentForm.data.household_mode === 'existing' && (
+                                    <div className="rounded-lg border border-gray-200 p-3">
+                                        <CreateField
+                                            label="Search household head or code"
+                                            error={editResidentForm.errors.household_id}
+                                        >
+                                            <input
+                                                value={editHouseholdSearch}
+                                                onChange={(event) => {
+                                                    setEditHouseholdSearch(event.target.value);
+                                                    editResidentForm.setData('household_id', '');
+                                                }}
+                                                placeholder="Name or HH code"
+                                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            />
+                                        </CreateField>
+                                        <div className="mt-2 space-y-1">
+                                            {editHouseholdMatches.map((household) => (
+                                                <button
+                                                    type="button"
+                                                    key={household.id}
+                                                    onClick={() => {
+                                                        editResidentForm.setData(
+                                                            'household_id',
+                                                            String(household.id),
+                                                        );
+                                                        setEditHouseholdSearch(
+                                                            `${household.code} · ${household.head}`,
+                                                        );
+                                                        setEditHouseholdMatches([]);
+                                                    }}
+                                                    className="block w-full rounded border border-gray-200 px-3 py-2 text-left text-xs hover:bg-gray-50"
+                                                >
+                                                    {household.code} · {household.head} ·{' '}
+                                                    {household.members_count} member(s)
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {editResidentForm.data.household_mode !== 'none' && (
+                                    <CreateField
+                                        label="Relationship to household head"
+                                        error={editResidentForm.errors.household_relationship}
+                                    >
+                                        <input
+                                            value={editResidentForm.data.household_relationship}
+                                            onChange={(event) =>
+                                                editResidentForm.setData(
+                                                    'household_relationship',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder={
+                                                editResidentForm.data.household_mode === 'new'
+                                                    ? 'Head'
+                                                    : 'e.g. Spouse, Child'
+                                            }
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        />
+                                    </CreateField>
+                                )}
+
+                                <CreateField
+                                    label="Address"
+                                    error={editResidentForm.errors.address_line}
+                                >
+                                    <textarea
+                                        value={editResidentForm.data.address_line}
+                                        onChange={(event) =>
+                                            editResidentForm.setData(
+                                                'address_line',
+                                                event.target.value,
+                                            )
+                                        }
+                                        rows={3}
+                                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                        required
+                                    />
+                                </CreateField>
+
+                                <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditingResident(null)}
+                                        className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={editResidentForm.processing}
+                                        className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
+                                    >
+                                        {editResidentForm.processing
+                                            ? 'Saving...'
+                                            : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </ModalContainer>
+                )}
+
                 {details && (
                     <ResidentDetailsModal
                         details={details}
                         onClose={closeDetails}
                         onRetryNotification={retryDecisionNotification}
                     />
+                )}
+
+                {showCreateHousehold && (
+                    <ModalContainer>
+                        <div className="my-auto w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-xl">
+                            <ModalHeader
+                                title="Create Household"
+                                description="Establish a new household, select purok, and optionally attach initial members."
+                                onClose={() => {
+                                    if (!createHouseholdForm.processing) {
+                                        setShowCreateHousehold(false);
+                                    }
+                                }}
+                            />
+                            <form
+                                onSubmit={submitCreateHousehold}
+                                className="max-h-[75vh] space-y-4 overflow-y-auto px-5 py-5"
+                            >
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <CreateField
+                                        label="Purok"
+                                        error={createHouseholdForm.errors.purok_id}
+                                    >
+                                        <select
+                                            value={createHouseholdForm.data.purok_id}
+                                            onChange={(e) => createHouseholdForm.setData('purok_id', e.target.value)}
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        >
+                                            <option value="">Select purok</option>
+                                            {safePuroks.map((p) => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </CreateField>
+
+                                    <CreateField
+                                        label="Household Code (optional)"
+                                        error={createHouseholdForm.errors.household_code}
+                                    >
+                                        <input
+                                            type="text"
+                                            value={createHouseholdForm.data.household_code}
+                                            onChange={(e) => createHouseholdForm.setData('household_code', e.target.value)}
+                                            placeholder="Leave blank to auto-generate"
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm uppercase"
+                                        />
+                                    </CreateField>
+                                </div>
+
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+                                        Household Members (optional)
+                                    </h4>
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Search and select residents to attach to this household.
+                                    </p>
+
+                                    <div className="relative mt-3">
+                                        <input
+                                            type="text"
+                                            value={createHouseholdResidentSearch}
+                                            onChange={(e) => setCreateHouseholdResidentSearch(e.target.value)}
+                                            placeholder="Search resident by name..."
+                                            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                                        />
+                                        {createHouseholdResidentMatches.length > 0 && (
+                                            <div className="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                                                {createHouseholdResidentMatches.map((res) => {
+                                                    const alreadyAdded = createHouseholdForm.data.members.some(
+                                                        (m) => m.resident_id === res.id
+                                                    );
+                                                    return (
+                                                        <button
+                                                            key={res.id}
+                                                            type="button"
+                                                            disabled={alreadyAdded}
+                                                            onClick={() => {
+                                                                createHouseholdForm.setData('members', [
+                                                                    ...createHouseholdForm.data.members,
+                                                                    {
+                                                                        resident_id: res.id,
+                                                                        resident_name: res.full_name,
+                                                                        household_relationship: createHouseholdForm.data.members.length === 0 ? 'Head' : 'Member',
+                                                                    },
+                                                                ]);
+                                                                if (createHouseholdForm.data.members.length === 0) {
+                                                                    createHouseholdForm.setData('head_resident_id', String(res.id));
+                                                                }
+                                                                setCreateHouseholdResidentSearch('');
+                                                                setCreateHouseholdResidentMatches([]);
+                                                            }}
+                                                            className="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-gray-50 disabled:opacity-50"
+                                                        >
+                                                            <span className="font-medium text-gray-800">{res.full_name}</span>
+                                                            <span className="text-gray-400">{res.purok || 'Resident'}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {createHouseholdForm.data.members.length > 0 && (
+                                        <div className="mt-3 space-y-2">
+                                            {createHouseholdForm.data.members.map((member, idx) => (
+                                                <div
+                                                    key={member.resident_id}
+                                                    className="flex flex-wrap items-center justify-between gap-2 rounded border border-gray-200 bg-white p-2.5 text-xs"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="radio"
+                                                            name="create_head_radio"
+                                                            checked={createHouseholdForm.data.head_resident_id === String(member.resident_id)}
+                                                            onChange={() => createHouseholdForm.setData('head_resident_id', String(member.resident_id))}
+                                                            title="Designate as head"
+                                                        />
+                                                        <span className="font-medium text-gray-800">{member.resident_name}</span>
+                                                        {createHouseholdForm.data.head_resident_id === String(member.resident_id) && (
+                                                            <span className="rounded bg-[#f4f7f4] px-1.5 py-0.5 text-[10px] font-semibold text-[#2d5a27]">
+                                                                Head
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={member.household_relationship}
+                                                            onChange={(e) => {
+                                                                const updated = [...createHouseholdForm.data.members];
+                                                                updated[idx].household_relationship = e.target.value;
+                                                                createHouseholdForm.setData('members', updated);
+                                                            }}
+                                                            placeholder="Relationship"
+                                                            className="w-28 rounded border border-gray-300 px-2 py-1 text-xs"
+                                                            required
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const updated = createHouseholdForm.data.members.filter((_, i) => i !== idx);
+                                                                createHouseholdForm.setData('members', updated);
+                                                                if (createHouseholdForm.data.head_resident_id === String(member.resident_id)) {
+                                                                    createHouseholdForm.setData('head_resident_id', '');
+                                                                }
+                                                            }}
+                                                            className="text-red-600 hover:text-red-800"
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCreateHousehold(false)}
+                                        className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={createHouseholdForm.processing}
+                                        className="rounded-md bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
+                                    >
+                                        {createHouseholdForm.processing ? 'Creating...' : 'Create Household'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </ModalContainer>
+                )}
+
+                {viewingHousehold && (
+                    <ModalContainer>
+                        <div className="my-auto w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-xl">
+                            <ModalHeader
+                                title={`Household ${viewingHousehold.code}`}
+                                description={`Purok: ${viewingHousehold.purok_name || 'Unassigned'} · Created: ${viewingHousehold.created_at || 'N/A'}`}
+                                onClose={() => setViewingHousehold(null)}
+                            />
+                            <div className="max-h-[75vh] space-y-5 overflow-y-auto px-5 py-5 text-sm">
+                                <div className="grid grid-cols-2 gap-4 rounded-lg bg-gray-50 p-4">
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase text-gray-500">Family Head</p>
+                                        <p className="mt-1 font-medium text-gray-900">
+                                            {viewingHousehold.head?.name || 'No Head Assigned'}
+                                        </p>
+                                        {viewingHousehold.head?.mobile && (
+                                            <p className="text-xs text-gray-500">{viewingHousehold.head.mobile}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase text-gray-500">Total Members</p>
+                                        <p className="mt-1 font-medium text-gray-900">{viewingHousehold.members_count}</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+                                        Members Roster
+                                    </h4>
+                                    <div className="mt-2 overflow-hidden rounded-lg border border-gray-200">
+                                        <table className="w-full text-left text-xs">
+                                            <thead className="border-b border-gray-200 bg-gray-50 font-semibold text-gray-600">
+                                                <tr>
+                                                    <th className="px-3 py-2">Name</th>
+                                                    <th className="px-3 py-2">Relationship</th>
+                                                    <th className="px-3 py-2">Sex</th>
+                                                    <th className="px-3 py-2">Birthdate</th>
+                                                    <th className="px-3 py-2 text-right">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {viewingHousehold.members.map((m) => (
+                                                    <tr key={m.id}>
+                                                        <td className="px-3 py-2.5 font-medium text-gray-900">
+                                                            {m.name}
+                                                            {m.is_head && (
+                                                                <span className="ml-2 inline-flex items-center rounded bg-[#f4f7f4] px-1.5 py-0.5 text-[10px] font-semibold text-[#2d5a27]">
+                                                                    Head
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2.5 text-gray-600">{m.relationship || 'Member'}</td>
+                                                        <td className="px-3 py-2.5 text-gray-500">{m.sex || '—'}</td>
+                                                        <td className="px-3 py-2.5 text-gray-500">{m.birthdate || '—'}</td>
+                                                        <td className="px-3 py-2.5 text-right">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setViewingHousehold(null);
+                                                                    openResidentDetails(m.id);
+                                                                }}
+                                                                className="font-medium text-[#3f6f3d] hover:underline"
+                                                            >
+                                                                View
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {viewingHousehold.members.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={5} className="px-3 py-6 text-center text-gray-400">
+                                                            No members currently assigned to this household.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewingHousehold(null)}
+                                        className="rounded-md border border-gray-300 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </ModalContainer>
+                )}
+
+                {editingHousehold && (
+                    <ModalContainer>
+                        <div className="my-auto w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-xl">
+                            <ModalHeader
+                                title={`Edit Household — ${editingHousehold.code}`}
+                                description="Update household details, manage member roster, or transfer members."
+                                onClose={() => {
+                                    if (!editHouseholdForm.processing) {
+                                        setEditingHousehold(null);
+                                    }
+                                }}
+                            />
+                            <div className="max-h-[75vh] space-y-5 overflow-y-auto px-5 py-5 text-sm">
+                                <form onSubmit={submitEditHousehold} className="space-y-4">
+                                    <CreateField label="Purok" error={editHouseholdForm.errors.purok_id}>
+                                        <select
+                                            value={editHouseholdForm.data.purok_id}
+                                            onChange={(e) => editHouseholdForm.setData('purok_id', e.target.value)}
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                            required
+                                        >
+                                            {safePuroks.map((p) => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </CreateField>
+
+                                    <CreateField label="Designated Head" error={editHouseholdForm.errors.head_resident_id}>
+                                        <select
+                                            value={editHouseholdForm.data.head_resident_id}
+                                            onChange={(e) => editHouseholdForm.setData('head_resident_id', e.target.value)}
+                                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                        >
+                                            <option value="">No head assigned</option>
+                                            {editingHousehold.members.map((m) => (
+                                                <option key={m.id} value={m.id}>
+                                                    {m.name} ({m.relationship || 'Member'})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </CreateField>
+
+                                    <div className="flex justify-end">
+                                        <button
+                                            type="submit"
+                                            disabled={editHouseholdForm.processing}
+                                            className="rounded-md bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
+                                        >
+                                            {editHouseholdForm.processing ? 'Saving...' : 'Update Details'}
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <div className="border-t border-gray-200 pt-4">
+                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+                                        Current Members ({editingHousehold.members.length})
+                                    </h4>
+
+                                    <div className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200">
+                                        {editingHousehold.members.map((m) => (
+                                            <div key={m.id} className="flex items-center justify-between p-3 text-xs">
+                                                <div>
+                                                    <span className="font-medium text-gray-900">{m.name}</span>
+                                                    {m.is_head && (
+                                                        <span className="ml-2 rounded bg-[#f4f7f4] px-1.5 py-0.5 text-[10px] font-semibold text-[#2d5a27]">
+                                                            Head
+                                                        </span>
+                                                    )}
+                                                    <p className="text-gray-500">{m.relationship || 'Member'}</p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setTransferringMember(m);
+                                                            transferMemberForm.setData({
+                                                                target_household_id: '',
+                                                                household_relationship: m.relationship || 'Member',
+                                                                is_head: false,
+                                                            });
+                                                        }}
+                                                        className="rounded border border-gray-300 px-2 py-1 text-gray-600 hover:bg-gray-50"
+                                                    >
+                                                        Transfer
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveMember(editingHousehold.id, m.id)}
+                                                        className="rounded border border-red-200 px-2 py-1 text-red-600 hover:bg-red-50"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {editingHousehold.members.length === 0 && (
+                                            <p className="p-4 text-center text-xs text-gray-400">
+                                                No members in this household.
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+                                        Add Member to Household
+                                    </h4>
+                                    <div className="mt-3 space-y-3">
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={addMemberResidentSearch}
+                                                onChange={(e) => {
+                                                    setAddMemberResidentSearch(e.target.value);
+                                                    // Typing always invalidates a prior pick, so
+                                                    // free text can never be submitted as an id.
+                                                    setSelectedAddMemberResident(null);
+                                                    addMemberForm.setData('resident_id', '');
+                                                    addMemberForm.clearErrors('resident_id');
+                                                }}
+                                                placeholder="Search resident by full name..."
+                                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs"
+                                                autoComplete="off"
+                                            />
+                                            {addMemberResidentMatches.length > 0 && (
+                                                <div className="absolute z-10 mt-1 max-h-36 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                                                    {addMemberResidentMatches.map((res) => (
+                                                        <button
+                                                            key={res.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                addMemberForm.setData('resident_id', String(res.id));
+                                                                setSelectedAddMemberResident({
+                                                                    id: res.id,
+                                                                    full_name: res.full_name,
+                                                                });
+                                                                setAddMemberResidentSearch(res.full_name);
+                                                                setAddMemberResidentMatches([]);
+                                                            }}
+                                                            className="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-gray-50"
+                                                        >
+                                                            <span className="font-medium text-gray-800">{res.full_name}</span>
+                                                            <span className="text-gray-400">{res.purok}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {addMemberForm.errors.resident_id && (
+                                            <p className="text-[11px] text-red-600">
+                                                {addMemberForm.errors.resident_id}
+                                            </p>
+                                        )}
+
+                                        {selectedAddMemberResident && (
+                                            <div className="flex items-center justify-between rounded-md border border-[#d6e4d4] bg-white px-3 py-2 text-xs">
+                                                <span className="text-gray-700">
+                                                    Selected:{' '}
+                                                    <span className="font-semibold text-gray-900">
+                                                        {selectedAddMemberResident.full_name}
+                                                    </span>
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedAddMemberResident(null);
+                                                        setAddMemberResidentSearch('');
+                                                        addMemberForm.setData('resident_id', '');
+                                                    }}
+                                                    className="font-medium text-[#3f6f3d] hover:underline"
+                                                >
+                                                    Change
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {selectedAddMemberResident && (
+                                            <form onSubmit={submitAddMember} className="flex flex-wrap items-center gap-3">
+                                                <input
+                                                    type="text"
+                                                    value={addMemberForm.data.household_relationship}
+                                                    onChange={(e) => addMemberForm.setData('household_relationship', e.target.value)}
+                                                    placeholder="Relationship (e.g. Spouse, Child)"
+                                                    className="w-48 rounded border border-gray-300 px-3 py-1.5 text-xs"
+                                                    required
+                                                />
+                                                <label className="flex items-center gap-1.5 text-xs text-gray-700">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={addMemberForm.data.is_head}
+                                                        onChange={(e) => addMemberForm.setData('is_head', e.target.checked)}
+                                                    />
+                                                    Designate as Head
+                                                </label>
+                                                <button
+                                                    type="submit"
+                                                    disabled={addMemberForm.processing || !addMemberForm.data.resident_id}
+                                                    className="rounded bg-[#3f6f3d] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#345c32] disabled:opacity-50"
+                                                >
+                                                    {addMemberForm.processing ? 'Adding...' : 'Add Member'}
+                                                </button>
+                                            </form>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditingHousehold(null)}
+                                        className="rounded-md border border-gray-300 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </ModalContainer>
+                )}
+
+                {transferringMember && editingHousehold && (
+                    <ModalContainer>
+                        <div className="my-auto w-full max-w-md overflow-hidden rounded-xl bg-white shadow-xl">
+                            <ModalHeader
+                                title={`Transfer ${transferringMember.name}`}
+                                description={`Transfer out of ${editingHousehold.code} to another household.`}
+                                onClose={() => setTransferringMember(null)}
+                            />
+                            <form onSubmit={submitTransferMember} className="space-y-4 px-5 py-5 text-xs">
+                                <div>
+                                    <label className="font-semibold text-gray-700">Target Household</label>
+                                    <div className="relative mt-1">
+                                        <input
+                                            type="text"
+                                            value={transferHouseholdSearch}
+                                            onChange={(e) => setTransferHouseholdSearch(e.target.value)}
+                                            placeholder="Search target household code or head..."
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-xs"
+                                        />
+                                        {transferHouseholdMatches.length > 0 && (
+                                            <div className="absolute z-10 mt-1 max-h-36 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                                                {transferHouseholdMatches
+                                                    .filter((h) => h.id !== editingHousehold.id)
+                                                    .map((h) => (
+                                                        <button
+                                                            key={h.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                transferMemberForm.setData('target_household_id', String(h.id));
+                                                                setTransferHouseholdSearch(`${h.code} (${h.head})`);
+                                                                setTransferHouseholdMatches([]);
+                                                            }}
+                                                            className="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-gray-50"
+                                                        >
+                                                            <span className="font-mono font-medium text-[#3f6f3d]">{h.code}</span>
+                                                            <span className="text-gray-500">{h.head}</span>
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {transferMemberForm.errors.target_household_id && (
+                                        <p className="mt-1 text-red-600">{transferMemberForm.errors.target_household_id}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="font-semibold text-gray-700">Relationship in New Household</label>
+                                    <input
+                                        type="text"
+                                        value={transferMemberForm.data.household_relationship}
+                                        onChange={(e) => transferMemberForm.setData('household_relationship', e.target.value)}
+                                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-xs"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="flex items-center gap-2 text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={transferMemberForm.data.is_head}
+                                            onChange={(e) => transferMemberForm.setData('is_head', e.target.checked)}
+                                        />
+                                        Designate as head in target household
+                                    </label>
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setTransferringMember(null)}
+                                        className="rounded border border-gray-300 px-3 py-1.5 text-gray-600 hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={transferMemberForm.processing || !transferMemberForm.data.target_household_id}
+                                        className="rounded bg-[#3f6f3d] px-3 py-1.5 font-medium text-white hover:bg-[#345c32] disabled:opacity-50"
+                                    >
+                                        {transferMemberForm.processing ? 'Transferring...' : 'Confirm Transfer'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </ModalContainer>
                 )}
             </AdminLayout>
         </>
@@ -1696,9 +3201,15 @@ export default function Residents({
 function HouseholdsTable({
     paginator,
     onNavigate,
+    onViewHousehold,
+    onEditHousehold,
+    loadingHouseholdId,
 }: {
     paginator: Paginator<HouseholdRow>;
     onNavigate: (url: string) => void;
+    onViewHousehold: (householdId: number) => void;
+    onEditHousehold: (householdId: number) => void;
+    loadingHouseholdId: number | null;
 }) {
     return (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -1710,6 +3221,9 @@ function HouseholdsTable({
                             <TableHead>Family Head</TableHead>
                             <TableHead>Purok</TableHead>
                             <TableHead>Members</TableHead>
+                            <th className="px-5 py-3 text-right text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                                Action
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1730,12 +3244,32 @@ function HouseholdsTable({
                                 <td className="px-5 py-4 text-sm text-gray-600">
                                     {household.members_count}
                                 </td>
+                                <td className="px-5 py-4">
+                                    <div className="flex justify-end gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => onViewHousehold(household.id)}
+                                            disabled={loadingHouseholdId === household.id}
+                                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                        >
+                                            {loadingHouseholdId === household.id ? 'Loading...' : 'View'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onEditHousehold(household.id)}
+                                            disabled={loadingHouseholdId === household.id}
+                                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                        >
+                                            Edit
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                         ))}
                         {paginator.data.length === 0 && (
                             <tr>
                                 <td
-                                    colSpan={4}
+                                    colSpan={5}
                                     className="px-5 py-12 text-center text-sm text-gray-500"
                                 >
                                     No households match this filter.
@@ -2181,10 +3715,16 @@ function AllResidentsTable({
     paginator,
     onNavigate,
     onViewResident,
+    onEditResident,
+    onToggleAccount,
+    loadingEditResidentId,
 }: {
     paginator: AllResidentsPaginator;
     onNavigate: (url: string) => void;
     onViewResident: (id: number) => void;
+    onEditResident: (id: number) => void;
+    onToggleAccount: (resident: { id: number; fullName: string; accountActive: boolean | null }) => void;
+    loadingEditResidentId?: number | null;
 }) {
     const rows = Array.isArray(paginator.data) ? paginator.data : [];
 
@@ -2250,15 +3790,38 @@ function AllResidentsTable({
                                 </td>
 
                                 <td className="px-5 py-4">
-                                    <div className="flex justify-end">
+                                    <div className="flex justify-end gap-3">
                                         <button
                                             type="button"
                                             onClick={() =>
                                                 onViewResident(row.id)
                                             }
-                                            className="rounded-md border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
                                         >
                                             View
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                onEditResident(row.id)
+                                            }
+                                            disabled={loadingEditResidentId === row.id}
+                                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                        >
+                                            {loadingEditResidentId === row.id ? 'Loading...' : 'Edit'}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                onToggleAccount(row)
+                                            }
+                                            className="text-xs font-medium text-[#3f6f3d] hover:underline"
+                                        >
+                                            {row.accountActive
+                                                ? 'Disable'
+                                                : 'Enable'}
                                         </button>
                                     </div>
                                 </td>
@@ -2601,6 +4164,48 @@ function ResidentDetailsBody({
                     <SectorBadges sectors={resident.sectors} />
                 </div>
             </div>
+
+            {resident.designations && resident.designations.length > 0 && (
+                <div>
+                    <p className="text-[10px] font-semibold tracking-wide text-gray-400 uppercase">
+                        Designations
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                        {resident.designations.map((designation, idx) => (
+                            <span
+                                key={idx}
+                                className="inline-flex items-center rounded-full bg-[#f4f7f4] px-2.5 py-0.5 text-xs font-medium text-[#2d5a27]"
+                            >
+                                {designation}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {resident.staff_assignments && resident.staff_assignments.length > 0 && (
+                <div className="rounded-lg border border-gray-200 p-4">
+                    <p className="text-[10px] font-semibold tracking-wide text-gray-400 uppercase">
+                        Active Staff Assignments
+                    </p>
+                    <div className="mt-3 space-y-2">
+                        {resident.staff_assignments.map((assignment, idx) => (
+                            <div
+                                key={idx}
+                                className="flex flex-col text-xs sm:flex-row sm:items-center sm:justify-between"
+                            >
+                                <span className="font-medium text-gray-800">
+                                    {assignment.position || 'Staff Member'}
+                                    {assignment.department ? ` · ${assignment.department}` : ''}
+                                </span>
+                                <span className="text-gray-500">
+                                    {assignment.barangay || 'Barangay'}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
