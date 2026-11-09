@@ -59,11 +59,11 @@ export default function Dashboard({
             <AdminLayout active="overview">
                 {/* PAGE HEADER */}
                 <div className="mb-6">
-                    <h1 className="text-2xl font-semibold text-gray-800">
+                    <h1 className="text-2xl font-semibold text-ink-strong">
                         Admin Dashboard
                     </h1>
 
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                         Barangay records and activity
                     </p>
                 </div>
@@ -108,25 +108,25 @@ export default function Dashboard({
                         <section>
                             <div className="mb-4 flex items-center justify-between">
                                 <div>
-                                    <h2 className="text-base font-semibold text-gray-800">
+                                    <h2 className="text-base font-semibold text-ink-strong">
                                         Barangay Announcements
                                     </h2>
 
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-ink-muted">
                                         Published announcements and programs
                                     </p>
                                 </div>
 
-                                <p className="text-xs font-medium text-[#3b6fa8]">
+                                <p className="text-xs font-medium text-brand">
                                     Total Programs: {stats.totalPrograms} ·
                                     Total Announcements:{' '}
                                     {stats.totalAnnouncements}
                                 </p>
                             </div>
 
-                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                            <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
                                 {announcements.length === 0 ? (
-                                    <div className="px-5 py-10 text-center text-sm text-gray-400">
+                                    <div className="px-5 py-10 text-center text-sm text-ink-faint">
                                         No published announcements.
                                     </div>
                                 ) : (
@@ -148,26 +148,26 @@ export default function Dashboard({
                         <section>
                             <div className="mb-4 flex items-center justify-between">
                                 <div>
-                                    <h2 className="text-base font-semibold text-gray-800">
+                                    <h2 className="text-base font-semibold text-ink-strong">
                                         Notifications
                                     </h2>
 
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-ink-muted">
                                         Recent system activity
                                     </p>
                                 </div>
 
                                 <Link
                                     href="/admin/audit-log"
-                                    className="text-xs font-medium text-[#3b6fa8] hover:underline"
+                                    className="text-xs font-medium text-brand hover:underline"
                                 >
                                     View all
                                 </Link>
                             </div>
 
-                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                            <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
                                 {notifications.length === 0 && (
-                                    <div className="px-5 py-10 text-center text-sm text-gray-400">
+                                    <div className="px-5 py-10 text-center text-sm text-ink-faint">
                                         No recent notifications.
                                     </div>
                                 )}
@@ -191,18 +191,18 @@ export default function Dashboard({
                     <section className="mt-7">
                         <div className="mb-4 flex items-center justify-between">
                             <div>
-                                <h2 className="text-base font-semibold text-gray-800">
+                                <h2 className="text-base font-semibold text-ink-strong">
                                     Activity Summary
                                 </h2>
 
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="mt-1 text-xs text-ink-muted">
                                     Current barangay records
                                 </p>
                             </div>
 
                             <Link
                                 href="/admin/reports"
-                                className="text-xs font-medium text-[#3b6fa8] hover:underline"
+                                className="text-xs font-medium text-brand hover:underline"
                             >
                                 View Reports
                             </Link>
@@ -240,7 +240,7 @@ function SummaryCard({
     return (
         <Link
             href={href}
-            className="rounded-lg bg-[#3b6fa8] p-5 text-white shadow-sm transition hover:bg-[#355f33]"
+            className="rounded-lg bg-brand p-5 text-white shadow-card transition hover:bg-[#355f33]"
         >
             <p className="text-xs font-medium tracking-wide text-white/80 uppercase">
                 {title}
@@ -263,7 +263,7 @@ function PuroksSummaryCard({
     onToggle: () => void;
 }) {
     return (
-        <div className="relative rounded-lg bg-[#3b6fa8] p-5 text-white shadow-sm">
+        <div className="relative rounded-lg bg-brand p-5 text-white shadow-card">
             <button
                 type="button"
                 onClick={onToggle}
@@ -279,7 +279,7 @@ function PuroksSummaryCard({
                 </p>
             </button>
             {open && (
-                <div className="absolute inset-x-3 top-full z-20 mt-2 max-h-48 overflow-auto rounded-md border border-gray-200 bg-white py-1 text-xs text-gray-700 shadow-lg">
+                <div className="absolute inset-x-3 top-full z-20 mt-2 max-h-48 overflow-auto rounded-lg border border-line-soft bg-white py-1 text-xs text-ink shadow-lg">
                     {puroks.length ? (
                         puroks.map((purok) => (
                             <div
@@ -290,7 +290,7 @@ function PuroksSummaryCard({
                             </div>
                         ))
                     ) : (
-                        <div className="px-3 py-2 text-gray-400">
+                        <div className="px-3 py-2 text-ink-faint">
                             No puroks found
                         </div>
                     )}
@@ -310,14 +310,14 @@ function AnnouncementRow({
     const [expanded, setExpanded] = useState(false);
     return (
         <article
-            className={`px-5 py-4 ${!last ? 'border-b border-gray-100' : ''}`}
+            className={`px-5 py-4 ${!last ? 'border-b border-line-soft' : ''}`}
         >
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-800">
+                    <p className="text-sm font-medium text-ink-strong">
                         {announcement.title}
                     </p>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-ink-muted">
                         {announcement.category}
                         {announcement.eventStartAt
                             ? ` · ${announcement.eventStartAt}`
@@ -330,14 +330,14 @@ function AnnouncementRow({
                 <button
                     type="button"
                     onClick={() => setExpanded(!expanded)}
-                    className="shrink-0 text-xs font-medium text-[#3b6fa8] hover:underline"
+                    className="shrink-0 text-xs font-medium text-brand hover:underline"
                     aria-expanded={expanded}
                 >
                     {expanded ? 'Hide details' : 'View details'}
                 </button>
             </div>
             {expanded && (
-                <p className="mt-3 text-sm whitespace-pre-line text-gray-600">
+                <p className="mt-3 text-sm whitespace-pre-line text-ink-muted">
                     {announcement.content}
                 </p>
             )}
@@ -363,22 +363,22 @@ function Notification({
     return (
         <Link
             href={href}
-            className={`flex items-center justify-between gap-4 px-4 py-4 transition hover:bg-gray-50 ${!last ? 'border-b border-gray-100' : ''}`}
+            className={`flex items-center justify-between gap-4 px-4 py-4 transition hover:bg-canvas ${!last ? 'border-b border-line-soft' : ''}`}
         >
             <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef1f5] text-sm font-semibold text-[#3b6fa8]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-canvas text-sm font-semibold text-brand">
                     {icon}
                 </div>
                 <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-800">
+                    <p className="truncate text-sm font-medium text-ink-strong">
                         {title}
                     </p>
-                    <p className="mt-0.5 text-xs text-gray-500">
+                    <p className="mt-0.5 text-xs text-ink-muted">
                         {description}
                     </p>
                 </div>
             </div>
-            <span className="shrink-0 text-[10px] text-gray-400">{time}</span>
+            <span className="shrink-0 text-[10px] text-ink-faint">{time}</span>
         </Link>
     );
 }
@@ -397,13 +397,13 @@ function ActivityCard({
     return (
         <Link
             href={href}
-            className="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-[#3b6fa8] hover:shadow-sm"
+            className="rounded-lg border border-line-soft bg-white p-5 transition hover:border-brand hover:shadow-card"
         >
-            <p className="text-xs font-medium tracking-wide text-gray-400 uppercase">
+            <p className="text-xs font-medium tracking-wide text-ink-faint uppercase">
                 {title}
             </p>
-            <p className="mt-3 text-3xl font-semibold text-gray-800">{value}</p>
-            <p className="mt-1 text-xs text-gray-500">{subtitle}</p>
+            <p className="mt-3 text-3xl font-semibold text-ink-strong">{value}</p>
+            <p className="mt-1 text-xs text-ink-muted">{subtitle}</p>
         </Link>
     );
 }

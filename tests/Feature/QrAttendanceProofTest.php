@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Announcement;
+use App\Models\AnnouncementAttendance;
 use App\Models\Barangay;
 use App\Models\Purok;
 use App\Models\Resident;
@@ -433,13 +434,15 @@ class QrAttendanceProofTest extends TestCase
         $credential = $this->makeCredential($resident);
         $announcement = $this->createAnnouncement($this->barangay, ['requires_attendance' => true]);
 
-        $firstProof = $this->resolveProof($clerk, $credential->token, $announcement);
-        $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
+        AnnouncementAttendance::create([
+            'barangay_id' => $announcement->barangay_id,
+            'announcement_id' => $announcement->id,
             'resident_id' => $resident->id,
             'status' => 'claimed',
-            'method' => 'qr_scanner',
-            'qr_proof' => $firstProof,
-        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'recorded');
+            'method' => 'manual',
+            'attended_at' => now(),
+            'verified_by' => $clerk->id,
+        ]);
 
         $secondProof = $this->resolveProof($clerk, $credential->token, $announcement);
         $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
@@ -578,7 +581,7 @@ class QrAttendanceProofTest extends TestCase
 
         $this->actingAs($staff)->post($this->seniorMarkUrl($announcement), [
             'resident_id' => $resident->id,
-            'status' => 'claimed',
+            'status' => 'present',
             'method' => 'qr_scanner',
             'qr_proof' => $proof,
         ])->assertRedirect();

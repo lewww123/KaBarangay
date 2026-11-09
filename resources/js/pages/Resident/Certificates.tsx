@@ -1,12 +1,25 @@
 import { Deferred, Head, router } from '@inertiajs/react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+    FormEvent,
+    useEffect,
+    useMemo,
+    useState,
+    useSyncExternalStore,
+} from 'react';
 import Pagination from '@/components/Pagination';
 import ResidentLayout from '@/layouts/ResidentLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import {
+    UNSYNCED_STATUSES,
     offlineCertificateStore,
     prepareOfflineCertificates,
+    queueOfflineCertificateRequest,
+    type LocalCertificateRequest,
 } from '@/lib/offlineCertificates';
+import {
+    readConnectivity,
+    subscribeConnectivity,
+} from '@/lib/offlineConnectivity';
 import type { PaginatedData } from '@/types';
 
 /*
@@ -17,7 +30,7 @@ import type { PaginatedData } from '@/types';
 
 type Tab = 'request' | 'requests';
 
-type Step = 'form' | 'review' | 'success';
+type Step = 'form' | 'review' | 'success' | 'queued';
 
 type RequestStatus =
     | 'Pending'
@@ -153,6 +166,48 @@ function CertificatesContent({
     const [cameFromAssistant, setCameFromAssistant] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [draftMessage, setDraftMessage] = useState('');
+    const [localRequests, setLocalRequests] = useState<
+        LocalCertificateRequest[]
+    >([]);
+    const { online, degraded } = useSyncExternalStore(
+        subscribeConnectivity,
+        readConnectivity,
+        readConnectivity,
+    );
+    const offlineForm = () => ({
+        certificate_id: (selectedCertificate as Certificate).id,
+        purpose: effectivePurpose,
+        business_name: businessName,
+        business_address: businessAddress,
+        additional_details: additionalDetails,
+        details,
+    });
+    const refreshLocalRequests = () => {
+        offlineCertificateStore()
+            .then((store) => store.list())
+            .then((items) =>
+                setLocalRequests(
+                    items.filter((item) =>
+                        UNSYNCED_STATUSES.includes(item.status),
+                    ),
+                ),
+            )
+            .catch(() => setLocalRequests([]));
+    };
+    useEffect(() => {
+        refreshLocalRequests();
+        window.addEventListener('kb-certificate-queue', refreshLocalRequests);
+        return () =>
+            window.removeEventListener(
+                'kb-certificate-queue',
+                refreshLocalRequests,
+            );
+        // Re-read the queue whenever connectivity flips, and after each page render.
+    }, [online]);
+    useEffect(() => {
+        if (activeTab !== 'requests') return;
+        refreshLocalRequests();
+    }, [activeTab, requests]);
     const saveOfflineDraft = async () => {
         if (!selectedCertificate || processing) return;
         setProcessing(true);
@@ -163,16 +218,9 @@ function CertificatesContent({
             } catch {
                 store = await prepareOfflineCertificates();
             }
-            await store.saveDraft({
-                certificate_id: selectedCertificate.id,
-                purpose: effectivePurpose,
-                business_name: businessName,
-                business_address: businessAddress,
-                additional_details: additionalDetails,
-                details,
-            });
+            await store.saveDraft(offlineForm());
             setDraftMessage(
-                'Draft saved on this device. Open Offline drafts & requests to review and queue it. It is not officially submitted yet.',
+                'Draft saved on this device. It is not submitted until you confirm it and the Barangay receives it.',
             );
         } catch (error) {
             setDraftMessage(
@@ -319,8 +367,42 @@ function CertificatesContent({
     |--------------------------------------------------------------------------
     */
 
+    const queueOfflineRequest = async () => {
+        setProcessing(true);
+        try {
+            await queueOfflineCertificateRequest(offlineForm());
+            window.dispatchEvent(new Event('kb-certificate-queue'));
+            try {
+                window.localStorage.removeItem(CERTIFICATE_FLOW_KEY);
+            } catch (error) {
+                console.error(
+                    'Unable to clear certificate assistant flow.',
+                    error,
+                );
+            }
+            setCameFromAssistant(false);
+            setDraftMessage('');
+            setStep('queued');
+            refreshLocalRequests();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error) {
+            setStep('review');
+            setDraftMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to save this request on this device.',
+            );
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     const handleSubmitRequest = () => {
         if (!selectedCertificate?.available || processing) return;
+        if (!online) {
+            void queueOfflineRequest();
+            return;
+        }
         setProcessing(true);
 
         router.post(
@@ -368,6 +450,13 @@ function CertificatesContent({
         );
     };
 
+    const unsyncedLocalRequests = localRequests.filter(
+        (item) =>
+            !requests.data.some(
+                (request) => request.reference === item.data.result?.reference,
+            ),
+    );
+
     return (
         <>
             <Head title="Certificate Request" />
@@ -377,19 +466,20 @@ function CertificatesContent({
                     PAGE HEADER
                 ====================================================== */}
                 <section className="mb-5 sm:mb-6">
-                    <h1 className="text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
+                    <h1 className="text-2xl font-semibold text-ink-strong sm:text-3xl">
                         Certificate Request
                     </h1>
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">
+                    <p className="mt-2 text-sm leading-6 text-ink-muted sm:text-base">
                         Request a barangay certificate or track your submitted
                         request.
                     </p>
-                    <a
-                        href="/offline-certificates.html"
-                        className="mt-2 inline-block text-sm font-semibold text-brand underline underline-offset-2"
-                    >
-                        Offline drafts & pending requests
-                    </a>
+                    {!online && (
+                        <p className="mt-2 text-sm leading-6 text-amber-800">
+                            {degraded
+                                ? 'KaBarangay is reachable, but the barangay data service cannot read requests right now. You can still complete this request; it is saved on this device and sent automatically once the data service returns.'
+                                : 'You are offline. You can still complete this request; it is saved on this device and sent automatically once your internet connection returns.'}
+                        </p>
+                    )}
                     {draftMessage && (
                         <p
                             role="status"
@@ -403,14 +493,14 @@ function CertificatesContent({
                 {/* ======================================================
                     TABS
                 ====================================================== */}
-                <div className="mb-5 inline-flex max-w-full gap-1 overflow-x-auto rounded-lg border border-line-soft bg-canvas p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="mb-6 flex w-full max-w-xl rounded-xl border border-line-soft bg-white p-1">
                     <button
                         type="button"
                         onClick={() => setActiveTab('request')}
-                        className={`inline-flex h-9 shrink-0 items-center rounded-md px-3 text-xs font-medium whitespace-nowrap transition-colors ${
+                        className={`min-h-12 flex-1 rounded-lg px-2 text-sm font-semibold transition sm:px-4 sm:text-base ${
                             activeTab === 'request'
-                                ? 'bg-white text-ink-strong shadow-card'
-                                : 'text-ink-muted hover:text-ink-strong'
+                                ? 'bg-[#3f6f3d] text-white'
+                                : 'text-ink-muted hover:bg-canvas'
                         }`}
                     >
                         Request Certificate
@@ -418,10 +508,10 @@ function CertificatesContent({
                     <button
                         type="button"
                         onClick={() => setActiveTab('requests')}
-                        className={`inline-flex h-9 shrink-0 items-center rounded-md px-3 text-xs font-medium whitespace-nowrap transition-colors ${
+                        className={`min-h-12 flex-1 rounded-lg px-2 text-sm font-semibold transition sm:px-4 sm:text-base ${
                             activeTab === 'requests'
-                                ? 'bg-white text-ink-strong shadow-card'
-                                : 'text-ink-muted hover:text-ink-strong'
+                                ? 'bg-[#3f6f3d] text-white'
+                                : 'text-ink-muted hover:bg-canvas'
                         }`}
                     >
                         My Requests
@@ -435,11 +525,11 @@ function CertificatesContent({
                     <>
                         {/* FORM */}
                         {step === 'form' && (
-                            <div className="mx-auto w-full max-w-4xl">
+                            <div className="mx-auto w-full max-w-3xl">
                                 {cameFromAssistant && selectedCertificate && (
-                                    <div className="mb-4 rounded-xl border border-brand-muted bg-brand-soft p-4">
+                                    <div className="mb-4 rounded-xl border border-[#d7e7d2] bg-[#f3f8f1] p-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-brand">
                                                 <CertificateOutlineIcon small />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -473,13 +563,14 @@ function CertificatesContent({
 
                                 <form
                                     onSubmit={handleContinue}
-                                    className="mx-auto w-full max-w-4xl"
+                                    data-kb-offline-queue=""
+                                    className="mx-auto w-full max-w-3xl"
                                 >
                                     {/* VERIFIED RESIDENT */}
                                     <section className="mb-4 rounded-xl border border-line-soft bg-white p-4 sm:mb-5 sm:p-6">
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                             <div>
-                                                <h2 className="text-base font-semibold tracking-tight text-ink-strong">
+                                                <h2 className="text-lg font-semibold text-ink-strong">
                                                     Your Information
                                                 </h2>
                                                 <p className="mt-1 text-sm leading-6 text-ink-muted">
@@ -487,7 +578,7 @@ function CertificatesContent({
                                                     resident profile.
                                                 </p>
                                             </div>
-                                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-canvas px-3 py-1.5 text-sm font-semibold text-brand">
+                                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#edf4ea] px-3 py-1.5 text-sm font-semibold text-brand">
                                                 <CheckSmallIcon /> Verified
                                             </span>
                                         </div>
@@ -529,7 +620,7 @@ function CertificatesContent({
 
                                     {/* REQUEST DETAILS */}
                                     <section className="rounded-xl border border-line-soft bg-white p-4 sm:p-6">
-                                        <h2 className="text-base font-semibold tracking-tight text-ink-strong">
+                                        <h2 className="text-lg font-semibold text-ink-strong">
                                             Request Details
                                         </h2>
                                         <p className="mt-1 text-sm leading-6 text-ink-muted">
@@ -581,8 +672,8 @@ function CertificatesContent({
 
                                         {/* CERTIFICATE INFORMATION */}
                                         {selectedCertificate && (
-                                            <div className="mt-4 rounded-xl bg-surface p-4">
-                                                <p className="text-base font-semibold tracking-tight text-ink-strong">
+                                            <div className="mt-4 rounded-xl bg-[#f7f8f5] p-4">
+                                                <p className="text-base font-semibold text-ink-strong">
                                                     {selectedCertificate.name}
                                                 </p>
                                                 <p className="mt-1 text-sm leading-6 text-ink-muted">
@@ -601,7 +692,7 @@ function CertificatesContent({
                                                 )}
                                                 {selectedCertificate.available &&
                                                     !selectedCertificate.templateAvailable && (
-                                                        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                                        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                                                             This active service
                                                             can accept requests.
                                                             Certificate
@@ -633,7 +724,7 @@ function CertificatesContent({
                                                                         }
                                                                         className="flex items-start gap-2 text-sm leading-6 text-ink-muted"
                                                                     >
-                                                                        <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+                                                                        <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#3f6f3d] text-white">
                                                                             <CheckSmallIcon />
                                                                         </span>
                                                                         <span>
@@ -664,11 +755,11 @@ function CertificatesContent({
 
                                         {/* FIXED PURPOSE */}
                                         {selectedCertificate?.fixedPurpose && (
-                                            <div className="mt-5 rounded-lg border border-line-soft bg-canvas p-4">
+                                            <div className="mt-5 rounded-lg border border-[#d7e3d4] bg-[#edf4ea] p-4">
                                                 <p className="text-sm font-medium text-ink-muted">
                                                     Purpose
                                                 </p>
-                                                <p className="mt-1 text-base font-semibold tracking-tight text-ink-strong">
+                                                <p className="mt-1 text-base font-semibold text-ink-strong">
                                                     {
                                                         selectedCertificate.fixedPurpose
                                                     }
@@ -779,7 +870,7 @@ function CertificatesContent({
                                         {/* BUSINESS DETAILS */}
                                         {selectedCertificate?.requiresBusinessDetails && (
                                             <div className="mt-6 border-t border-line-soft pt-6">
-                                                <h3 className="text-base font-semibold tracking-tight text-ink-strong">
+                                                <h3 className="text-base font-semibold text-ink-strong">
                                                     Business Information
                                                 </h3>
                                                 <p className="mt-1 text-sm text-ink-muted">
@@ -877,7 +968,7 @@ function CertificatesContent({
                                         {/* CERTIFICATE-SPECIFIC DETAILS */}
                                         {detailsFields.length > 0 && (
                                             <div className="mt-6 border-t border-line-soft pt-6">
-                                                <h3 className="text-base font-semibold tracking-tight text-ink-strong">
+                                                <h3 className="text-base font-semibold text-ink-strong">
                                                     {selectedCertificate?.certificateType ??
                                                         'Certificate'}{' '}
                                                     Information
@@ -1006,7 +1097,7 @@ function CertificatesContent({
 
                                         <button
                                             type="submit"
-                                            className="mt-6 flex min-h-12 w-full items-center justify-center rounded-lg bg-brand px-5 text-base font-semibold text-white transition hover:bg-brand-deep"
+                                            className="mt-6 flex min-h-12 w-full items-center justify-center rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
                                         >
                                             Continue
                                         </button>
@@ -1019,7 +1110,7 @@ function CertificatesContent({
                                                 processing ||
                                                 !selectedCertificate
                                             }
-                                            className="mt-3 min-h-11 w-full rounded-lg border border-brand px-4 font-semibold text-brand disabled:opacity-50"
+                                            className="mt-3 min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 font-semibold text-brand disabled:opacity-50"
                                         >
                                             Save draft on this device
                                         </button>
@@ -1030,9 +1121,9 @@ function CertificatesContent({
 
                         {/* REVIEW */}
                         {step === 'review' && selectedCertificate && (
-                            <div className="mx-auto w-full max-w-4xl">
+                            <div className="mx-auto w-full max-w-3xl">
                                 <section className="rounded-xl border border-line-soft bg-white p-4 sm:p-6">
-                                    <h2 className="text-xl font-semibold tracking-tight text-ink-strong">
+                                    <h2 className="text-xl font-semibold text-ink-strong">
                                         Review Your Request
                                     </h2>
                                     <p className="mt-2 text-sm leading-6 text-ink-muted sm:text-base">
@@ -1112,7 +1203,7 @@ function CertificatesContent({
                                                 void saveOfflineDraft()
                                             }
                                             disabled={processing}
-                                            className="min-h-12 rounded-lg border border-brand px-4 font-semibold text-brand disabled:opacity-50"
+                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-4 font-semibold text-brand disabled:opacity-50"
                                         >
                                             Save draft on this device
                                         </button>
@@ -1128,11 +1219,13 @@ function CertificatesContent({
                                             type="button"
                                             onClick={handleSubmitRequest}
                                             disabled={processing}
-                                            className="min-h-12 w-full rounded-lg bg-brand px-6 text-base font-semibold text-white transition hover:bg-brand-deep disabled:opacity-50 sm:w-auto"
+                                            className="min-h-12 w-full rounded-lg bg-[#3f6f3d] px-6 text-base font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-50 sm:w-auto"
                                         >
                                             {processing
                                                 ? 'Submitting...'
-                                                : 'Submit Request'}
+                                                : online
+                                                  ? 'Submit Request'
+                                                  : 'Submit (sends when online)'}
                                         </button>
                                     </div>
                                 </section>
@@ -1143,17 +1236,17 @@ function CertificatesContent({
                         {step === 'success' && submittedRequest && (
                             <div className="mx-auto w-full max-w-xl">
                                 <section className="rounded-xl border border-line-soft bg-white p-5 text-center sm:p-7">
-                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white">
+                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#3f6f3d] text-white">
                                         <CheckLargeIcon />
                                     </div>
-                                    <h2 className="mt-5 text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
+                                    <h2 className="mt-5 text-xl font-semibold text-ink-strong sm:text-2xl">
                                         Request Submitted
                                     </h2>
                                     <p className="mt-2 text-sm leading-6 text-ink-muted sm:text-base">
                                         Your certificate request has been
                                         submitted for barangay review.
                                     </p>
-                                    <div className="mt-6 rounded-xl bg-surface p-4 text-left sm:p-5">
+                                    <div className="mt-6 rounded-xl bg-[#f7f8f5] p-4 text-left sm:p-5">
                                         <InfoItem
                                             label="Request Number"
                                             value={submittedRequest.reference}
@@ -1177,7 +1270,7 @@ function CertificatesContent({
                                         <button
                                             type="button"
                                             onClick={resetForm}
-                                            className="min-h-12 rounded-lg border border-brand px-5 text-base font-semibold text-brand transition hover:bg-canvas"
+                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-5 text-base font-semibold text-brand transition hover:bg-[#edf4ea]"
                                         >
                                             Request Another
                                         </button>
@@ -1186,7 +1279,62 @@ function CertificatesContent({
                                             onClick={() =>
                                                 setActiveTab('requests')
                                             }
-                                            className="min-h-12 rounded-lg bg-brand px-5 text-base font-semibold text-white transition hover:bg-brand-deep"
+                                            className="min-h-12 rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
+                                        >
+                                            My Requests
+                                        </button>
+                                    </div>
+                                </section>
+                            </div>
+                        )}
+
+                        {/* SAVED ON DEVICE, NOT YET SENT */}
+                        {step === 'queued' && (
+                            <div className="mx-auto w-full max-w-xl">
+                                <section className="rounded-xl border border-amber-300 bg-amber-50 p-5 text-center sm:p-7">
+                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-white">
+                                        <ClockLargeIcon />
+                                    </div>
+                                    <h2 className="mt-5 text-xl font-semibold text-amber-950 sm:text-2xl">
+                                        {degraded
+                                            ? 'Waiting for the Barangay data service'
+                                            : 'Waiting for Internet Connection'}
+                                    </h2>
+                                    <p className="mt-2 text-sm leading-6 text-amber-900 sm:text-base">
+                                        Your request has been saved on this
+                                        device. It will be sent automatically
+                                        once{' '}
+                                        {degraded
+                                            ? 'the Barangay data service can read requests again'
+                                            : 'your internet connection returns'}
+                                        . The Barangay has not received it yet.
+                                    </p>
+                                    <div className="mt-6 rounded-xl bg-white p-4 text-left">
+                                        <InfoItem
+                                            label="Saved on this device"
+                                            value="No request number yet"
+                                        />
+                                        <div className="my-4 border-t border-line-soft" />
+                                        <InfoItem
+                                            label="Status"
+                                            value="Not yet received by the Barangay"
+                                        />
+                                    </div>
+                                    <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <button
+                                            type="button"
+                                            onClick={resetForm}
+                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-5 text-base font-semibold text-brand transition hover:bg-[#edf4ea]"
+                                        >
+                                            Request Another
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                refreshLocalRequests();
+                                                setActiveTab('requests');
+                                            }}
+                                            className="min-h-12 rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
                                         >
                                             My Requests
                                         </button>
@@ -1203,7 +1351,7 @@ function CertificatesContent({
                 {activeTab === 'requests' && (
                     <section className="mx-auto w-full max-w-4xl">
                         <div className="mb-4">
-                            <h2 className="text-xl font-semibold tracking-tight text-ink-strong">
+                            <h2 className="text-xl font-semibold text-ink-strong">
                                 My Requests
                             </h2>
                             <p className="mt-1 text-sm leading-6 text-ink-muted sm:text-base">
@@ -1211,6 +1359,13 @@ function CertificatesContent({
                                 requests.
                             </p>
                         </div>
+                        {unsyncedLocalRequests.length > 0 && (
+                            <div className="mb-4 space-y-4">
+                                {unsyncedLocalRequests.map((item) => (
+                                    <LocalRequestRow key={item.id} item={item} />
+                                ))}
+                            </div>
+                        )}
                         {requests.data.length > 0 ? (
                             <div className="space-y-4">
                                 {requests.data.map((request) => (
@@ -1241,7 +1396,7 @@ function CertificatesContent({
                                                             request,
                                                         )
                                                     }
-                                                    className="min-h-11 w-full rounded-lg border border-brand px-4 text-sm font-semibold text-brand transition hover:bg-canvas sm:w-auto"
+                                                    className="min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 text-sm font-semibold text-brand transition hover:bg-[#edf4ea] sm:w-auto"
                                                 >
                                                     View Details
                                                 </button>
@@ -1254,10 +1409,10 @@ function CertificatesContent({
                                     label="Certificate request"
                                 />
                             </div>
-                        ) : (
+                        ) : unsyncedLocalRequests.length === 0 ? (
                             <div className="rounded-xl border border-line-soft bg-white p-7 text-center">
                                 <CertificateOutlineIcon />
-                                <h3 className="mt-4 text-base font-semibold tracking-tight text-ink-strong">
+                                <h3 className="mt-4 text-lg font-semibold text-ink-strong">
                                     No certificate requests
                                 </h3>
                                 <p className="mt-2 text-sm leading-6 text-ink-muted">
@@ -1269,12 +1424,12 @@ function CertificatesContent({
                                         resetForm();
                                         setActiveTab('request');
                                     }}
-                                    className="mt-5 min-h-12 w-full rounded-lg bg-brand px-5 text-base font-semibold text-white sm:w-auto"
+                                    className="mt-5 min-h-12 w-full rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white sm:w-auto"
                                 >
                                     Request Certificate
                                 </button>
                             </div>
-                        )}
+                        ) : null}
                     </section>
                 )}
 
@@ -1299,7 +1454,7 @@ function CertificatesContent({
 */
 
 const inputClass =
-    'min-h-12 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/20 sm:px-4 sm:text-base';
+    'min-h-12 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20 sm:px-4 sm:text-base';
 
 /*
 |--------------------------------------------------------------------------
@@ -1320,7 +1475,7 @@ function RequestDetailsModal({
                 {/* HEADER */}
                 <div className="flex shrink-0 items-center justify-between border-b border-line-soft px-4 py-4 sm:px-5">
                     <div className="min-w-0">
-                        <h2 className="text-base font-semibold tracking-tight text-ink-strong">
+                        <h2 className="text-lg font-semibold text-ink-strong sm:text-xl">
                             Request Details
                         </h2>
                         <p className="mt-1 text-sm font-medium break-all text-ink-muted">
@@ -1339,7 +1494,7 @@ function RequestDetailsModal({
 
                 {/* CONTENT */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-                    <div className="rounded-xl border border-line-soft bg-surface p-4">
+                    <div className="rounded-xl border border-line-soft bg-[#fafaf7] p-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <InfoItem
                                 label="Certificate"
@@ -1408,7 +1563,7 @@ function RequestDetailsModal({
 
                     {/* TRACK STATUS */}
                     <div className="mt-6">
-                        <h3 className="text-base font-semibold tracking-tight text-ink-strong">
+                        <h3 className="text-lg font-semibold text-ink-strong">
                             Track Status
                         </h3>
                         <p className="mt-1 text-sm leading-6 text-ink-muted">
@@ -1425,7 +1580,7 @@ function RequestDetailsModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="min-h-11 w-full rounded-lg bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-deep sm:ml-auto sm:block sm:w-auto"
+                        className="min-h-11 w-full rounded-lg bg-[#3f6f3d] px-5 text-sm font-semibold text-white transition hover:bg-[#315b30] sm:ml-auto sm:block sm:w-auto"
                     >
                         Close
                     </button>
@@ -1515,7 +1670,7 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                 <div
                                     className={`absolute top-9 left-[17px] h-[calc(100%-1px)] w-[2px] ${
                                         index < currentStep
-                                            ? 'bg-brand'
+                                            ? 'bg-[#3f6f3d]'
                                             : 'bg-line-soft'
                                     }`}
                                 />
@@ -1523,9 +1678,9 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                             <div
                                 className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 ${
                                     completed
-                                        ? 'border-brand bg-brand text-white'
+                                        ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
                                         : current
-                                          ? 'border-brand bg-brand-soft text-brand'
+                                          ? 'border-[#3f6f3d] bg-[#e8f2e5] text-brand'
                                           : 'border-line bg-white text-ink-faint'
                                 }`}
                             >
@@ -1577,15 +1732,15 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                             >
                                 {index > 0 && (
                                     <div
-                                        className={`absolute top-5 right-1/2 h-[3px] w-full ${reached ? 'bg-brand' : 'bg-line-soft'}`}
+                                        className={`absolute top-5 right-1/2 h-[3px] w-full ${reached ? 'bg-[#3f6f3d]' : 'bg-line-soft'}`}
                                     />
                                 )}
                                 <div
                                     className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 ${
                                         completed
-                                            ? 'border-brand bg-brand text-white'
+                                            ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
                                             : current
-                                              ? 'border-brand bg-brand-soft text-brand'
+                                              ? 'border-[#3f6f3d] bg-[#e8f2e5] text-brand'
                                               : 'border-line bg-white text-ink-faint'
                                     }`}
                                 >
@@ -1615,9 +1770,9 @@ function RequestTracker({ status }: { status: RequestStatus }) {
             </div>
 
             {/* STATUS MESSAGE */}
-            <div className="mt-4 rounded-xl border border-line-soft bg-surface p-4">
+            <div className="mt-4 rounded-xl border border-[#d8e8d4] bg-[#f4f8f2] p-4">
                 <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-brand">
                         <CurrentStatusIcon status={status} />
                     </div>
                     <div>
@@ -1897,7 +2052,7 @@ function StatusBadge({ status }: { status: RequestStatus }) {
         'Needs Action': 'bg-[#fff0e5] text-[#a65316]',
         'For Payment': 'bg-[#f3ecff] text-[#6f42a5]',
         Processing: 'bg-[#eef3fb] text-[#416b9c]',
-        'Ready for Claim': 'bg-canvas text-brand',
+        'Ready for Claim': 'bg-[#edf4ea] text-brand',
         Released: 'bg-secondary text-ink-muted',
         Rejected: 'bg-[#fdecec] text-[#a33a3a]',
     };
@@ -1917,6 +2072,58 @@ function StatusBadge({ status }: { status: RequestStatus }) {
 |--------------------------------------------------------------------------
 */
 
+/*
+|--------------------------------------------------------------------------
+| Locally saved request (not yet confirmed by the server)
+|--------------------------------------------------------------------------
+*/
+
+const LOCAL_SYNC_LABEL: Record<string, string> = {
+    pending: 'Waiting for Internet Connection',
+    syncing: 'Sending to the Barangay…',
+    'login-required': 'Sign in online to send this request',
+    'needs-review': 'Needs your review before it can be sent',
+};
+
+function LocalRequestRow({ item }: { item: LocalCertificateRequest }) {
+    return (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                    <p className="text-base font-semibold break-words text-amber-950 sm:text-lg">
+                        {item.data.certificateName}
+                    </p>
+                    <p className="mt-1 text-sm font-medium break-words text-amber-900">
+                        {item.data.form?.purpose || 'No purpose recorded'}
+                    </p>
+                    <p className="mt-1 text-sm text-amber-800">
+                        Saved locally:{' '}
+                        {new Date(item.createdAt).toLocaleDateString('en-PH', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                        })}
+                    </p>
+                    <p className="mt-2 text-xs leading-5 text-amber-900 sm:text-sm">
+                        Saved on this device. Not yet received by the Barangay.
+                        This is not an official request status.
+                    </p>
+                    {item.data.error && (
+                        <p className="mt-2 rounded-lg border border-amber-300 bg-white p-2 text-xs leading-5 text-amber-950 sm:text-sm">
+                            {item.data.error}
+                        </p>
+                    )}
+                </div>
+                <span className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-amber-400 bg-white px-3 py-1 text-xs font-semibold text-amber-900">
+                    <span aria-hidden className="h-2 w-2 rounded-full bg-amber-500" />
+                    {LOCAL_SYNC_LABEL[item.status] ||
+                        'Waiting for Internet Connection'}
+                </span>
+            </div>
+        </div>
+    );
+}
+
 function CheckLargeIcon() {
     return (
         <svg
@@ -1929,6 +2136,24 @@ function CheckLargeIcon() {
             strokeLinejoin="round"
         >
             <path d="M5 12.5l4 4L19 7" />
+        </svg>
+    );
+}
+
+function ClockLargeIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-6 w-6"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+        >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3.5 2" />
         </svg>
     );
 }

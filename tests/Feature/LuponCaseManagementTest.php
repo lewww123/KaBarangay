@@ -6,6 +6,7 @@ use App\Models\Barangay;
 use App\Models\LuponCase;
 use App\Models\LuponCaseParty;
 use App\Models\LuponComplaint;
+use App\Models\LuponDocument;
 use App\Models\LuponHearing;
 use App\Models\Purok;
 use App\Models\Resident;
@@ -58,7 +59,7 @@ class LuponCaseManagementTest extends TestCase
     private function paymentSchedule(LuponComplaint $complaint): array
     {
         return [
-            'or_number' => 'OR-'.$complaint->id,
+            'payment_verified' => true, 'payment_date' => now()->timezone('Asia/Manila')->toDateString(), 'verification_note' => 'Original receipt and actual payment checked.', 'or_number' => 'OR-'.$complaint->id,
             'hearing_date' => now()->timezone('Asia/Manila')->toDateString(),
             'hearing_time' => '09:00',
             'venue' => 'Barangay Hall',
@@ -152,15 +153,16 @@ class LuponCaseManagementTest extends TestCase
 
         // First promotion
         $this->actingAs($this->luponStaff)
-            ->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
+            ->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint))
+            ->assertSessionHasNoErrors();
 
         $this->assertDatabaseCount('lupon_cases', 1);
 
-        // Second promotion should be rejected
+        // Second promotion is idempotent and must not create another case
         $response = $this->actingAs($this->luponStaff)
             ->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
 
-        $response->assertSessionHasErrors('complaint');
+        $response->assertRedirect()->assertSessionHasNoErrors()->assertSessionHas('success');
         $this->assertDatabaseCount('lupon_cases', 1);
     }
 
@@ -232,7 +234,7 @@ class LuponCaseManagementTest extends TestCase
 
         $otherBarangay = $this->createBarangay('Barangay Two', 'BRGY-TWO');
         $otherStaff = $this->createStaff($otherBarangay, 'lupon');
-        $otherCase = LuponCase::create([
+        $otherCase = LuponCase::create(['payment_status' => 'paid',
             'barangay_id' => $otherBarangay->id,
             'origin' => 'manual',
             'case_number' => 'KP-2026-OTHER-01',
@@ -281,7 +283,7 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_lupon_cases_list_renders_existing_filters_and_pagination_data(): void
     {
-        $case = LuponCase::create([
+        $case = LuponCase::create(['payment_status' => 'paid',
             'barangay_id' => $this->barangay->id,
             'origin' => 'manual',
             'case_number' => 'KP-2026-CASE-INDEX-01',
@@ -307,9 +309,71 @@ class LuponCaseManagementTest extends TestCase
                 ->has('cases.links'));
     }
 
+    public function test_lupon_cases_list_filters_by_stage_tabs_without_cross_barangay_leakage(): void
+    {
+        $cases = [
+            'mediation' => ['KP-2026-STAGE-MED', 'Kapitan', 'mediation_active'],
+            'conciliation' => ['KP-2026-STAGE-CON', 'Lupon', 'conciliation_active'],
+            'arbitration' => ['KP-2026-STAGE-ARB', 'Arbitration', 'arbitration_active'],
+            'resolved' => ['KP-2026-STAGE-RES', 'Closed', 'settled'],
+        ];
+
+        foreach ($cases as [$caseNumber, $phase, $status]) {
+            LuponCase::create([
+                'payment_status' => 'paid',
+                'barangay_id' => $this->barangay->id,
+                'origin' => 'manual',
+                'case_number' => $caseNumber,
+                'title' => $caseNumber.' title',
+                'case_type' => 'Debt / Money Dispute',
+                'phase' => $phase,
+                'status' => $status,
+                'created_by' => $this->luponStaff->id,
+                'assigned_to' => $this->luponStaff->id,
+                'filed_date' => now()->toDateString(),
+            ]);
+        }
+
+        $foreign = $this->createBarangay('Stage Foreign', 'STAGE-FOREIGN');
+        $foreignStaff = $this->createStaff($foreign, 'lupon');
+        LuponCase::create([
+            'payment_status' => 'paid',
+            'barangay_id' => $foreign->id,
+            'origin' => 'manual',
+            'case_number' => 'KP-2026-STAGE-FOREIGN',
+            'title' => 'Foreign stage case',
+            'case_type' => 'Debt / Money Dispute',
+            'phase' => 'Kapitan',
+            'status' => 'mediation_active',
+            'created_by' => $foreignStaff->id,
+            'assigned_to' => $foreignStaff->id,
+            'filed_date' => now()->toDateString(),
+        ]);
+
+        foreach ($cases as $stage => [$caseNumber]) {
+            $this->actingAs($this->luponStaff)
+                ->get('/lupon/cases?stage='.$stage)
+                ->assertOk()
+                ->assertInertia(fn ($page) => $page
+                    ->component('Lupon/Cases/Index')
+                    ->has('cases.data', 1)
+                    ->where('cases.data.0.caseNumber', $caseNumber)
+                    ->where('filters.stage', $stage)
+                    ->where('counts.'.$stage, 1)
+                    ->where('counts.total', 4));
+        }
+
+        $this->actingAs($this->luponStaff)
+            ->get('/lupon/cases?stage=not-a-stage')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.stage', 'all')
+                ->has('cases.data', 4));
+    }
+
     public function test_lupon_case_index_preserves_party_names_and_counts_without_loading_party_residents(): void
     {
-        $case = LuponCase::create([
+        $case = LuponCase::create(['payment_status' => 'paid',
             'barangay_id' => $this->barangay->id,
             'origin' => 'manual',
             'case_number' => 'KP-2026-INDEX-PARTIES',
@@ -353,7 +417,7 @@ class LuponCaseManagementTest extends TestCase
             'is_primary' => false,
         ]);
 
-        $olderCase = LuponCase::create([
+        $olderCase = LuponCase::create(['payment_status' => 'paid',
             'barangay_id' => $this->barangay->id,
             'origin' => 'manual',
             'case_number' => 'KP-2026-INDEX-OLDER',
@@ -384,7 +448,7 @@ class LuponCaseManagementTest extends TestCase
         $residentSelects = [];
         DB::listen(function ($query) use (&$capture, &$residentSelects): void {
             $sql = strtolower($query->sql);
-            if ($capture && str_starts_with(ltrim($sql), 'select') && str_contains($sql, 'from "residents"') && ! str_starts_with($sql, 'select exists(select * from "staff_assignments"')) {
+            if ($capture && str_starts_with(ltrim($sql), 'select') && str_contains($sql, 'from "residents"') && ! str_contains($sql, '"staff_assignments"')) {
                 $residentSelects[] = $query->sql;
             }
         });
@@ -534,7 +598,7 @@ class LuponCaseManagementTest extends TestCase
             'mobile' => '09170000055',
         ]);
 
-        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', [
+        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', ['payment_verified' => true, 'payment_date' => now()->timezone('Asia/Manila')->toDateString(), 'verification_note' => 'Original receipt and actual payment checked.', 'or_number' => 'WALKIN-'.Str::uuid(), 'fee_amount' => 100,
             'case_type' => 'Property / Boundary Dispute',
             'incident_date' => now()->subDay()->toDateString(),
             'incident_location' => 'Zone 4, Purok 1',
@@ -556,7 +620,8 @@ class LuponCaseManagementTest extends TestCase
 
         $case = LuponCase::where('origin', 'manual')->first();
         $this->assertNotNull($case);
-        $this->assertNull($case->complaint_id);
+        $this->assertNotNull($case->complaint_id);
+        $this->assertSame('Payment Verified', $case->complaint->status);
         $this->assertEquals('Property / Boundary Dispute', $case->case_type);
         $this->assertEquals('filed', $case->status);
 
@@ -588,7 +653,7 @@ class LuponCaseManagementTest extends TestCase
             'mobile' => '09170000077',
         ]);
 
-        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', [
+        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', ['payment_verified' => true, 'payment_date' => now()->timezone('Asia/Manila')->toDateString(), 'verification_note' => 'Original receipt and actual payment checked.', 'or_number' => 'WALKIN-'.Str::uuid(), 'fee_amount' => 100,
             'case_type' => 'Debt / Money Dispute',
             'incident_date' => now()->toDateString(),
             'incident_location' => 'Barangay Center',
@@ -644,6 +709,74 @@ class LuponCaseManagementTest extends TestCase
         $respondentParty->refresh();
         $this->assertEquals('unlinked', $respondentParty->association_status);
         $this->assertNull($respondentParty->resident_id);
+    }
+
+    public function test_respondent_link_and_unlink_supersede_only_prepared_notices(): void
+    {
+        $complaint = $this->createComplaint($this->barangay, $this->resident, ['status' => 'For Payment', 'assessed_fee' => 100]);
+        $this->actingAs($this->luponStaff)->post("/lupon/complaints/{$complaint->id}/promote", $this->paymentSchedule($complaint));
+        $case = LuponCase::firstOrFail();
+        $respondentParty = $case->respondents()->firstOrFail();
+
+        $prepared = LuponDocument::create([
+            'case_id' => $case->id,
+            'kind' => 'notice_of_hearing',
+            'status' => 'ready',
+            'generated_at' => now()->subHours(2),
+            'created_by' => $this->luponStaff->id,
+        ]);
+        $issued = LuponDocument::create([
+            'case_id' => $case->id,
+            'kind' => 'summons',
+            'status' => 'ready',
+            'generated_at' => now()->subHours(2),
+            'issued_at' => now()->subHour(),
+            'created_by' => $this->luponStaff->id,
+        ]);
+        $served = LuponDocument::create([
+            'case_id' => $case->id,
+            'kind' => 'notice_of_hearing',
+            'status' => 'ready',
+            'generated_at' => now()->subHours(2),
+            'issued_at' => now()->subHour(),
+            'served_at' => now()->subMinutes(30),
+            'created_by' => $this->luponStaff->id,
+        ]);
+
+        $secondResident = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09170000034',
+        ]);
+
+        $this->actingAs($this->luponStaff)
+            ->post("/lupon/parties/{$respondentParty->id}/associate-respondent", [
+                'action' => 'link_verify',
+                'resident_id' => $secondResident->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('superseded', $prepared->fresh()->status);
+        $this->assertSame('ready', $issued->fresh()->status);
+        $this->assertNotNull($issued->fresh()->issued_at);
+        $this->assertSame('ready', $served->fresh()->status);
+        $this->assertNotNull($served->fresh()->served_at);
+
+        $preparedForUnlink = LuponDocument::create([
+            'case_id' => $case->id,
+            'kind' => 'summons',
+            'status' => 'ready',
+            'generated_at' => now()->subHour(),
+            'created_by' => $this->luponStaff->id,
+        ]);
+
+        $this->actingAs($this->luponStaff)
+            ->post("/lupon/parties/{$respondentParty->id}/associate-respondent", [
+                'action' => 'unlink',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('superseded', $preparedForUnlink->fresh()->status);
+        $this->assertSame('ready', $issued->fresh()->status);
+        $this->assertSame('ready', $served->fresh()->status);
     }
 
     public function test_staff_cannot_link_resident_from_another_barangay_to_respondent(): void
@@ -806,19 +939,17 @@ class LuponCaseManagementTest extends TestCase
         $this->getJson("/lupon/cases/qr-lookup?token={$credential->token}")
             ->assertStatus(401);
 
-        // Authenticated as resident -> 403
-        $residentUser = User::factory()->create([
-            'barangay_id' => $this->barangay->id,
-        ]);
+        // Authenticated as a non-Lupon staff member -> 403
+        $clerk = $this->createStaff($this->barangay, 'clerk');
 
-        $this->actingAs($residentUser)
+        $this->actingAs($clerk)
             ->getJson("/lupon/cases/qr-lookup?token={$credential->token}")
             ->assertStatus(403);
     }
 
     public function test_manual_add_case_with_non_resident_parties(): void
     {
-        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', [
+        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', ['payment_verified' => true, 'payment_date' => now()->timezone('Asia/Manila')->toDateString(), 'verification_note' => 'Original receipt and actual payment checked.', 'or_number' => 'WALKIN-'.Str::uuid(), 'fee_amount' => 100,
             'case_type' => 'Damage to Property',
             'incident_date' => now()->toDateString(),
             'incident_location' => 'Main Road',
@@ -853,7 +984,7 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_manual_add_case_rejects_duplicate_parties_with_same_resident_id(): void
     {
-        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', [
+        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', ['payment_verified' => true, 'payment_date' => now()->timezone('Asia/Manila')->toDateString(), 'verification_note' => 'Original receipt and actual payment checked.', 'or_number' => 'WALKIN-'.Str::uuid(), 'fee_amount' => 100,
             'case_type' => 'Noise / Disturbance',
             'incident_date' => now()->toDateString(),
             'incident_location' => 'Purok 1',
@@ -872,7 +1003,7 @@ class LuponCaseManagementTest extends TestCase
 
     public function test_manual_add_case_requires_custom_nature_when_other_is_selected(): void
     {
-        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', [
+        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', ['payment_verified' => true, 'payment_date' => now()->timezone('Asia/Manila')->toDateString(), 'verification_note' => 'Original receipt and actual payment checked.', 'or_number' => 'WALKIN-'.Str::uuid(), 'fee_amount' => 100,
             'case_type' => 'Other',
             'custom_case_type' => '',
             'incident_date' => now()->toDateString(),
@@ -894,7 +1025,7 @@ class LuponCaseManagementTest extends TestCase
             'mobile' => '09170000099',
         ]);
 
-        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', [
+        $response = $this->actingAs($this->luponStaff)->post('/lupon/cases', ['payment_verified' => true, 'payment_date' => now()->timezone('Asia/Manila')->toDateString(), 'verification_note' => 'Original receipt and actual payment checked.', 'or_number' => 'WALKIN-'.Str::uuid(), 'fee_amount' => 100,
             'case_type' => 'Other',
             'custom_case_type' => 'Water Pipe Encroachment',
             'incident_date' => now()->toDateString(),
@@ -931,5 +1062,55 @@ class LuponCaseManagementTest extends TestCase
                 ->component('Resident/LuponCaseShow')
                 ->where('caseData.caseType', 'Other: Water Pipe Encroachment')
                 ->where('caseData.narrative', 'Nature of Dispute: Other: Water Pipe Encroachment'));
+    }
+
+    public function test_cases_with_unpaid_or_pending_payment_status_remain_visible_in_cases_index_and_dashboard(): void
+    {
+        $case = LuponCase::create([
+            'barangay_id' => $this->barangay->id,
+            'origin' => 'manual',
+            'case_number' => 'KP-2026-UNPAID-01',
+            'title' => 'Unpaid fee case with hearing',
+            'case_type' => 'Boundary Dispute',
+            'phase' => 'Kapitan',
+            'status' => 'mediation_active',
+            'payment_status' => 'unpaid',
+            'created_by' => $this->luponStaff->id,
+            'assigned_to' => $this->luponStaff->id,
+            'filed_date' => now()->toDateString(),
+        ]);
+
+        $hearing = LuponHearing::create([
+            'case_id' => $case->id,
+            'barangay_id' => $this->barangay->id,
+            'hearing_number' => 1,
+            'phase' => 'Kapitan',
+            'hearing_date' => now()->addDays(2)->toDateString(),
+            'hearing_time' => '09:00 AM',
+            'venue' => 'Barangay Hall',
+            'status' => 'Scheduled',
+            'officer_id' => $this->luponStaff->id,
+        ]);
+
+        // Must be visible in /lupon/cases index and aggregate counts
+        $indexResponse = $this->actingAs($this->luponStaff)->get('/lupon/cases');
+        $indexResponse->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Lupon/Cases/Index')
+                ->has('cases.data', 1)
+                ->where('cases.data.0.id', $case->id)
+                ->where('cases.data.0.caseNumber', 'KP-2026-UNPAID-01')
+                ->where('cases.data.0.paymentStatus', 'unpaid')
+                ->where('counts.total', 1)
+                ->where('counts.mediation', 1));
+
+        // Must be visible in /lupon/dashboard metrics and schedule
+        $dashboardResponse = $this->actingAs($this->luponStaff)->get('/lupon/dashboard');
+        $dashboardResponse->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Lupon/Dashboard')
+                ->where('metrics.filed', 1)
+                ->has('schedule', 1)
+                ->where('schedule.0.caseId', $case->id));
     }
 }

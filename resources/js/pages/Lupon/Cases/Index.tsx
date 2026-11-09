@@ -1,17 +1,19 @@
 import { luponStatusLabel, luponStatusClasses } from '@/components/lupon/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-import LuponLayout from '@/layouts/LuponLayout';
+import LuponLayout, { type LuponCaseStage } from '@/layouts/LuponLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import withDeferredPage from '@/components/withDeferredPage';
 
 type CaseItem = {
     id: number;
     caseNumber: string;
+    complaintReference?: string | null;
     title: string;
     caseType: string;
     phase: string;
     status: string;
+    paymentStatus?: string;
     filedDate: string;
     complainantName: string;
     respondentName: string;
@@ -30,6 +32,7 @@ type Props = {
         user: { name?: string };
         staffAssignments?: { department: string; position: string }[];
     };
+    canCreateCases?: boolean;
     cases: {
         data: CaseItem[];
         links: Array<{ url: string | null; label: string; active: boolean }>;
@@ -42,32 +45,61 @@ type Props = {
         search: string;
         status: string;
         phase: string;
+        stage: LuponCaseStage;
+        sort?: string;
     };
     counts: {
         total: number;
         active: number;
         settled: number;
         unresolved: number;
+        mediation: number;
+        conciliation: number;
+        arbitration: number;
+        resolved: number;
     };
     phases: string[];
     statuses: string[];
 };
 
+const caseTabs: { id: LuponCaseStage; label: string }[] = [
+    { id: 'all', label: 'All Cases' },
+    { id: 'mediation', label: 'Mediation' },
+    { id: 'conciliation', label: 'Conciliation' },
+    { id: 'arbitration', label: 'Arbitration' },
+    { id: 'resolved', label: 'Resolved' },
+];
+
 export default withDeferredPage(CasesIndex, ['cases', 'counts'], (props) => (
-    <LuponLayout active="cases" user={props.auth.user}>
-        <PortalPageSkeleton metrics={4} />
+    <LuponLayout
+        active="cases"
+        caseStage={props.filters.stage}
+        user={props.auth.user}
+    >
+        <PortalPageSkeleton metrics={5} />
     </LuponLayout>
 ));
 
-function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
+function CasesIndex({
+    auth,
+    cases,
+    filters,
+    counts,
+    phases,
+    statuses,
+    canCreateCases = false,
+}: Props) {
     const [search, setSearch] = useState(filters.search);
     const [status, setStatus] = useState(filters.status);
     const [phase, setPhase] = useState(filters.phase);
+    const [stage, setStage] = useState<LuponCaseStage>(filters.stage);
 
     const applyFilter = (newFilters: {
         search?: string;
         status?: string;
         phase?: string;
+        stage?: LuponCaseStage;
+        sort?: string;
     }) => {
         router.get(
             '/lupon/cases',
@@ -75,6 +107,8 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                 search: newFilters.search ?? search,
                 status: newFilters.status ?? status,
                 phase: newFilters.phase ?? phase,
+                stage: newFilters.stage ?? stage,
+                sort: newFilters.sort ?? filters.sort ?? 'newest',
             },
             {
                 preserveState: true,
@@ -89,8 +123,15 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
         applyFilter({ search });
     };
 
+    const selectStage = (nextStage: LuponCaseStage) => {
+        setStage(nextStage);
+        setStatus('');
+        setPhase('');
+        applyFilter({ stage: nextStage, status: '', phase: '' });
+    };
+
     return (
-        <LuponLayout active="cases" user={auth.user}>
+        <LuponLayout active="cases" caseStage={stage} user={auth.user}>
             <Head title="Lupon Cases" />
 
             <div className="mx-auto max-w-7xl space-y-6 p-2 font-sans sm:p-4">
@@ -107,12 +148,14 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                            href="/lupon/cases/create"
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white shadow-card hover:bg-brand-deep"
-                        >
-                            + Add Case
-                        </Link>
+                        {canCreateCases && (
+                            <Link
+                                href="/lupon/cases/create"
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-card hover:bg-[#315b30]"
+                            >
+                                + Add Case
+                            </Link>
+                        )}
                         <Link
                             href="/lupon/complaints"
                             className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2 text-sm font-semibold text-ink shadow-card hover:bg-canvas"
@@ -123,27 +166,75 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                 </div>
 
                 {/* Metrics */}
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
                     <MetricCard
-                        label="Total Cases"
+                        label="All Cases"
                         value={counts.total}
                         color="blue"
                     />
                     <MetricCard
-                        label="Active / Mediation"
-                        value={counts.active}
+                        label="Mediation"
+                        value={counts.mediation}
                         color="amber"
                     />
                     <MetricCard
-                        label="Settled"
-                        value={counts.settled}
-                        color="green"
+                        label="Conciliation"
+                        value={counts.conciliation}
+                        color="amber"
                     />
                     <MetricCard
-                        label="Unresolved"
-                        value={counts.unresolved}
-                        color="red"
+                        label="Arbitration"
+                        value={counts.arbitration}
+                        color="blue"
                     />
+                    <MetricCard
+                        label="Resolved"
+                        value={counts.resolved}
+                        color="green"
+                    />
+                </div>
+
+                {/* Stage Tabs */}
+                <div
+                    role="tablist"
+                    aria-label="Filter cases by stage"
+                    className="flex flex-wrap gap-1 rounded-xl border border-line-soft bg-white p-2 shadow-card"
+                >
+                    {caseTabs.map((tab) => {
+                        const isActive = stage === tab.id;
+                        const count =
+                            tab.id === 'all'
+                                ? counts.total
+                                : counts[
+                                      tab.id as
+                                          | 'mediation'
+                                          | 'conciliation'
+                                          | 'arbitration'
+                                          | 'resolved'
+                                  ];
+
+                        return (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={isActive}
+                                onClick={() => selectStage(tab.id)}
+                                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                                    isActive
+                                        ? 'bg-[#3f6f3d] text-white shadow-card'
+                                        : 'text-ink-muted hover:bg-[#f4f7ef] hover:text-[#3f6f3d]'
+                                }`}
+                            >
+                                {tab.label}
+                                <span
+                                    className={`rounded-full px-2 py-0.5 text-xs ${isActive ? 'bg-white/20 text-white' : 'bg-secondary text-ink-muted'}`}
+                                >
+                                    {count}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* Filter and Search Bar */}
@@ -158,7 +249,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                                 placeholder="Search by case #, title, or party name..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink-strong outline-none focus:border-brand focus:ring-2 focus:ring-[#3b6fa8]/20"
+                                className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink-strong outline-none focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20"
                             />
                         </div>
 
@@ -169,7 +260,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                                     setPhase(e.target.value);
                                     applyFilter({ phase: e.target.value });
                                 }}
-                                className="rounded-xl border border-line px-3 py-2.5 text-sm text-ink outline-none focus:border-brand"
+                                className="rounded-xl border border-line px-3 py-2.5 text-sm text-ink outline-none focus:border-[#3f6f3d]"
                             >
                                 <option value="">All Phases</option>
                                 {phases.map((p) => (
@@ -185,7 +276,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                                     setStatus(e.target.value);
                                     applyFilter({ status: e.target.value });
                                 }}
-                                className="rounded-xl border border-line px-3 py-2.5 text-sm text-ink outline-none focus:border-brand"
+                                className="rounded-xl border border-line px-3 py-2.5 text-sm text-ink outline-none focus:border-[#3f6f3d]"
                             >
                                 <option value="">All Statuses</option>
                                 {statuses.map((s) => (
@@ -197,25 +288,43 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
 
                             <button
                                 type="submit"
-                                className="rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-deep"
+                                className="rounded-xl bg-[#3f6f3d] px-5 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-[#315b30]"
                             >
                                 Filter
                             </button>
                         </div>
+                        <label className="mt-3 block text-sm">
+                            Sort by{' '}
+                            <select
+                                aria-label="Sort cases"
+                                value={filters.sort || 'newest'}
+                                onChange={(e) =>
+                                    applyFilter({ sort: e.target.value })
+                                }
+                                className="rounded border p-2"
+                            >
+                                <option value="newest">Newest filing</option>
+                                <option value="oldest">Oldest filing</option>
+                                <option value="case_number">Case number</option>
+                            </select>
+                        </label>
                     </form>
                 </div>
 
                 {/* Cases List */}
                 {cases.data.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-line bg-surface p-12 text-center">
+                    <div className="rounded-xl border border-dashed border-line bg-[#fafaf7] p-12 text-center">
                         <span className="text-3xl"></span>
                         <h3 className="mt-3 text-base font-semibold text-ink-strong">
                             No cases found
                         </h3>
                         <p className="mt-1 text-sm text-ink-muted">
-                            {filters.search || filters.status || filters.phase
+                            {filters.search ||
+                            filters.status ||
+                            filters.phase ||
+                            stage !== 'all'
                                 ? 'No case records matched your active filter criteria.'
-                                : 'No complaints have been promoted to a case yet. Review accepted complaints in the intake queue.'}
+                                : 'No official cases have been recorded yet.'}
                         </p>
                     </div>
                 ) : (
@@ -223,7 +332,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                         {cases.data.map((c) => (
                             <div
                                 key={c.id}
-                                className="rounded-xl border border-line-soft bg-white p-5 shadow-card transition hover:border-brand/60"
+                                className="rounded-xl border border-line-soft bg-white p-5 shadow-card transition hover:border-[#3f6f3d]/60"
                             >
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div className="space-y-1.5">
@@ -231,12 +340,29 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                                             <span className="text-lg font-semibold text-ink-strong">
                                                 {c.caseNumber}
                                             </span>
-                                            <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand">
+                                            <span className="rounded-full bg-[#e8f1e4] px-2.5 py-0.5 text-xs font-semibold text-[#3f6f3d]">
                                                 {c.phase} Phase
                                             </span>
                                             <StatusBadge status={c.status} />
+                                            {c.paymentStatus && c.paymentStatus !== 'paid' && (
+                                                <span
+                                                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                                        c.paymentStatus === 'waived'
+                                                            ? 'bg-blue-100 text-blue-700'
+                                                            : 'bg-amber-100 text-amber-800'
+                                                    }`}
+                                                >
+                                                    {c.paymentStatus === 'waived' ? 'Fee Waived' : 'Fee Unpaid'}
+                                                </span>
+                                            )}
                                         </div>
 
+                                        {c.complaintReference && (
+                                            <p className="text-xs text-ink-muted">
+                                                Complaint reference:{' '}
+                                                {c.complaintReference}
+                                            </p>
+                                        )}
                                         <p className="text-sm font-semibold text-ink-strong">
                                             {c.title}
                                         </p>
@@ -279,7 +405,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
 
                                     <Link
                                         href={`/lupon/cases/${c.id}`}
-                                        className="shrink-0 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white shadow-card hover:bg-brand-deep"
+                                        className="shrink-0 rounded-xl bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white shadow-card hover:bg-[#315b30]"
                                     >
                                         View Case Details 
                                     </Link>
@@ -308,7 +434,7 @@ function CasesIndex({ auth, cases, filters, counts, phases, statuses }: Props) {
                                 const label = link.label
                                     .replace('&laquo;', '<')
                                     .replace('&raquo;', '>');
-                                const classes = `min-w-9 rounded-lg px-3 py-2 text-center text-sm font-medium ${link.active ? 'bg-brand text-white' : 'text-ink-muted hover:bg-canvas'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`;
+                                const classes = `min-w-9 rounded-lg px-3 py-2 text-center text-sm font-medium ${link.active ? 'bg-[#3f6f3d] text-white' : 'text-ink-muted hover:bg-[#f4f7ef]'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`;
 
                                 return link.url ? (
                                     <Link

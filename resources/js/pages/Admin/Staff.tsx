@@ -308,7 +308,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                             >
                                                 Edit
                                             </button>
-                                            {assignment.is_active && (
+                                            {assignment.is_active ? (
                                                 <button
                                                     type="button"
                                                     onClick={() =>
@@ -323,6 +323,22 @@ export default function Staff({ assignments, filters, departments }: Props) {
                                                     className="text-red-700"
                                                 >
                                                     Deactivate
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        router.patch(
+                                                            `/admin/staff/${assignment.id}/activate`,
+                                                            {},
+                                                            {
+                                                                preserveScroll: true,
+                                                            },
+                                                        )
+                                                    }
+                                                    className="font-semibold text-brand"
+                                                >
+                                                    Activate
                                                 </button>
                                             )}
                                         </td>

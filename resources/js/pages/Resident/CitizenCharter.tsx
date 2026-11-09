@@ -272,7 +272,7 @@ function CitizenCharterContent({
                                     dangerouslySetInnerHTML={{
                                         __html: link.label,
                                     }}
-                                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
                                         link.active
                                             ? 'bg-brand text-white'
                                             : link.url

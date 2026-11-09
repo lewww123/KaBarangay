@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Barangay;
+use App\Models\Household;
 use App\Models\Purok;
 use App\Models\Resident;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -60,6 +62,65 @@ class AdminResidentManagementTest extends TestCase
                 ->where('allResidents.data.0.reference', $own->resident_number)
                 ->where('allResidents.data.0.status', 'active')
                 ->where('allResidents.data.0.accountActive', true));
+    }
+
+    public function test_households_deep_link_selects_tab_and_defers_only_that_dataset(): void
+    {
+        $head = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09171550001',
+        ]);
+        Household::create([
+            'barangay_id' => $this->barangay->id,
+            'purok_id' => $this->purok->id,
+            'household_code' => 'HH-DEEP001',
+            'head_resident_id' => $head->id,
+        ]);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $version = app(HandleInertiaRequests::class)->version(request()) ?? '';
+
+        // With deferral enabled, a full page load must select the deep-linked
+        // tab and expose only that tab's dataset to the deferred loader.
+        config(['inertia.defer_heavy_props' => true]);
+
+        $response = $this->actingAs($admin)->get('/admin/residents?tab=households', [
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => $version,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('props.filters.tab', 'households')
+            ->assertJsonMissingPath('props.households')
+            ->assertJsonMissingPath('props.allResidents')
+            ->assertJsonMissingPath('props.addedByAdmin')
+            ->assertJsonMissingPath('props.pendingRegistrations')
+            ->assertJsonMissingPath('props.needsCorrectionRegistrations')
+            ->assertJsonMissingPath('props.rejectedRegistrations');
+
+        $deferred = collect($response->json('deferredProps'))->flatten()->all();
+
+        $this->assertContains('households', $deferred);
+        $this->assertNotContains('allResidents', $deferred);
+        $this->assertNotContains('addedByAdmin', $deferred);
+        $this->assertNotContains('pendingRegistrations', $deferred);
+        $this->assertNotContains('needsCorrectionRegistrations', $deferred);
+        $this->assertNotContains('rejectedRegistrations', $deferred);
+
+        // Partial visits may still request any tab's dataset, including tabs
+        // that were not part of the original full page load.
+        config(['inertia.defer_heavy_props' => false]);
+
+        $this->actingAs($admin)->get('/admin/residents?tab=households', [
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => $version,
+            'X-Inertia-Partial-Component' => 'Admin/Residents',
+            'X-Inertia-Partial-Data' => 'allResidents,filters',
+        ])
+            ->assertOk()
+            ->assertJsonPath('props.filters.tab', 'households')
+            ->assertJsonPath('props.allResidents.total', 2)
+            ->assertJsonMissingPath('props.households');
     }
 
     public function test_index_paginates_residents(): void
@@ -381,5 +442,310 @@ class AdminResidentManagementTest extends TestCase
         $this->withSession(['resident_id' => $resident->id])
             ->get('/resident')
             ->assertOk();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Resident Update / Edit Tests
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_admin_can_update_resident_personal_and_contact_info(): void
+    {
+        $resident = $this->createResident($this->barangay, $this->purok, [
+            'first_name' => 'Original',
+            'last_name' => 'Name',
+            'mobile' => '09178000001',
+            'email' => 'original@kabarangay.local',
+        ]);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $response = $this->actingAs($admin)
+            ->put("/admin/residents/{$resident->id}", [
+                'purok_id' => $this->purok->id,
+                'first_name' => 'UpdatedFirst',
+                'middle_name' => 'UpdatedMiddle',
+                'last_name' => 'UpdatedLast',
+                'suffix' => 'Jr.',
+                'birthdate' => '1995-05-15',
+                'sex' => 'Male',
+                'civil_status' => 'Married',
+                'address_line' => '123 New Address St.',
+                'mobile' => '09179998888',
+                'email' => 'updated@kabarangay.local',
+                'household_mode' => 'preserve',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $resident->refresh();
+        $this->assertSame('UpdatedFirst', $resident->first_name);
+        $this->assertSame('UpdatedMiddle', $resident->middle_name);
+        $this->assertSame('UpdatedLast', $resident->last_name);
+        $this->assertSame('Jr.', $resident->suffix);
+        $this->assertSame('1995-05-15', $resident->birthdate->format('Y-m-d'));
+        $this->assertSame('Male', $resident->sex);
+        $this->assertSame('Married', $resident->civil_status);
+        $this->assertSame('123 New Address St.', $resident->address_line);
+        $this->assertSame('09179998888', $resident->mobile);
+        $this->assertSame('updated@kabarangay.local', $resident->email);
+    }
+
+    public function test_updating_resident_preserves_household_when_mode_is_preserve(): void
+    {
+        $household = Household::query()->create([
+            'barangay_id' => $this->barangay->id,
+            'purok_id' => $this->purok->id,
+            'household_code' => 'HH-PRESERVE1',
+        ]);
+
+        $resident = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09178000002',
+        ]);
+        $resident->update([
+            'household_id' => $household->id,
+            'household_relationship' => 'Child',
+        ]);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $response = $this->actingAs($admin)
+            ->put("/admin/residents/{$resident->id}", [
+                'purok_id' => $this->purok->id,
+                'first_name' => $resident->first_name,
+                'last_name' => $resident->last_name,
+                'birthdate' => '1998-01-01',
+                'sex' => 'Female',
+                'civil_status' => 'Single',
+                'address_line' => $resident->address_line,
+                'mobile' => $resident->mobile,
+                'email' => $resident->email,
+                'household_mode' => 'preserve',
+            ]);
+
+        $response->assertRedirect();
+        $resident->refresh();
+        $this->assertSame($household->id, $resident->household_id);
+        $this->assertSame('Child', $resident->household_relationship);
+    }
+
+    public function test_updating_resident_can_reassign_to_existing_household(): void
+    {
+        $targetHousehold = Household::query()->create([
+            'barangay_id' => $this->barangay->id,
+            'purok_id' => $this->purok->id,
+            'household_code' => 'HH-TARGET01',
+        ]);
+
+        $resident = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09178000003',
+        ]);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $response = $this->actingAs($admin)
+            ->put("/admin/residents/{$resident->id}", [
+                'purok_id' => $this->purok->id,
+                'first_name' => $resident->first_name,
+                'last_name' => $resident->last_name,
+                'birthdate' => '1990-06-20',
+                'sex' => 'Male',
+                'civil_status' => 'Single',
+                'address_line' => $resident->address_line,
+                'mobile' => $resident->mobile,
+                'email' => $resident->email,
+                'household_mode' => 'existing',
+                'household_id' => $targetHousehold->id,
+                'household_relationship' => 'Brother',
+            ]);
+
+        $response->assertRedirect();
+        $resident->refresh();
+        $this->assertSame($targetHousehold->id, $resident->household_id);
+        $this->assertSame('Brother', $resident->household_relationship);
+    }
+
+    public function test_updating_resident_can_create_new_household(): void
+    {
+        $resident = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09178000004',
+        ]);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $response = $this->actingAs($admin)
+            ->put("/admin/residents/{$resident->id}", [
+                'purok_id' => $this->purok->id,
+                'first_name' => $resident->first_name,
+                'last_name' => $resident->last_name,
+                'birthdate' => '1985-03-10',
+                'sex' => 'Female',
+                'civil_status' => 'Single',
+                'address_line' => $resident->address_line,
+                'mobile' => $resident->mobile,
+                'email' => $resident->email,
+                'household_mode' => 'new',
+                'household_relationship' => 'Head',
+            ]);
+
+        $response->assertRedirect();
+        $resident->refresh();
+        $this->assertNotNull($resident->household_id);
+        $this->assertSame('Head', $resident->household_relationship);
+
+        $newHousehold = Household::query()->findOrFail($resident->household_id);
+        $this->assertSame($this->barangay->id, $newHousehold->barangay_id);
+        $this->assertSame($resident->id, $newHousehold->head_resident_id);
+    }
+
+    public function test_updating_resident_can_remove_household(): void
+    {
+        $household = Household::query()->create([
+            'barangay_id' => $this->barangay->id,
+            'purok_id' => $this->purok->id,
+            'household_code' => 'HH-REMOVE01',
+        ]);
+
+        $resident = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09178000005',
+        ]);
+        $resident->update([
+            'household_id' => $household->id,
+            'household_relationship' => 'Head',
+        ]);
+        $household->update(['head_resident_id' => $resident->id]);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $response = $this->actingAs($admin)
+            ->put("/admin/residents/{$resident->id}", [
+                'purok_id' => $this->purok->id,
+                'first_name' => $resident->first_name,
+                'last_name' => $resident->last_name,
+                'birthdate' => '1988-12-01',
+                'sex' => 'Male',
+                'civil_status' => 'Single',
+                'address_line' => $resident->address_line,
+                'mobile' => $resident->mobile,
+                'email' => $resident->email,
+                'household_mode' => 'none',
+            ]);
+
+        $response->assertRedirect();
+        $resident->refresh();
+        $this->assertNull($resident->household_id);
+        $this->assertNull($resident->household_relationship);
+
+        $household->refresh();
+        $this->assertNull($household->head_resident_id);
+    }
+
+    public function test_updating_resident_validates_unique_contact_in_same_barangay(): void
+    {
+        $existing = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09178000010',
+            'email' => 'taken@kabarangay.local',
+        ]);
+
+        $resident = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09178000011',
+            'email' => 'other@kabarangay.local',
+        ]);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $response = $this->actingAs($admin)
+            ->from('/admin/residents')
+            ->put("/admin/residents/{$resident->id}", [
+                'purok_id' => $this->purok->id,
+                'first_name' => 'Name',
+                'last_name' => 'Last',
+                'birthdate' => '1990-01-01',
+                'sex' => 'Male',
+                'civil_status' => 'Single',
+                'address_line' => 'Address',
+                'mobile' => '09178000010', // duplicate
+                'email' => 'taken@kabarangay.local', // duplicate
+                'household_mode' => 'preserve',
+            ]);
+
+        $response->assertRedirect('/admin/residents');
+        $response->assertSessionHasErrors(['mobile', 'email']);
+    }
+
+    public function test_updating_resident_allows_same_resident_to_keep_own_contact(): void
+    {
+        $resident = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09178000020',
+            'email' => 'own@kabarangay.local',
+        ]);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $response = $this->actingAs($admin)
+            ->put("/admin/residents/{$resident->id}", [
+                'purok_id' => $this->purok->id,
+                'first_name' => 'UpdatedFirst',
+                'last_name' => 'SameLast',
+                'birthdate' => '1992-04-12',
+                'sex' => 'Female',
+                'civil_status' => 'Single',
+                'address_line' => 'New Street',
+                'mobile' => '09178000020', // unchanged
+                'email' => 'own@kabarangay.local', // unchanged
+                'household_mode' => 'preserve',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+    }
+
+    public function test_cross_barangay_resident_update_returns_404(): void
+    {
+        $otherPurok = $this->createPurok($this->other, 'Foreign Purok');
+        $foreignResident = $this->createResident($this->other, $otherPurok, [
+            'mobile' => '09178000030',
+        ]);
+
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($admin)
+            ->put("/admin/residents/{$foreignResident->id}", [
+                'purok_id' => $this->purok->id,
+                'first_name' => 'Hacked',
+                'last_name' => 'Hacked',
+                'birthdate' => '1990-01-01',
+                'sex' => 'Male',
+                'civil_status' => 'Single',
+                'address_line' => 'Some address',
+                'mobile' => '09178000099',
+                'household_mode' => 'none',
+            ])
+            ->assertNotFound();
+    }
+
+    public function test_resident_update_requires_admin_role(): void
+    {
+        $resident = $this->createResident($this->barangay, $this->purok, [
+            'mobile' => '09178000040',
+        ]);
+
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $this->actingAs($clerk)
+            ->put("/admin/residents/{$resident->id}", [
+                'purok_id' => $this->purok->id,
+                'first_name' => 'ClerkAttempt',
+                'last_name' => 'Name',
+                'birthdate' => '1990-01-01',
+                'sex' => 'Male',
+                'civil_status' => 'Single',
+                'address_line' => 'Address',
+                'mobile' => '09178000041',
+                'household_mode' => 'none',
+            ])
+            ->assertForbidden();
     }
 }

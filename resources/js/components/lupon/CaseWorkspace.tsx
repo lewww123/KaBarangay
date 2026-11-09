@@ -18,7 +18,7 @@ export default function CaseWorkspace({
         ReactNode
     >;
 }) {
-    const [section, setSection] = useState<CaseSection>('overview');
+    const [section, setSection] = useState<CaseSection>(() => { const value = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('section') : null; return caseSections.find(s => s.id === value)?.id ?? 'overview'; });
     return (
         <>
             <nav
@@ -96,7 +96,7 @@ export default function CaseWorkspace({
                                 documents: panels.documents,
                             }}
                         >
-                            {panels[item.id as keyof typeof panels]}
+                            {item.id === 'summons' ? panels.documents : item.id === 'hearings' ? <>{panels.hearings}{panels.resolution}</> : panels[item.id as keyof typeof panels]}
                         </HearingPanels.Provider>
                     </section>
                 ))}

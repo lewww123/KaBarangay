@@ -47,6 +47,9 @@ class LuponCase extends Model
         'intake_requested_action',
         'incident_date',
         'incident_location',
+        'payment_verification',
+        'arbitration_record',
+        'disposition_record',
     ];
 
     protected function casts(): array
@@ -70,6 +73,9 @@ class LuponCase extends Model
             'fee_amount' => 'decimal:2',
             'paid_at' => 'datetime',
             'form_7_issued_at' => 'datetime',
+            'payment_verification' => 'array',
+            'arbitration_record' => 'array',
+            'disposition_record' => 'array',
         ];
     }
 

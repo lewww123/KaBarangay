@@ -29,6 +29,9 @@ final class LuponCasePresenter
         return ['luponMembers' => $staff ? StaffAssignment::query()->where('barangay_id', $case->barangay_id)->where('department', 'lupon')->where('is_active', true)->with(['user', 'resident'])->get()->map(fn ($assignment) => $assignment->user?->name ?? $assignment->resident?->full_name)->filter()->merge(OrgChartPosition::query()->where('barangay_id', $case->barangay_id)->where('status', 'published')->where(function ($query) {
             $query->where('title', 'like', '%lupon%')->orWhere('title', 'like', '%pangkat%');
         })->pluck('assigned_person'))->filter()->unique()->values()->all() : [], 'hearingActionsUnlocked' => (bool) config('lupon.hearing_actions_unlocked', true), 'workflow' => LuponCaseWorkflow::timeline($case, $staff), 'trackingStatus' => LuponCaseWorkflow::tracking($case), 'actingCaptainId' => $case->acting_captain_id, 'paymentStatus' => $case->payment_status,
+            'arbitrationRecord' => $staff ? $case->arbitration_record : null,
+            'dispositionRecord' => $staff ? $case->disposition_record : null,
+            'paymentVerification' => $staff ? ($case->complaint?->payment_verification ?? $case->payment_verification) : null,
             'documents' => $documents->map(fn ($doc) => LuponDocuments::summary($doc, $staff ? 'lupon' : 'resident'))->all(),
             'evidence' => $evidence->map(fn ($file) => LuponEvidenceStore::summary($file, $staff ? 'lupon' : 'resident'))->all(),
             'intake' => ['narrative' => $staff || LuponAccess::isComplainant($viewer, $case) ? $case->intake_narrative : null, 'requestedAction' => $staff || LuponAccess::isComplainant($viewer, $case) ? $case->intake_requested_action : null, 'incidentDate' => $case->incident_date?->format('F j, Y'), 'incidentLocation' => $case->incident_location],

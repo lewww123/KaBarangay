@@ -88,6 +88,17 @@ trait CreatesBarangayFixtures
         return $user;
     }
 
+    /** Log in a staff member with their session-scoped staff assignment. */
+    private function actingAsStaff(User $user, ?StaffAssignment $assignment = null): static
+    {
+        $assignment ??= $user->staffAssignments()->where('is_active', true)->first();
+        if ($assignment) {
+            $this->withSession(['staff_assignment_id' => $assignment->id]);
+        }
+
+        return $this->actingAs($user);
+    }
+
     /** Create a resident-linked staff assignment. */
     private function createAssignedStaff(
         array $attributes = [],
@@ -122,8 +133,11 @@ trait CreatesBarangayFixtures
     private function createResident(Barangay $barangay, Purok $purok, array $attributes = []): Resident
     {
         $firstName = $attributes['first_name'] ?? 'Juan';
+        $middleName = $attributes['middle_name'] ?? null;
         $lastName = $attributes['last_name'] ?? 'Dela Cruz';
+        $suffix = $attributes['suffix'] ?? null;
         $mobile = $attributes['mobile'] ?? '09170000001';
+        $email = $attributes['email'] ?? null;
 
         $registration = ResidentRegistration::create([
             'public_id' => (string) Str::uuid(),
@@ -136,6 +150,7 @@ trait CreatesBarangayFixtures
             'civil_status' => 'Single',
             'address_line' => '123 Test Street',
             'mobile' => $mobile,
+            'email' => $email,
             'password' => Hash::make('password'),
             'status' => 'approved',
         ]);
@@ -147,12 +162,15 @@ trait CreatesBarangayFixtures
             'purok_id' => $purok->id,
             'resident_number' => $attributes['resident_number'] ?? 'TEST-RES-'.Str::upper(Str::random(6)),
             'first_name' => $firstName,
+            'middle_name' => $middleName,
             'last_name' => $lastName,
+            'suffix' => $suffix,
             'birthdate' => '1990-01-01',
             'sex' => 'Male',
             'civil_status' => 'Single',
             'address_line' => '123 Test Street',
             'mobile' => $mobile,
+            'email' => $email,
             'status' => 'active',
             'approved_at' => now(),
         ]);

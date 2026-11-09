@@ -188,10 +188,10 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
             <div className="mx-auto max-w-6xl space-y-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                        <h1 className="text-xl font-semibold text-ink-strong sm:text-2xl">
                             Organizational Chart
                         </h1>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             Maintain the barangay position structure, photos,
                             and published resident chart.
                         </p>
@@ -200,7 +200,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                     <button
                         type="button"
                         onClick={openCreate}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#3b6fa8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2a5279]"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-card transition hover:bg-brand-deep"
                     >
                         <span
                             aria-hidden="true"
@@ -246,18 +246,18 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                     />
                 )}
 
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="mb-4 flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="rounded-xl border border-line-soft bg-white p-4 shadow-card sm:p-5">
+                    <div className="mb-4 flex flex-col gap-2 border-b border-line-soft pb-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h2 className="text-sm font-bold text-gray-900">
+                            <h2 className="text-sm font-semibold text-ink-strong">
                                 Position Structure
                             </h2>
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="mt-1 text-xs text-ink-muted">
                                 Saving a published position returns it to draft
                                 so changes can be reviewed before republishing.
                             </p>
                         </div>
-                        <span className="text-xs font-medium text-gray-400">
+                        <span className="text-xs font-medium text-ink-faint">
                             {stats.total} position
                             {stats.total === 1 ? '' : 's'}
                         </span>
@@ -266,10 +266,10 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                     {tree.length === 0 ? (
                         <div className="p-10 text-center">
                             <BuildingIcon className="mx-auto h-10 w-10 text-gray-300" />
-                            <h3 className="mt-3 text-sm font-bold text-gray-800">
+                            <h3 className="mt-3 text-sm font-semibold text-ink-strong">
                                 No positions yet
                             </h3>
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="mt-1 text-xs text-ink-muted">
                                 Add the first position to begin building the
                                 barangay organizational chart.
                             </p>
@@ -294,24 +294,24 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
 
             {modalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-                        <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                            <h2 className="text-base font-bold text-gray-900">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+                        <div className="flex items-center justify-between border-b border-line-soft pb-3">
+                            <h2 className="text-base font-semibold text-ink-strong">
                                 {editing ? 'Edit Position' : 'Add Position'}
                             </h2>
                             <button
                                 type="button"
                                 onClick={closeModal}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="text-ink-faint hover:text-ink-muted"
                                 aria-label="Close"
                             >
-                                ✕
+                                
                             </button>
                         </div>
 
                         <form onSubmit={submit} className="mt-4 space-y-4">
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Position Title{' '}
                                     <span className="text-red-500">*</span>
                                 </label>
@@ -327,7 +327,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                 />
                                 {form.errors.title && (
                                     <p className="mt-1 text-xs text-red-600">
@@ -337,7 +337,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Assigned Person Name (Optional)
                                 </label>
                                 <input
@@ -351,9 +351,9 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                 />
-                                <p className="mt-1 text-[11px] text-gray-400">
+                                <p className="mt-1 text-[11px] text-ink-faint">
                                     Leave empty if the position is currently
                                     vacant.
                                 </p>
@@ -365,7 +365,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Parent Position (Optional)
                                 </label>
                                 <select
@@ -376,7 +376,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs focus:border-[#3b6fa8] focus:outline-hidden"
+                                    className="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-xs focus:border-brand focus:outline-hidden"
                                 >
                                     <option value="">
                                         None — top-level position
@@ -398,7 +398,7 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700">
+                                <label className="block text-xs font-semibold text-ink">
                                     Official Photo (Optional)
                                 </label>
                                 <input
@@ -411,9 +411,9 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                                             event.target.files?.[0] ?? null,
                                         )
                                     }
-                                    className="mt-1 block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#eaf1f8] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#3b6fa8] hover:file:bg-[#d6e4f2]"
+                                    className="mt-1 block w-full text-xs text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-brand-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand hover:file:bg-[#d6e4f2]"
                                 />
-                                <p className="mt-1 text-[11px] text-gray-400">
+                                <p className="mt-1 text-[11px] text-ink-faint">
                                     Stored privately. Maximum 2 MB. Leave empty
                                     to keep the current photo, or to show a
                                     neutral placeholder.
@@ -434,18 +434,18 @@ function OrgChartManagement({ tree, positions, stats, portal, user }: Props) {
                                 </div>
                             )}
 
-                            <div className="flex items-center justify-end gap-2 border-t border-gray-200 pt-4">
+                            <div className="flex items-center justify-end gap-2 border-t border-line-soft pt-4">
                                 <button
                                     type="button"
                                     onClick={closeModal}
-                                    className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
+                                    className="rounded-lg border border-line px-4 py-2 text-xs font-semibold text-ink transition hover:bg-secondary"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={form.processing}
-                                    className="rounded-lg bg-[#3b6fa8] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2a5279] disabled:opacity-50"
+                                    className="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-deep disabled:opacity-50"
                                 >
                                     {form.processing
                                         ? 'Saving...'
@@ -480,18 +480,18 @@ function StatTile({
     tone?: 'default' | 'blue' | 'green' | 'gray';
 }) {
     const toneClass = {
-        default: 'border-gray-200 bg-white text-gray-900',
+        default: 'border-line-soft bg-white text-ink-strong',
         blue: 'border-blue-200 bg-blue-50/50 text-blue-900',
         green: 'border-emerald-200 bg-emerald-50/50 text-emerald-900',
-        gray: 'border-gray-200 bg-gray-50 text-gray-700',
+        gray: 'border-line-soft bg-canvas text-ink',
     }[tone];
 
     return (
-        <div className={`rounded-xl border p-4 shadow-sm ${toneClass}`}>
+        <div className={`rounded-xl border p-4 shadow-card ${toneClass}`}>
             <div className="text-xs font-medium tracking-wider uppercase opacity-70">
                 {label}
             </div>
-            <div className="mt-2 text-2xl font-bold">{value}</div>
+            <div className="mt-2 text-2xl font-semibold">{value}</div>
         </div>
     );
 }
@@ -537,38 +537,38 @@ function PositionNode({
         <div
             className={
                 depth > 0
-                    ? 'ml-3 border-l border-gray-200 pl-3 sm:ml-5 sm:pl-5'
+                    ? 'ml-3 border-l border-line-soft pl-3 sm:ml-5 sm:pl-5'
                     : ''
             }
         >
-            <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-xs sm:p-4">
+            <div className="rounded-xl border border-line-soft bg-white p-3 shadow-xs sm:p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex min-w-0 items-start gap-3">
                         <PositionPhoto node={node} size="sm" />
 
                         <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="truncate text-sm font-bold text-gray-900">
+                                <h3 className="truncate text-sm font-semibold text-ink-strong">
                                     {node.title}
                                 </h3>
                                 <span
-                                    className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${badge.classes}`}
+                                    className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${badge.classes}`}
                                 >
                                     {badge.label}
                                 </span>
                             </div>
 
-                            <p className="mt-0.5 text-xs font-medium text-gray-700">
+                            <p className="mt-0.5 text-xs font-medium text-ink">
                                 {node.assigned_person ? (
                                     <span>{node.assigned_person}</span>
                                 ) : (
-                                    <span className="text-gray-400 italic">
+                                    <span className="text-ink-faint italic">
                                         Vacant
                                     </span>
                                 )}
                             </p>
 
-                            <p className="mt-1 text-[11px] text-gray-400">
+                            <p className="mt-1 text-[11px] text-ink-faint">
                                 {node.has_photo
                                     ? 'Official photo on file'
                                     : 'No photo on file'}
@@ -582,7 +582,7 @@ function PositionNode({
                         <button
                             type="button"
                             onClick={() => onEdit(node)}
-                            className="rounded-md border border-gray-300 px-2.5 py-1 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
+                            className="rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-ink transition hover:bg-secondary"
                         >
                             Edit
                         </button>
@@ -591,7 +591,7 @@ function PositionNode({
                             <button
                                 type="button"
                                 onClick={() => onPublish(node)}
-                                className="rounded-md bg-[#3b6fa8] px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-[#2a5279]"
+                                className="rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-deep"
                             >
                                 {node.status === 'archived'
                                     ? 'Republish'
@@ -603,7 +603,7 @@ function PositionNode({
                             <button
                                 type="button"
                                 onClick={() => onArchive(node)}
-                                className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+                                className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
                             >
                                 Archive
                             </button>
@@ -618,7 +618,7 @@ function PositionNode({
                                     ? 'Reassign or remove child positions first.'
                                     : 'Delete position'
                             }
-                            className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                            className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-line-soft disabled:bg-canvas disabled:text-gray-300"
                         >
                             Delete
                         </button>
@@ -661,14 +661,14 @@ function PositionPhoto({
                 alt={`${node.title} official photo`}
                 loading="lazy"
                 decoding="async"
-                className={`${dimension} shrink-0 rounded-full border border-gray-200 object-cover`}
+                className={`${dimension} shrink-0 rounded-full border border-line-soft object-cover`}
             />
         );
     }
 
     return (
         <div
-            className={`${dimension} flex shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 bg-gray-50 text-gray-400`}
+            className={`${dimension} flex shrink-0 items-center justify-center rounded-full border border-dashed border-line bg-canvas text-ink-faint`}
             aria-label="No photo on file"
         >
             <svg

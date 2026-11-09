@@ -252,7 +252,7 @@ export default function SectorApplicationList({
                                         className="px-4 py-12 text-center text-sm text-ink-muted"
                                     >
                                         <div className="flex flex-col items-center justify-center space-y-2">
-                                            <span className="text-3xl">📭</span>
+                                            <span className="text-3xl"></span>
                                             <p className="font-semibold text-ink">
                                                 No applications found
                                             </p>
@@ -304,7 +304,7 @@ export default function SectorApplicationList({
                                                 href={`${detailsBaseUrl}/${app.id}`}
                                                 className="inline-flex rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-gray-800"
                                             >
-                                                Review →
+                                                Review 
                                             </Link>
                                         </td>
                                     </tr>

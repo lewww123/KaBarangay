@@ -55,34 +55,34 @@ function SelectBarangayContent({ barangays }: Props) {
         <>
             <Head title="Select Barangay" />
 
-            <main className="min-h-screen bg-slate-50">
+            <main className="min-h-screen bg-canvas">
                 <div className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
                     <div className="w-full max-w-md">
                         {/* Logo / Brand */}
                         <div className="mb-8 text-center">
-                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg">
-                                <span className="text-2xl font-bold text-white">
+                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-blue-600 shadow-lg">
+                                <span className="text-2xl font-semibold text-white">
                                     K
                                 </span>
                             </div>
 
-                            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                            <h1 className="text-3xl font-semibold tracking-tight text-ink-strong">
                                 KaBarangay
                             </h1>
 
-                            <p className="mt-2 text-sm text-slate-500">
+                            <p className="mt-2 text-sm text-ink-muted">
                                 Barangay Management System
                             </p>
                         </div>
 
                         {/* Card */}
-                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                        <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card sm:p-8">
                             <div className="mb-7">
-                                <h2 className="text-xl font-semibold text-slate-900">
+                                <h2 className="text-xl font-semibold text-ink-strong">
                                     Select your barangay
                                 </h2>
 
-                                <p className="mt-2 text-sm leading-6 text-slate-500">
+                                <p className="mt-2 text-sm leading-6 text-ink-muted">
                                     Choose the barangay you are assigned to
                                     before continuing to staff login.
                                 </p>
@@ -91,7 +91,7 @@ function SelectBarangayContent({ barangays }: Props) {
                             <form onSubmit={submit}>
                                 <label
                                     htmlFor="barangay"
-                                    className="mb-2 block text-sm font-medium text-slate-700"
+                                    className="mb-2 block text-sm font-medium text-ink"
                                 >
                                     Barangay
                                 </label>
@@ -103,7 +103,7 @@ function SelectBarangayContent({ barangays }: Props) {
                                         setSelectedBarangay(event.target.value)
                                     }
                                     disabled={processing}
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm text-slate-900 transition outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                    className="w-full rounded-xl border border-line bg-white px-4 py-3.5 text-sm text-ink-strong transition outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-secondary"
                                 >
                                     <option value="">Select a barangay</option>
 
@@ -128,7 +128,7 @@ function SelectBarangayContent({ barangays }: Props) {
                                 <button
                                     type="submit"
                                     disabled={!selectedBarangay || processing}
-                                    className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-card transition hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-300"
                                 >
                                     {processing ? 'Continuing...' : 'Continue'}
                                 </button>
@@ -136,7 +136,7 @@ function SelectBarangayContent({ barangays }: Props) {
                         </div>
 
                         {/* Footer */}
-                        <p className="mt-6 text-center text-xs text-slate-400">
+                        <p className="mt-6 text-center text-xs text-ink-faint">
                             Authorized personnel only
                         </p>
                     </div>

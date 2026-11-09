@@ -9,6 +9,13 @@ type Metrics = {
     conciliation: number;
     settled: number;
     certificatesIssued: number;
+    pendingPayment?: number;
+    pendingComplaints?: number;
+    awaitingPayment?: number;
+    activeMediation?: number;
+    activeConciliation?: number;
+    resolved?: number;
+    arbitration?: number;
 };
 
 type Deadline = {
@@ -31,6 +38,18 @@ type Hearing = {
     venue: string;
 };
 
+type RecentActivity = {
+    id: number;
+    caseId: number;
+    caseNumber: string | null;
+    caseTitle: string | null;
+    fromStatus: string | null;
+    toStatus: string;
+    label: string;
+    notes: string | null;
+    occurredAt: string | null;
+};
+
 interface Props {
     auth: {
         user: { name?: string };
@@ -41,18 +60,19 @@ interface Props {
     metrics: Metrics;
     deadlines: Deadline[];
     schedule: Hearing[];
+    recentActivity: RecentActivity[];
 }
 
 export default withDeferredPage(
     LuponDashboard,
-    ['metrics', 'deadlines', 'schedule'],
+    ['metrics', 'deadlines', 'schedule', 'recentActivity'],
     (props) => (
         <LuponLayout
-            active="dashboard"
+            active="overview"
             user={props.auth.user}
             barangayName={props.barangayName}
         >
-            <PortalPageSkeleton metrics={5} list />
+            <PortalPageSkeleton metrics={4} list />
         </LuponLayout>
     ),
 );
@@ -64,33 +84,46 @@ function LuponDashboard({
     metrics,
     deadlines,
     schedule,
+    recentActivity,
 }: Props) {
+    const activeProceedings =
+        (metrics.activeMediation ?? metrics.mediation ?? 0) +
+        (metrics.activeConciliation ?? metrics.conciliation ?? 0) +
+        (metrics.arbitration ?? 0);
+
     const cards = [
-        ['Total Cases Filed', metrics.filed, 'All recorded KP disputes'],
-        ['Active Mediation', metrics.mediation, 'Punong Barangay level'],
         [
-            'Pangkat Conciliation',
-            metrics.conciliation,
-            'Active panel proceedings',
+            'Total Official Cases',
+            metrics.filed,
+            'Docketed cases in your barangay',
         ],
-        ['Settled Cases', metrics.settled, 'Resolution records'],
         [
-            'Certificates Issued',
-            metrics.certificatesIssued,
-            'KP document issuances',
+            'Pending Intake',
+            metrics.pendingComplaints ?? 0,
+            'Complaints awaiting review',
+        ],
+        [
+            'Active Proceedings',
+            activeProceedings,
+            'Mediation & conciliation',
+        ],
+        [
+            'Resolved Cases',
+            metrics.resolved ?? metrics.settled,
+            'Amicably settled or closed',
         ],
     ];
 
     return (
         <LuponLayout
-            active="dashboard"
+            active="overview"
             user={auth.user}
             barangayName={barangayName}
         >
-            <Head title="Lupon Dashboard" />
+            <Head title="Lupon Overview" />
 
             <div className="mx-auto max-w-7xl space-y-6">
-                <div className="flex flex-col justify-between gap-4 rounded-xl bg-brand-deep p-6 text-white shadow-card sm:flex-row sm:items-end">
+                <div className="rounded-xl bg-[#315b30] p-6 text-white shadow-card">
                     <div>
                         <p className="text-xs font-semibold tracking-[0.16em] text-white/70 uppercase">
                             Katarungang Pambarangay
@@ -104,23 +137,24 @@ function LuponDashboard({
                                 : 'Lupon staff portal'}
                         </p>
                     </div>
-                    <div className="flex gap-2">
+
+                    <div className="mt-5 flex flex-wrap gap-2.5">
                         <Link
                             href="/lupon/complaints"
-                            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-deep"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#315b30] shadow-card transition hover:bg-[#f7f6f0]"
                         >
                             Review intake
                         </Link>
                         <Link
                             href="/lupon/cases/create"
-                            className="rounded-lg border border-white/40 px-4 py-2 text-sm font-semibold text-white"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/40 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
                         >
                             Log walk-in case
                         </Link>
                     </div>
                 </div>
 
-                <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {cards.map(([label, value, hint]) => (
                         <div
                             key={label}
@@ -248,6 +282,59 @@ function LuponDashboard({
                         </div>
                     </section>
                 </div>
+
+                <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-card">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="font-semibold text-stone-900">
+                                Recent case activity
+                            </h2>
+                            <p className="mt-1 text-sm text-stone-500">
+                                Latest recorded case updates in your barangay.
+                            </p>
+                        </div>
+                        <Link
+                            href="/lupon/cases"
+                            className="text-sm font-semibold text-brand"
+                        >
+                            All cases
+                        </Link>
+                    </div>
+                    <div className="mt-4 divide-y divide-stone-100">
+                        {recentActivity.length === 0 ? (
+                            <p className="py-5 text-sm text-stone-500">
+                                No case activity has been recorded yet.
+                            </p>
+                        ) : (
+                            recentActivity.map((activity) => (
+                                <Link
+                                    key={activity.id}
+                                    href={`/lupon/cases/${activity.caseId}`}
+                                    className="flex items-center justify-between gap-3 py-3"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="font-semibold text-stone-800">
+                                            {activity.caseNumber ??
+                                                'Lupon case'}
+                                        </p>
+                                        <p className="truncate text-sm text-stone-500">
+                                            {activity.caseTitle}
+                                        </p>
+                                        <p className="mt-0.5 truncate text-xs text-stone-400">
+                                            {activity.label}
+                                            {activity.notes
+                                                ? ` · ${activity.notes}`
+                                                : ''}
+                                        </p>
+                                    </div>
+                                    <span className="shrink-0 text-right text-xs text-stone-500">
+                                        {activity.occurredAt}
+                                    </span>
+                                </Link>
+                            ))
+                        )}
+                    </div>
+                </section>
             </div>
         </LuponLayout>
     );

@@ -13,7 +13,7 @@
         <meta name="theme-color" content="#3B6FA8">
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/kabarangay-icon-180.png">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
         <link rel="manifest" href="/manifest.json" />
 
 

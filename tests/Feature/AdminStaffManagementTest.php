@@ -156,4 +156,57 @@ class AdminStaffManagementTest extends TestCase
         ])->assertSessionHasErrors('department');
         $this->assertSame('clerk', $assignment->fresh()->department);
     }
+
+    public function test_admin_can_reactivate_an_inactive_staff_assignment(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $resident = $this->createResident($this->barangay, $this->createPurok($this->barangay));
+        $user = User::factory()->create(['barangay_id' => $this->barangay->id, 'resident_id' => $resident->id]);
+        $assignment = StaffAssignment::create([
+            'user_id' => $user->id,
+            'resident_id' => $resident->id,
+            'barangay_id' => $this->barangay->id,
+            'department' => 'clerk',
+            'position' => 'Records Officer',
+            'is_active' => false,
+        ]);
+
+        $initialCount = StaffAssignment::count();
+
+        $this->actingAs($admin)
+            ->patch("/admin/staff/{$assignment->id}/activate")
+            ->assertRedirect();
+
+        $this->assertSame($initialCount, StaffAssignment::count());
+
+        $refreshed = $assignment->fresh();
+        $this->assertTrue($refreshed->is_active);
+        $this->assertSame($user->id, $refreshed->user_id);
+        $this->assertSame($resident->id, $refreshed->resident_id);
+        $this->assertSame($this->barangay->id, $refreshed->barangay_id);
+        $this->assertSame('clerk', $refreshed->department);
+        $this->assertSame('Records Officer', $refreshed->position);
+    }
+
+    public function test_non_admin_cannot_activate_staff_assignment(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $resident = $this->createResident($this->barangay, $this->createPurok($this->barangay));
+        $user = User::factory()->create(['barangay_id' => $this->barangay->id, 'resident_id' => $resident->id]);
+        $assignment = StaffAssignment::create([
+            'user_id' => $user->id,
+            'resident_id' => $resident->id,
+            'barangay_id' => $this->barangay->id,
+            'department' => 'lupon',
+            'position' => 'Lupon Secretary',
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($clerk)
+            ->patch("/admin/staff/{$assignment->id}/activate")
+            ->assertForbidden();
+
+        $this->assertFalse($assignment->fresh()->is_active);
+    }
 }

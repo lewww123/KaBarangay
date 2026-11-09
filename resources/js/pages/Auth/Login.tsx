@@ -43,24 +43,24 @@ export default function Login({ barangay, errors = {} }: Props) {
         <>
             <Head title="Staff Login" />
 
-            <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-8">
-                <section className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg sm:p-8">
+            <main className="flex min-h-screen items-center justify-center bg-secondary px-4 py-8">
+                <section className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg sm:p-8">
                     <div className="mb-8 text-center">
-                        <h1 className="text-3xl font-bold text-gray-900">
+                        <h1 className="text-3xl font-semibold text-ink-strong">
                             KaBarangay
                         </h1>
 
-                        <p className="mt-2 text-sm text-gray-500">
+                        <p className="mt-2 text-sm text-ink-muted">
                             Barangay Management System
                         </p>
                     </div>
 
                     <div className="mb-6">
-                        <h2 className="text-xl font-semibold text-gray-900">
+                        <h2 className="text-xl font-semibold text-ink-strong">
                             Staff Login
                         </h2>
 
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                             Sign in to access your barangay management system.
                         </p>
                     </div>
@@ -87,7 +87,7 @@ export default function Login({ barangay, errors = {} }: Props) {
                         <div>
                             <label
                                 htmlFor="login"
-                                className="mb-2 block text-sm font-medium text-gray-700"
+                                className="mb-2 block text-sm font-medium text-ink"
                             >
                                 Staff ID or Email
                             </label>
@@ -101,7 +101,7 @@ export default function Login({ barangay, errors = {} }: Props) {
                                 }
                                 placeholder="Enter Staff ID or Email"
                                 autoComplete="username"
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                className="w-full rounded-lg border border-line px-4 py-3 text-sm transition outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 required
                             />
 
@@ -115,7 +115,7 @@ export default function Login({ barangay, errors = {} }: Props) {
                         <div>
                             <label
                                 htmlFor="password"
-                                className="mb-2 block text-sm font-medium text-gray-700"
+                                className="mb-2 block text-sm font-medium text-ink"
                             >
                                 Password
                             </label>
@@ -129,7 +129,7 @@ export default function Login({ barangay, errors = {} }: Props) {
                                 }
                                 placeholder="Enter your password"
                                 autoComplete="current-password"
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                className="w-full rounded-lg border border-line px-4 py-3 text-sm transition outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 required
                             />
 
@@ -148,12 +148,12 @@ export default function Login({ barangay, errors = {} }: Props) {
                                 onChange={(event) =>
                                     setRemember(event.target.checked)
                                 }
-                                className="h-4 w-4 rounded border-gray-300"
+                                className="h-4 w-4 rounded border-line"
                             />
 
                             <label
                                 htmlFor="remember"
-                                className="ml-2 text-sm text-gray-600"
+                                className="ml-2 text-sm text-ink-muted"
                             >
                                 Remember me
                             </label>
@@ -168,7 +168,7 @@ export default function Login({ barangay, errors = {} }: Props) {
                         </button>
                     </form>
 
-                    <p className="mt-6 text-center text-xs text-gray-400">
+                    <p className="mt-6 text-center text-xs text-ink-faint">
                         Authorized personnel only
                     </p>
                 </section>

@@ -14,6 +14,7 @@ final class LuponCaseWorkflow
         'filed' => 'Filed', 'mediation_active' => 'Mediation active', 'pangkat_formed' => 'Pangkat formed',
         'conciliation_active' => 'Conciliation active', 'settled' => 'Settled', 'repudiated' => 'Repudiated',
         'dismissed' => 'Dismissed', 'certified_to_file_action' => 'Certified to file action',
+        'arbitration_active' => 'Arbitration active', 'arbitration_awarded' => 'Arbitration award', 'executed' => 'Executed', 'court_forwarded' => 'Forwarded to court',
     ];
 
     public const TRANSITIONS = [
@@ -38,7 +39,7 @@ final class LuponCaseWorkflow
     public static function phase(string $status): string
     {
         return match ($status) {
-            'filed','mediation_active' => 'Kapitan', 'pangkat_formed','conciliation_active' => 'Lupon', default => 'Closed'
+            'arbitration_active' => 'Arbitration', 'filed','mediation_active' => 'Kapitan', 'pangkat_formed','conciliation_active' => 'Lupon', default => 'Closed'
         };
     }
 
@@ -229,7 +230,7 @@ final class LuponCaseWorkflow
     public static function tracking(LuponCase $case): string
     {
         return match ($case->status) {
-            'settled' => 'Settled', 'certified_to_file_action' => 'CFA Issued', 'dismissed' => 'Dismissed', 'repudiated' => 'Under Review',
+            'arbitration_active' => 'Arbitration active', 'arbitration_awarded' => 'Arbitration award', 'executed' => 'Executed', 'court_forwarded' => 'Forwarded to court', 'settled' => 'Settled', 'certified_to_file_action' => 'CFA Issued', 'dismissed' => 'Dismissed', 'repudiated' => 'Under Review',
             default => $case->form_7_issued_at ? 'Summoned' : 'Under Review',
         };
     }

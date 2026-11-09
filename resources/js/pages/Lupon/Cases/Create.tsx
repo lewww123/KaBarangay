@@ -15,6 +15,7 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
         null,
     );
     const form = useForm({
+        payment_date: '', or_number: '', fee_amount: '', verification_note: '', payment_verified: false,
         case_type: caseTypes[0] || 'Other',
         custom_case_type: '',
         incident_date: new Date().toLocaleDateString('en-CA'),
@@ -59,6 +60,7 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
     const submit = (event: FormEvent) => {
         event.preventDefault();
         setCamera(null);
+        if (!window.confirm('Confirm that you personally verified the actual payment and official receipt before creating this official case.')) return;
         form.post('/lupon/cases', {
             forceFormData: true,
             preserveScroll: true,
@@ -85,6 +87,7 @@ export default function CreateCase({ auth, caseTypes, officials }: Props) {
                         Back to cases
                     </Link>
                 </div>
+                <section className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-2"><h2 className="font-semibold sm:col-span-2">Actual payment verification — Secretary only</h2>{(['fee_amount','or_number','payment_date','verification_note'] as const).map(key=><label key={key} className="text-sm">{({fee_amount:'Approved assessed amount',or_number:'Official receipt number',payment_date:'Actual payment date',verification_note:'Actual verification details'})[key]}<input type={key==='payment_date'?'date':key==='fee_amount'?'number':'text'} step={key==='fee_amount'?'0.01':undefined} className="mt-1 block w-full rounded border p-2" value={form.data[key]} onChange={e=>form.setData(key,e.target.value)} /></label>)}<label className="flex gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={form.data.payment_verified} onChange={e=>form.setData('payment_verified',e.target.checked)} />I personally verified the actual barangay payment and official receipt.</label></section>
                 {Object.keys(form.errors).length > 0 && (
                     <div
                         role="alert"

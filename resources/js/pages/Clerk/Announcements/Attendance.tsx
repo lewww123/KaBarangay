@@ -4,6 +4,7 @@ import ClerkLayout from '@/layouts/ClerkLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
 import withDeferredPage from '@/components/withDeferredPage';
 import OfflineAttendance from '@/components/announcements/OfflineAttendance';
+import AttendanceResidentSelect from '@/components/announcements/AttendanceResidentSelect';
 
 type AttendanceStatus = 'present' | 'claimed' | 'absent';
 type AttendanceTab = 'present' | 'claimed';
@@ -340,6 +341,21 @@ function ClerkAttendanceSheet({
             return;
         }
 
+        if (
+            targetStatus === 'claimed' &&
+            !attendances.some(
+                (item) =>
+                    item.resident?.id === residentId && item.status === 'present',
+            )
+        ) {
+            setFeedback({
+                text: 'This resident is not present.',
+                type: 'warning',
+            });
+            resetScanState();
+            return;
+        }
+
         let outcomeSettled = false;
 
         try {
@@ -440,6 +456,21 @@ function ClerkAttendanceSheet({
         }
 
         const targetStatus = activeTab;
+
+        if (
+            targetStatus === 'claimed' &&
+            !attendances.some(
+                (item) =>
+                    item.resident?.id === residentId && item.status === 'present',
+            )
+        ) {
+            setFeedback({
+                text: 'This resident is not present.',
+                type: 'warning',
+            });
+            return;
+        }
+
         const markUrl = `/clerk/announcements/${announcement.id}/attendance/mark`;
 
         setFeedback(null);
@@ -669,9 +700,7 @@ function ClerkAttendanceSheet({
                     <div className="flex flex-col justify-between space-y-4 rounded-xl border border-line-soft/80 bg-white p-6 shadow-card lg:col-span-5">
                         <div className="space-y-4">
                             <div className="flex items-center gap-2.5 border-b border-line-soft pb-3">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-sm text-amber-800">
-                                    
-                                </span>
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning-soft text-sm text-warning" aria-hidden="true"></span>
                                 <div>
                                     <h3 className="text-sm font-semibold text-ink-strong">
                                         Manual Entry
@@ -694,37 +723,14 @@ function ClerkAttendanceSheet({
                                 className="space-y-3 pt-1"
                             >
                                 <div className="space-y-1.5">
-                                    <label
-                                        htmlFor="manual-resident"
-                                        className="block text-xs font-semibold text-ink"
-                                    >
-                                        Piliin ang Residente
-                                    </label>
-                                    <select
-                                        id="manual-resident"
+                                    <AttendanceResidentSelect
+                                        residents={residents}
                                         value={manualResidentId}
-                                        onChange={(event) =>
-                                            setManualResidentId(
-                                                event.target.value,
-                                            )
-                                        }
+                                        onChange={setManualResidentId}
                                         disabled={
                                             isProcessingScan || manualProcessing
                                         }
-                                        className="w-full rounded-lg border border-line bg-white p-2.5 text-xs outline-none focus:border-brand disabled:cursor-wait disabled:bg-secondary"
-                                        required
-                                    >
-                                        <option value="">
-                                            -- Pumili ng Residente --
-                                        </option>
-                                        {residents.map((res) => (
-                                            <option key={res.id} value={res.id}>
-                                                {res.last_name},{' '}
-                                                {res.first_name} (
-                                                {res.resident_number})
-                                            </option>
-                                        ))}
-                                    </select>
+                                    />
                                     <p className="text-[11px] text-ink-muted">
                                         Para sa rehistradong residente na walang
                                         ma-scan na QR code.
@@ -748,7 +754,7 @@ function ClerkAttendanceSheet({
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-line-soft/80 bg-white shadow-card">
-                    <div className="flex flex-col items-start justify-between gap-3 border-b border-line-soft/80 bg-canvas/70 px-6 py-3 sm:flex-row sm:items-center">
+                    <div className="flex flex-col items-start justify-between gap-3 border-b border-line-soft bg-canvas/70 px-6 py-3 sm:flex-row sm:items-center">
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
@@ -758,7 +764,7 @@ function ClerkAttendanceSheet({
                                 className={`rounded-lg px-4 py-2 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'present'
                                         ? 'bg-brand text-white shadow-card'
-                                        : 'border border-line bg-white text-ink-muted hover:bg-secondary'
+                                        : 'border border-line bg-white text-ink-muted hover:bg-canvas'
                                 }`}
                             >
                                 Event Present / Dumalo (
@@ -778,7 +784,7 @@ function ClerkAttendanceSheet({
                                 className={`rounded-lg px-4 py-2 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
                                     activeTab === 'claimed'
                                         ? 'bg-brand text-white shadow-card'
-                                        : 'border border-line bg-white text-ink-muted hover:bg-secondary'
+                                        : 'border border-line bg-white text-ink-muted hover:bg-canvas'
                                 }`}
                             >
                                 Aid Claimed / Naka-receive (
@@ -807,7 +813,7 @@ function ClerkAttendanceSheet({
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 text-xs">
+                            <tbody className="divide-y divide-line-soft text-xs">
                                 {filteredAttendances.length === 0 ? (
                                     <tr>
                                         <td
@@ -839,7 +845,7 @@ function ClerkAttendanceSheet({
                                                             ? 'bg-emerald-100 text-emerald-800'
                                                             : item.status ===
                                                                 'present'
-                                                              ? 'bg-canvas text-brand'
+                                                              ? 'bg-[#edf4ea] text-brand'
                                                               : 'bg-red-100 text-red-800'
                                                     }`}
                                                 >

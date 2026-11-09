@@ -2575,7 +2575,7 @@ function SectorCard({
 
             <div
                 className={[
-                    'absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-md border-2',
+                    'absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-lg border-2',
                     selected
                         ? 'border-brand bg-brand text-white'
                         : disabled

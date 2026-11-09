@@ -6,6 +6,7 @@ use App\Models\Barangay;
 use App\Models\LuponComplaint;
 use App\Models\Purok;
 use App\Models\Resident;
+use App\Models\StaffAssignment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -117,6 +118,7 @@ class LuponComplaintReviewTest extends TestCase
                 ->where('stats', [
                     'pendingCount' => 1,
                     'byStatus' => [
+                        'Pending Payment' => 0, 'Payment Verification' => 0, 'Payment Verified' => 0,
                         'Submitted' => 1,
                         'Under Review' => 0,
                         'For Payment' => 0,
@@ -124,7 +126,10 @@ class LuponComplaintReviewTest extends TestCase
                         'Rejected' => 1,
                     ],
                 ])
-                ->has('complaints.data', 2));
+                // The default queue shows the review tab only, so the closed
+                // complaint is listed in stats but not in the records payload.
+                ->has('complaints.data', 1)
+                ->where('complaints.data.0.reference', 'LUP-2026-00001'));
     }
 
     public function test_lupon_can_move_complaint_from_submitted_to_under_review(): void
@@ -284,6 +289,14 @@ class LuponComplaintReviewTest extends TestCase
     public function test_super_admin_cannot_open_the_complaint_queue(): void
     {
         $superAdmin = $this->createStaff($this->barangay, 'super_admin');
+        StaffAssignment::create([
+            'user_id' => $superAdmin->id,
+            'resident_id' => $superAdmin->resident_id,
+            'barangay_id' => $this->barangay->id,
+            'department' => 'super_admin',
+            'position' => 'Super Admin',
+            'is_active' => true,
+        ]);
 
         $this->actingAs($superAdmin)
             ->get('/lupon/complaints')

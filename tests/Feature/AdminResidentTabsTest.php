@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Barangay;
 use App\Models\Purok;
 use App\Models\RegistrationDocument;
@@ -69,9 +70,19 @@ class AdminResidentTabsTest extends TestCase
                 ->component('Admin/Residents')
                 ->where('allResidents.total', 3)
                 ->has('allResidents.data', 3)
-                ->where('allResidents.data.0.id', $qualifying->id)
+                ->where('allResidents.data.0.id', $qualifying->id));
+
+        $this->actingAs($admin)
+            ->get('/admin/residents', $this->partialHeaders('addedByAdmin'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
                 ->where('addedByAdmin.total', 1)
-                ->where('addedByAdmin.data.0.id', $adminAdded->id)
+                ->where('addedByAdmin.data.0.id', $adminAdded->id));
+
+        $this->actingAs($admin)
+            ->get('/admin/residents', $this->partialHeaders('pendingRegistrations,needsCorrectionRegistrations,rejectedRegistrations'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
                 ->where('pendingRegistrations.total', 1)
                 ->where('needsCorrectionRegistrations.total', 0)
                 ->where('rejectedRegistrations.total', 0));
@@ -120,7 +131,7 @@ class AdminResidentTabsTest extends TestCase
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
-            ->get('/admin/residents')
+            ->get('/admin/residents?tab=pending', $this->partialHeaders('pendingRegistrations'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Residents')
@@ -128,14 +139,14 @@ class AdminResidentTabsTest extends TestCase
                 ->where('pendingRegistrations.data.0.id', $pending->id));
 
         $this->actingAs($admin)
-            ->get('/admin/residents')
+            ->get('/admin/residents?tab=needs_correction', $this->partialHeaders('needsCorrectionRegistrations'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('needsCorrectionRegistrations.total', 1)
                 ->where('needsCorrectionRegistrations.data.0.id', $correction->id));
 
         $this->actingAs($admin)
-            ->get('/admin/residents')
+            ->get('/admin/residents?tab=rejected', $this->partialHeaders('rejectedRegistrations'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('rejectedRegistrations.total', 0));
@@ -346,6 +357,16 @@ class AdminResidentTabsTest extends TestCase
     | Helpers
     |--------------------------------------------------------------------------
     */
+
+    private function partialHeaders(string $props): array
+    {
+        return [
+
+            'X-Inertia-Version' => app(HandleInertiaRequests::class)->version(request()) ?? '',
+            'X-Inertia-Partial-Component' => 'Admin/Residents',
+            'X-Inertia-Partial-Data' => $props,
+        ];
+    }
 
     private function createDocument(ResidentRegistration $registration): RegistrationDocument
     {

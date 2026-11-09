@@ -125,26 +125,342 @@ class ResidentRegistrationController extends Controller
             (string) $request->query('resident_search', '')
         );
         $registrationSearch = trim((string) $request->query('registration_search', ''));
+        $activeTab = $this->resolveResidentsTab($request);
 
-        $payload = null;
+        $resolved = [];
+        $remember = function (string $key, \Closure $callback) use (&$resolved): mixed {
+            if (! array_key_exists($key, $resolved)) {
+                $resolved[$key] = $callback();
+            }
 
-        $resolvePayload = function () use (
-            &$payload,
+            return $resolved[$key];
+        };
+
+        $coreStats = null;
+        $tabCounts = null;
+        $singleTabCounts = [];
+
+        $resolveCoreStats = function () use (
+            &$coreStats,
+            &$tabCounts,
             $user,
             $selectedPurokId,
             $residentSearch,
             $registrationSearch,
-            $purokMap,
-            $purokModels,
         ): array {
-            if ($payload !== null) {
-                return $payload;
+            if ($coreStats !== null) {
+                return $coreStats;
             }
 
-            $statsQuery = DB::query()
+            $includeTabCounts = $tabCounts === null
+                && $this->resolvesProp('Admin/Residents', 'tabCounts');
+
+            $row = $this->residentStatsRow(
+                (int) $user->barangay_id,
+                $selectedPurokId,
+                $residentSearch,
+                $registrationSearch,
+                true,
+                $includeTabCounts,
+            );
+
+            $coreStats = $this->coreStatsPayload($row);
+
+            if ($includeTabCounts) {
+                $tabCounts = $this->tabCountsPayload($row);
+            }
+
+            return $coreStats;
+        };
+
+        $resolveTabCounts = function () use (
+            &$coreStats,
+            &$tabCounts,
+            $user,
+            $selectedPurokId,
+            $residentSearch,
+            $registrationSearch,
+            $resolveCoreStats,
+        ): array {
+            if ($tabCounts !== null) {
+                return $tabCounts;
+            }
+
+            // When both statistics props are requested, resolve them in one
+            // round trip. A partial stats-only reload still uses the three
+            // aggregate counts and never pays for tab totals.
+            if ($coreStats === null && $this->resolvesProp('Admin/Residents', 'stats')) {
+                $resolveCoreStats();
+
+                if ($tabCounts !== null) {
+                    return $tabCounts;
+                }
+            }
+
+            $row = $this->residentStatsRow(
+                (int) $user->barangay_id,
+                $selectedPurokId,
+                $residentSearch,
+                $registrationSearch,
+                false,
+                true,
+            );
+
+            return $tabCounts = $this->tabCountsPayload($row);
+        };
+
+        $resolveTabCount = function (string $prop) use (
+            &$singleTabCounts,
+            &$tabCounts,
+            $user,
+            $selectedPurokId,
+            $residentSearch,
+            $registrationSearch,
+            $resolveTabCounts,
+        ): int {
+            if ($tabCounts !== null) {
+                return (int) ($tabCounts[$prop] ?? 0);
+            }
+
+            if ($this->resolvesProp('Admin/Residents', 'tabCounts')) {
+                $resolveTabCounts();
+
+                return (int) ($tabCounts[$prop] ?? 0);
+            }
+
+            if (! array_key_exists($prop, $singleTabCounts)) {
+                $singleTabCounts[$prop] = $this->countResidentTab(
+                    $prop,
+                    (int) $user->barangay_id,
+                    $selectedPurokId,
+                    $residentSearch,
+                    $registrationSearch,
+                );
+            }
+
+            return $singleTabCounts[$prop];
+        };
+
+        $resolvePuroks = function () use (
+            $remember,
+            $purokModels,
+            $user,
+        ): Collection {
+            return $remember(
+                'puroks',
+                fn () => $this->purokSummaries($purokModels, (int) $user->barangay_id),
+            );
+        };
+
+        /*
+        |--------------------------------------------------------------------------
+        | Resident Directories
+        |--------------------------------------------------------------------------
+        |
+        | The approved roster is paginated and searched on the server so the
+        | page never loads every resident of the barangay into the browser.
+        | The current query string is preserved on the pagination links.
+        |
+        */
+
+        $resolveAllResidents = function () use (
+            $remember,
+            $resolveTabCount,
+            $user,
+            $selectedPurokId,
+            $residentSearch,
+            &$purokMap,
+        ) {
+            return $remember('allResidents', fn () => $this->allResidents(
+                (int) $user->barangay_id,
+                $selectedPurokId,
+                $residentSearch,
+                $resolveTabCount('allResidents'),
+                $purokMap,
+            ));
+        };
+
+        $resolveAddedByAdmin = function () use (
+            $remember,
+            $resolveTabCount,
+            $user,
+            $selectedPurokId,
+            $residentSearch,
+            &$purokMap,
+        ) {
+            return $remember('addedByAdmin', fn () => $this->residentList(
+                (int) $user->barangay_id,
+                $selectedPurokId,
+                $residentSearch,
+                'admin',
+                'added_page',
+                $resolveTabCount('addedByAdmin'),
+                $purokMap,
+            ));
+        };
+
+        $resolvePending = function () use (
+            $remember,
+            $resolveTabCount,
+            $user,
+            $selectedPurokId,
+            $registrationSearch,
+            &$purokMap,
+        ) {
+            return $remember('pendingRegistrations', fn () => $this->registrationList(
+                (int) $user->barangay_id,
+                $selectedPurokId,
+                $registrationSearch,
+                'pending',
+                'pending_page',
+                $resolveTabCount('pendingRegistrations'),
+                $purokMap,
+            ));
+        };
+
+        $resolveNeedsCorrection = function () use (
+            $remember,
+            $resolveTabCount,
+            $user,
+            $selectedPurokId,
+            $registrationSearch,
+            &$purokMap,
+        ) {
+            return $remember('needsCorrectionRegistrations', fn () => $this->registrationList(
+                (int) $user->barangay_id,
+                $selectedPurokId,
+                $registrationSearch,
+                'needs_correction',
+                'needs_correction_page',
+                $resolveTabCount('needsCorrectionRegistrations'),
+                $purokMap,
+            ));
+        };
+
+        $resolveRejected = function () use (
+            $remember,
+            $resolveTabCount,
+            $user,
+            $selectedPurokId,
+            $registrationSearch,
+            &$purokMap,
+        ) {
+            return $remember('rejectedRegistrations', fn () => $this->registrationList(
+                (int) $user->barangay_id,
+                $selectedPurokId,
+                $registrationSearch,
+                'rejected',
+                'rejected_page',
+                $resolveTabCount('rejectedRegistrations'),
+                $purokMap,
+            ));
+        };
+
+        /*
+        |--------------------------------------------------------------------------
+        | All Residents (verified records with linked online accounts)
+        |--------------------------------------------------------------------------
+        |
+        | The directory intentionally excludes unverified records, applicants,
+        | and official Residents without an online account.
+        |
+        */
+
+        $resolveHouseholds = function () use (
+            $remember,
+            $resolveTabCount,
+            $user,
+            $selectedPurokId,
+            $residentSearch,
+        ) {
+            return $remember('households', fn () => $this->households(
+                (int) $user->barangay_id,
+                $selectedPurokId,
+                $residentSearch,
+                $resolveTabCount('households'),
+            ));
+        };
+
+        $resolveStats = fn () => $remember('stats', $resolveCoreStats);
+        $resolveTabCountsProp = fn () => $remember('tabCounts', $resolveTabCounts);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tab-Specific Deferred Payloads
+        |--------------------------------------------------------------------------
+        |
+        | Only the active tab's dataset is deferred on a full page load. This
+        | keeps direct links such as ?tab=households correct without making the
+        | browser request every other tab's rows. Partial visits may request any
+        | tab directly; Inertia filters the response to the requested props.
+        |
+        */
+
+        $tabDatasets = [
+            'all' => ['allResidents', $resolveAllResidents],
+            'households' => ['households', $resolveHouseholds],
+            'added_by_admin' => ['addedByAdmin', $resolveAddedByAdmin],
+            'pending' => ['pendingRegistrations', $resolvePending],
+            'needs_correction' => ['needsCorrectionRegistrations', $resolveNeedsCorrection],
+            'rejected' => ['rejectedRegistrations', $resolveRejected],
+        ];
+
+        $isPartialVisit = $request->header('X-Inertia-Partial-Component') === 'Admin/Residents';
+
+        $props = [
+            'filters' => [
+                'resident_search' => $residentSearch,
+                'registration_search' => $registrationSearch,
+                'purok_id' => $selectedPurokId,
+                'tab' => $activeTab,
+            ],
+            'stats' => $this->deferProp($resolveStats),
+            'puroks' => $this->deferProp($resolvePuroks),
+            'tabCounts' => $this->deferProp($resolveTabCountsProp),
+        ];
+
+        foreach ($tabDatasets as $tab => [$prop, $resolver]) {
+            if ($isPartialVisit || $tab === $activeTab) {
+                $props[$prop] = $this->deferProp($resolver);
+            }
+        }
+
+        return Inertia::render('Admin/Residents', $props);
+    }
+
+    private function resolveResidentsTab(Request $request): string
+    {
+        $tab = (string) $request->query('tab', 'all');
+
+        return in_array($tab, [
+            'all',
+            'added_by_admin',
+            'pending',
+            'needs_correction',
+            'rejected',
+            'households',
+        ], true) ? $tab : 'all';
+    }
+
+    /**
+     * Resolve the resident statistics in one query. Core totals are the three
+     * summary-card counters; tab totals are the filtered paginator counts.
+     */
+    private function residentStatsRow(
+        int $barangayId,
+        ?int $purokId,
+        string $residentSearch,
+        string $registrationSearch,
+        bool $includeCore,
+        bool $includeTabCounts,
+    ): object {
+        $query = DB::query();
+
+        if ($includeCore) {
+            $query
                 ->selectSub(
                     Resident::query()
-                        ->where('barangay_id', $user->barangay_id)
+                        ->where('barangay_id', $barangayId)
                         ->approvedAccount()
                         ->selectRaw('COUNT(*)')
                         ->toBase(),
@@ -152,175 +468,148 @@ class ResidentRegistrationController extends Controller
                 )
                 ->selectSub(
                     Household::query()
-                        ->where('barangay_id', $user->barangay_id)
+                        ->where('barangay_id', $barangayId)
                         ->selectRaw('COUNT(*)')
                         ->toBase(),
                     'total_households',
                 )
                 ->selectSub(
                     ResidentRegistration::query()
-                        ->where('barangay_id', $user->barangay_id)
+                        ->where('barangay_id', $barangayId)
                         ->where('status', 'pending')
                         ->selectRaw('COUNT(*)')
                         ->toBase(),
                     'pending_registrations',
+                );
+        }
+
+        if ($includeTabCounts) {
+            $query
+                ->selectSub(
+                    $this->allResidentsQuery(
+                        $barangayId,
+                        $purokId,
+                        $residentSearch,
+                    )->reorder()->select(DB::raw('COUNT(*)'))->toBase(),
+                    'all_residents',
                 )
                 ->selectSub(
-                    $this->registrationQuery(
-                        (int) $user->barangay_id,
-                        $selectedPurokId,
-                        $registrationSearch,
-                    )->where('status', 'pending')->selectRaw('COUNT(*)')->toBase(),
-                    'pending_reviews',
-                )
-                ->selectSub(
-                    $this->registrationQuery(
-                        (int) $user->barangay_id,
-                        $selectedPurokId,
-                        $registrationSearch,
-                    )->where('status', 'needs_correction')->selectRaw('COUNT(*)')->toBase(),
-                    'needs_correction_reviews',
-                )
-                ->selectSub(
-                    $this->registrationQuery(
-                        (int) $user->barangay_id,
-                        $selectedPurokId,
-                        $registrationSearch,
-                    )->where('status', 'rejected')->selectRaw('COUNT(*)')->toBase(),
-                    'rejected_reviews',
+                    $this->householdQuery(
+                        $barangayId,
+                        $purokId,
+                        $residentSearch,
+                    )->reorder()->select(DB::raw('COUNT(*)'))->toBase(),
+                    'households',
                 )
                 ->selectSub(
                     $this->residentListQuery(
-                        (int) $user->barangay_id,
-                        $selectedPurokId,
+                        $barangayId,
+                        $purokId,
                         $residentSearch,
                         'admin',
                     )->reorder()->select(DB::raw('COUNT(*)'))->toBase(),
                     'added_by_admin',
                 )
                 ->selectSub(
-                    $this->allResidentsQuery(
-                        (int) $user->barangay_id,
-                        $selectedPurokId,
-                        $residentSearch,
-                    )->reorder()->select(DB::raw('COUNT(*)'))->toBase(),
-                    'all_residents',
+                    $this->registrationQuery(
+                        $barangayId,
+                        $purokId,
+                        $registrationSearch,
+                    )->where('status', 'pending')->selectRaw('COUNT(*)')->toBase(),
+                    'pending_reviews',
+                )
+                ->selectSub(
+                    $this->registrationQuery(
+                        $barangayId,
+                        $purokId,
+                        $registrationSearch,
+                    )->where('status', 'needs_correction')->selectRaw('COUNT(*)')->toBase(),
+                    'needs_correction_reviews',
+                )
+                ->selectSub(
+                    $this->registrationQuery(
+                        $barangayId,
+                        $purokId,
+                        $registrationSearch,
+                    )->where('status', 'rejected')->selectRaw('COUNT(*)')->toBase(),
+                    'rejected_reviews',
                 );
+        }
 
-            // Pagination skips fetching rows when its supplied total is zero.
-            // Read current counts so a previously empty queue cannot hide new
-            // applications or retain applications after an admin reviews them.
-            $stats = (object) (array) ($statsQuery->first() ?? []);
+        return (object) (array) ($query->first() ?? []);
+    }
 
-            $totalResidents = (int) ($stats->total_residents ?? 0);
-            $activeResidents = $totalResidents;
+    /**
+     * @return array{totalResidents: int, activeResidents: int, pendingRegistrations: int, totalHouseholds: int}
+     */
+    private function coreStatsPayload(object $row): array
+    {
+        $totalResidents = (int) ($row->total_residents ?? 0);
 
-            $puroks = $this->resolvesProp('Admin/Residents', 'puroks')
-                ? $this->purokSummaries($purokModels, (int) $user->barangay_id)
-                : null;
+        return [
+            'totalResidents' => $totalResidents,
+            'activeResidents' => $totalResidents,
+            'pendingRegistrations' => (int) ($row->pending_registrations ?? 0),
+            'totalHouseholds' => (int) ($row->total_households ?? 0),
+        ];
+    }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Resident Directories
-            |--------------------------------------------------------------------------
-            |
-            | The approved roster is paginated and searched on the server so the
-            | page never loads every resident of the barangay into the browser.
-            | The current query string is preserved on the pagination links.
-            |
-            */
+    /**
+     * @return array<string, int>
+     */
+    private function tabCountsPayload(object $row): array
+    {
+        return [
+            'allResidents' => (int) ($row->all_residents ?? 0),
+            'households' => (int) ($row->households ?? 0),
+            'addedByAdmin' => (int) ($row->added_by_admin ?? 0),
+            'pendingRegistrations' => (int) ($row->pending_reviews ?? 0),
+            'needsCorrectionRegistrations' => (int) ($row->needs_correction_reviews ?? 0),
+            'rejectedRegistrations' => (int) ($row->rejected_reviews ?? 0),
+        ];
+    }
 
-            $addedByAdmin = $this->resolvesProp('Admin/Residents', 'addedByAdmin') ? $this->residentList(
-                (int) $user->barangay_id,
-                $selectedPurokId,
+    private function countResidentTab(
+        string $prop,
+        int $barangayId,
+        ?int $purokId,
+        string $residentSearch,
+        string $registrationSearch,
+    ): int {
+        return match ($prop) {
+            'allResidents' => $this->allResidentsQuery(
+                $barangayId,
+                $purokId,
+                $residentSearch,
+            )->reorder()->count(),
+            'households' => $this->householdQuery(
+                $barangayId,
+                $purokId,
+                $residentSearch,
+            )->reorder()->count(),
+            'addedByAdmin' => $this->residentListQuery(
+                $barangayId,
+                $purokId,
                 $residentSearch,
                 'admin',
-                'added_page',
-                (int) ($stats->added_by_admin ?? 0),
-                $purokMap
-            ) : null;
-
-            $pendingRegistrations = $this->resolvesProp('Admin/Residents', 'pendingRegistrations') ? $this->registrationList(
-                (int) $user->barangay_id,
-                $selectedPurokId,
+            )->reorder()->count(),
+            'pendingRegistrations' => $this->registrationQuery(
+                $barangayId,
+                $purokId,
                 $registrationSearch,
-                'pending',
-                'pending_page',
-                (int) ($stats->pending_reviews ?? 0),
-                $purokMap
-            ) : null;
-            $needsCorrectionRegistrations = $this->resolvesProp('Admin/Residents', 'needsCorrectionRegistrations') ? $this->registrationList(
-                (int) $user->barangay_id,
-                $selectedPurokId,
+            )->where('status', 'pending')->count(),
+            'needsCorrectionRegistrations' => $this->registrationQuery(
+                $barangayId,
+                $purokId,
                 $registrationSearch,
-                'needs_correction',
-                'needs_correction_page',
-                (int) ($stats->needs_correction_reviews ?? 0),
-                $purokMap
-            ) : null;
-            $rejectedRegistrations = $this->resolvesProp('Admin/Residents', 'rejectedRegistrations') ? $this->registrationList(
-                (int) $user->barangay_id,
-                $selectedPurokId,
+            )->where('status', 'needs_correction')->count(),
+            'rejectedRegistrations' => $this->registrationQuery(
+                $barangayId,
+                $purokId,
                 $registrationSearch,
-                'rejected',
-                'rejected_page',
-                (int) ($stats->rejected_reviews ?? 0),
-                $purokMap
-            ) : null;
-
-            /*
-            |--------------------------------------------------------------------------
-            | All Residents (verified records with linked online accounts)
-            |--------------------------------------------------------------------------
-            |
-            | The directory intentionally excludes unverified records, applicants,
-            | and official Residents without an online account.
-            |
-            */
-
-            $allResidents = $this->resolvesProp('Admin/Residents', 'allResidents') ? $this->allResidents(
-                (int) $user->barangay_id,
-                $selectedPurokId,
-                $residentSearch,
-                (int) ($stats->all_residents ?? 0),
-                $purokMap
-            ) : null;
-            $households = $this->resolvesProp('Admin/Residents', 'households')
-                ? $this->households((int) $user->barangay_id, $selectedPurokId, $residentSearch)
-                : null;
-
-            return $payload = [
-                'allResidents' => $allResidents,
-                'pendingRegistrations' => $pendingRegistrations,
-                'needsCorrectionRegistrations' => $needsCorrectionRegistrations,
-                'rejectedRegistrations' => $rejectedRegistrations,
-                'puroks' => $puroks,
-                'addedByAdmin' => $addedByAdmin,
-                'households' => $households,
-                'stats' => [
-                    'totalResidents' => $totalResidents,
-                    'activeResidents' => $activeResidents,
-                    'pendingRegistrations' => (int) ($stats->pending_registrations ?? 0),
-                    'totalHouseholds' => (int) ($stats->total_households ?? 0),
-                ],
-            ];
+            )->where('status', 'rejected')->count(),
+            default => 0,
         };
-
-        return Inertia::render('Admin/Residents', [
-            'allResidents' => $this->deferProp(fn () => $resolvePayload()['allResidents']),
-            'pendingRegistrations' => $this->deferProp(fn () => $resolvePayload()['pendingRegistrations']),
-            'needsCorrectionRegistrations' => $this->deferProp(fn () => $resolvePayload()['needsCorrectionRegistrations']),
-            'rejectedRegistrations' => $this->deferProp(fn () => $resolvePayload()['rejectedRegistrations']),
-            'puroks' => $this->deferProp(fn () => $resolvePayload()['puroks']),
-            'addedByAdmin' => $this->deferProp(fn () => $resolvePayload()['addedByAdmin']),
-            'households' => $this->deferProp(fn () => $resolvePayload()['households']),
-            'filters' => [
-                'resident_search' => $residentSearch,
-                'registration_search' => $registrationSearch,
-                'purok_id' => $selectedPurokId,
-            ],
-            'stats' => $this->deferProp(fn () => $resolvePayload()['stats']),
-        ]);
     }
 
     /**
@@ -379,6 +668,10 @@ class ResidentRegistrationController extends Controller
             'household.head:id,first_name,middle_name,last_name,suffix',
             'household.members:id,household_id,first_name,middle_name,last_name,suffix,household_relationship',
         ]);
+        // Load active staff assignments with related barangay name
+        $resident->load(['staffAssignments' => function ($q) {
+            $q->where('is_active', true)->with(['barangay:id,name']);
+        }]);
         $decisionNotification = Schema::hasColumn('resident_registrations', 'matched_resident_id')
             ? $resident->matchedRegistrations()
                 ->with('latestDecisionNotification')
@@ -407,6 +700,7 @@ class ResidentRegistrationController extends Controller
                 'source' => $resident->source,
                 'approved_at' => $resident->approved_at?->format('Y-m-d'),
                 'barangay' => $resident->barangay?->name,
+                'purok_id' => $resident->purok_id,
                 'purok' => $resident->purok?->name,
                 'account_exists' => $resident->account !== null,
                 'account_active' => (bool) (
@@ -433,6 +727,16 @@ class ResidentRegistrationController extends Controller
                         'id' => $sector->id,
                         'name' => $sector->name,
                         'slug' => $sector->slug,
+                    ])
+                    ->values(),
+                'designations' => $resident->staffAssignments->isEmpty()
+                    ? ['Regular Resident']
+                    : ['Regular Resident', 'Staff'],
+                'staff_assignments' => $resident->staffAssignments
+                    ->map(fn ($assignment) => [
+                        'barangay' => $assignment->barangay?->name,
+                        'department' => $assignment->department,
+                        'position' => $assignment->position,
                     ])
                     ->values(),
             ],
@@ -943,7 +1247,7 @@ class ResidentRegistrationController extends Controller
                     ['resident_id' => $resident->id],
                     [
                         'barangay_id' => $resident->barangay_id,
-                        'name' => trim($resident->first_name.' '.$resident->last_name),
+                        'name' => $resident->full_name,
                         'email' => $resident->email ?? "resident_{$resident->id}@kabarangay.local",
                         'password' => $residentAccount->password,
                         'status' => 'active',
@@ -1894,14 +2198,12 @@ class ResidentRegistrationController extends Controller
         ]);
     }
 
-    private function households(int $barangayId, ?int $purokId, string $search): LengthAwarePaginator
+    private function householdQuery(int $barangayId, ?int $purokId, string $search): Builder
     {
         $like = '%'.$search.'%';
 
         return Household::query()
             ->where('barangay_id', $barangayId)
-            ->with(['purok:id,name', 'head:id,first_name,middle_name,last_name,suffix'])
-            ->withCount('members')
             ->when($purokId !== null, fn ($query) => $query->where('purok_id', $purokId))
             ->when($search !== '', function ($query) use ($like) {
                 $query->where(function ($query) use ($like) {
@@ -1911,9 +2213,20 @@ class ResidentRegistrationController extends Controller
                             ->orWhere('middle_name', 'like', $like)
                             ->orWhere('last_name', 'like', $like));
                 });
-            })
+            });
+    }
+
+    private function households(
+        int $barangayId,
+        ?int $purokId,
+        string $search,
+        ?int $total = null,
+    ): LengthAwarePaginator {
+        return $this->householdQuery($barangayId, $purokId, $search)
+            ->with(['purok:id,name', 'head:id,first_name,middle_name,last_name,suffix'])
+            ->withCount('members')
             ->orderBy('household_code')
-            ->paginate(15, ['*'], 'household_page')
+            ->paginate(15, ['*'], 'household_page', null, $total)
             ->withQueryString()
             ->through(fn (Household $household) => [
                 'id' => $household->id,

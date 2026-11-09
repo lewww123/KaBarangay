@@ -142,7 +142,7 @@ export default function SectorApplicationStaffReview({
                     href={backUrl}
                     className="inline-flex items-center text-xs font-semibold text-ink-muted hover:text-ink-strong"
                 >
-                    ← Back to Queue
+                    Back to Queue
                 </Link>
             </div>
 
@@ -161,7 +161,7 @@ export default function SectorApplicationStaffReview({
 
             {actionFeedback && (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-semibold text-emerald-800">
-                    ✓ {actionFeedback}
+                    {actionFeedback}
                 </div>
             )}
 
@@ -248,7 +248,7 @@ export default function SectorApplicationStaffReview({
                                         className="flex items-center justify-between rounded-xl border border-line-soft bg-canvas/60 p-3 text-xs"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <span className="text-lg">📄</span>
+                                            <span className="text-lg"></span>
                                             <div>
                                                 <p className="font-semibold text-ink-strong">
                                                     {doc.title}

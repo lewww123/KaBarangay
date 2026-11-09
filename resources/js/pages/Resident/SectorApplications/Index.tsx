@@ -227,7 +227,7 @@ function SectorApplicationsContent({ resident, applications }: Props) {
 
                                         <div>
                                             <span
-                                                className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase ${
+                                                className={`rounded-lg px-2.5 py-1 text-xs font-semibold uppercase ${
                                                     app.status === 'approved'
                                                         ? 'bg-emerald-100 text-emerald-800'
                                                         : app.status ===

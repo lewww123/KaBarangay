@@ -7,6 +7,7 @@ use App\Models\LuponCase;
 use App\Models\LuponHearing;
 use App\Support\AuditLogger;
 use App\Support\LuponAccess;
+use App\Support\LuponCache;
 use App\Support\LuponCaseWorkflow;
 use App\Support\LuponDocuments;
 use Carbon\Carbon;
@@ -56,7 +57,7 @@ class LuponHearingController extends Controller
             });
         }
 
-        if (is_string($phase) && in_array($phase, ['Kapitan', 'Lupon'], true)) {
+        if (is_string($phase) && in_array($phase, ['Kapitan', 'Lupon', 'Arbitration'], true)) {
             $query->where('phase', $phase);
         } else {
             $phase = '';
@@ -100,7 +101,7 @@ class LuponHearingController extends Controller
                 'status' => $status,
                 'outcome' => $outcome,
             ],
-            'phases' => ['Kapitan', 'Lupon'],
+            'phases' => ['Kapitan', 'Lupon', 'Arbitration'],
             'statuses' => self::STATUSES,
             'outcomes' => self::OUTCOMES,
         ]);
@@ -112,17 +113,17 @@ class LuponHearingController extends Controller
     public function store(Request $request, LuponCase $case): RedirectResponse
     {
         LuponAccess::staff($request, $case);
-        $data = $request->validate(['hearing_date' => ['required', 'date', 'after_or_equal:'.LuponCaseWorkflow::today()], 'hearing_time' => ['required', 'date_format:H:i'], 'venue' => ['nullable', 'string', 'max:255'], 'phase' => ['nullable', 'in:Kapitan,Lupon'], 'previous_hearing_id' => ['nullable', 'integer'], 'previous_hearing_notes' => ['nullable', 'string', 'max:5000']]);
+        $data = $request->validate(['hearing_date' => ['required', 'date', 'after_or_equal:'.LuponCaseWorkflow::today()], 'hearing_time' => ['required', 'date_format:H:i'], 'venue' => ['nullable', 'string', 'max:255'], 'phase' => ['nullable', 'in:Kapitan,Lupon,Arbitration'], 'previous_hearing_id' => ['nullable', 'integer'], 'previous_hearing_notes' => ['nullable', 'string', 'max:5000']]);
         DB::transaction(function () use ($request, $case, $data) {
             $locked = LuponCase::whereKey($case->id)->lockForUpdate()->firstOrFail();
-            if (! in_array($locked->status, ['filed', 'mediation_active', 'pangkat_formed', 'conciliation_active'], true)) {
+            if (! in_array($locked->status, ['filed', 'mediation_active', 'pangkat_formed', 'conciliation_active', 'arbitration_active'], true)) {
                 throw ValidationException::withMessages(['hearing_date' => 'This case is closed to new hearings.']);
             }
             $phase = LuponCaseWorkflow::phase($locked->status);
             if (isset($data['phase']) && $data['phase'] !== $phase) {
                 throw ValidationException::withMessages(['phase' => 'The hearing phase must match the current case stage.']);
             }
-            if ($locked->hearings()->where('phase', $phase)->count() >= 3) {
+            if ($phase !== 'Arbitration' && $locked->hearings()->where('phase', $phase)->count() >= 3) {
                 throw ValidationException::withMessages(['hearing_date' => 'Tatlo lamang ang pagdinig sa Kapitan phase. Itala ang resulta ng mediation at ang pagbuo ng Pangkat bago magtakda sa Lupon phase. Para baguhin ang petsa, i-reschedule ang existing hearing.']);
             }
             if (! empty($data['previous_hearing_id'])) {
@@ -149,12 +150,14 @@ class LuponHearingController extends Controller
             LuponDocuments::queueNotices($locked, $hearing, $request->user()->id);
             AuditLogger::record('lupon_hearing.scheduled', barangayId: $locked->barangay_id, actorId: $request->user()->id, entityType: 'lupon_hearing', entityId: $hearing->id, context: ['case_number' => $locked->case_number, 'hearing_number' => $hearing->hearing_number]);
         });
+        LuponCache::forget((int) $case->barangay_id);
 
         return back()->with('success', 'Hearing scheduled; notice and summons prepared for review.');
     }
 
     private static function validatePhaseDate(LuponCase $case, string $phase, string $date): void
     {
+        if ($phase === 'Arbitration') { return; }
         $first = $case->hearings()->where('phase', $phase)->orderBy('hearing_number')->first();
         $start = $phase === 'Kapitan' ? $case->mediation_started_at : $case->conciliation_started_at;
         $deadline = $phase === 'Kapitan' ? $case->mediation_deadline_at : ($case->conciliation_extended_until ?? $case->conciliation_deadline_at);
@@ -186,7 +189,7 @@ class LuponHearingController extends Controller
             if ($data['status'] !== 'Rescheduled' && (! empty($data['hearing_date']) || ! empty($data['hearing_time']))) {
                 throw ValidationException::withMessages(['hearing_date' => 'Use the reschedule action to change a meeting date or time.']);
             }
-            if (! in_array($case->status, ['filed', 'mediation_active', 'pangkat_formed', 'conciliation_active'], true) && $data['status'] !== $hearing->status) {
+            if (! in_array($case->status, ['filed', 'mediation_active', 'pangkat_formed', 'conciliation_active', 'arbitration_active'], true) && $data['status'] !== $hearing->status) {
                 throw ValidationException::withMessages(['status' => 'A closed case cannot change its hearing schedule.']);
             }
             if (! config('lupon.hearing_actions_unlocked', true) && $data['status'] === 'Held' && Carbon::parse($hearing->hearing_date->toDateString().' '.($hearing->hearing_time ?? '00:00'), config('lupon.timezone', 'Asia/Manila'))->isFuture()) {
@@ -218,6 +221,7 @@ class LuponHearingController extends Controller
             }
             AuditLogger::record('lupon_hearing.updated', barangayId: $case->barangay_id, actorId: $request->user()->id, entityType: 'lupon_hearing', entityId: $hearing->id, context: ['case_number' => $case->case_number, 'status' => $data['status']]);
         });
+        LuponCache::forget((int) $hearing->barangay_id);
 
         return back()->with('success', 'Hearing record updated.');
     }

@@ -33,7 +33,7 @@ export default function ResidentDisbursementShow({
 
                 <section className="mt-4 rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-6">
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-md border border-brand/20 bg-brand/5 px-2 py-0.5 text-[11px] font-semibold text-brand">
+                        <span className="rounded-lg border border-brand/20 bg-brand/5 px-2 py-0.5 text-[11px] font-semibold text-brand">
                             {disbursementFileType(document)}
                         </span>
 

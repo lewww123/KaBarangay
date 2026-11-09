@@ -78,7 +78,7 @@ let slowResponse;
 const appScript = `import {offlineSnapshot} from '/snapshot.js';
 window.appBooted=true;
 window.rpc=async(message)=>{const registration=await navigator.serviceWorker.ready;return new Promise(resolve=>{const c=new MessageChannel();c.port1.onmessage=e=>resolve(e.data);(navigator.serviceWorker.controller||registration.active).postMessage(message,[c.port2])})};
-window.prepare=async()=>{for(let i=0;i<150;i++){if(document.querySelector('[data-kb-offline-control]')?.textContent.includes('Saved for offline'))return {ok:true};await new Promise(resolve=>setTimeout(resolve,100));}throw Error('Automatic offline preparation did not finish: '+document.querySelector('[data-kb-offline-control]')?.textContent)};`;
+window.prepare=async()=>{const here=location.pathname+location.search;for(let i=0;i<150;i++){const saved=await window.rpc({type:'KB_LIST'});if(saved?.pages?.some((page)=>page.path===here))return {ok:true};await new Promise(resolve=>setTimeout(resolve,100));}throw Error('Automatic offline preparation did not finish for '+here);};`;
 const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     res.setHeader('Cache-Control', 'no-store');
@@ -375,10 +375,12 @@ try {
     assert.equal(await otherSnapshot.locator('#kb-offline-notice').count(), 0);
     await otherSnapshot.close();
     await page.waitForURL('**/offline.html?loggedout=1');
-    await page.waitForFunction(() =>
-        document
-            .querySelector('#kb-offline-message')
-            .textContent.includes('Na-clear'),
+    await page
+        .getByRole('heading', { name: 'Mag-sign in ulit sa KaBarangay' })
+        .waitFor();
+    assert.equal(
+        await page.getByRole('heading', { name: 'Mga page sa device na ito' }).count(),
+        0,
     );
     assert.equal((await talk(page, { type: 'KB_LIST' })).pages.length, 0);
     assert.equal(
@@ -400,6 +402,40 @@ try {
         'Business writes must never be replayed on reconnect',
     );
     assert.equal((await talk(page, { type: 'KB_LIST' })).pages.length, 0);
+
+    scope = scopeA;
+    await page.goto(origin + '/resident/certificates');
+    await page.waitForFunction(() => typeof window.prepare === 'function');
+    await page.evaluate(() => window.prepare());
+    // Simulate a stale offline indication after the server has become reachable.
+    await page.evaluate(() => {
+        navigator.serviceWorker.dispatchEvent(
+            new MessageEvent('message', { data: { type: 'KB_NETWORK_OFFLINE' } }),
+        );
+    });
+    await page.getByText('Offline Mode', { exact: true }).waitFor();
+    const logoutDestination = await page.evaluate(async () => {
+        const url = new URL('/resident/logout', location.origin);
+        const allowed = document.dispatchEvent(
+            new CustomEvent('inertia:before', {
+                cancelable: true,
+                detail: { visit: { method: 'post', url } },
+            }),
+        );
+        if (!allowed) return null;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': 'test-csrf-only', 'X-Inertia': 'true' },
+        });
+        return response.url;
+    });
+    assert.equal(logoutDestination, origin + '/resident/login');
+    assert.deepEqual(await talk(page, { type: 'KB_LIST' }), {
+        ok: true,
+        pages: [],
+        pendingLogout: false,
+    });
+    assert.equal(logouts, 2, 'Online logout must send only one request');
     console.log(
         'PASS: automatic saving, offline reload/navigation, styled read-only snapshots, secret/form/document exclusions, fallback, no write queue, account isolation, 24-hour expiry, 20-page limit, offline logout and server logout on reconnect.',
     );

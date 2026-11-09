@@ -7,15 +7,36 @@ export type OfflineCertificateForm = {
     details: Record<string, string>;
     catalog_revision?: string;
 };
-type LocalRequest = {
+export type LocalCertificateStatus =
+    | 'draft'
+    | 'pending'
+    | 'syncing'
+    | 'synced'
+    | 'login-required'
+    | 'needs-review';
+
+export type LocalCertificateRequest = {
     id: string;
-    status: string;
+    status: LocalCertificateStatus;
+    createdAt: number;
+    updatedAt: number;
     data: {
         certificateName: string;
-        result?: { reference: string };
-        error?: string;
+        estimatedFee?: number;
+        form?: OfflineCertificateForm;
+        result?: { reference: string; status?: string; fee?: number };
+        error?: string | null;
     };
 };
+
+/** Queued but not yet confirmed by the server; shown in My Requests as local only. */
+export const UNSYNCED_STATUSES: string[] = [
+    'pending',
+    'syncing',
+    'login-required',
+    'needs-review',
+];
+
 type SyncResult = {
     ok?: boolean;
     busy?: boolean;
@@ -25,8 +46,9 @@ type SyncResult = {
 };
 type CertificateStore = {
     context(): Promise<{ owner: string; scope: string }>;
-    list(): Promise<LocalRequest[]>;
+    list(): Promise<LocalCertificateRequest[]>;
     saveDraft(form: OfflineCertificateForm, id?: string): Promise<string>;
+    queue(id: string): Promise<void>;
     sync(): Promise<SyncResult>;
 };
 
@@ -35,6 +57,20 @@ export async function offlineCertificateStore(): Promise<CertificateStore> {
     await import(/* @vite-ignore */ url);
     return (globalThis as unknown as { KBCertificates: CertificateStore })
         .KBCertificates;
+}
+
+export async function queueOfflineCertificateRequest(
+    form: OfflineCertificateForm,
+): Promise<string> {
+    let store = await offlineCertificateStore();
+    try {
+        await store.context();
+    } catch {
+        store = await prepareOfflineCertificates();
+    }
+    const id = await store.saveDraft(form);
+    await store.queue(id);
+    return id;
 }
 
 export async function prepareOfflineCertificates(): Promise<CertificateStore> {

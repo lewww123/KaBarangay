@@ -68,7 +68,7 @@ export default function ResidentDirectoryTable({
 
             {/* PRIVACY & ACCESS CONTROL NOTICE */}
             <div className="flex items-start gap-3 rounded-xl border border-line-soft bg-white/80 p-4 text-xs text-ink-muted shadow-card">
-                <span className="text-base">🔒</span>
+                <span className="text-base"></span>
                 <div>
                     <span className="font-semibold text-ink-strong">
                         Authorized Identifying Information:
@@ -148,7 +148,7 @@ export default function ResidentDirectoryTable({
                                         className="px-4 py-12 text-center text-sm text-ink-muted"
                                     >
                                         <div className="flex flex-col items-center justify-center space-y-2">
-                                            <span className="text-3xl">📋</span>
+                                            <span className="text-3xl"></span>
                                             <p className="font-semibold text-ink">
                                                 No {sectorLabel} records found
                                             </p>
@@ -222,7 +222,7 @@ export default function ResidentDirectoryTable({
                                         <td className="px-4 py-3.5 text-center">
                                             {res.has_qr ? (
                                                 <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
-                                                    <span>✓</span> Active
+                                                    <span></span> Active
                                                 </span>
                                             ) : (
                                                 <span className="text-xs text-ink-faint">

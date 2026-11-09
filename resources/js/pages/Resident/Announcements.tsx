@@ -219,7 +219,7 @@ function AnnouncementsContent({
                     >
                         <Link
                             href="/resident/updates?period=current"
-                            className={`inline-flex h-8 items-center rounded-md px-3 text-xs font-medium transition-colors ${
+                            className={`inline-flex h-8 items-center rounded-lg px-3 text-xs font-medium transition-colors ${
                                 period === 'current'
                                     ? 'bg-white text-ink-strong shadow-card'
                                     : 'text-ink-muted hover:text-ink-strong'
@@ -229,7 +229,7 @@ function AnnouncementsContent({
                         </Link>
                         <Link
                             href="/resident/updates?period=past"
-                            className={`inline-flex h-8 items-center rounded-md px-3 text-xs font-medium transition-colors ${
+                            className={`inline-flex h-8 items-center rounded-lg px-3 text-xs font-medium transition-colors ${
                                 period === 'past'
                                     ? 'bg-white text-ink-strong shadow-card'
                                     : 'text-ink-muted hover:text-ink-strong'
@@ -429,7 +429,7 @@ function AnnouncementsContent({
                                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                                     <div className="flex flex-wrap items-center gap-2">
                                         <span
-                                            className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold tracking-wider uppercase ${getCategoryBadgeStyle(item.category)}`}
+                                            className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold tracking-wider uppercase ${getCategoryBadgeStyle(item.category)}`}
                                         >
                                             {formatCategoryLabel(item.category)}
                                         </span>
@@ -437,7 +437,7 @@ function AnnouncementsContent({
                                         {item.importance &&
                                             item.importance !== 'normal' && (
                                                 <span
-                                                    className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold tracking-wider uppercase ${getImportanceBadgeStyle(item.importance)}`}
+                                                    className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold tracking-wider uppercase ${getImportanceBadgeStyle(item.importance)}`}
                                                 >
                                                     {formatImportanceLabel(
                                                         item.importance,
@@ -447,7 +447,7 @@ function AnnouncementsContent({
 
                                         {item.target_audience &&
                                             item.target_audience !== 'all' && (
-                                                <span className="inline-flex items-center rounded-md bg-secondary px-2.5 py-1 text-xs font-semibold tracking-wider text-ink-muted uppercase">
+                                                <span className="inline-flex items-center rounded-lg bg-secondary px-2.5 py-1 text-xs font-semibold tracking-wider text-ink-muted uppercase">
                                                     {formatAudienceLabel(
                                                         item.target_audience,
                                                     )}

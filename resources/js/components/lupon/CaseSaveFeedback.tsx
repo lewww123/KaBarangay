@@ -112,7 +112,7 @@ export function CaseSaveFeedback({
                     aria-label="Dismiss save notification"
                     className="ml-2 rounded px-2 py-1"
                 >
-                    ×
+                    
                 </button>
             )}
         </div>,

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CertificateRequestController as AdminCertificateRequestController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmergencyContactController as AdminEmergencyContactController;
+use App\Http\Controllers\Admin\HouseholdController as AdminHouseholdController;
 use App\Http\Controllers\Admin\OrgChartController as AdminOrgChartController;
 use App\Http\Controllers\Admin\PopulationController;
 use App\Http\Controllers\Admin\ReportsController;
@@ -640,9 +641,18 @@ Route::group(['domain' => config('app.staff_domain')], function () {
 
             // Resident Masterlist / Claims
             Route::post('/residents', [AdminResidentController::class, 'store'])->name('residents.store');
+            Route::match(['put', 'patch'], '/residents/{resident}', [AdminResidentController::class, 'update'])->name('residents.update');
             Route::get('/residents/households/search', [AdminResidentController::class, 'searchHouseholds'])->name('residents.households.search');
             Route::patch('/residents/{resident}/household', [AdminResidentController::class, 'updateHousehold'])->name('residents.household.update');
             Route::get('/residents/{resident}/qr/credential', [AdminResidentController::class, 'showQrCredential'])->name('residents.qr.credential');
+
+            // Household Management
+            Route::post('/households', [AdminHouseholdController::class, 'store'])->name('households.store');
+            Route::get('/households/{household}', [AdminHouseholdController::class, 'show'])->name('households.show');
+            Route::match(['put', 'patch'], '/households/{household}', [AdminHouseholdController::class, 'update'])->name('households.update');
+            Route::post('/households/{household}/members', [AdminHouseholdController::class, 'addMember'])->name('households.members.add');
+            Route::delete('/households/{household}/members/{resident}', [AdminHouseholdController::class, 'removeMember'])->name('households.members.remove');
+            Route::post('/households/{household}/members/{resident}/transfer', [AdminHouseholdController::class, 'transferMember'])->name('households.members.transfer');
 
             // Resident Registrations
             Route::get('/residents', [ResidentRegistrationController::class, 'index'])->name('residents');
@@ -675,6 +685,7 @@ Route::group(['domain' => config('app.staff_domain')], function () {
             Route::post('/staff', [StaffManagementController::class, 'store'])->name('staff.store');
             Route::put('/staff/{staff_assignment}', [StaffManagementController::class, 'update'])->name('staff.update');
             Route::patch('/staff/{staff_assignment}/deactivate', [StaffManagementController::class, 'deactivate'])->name('staff.deactivate');
+            Route::patch('/staff/{staff_assignment}/activate', [StaffManagementController::class, 'activate'])->name('staff.activate');
 
             Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log');
             Route::get('/reports', [ReportsController::class, 'index'])->name('reports');
@@ -891,6 +902,7 @@ Route::group(['domain' => config('app.staff_domain')], function () {
         Route::middleware('role:lupon')->prefix('lupon')->name('lupon.')->group(function () {
 
             Route::get('/dashboard', [LuponController::class, 'dashboard'])->name('dashboard');
+            Route::get('/tagapamayapa', [LuponController::class, 'tagapamayapa'])->name('tagapamayapa');
 
             // Complaint intake queue and review. Lupon staff only; no admin or
             // aggregate access is exposed in this batch.
@@ -900,18 +912,32 @@ Route::group(['domain' => config('app.staff_domain')], function () {
             Route::post('/complaints/{complaint}/request-payment', [LuponComplaintController::class, 'requestPayment'])->name('complaints.request-payment');
             Route::post('/complaints/{complaint}/promote', [LuponCaseController::class, 'promote'])->name('complaints.promote');
 
+            // Walk-in intake records a complaint submission only. Official case
+            // creation stays with the payment verification routes above.
+            Route::get('/complaints/walk-in', [LuponComplaintController::class, 'createWalkIn'])->name('complaints.walk-in');
+            Route::post('/complaints/walk-in', [LuponComplaintController::class, 'storeWalkIn'])->name('complaints.walk-in.store');
+
             Route::get('/residents/search', ResidentSearchController::class)->middleware('throttle:120,1')->name('residents.search');
             Route::get('/residents/{resident}/lookup', [LuponCaseController::class, 'residentLookup'])->middleware('throttle:120,1')->name('residents.lookup');
             Route::get('/evidence/{evidence}', [LuponEvidenceController::class, 'download'])->name('evidence.download');
             Route::patch('/evidence/{evidence}/visibility', [LuponEvidenceController::class, 'share'])->name('evidence.visibility');
             Route::post('/cases/{case}/evidence', [LuponEvidenceController::class, 'store'])->name('evidence.store');
             Route::post('/cases/{case}/documents', [LuponDocumentController::class, 'generate'])->name('documents.generate');
+            Route::get('/documents', [\App\Http\Controllers\Lupon\LuponPortalController::class, 'index'])->defaults('module', 'documents')->name('document-center');
             Route::get('/documents/{document}', [LuponDocumentController::class, 'download'])->name('documents.download');
             Route::get('/documents/{document}/preview', [LuponDocumentController::class, 'download'])->name('documents.preview');
             Route::post('/documents/{document}/serve', [LuponDocumentController::class, 'serve'])->name('documents.serve');
             Route::post('/cases/{case}/verify-fee', [LuponDocumentController::class, 'verifyFee'])->name('cases.verify-fee');
             Route::post('/cases/{case}/history', [LuponDocumentController::class, 'history'])->name('cases.history');
             Route::post('/cases/{case}/extend-conciliation', [LuponDocumentController::class, 'extend'])->name('cases.extend');
+            Route::get('/payments', [LuponComplaintController::class, 'index'])->name('payments')->defaults('queueMode', 'payments');
+            foreach (['pangkat', 'arbitration', 'records'] as $module) {
+                Route::get('/'.$module, [\App\Http\Controllers\Lupon\LuponPortalController::class, 'index'])->defaults('module', $module)->name($module.'.index');
+            }
+            Route::get('/reports', [\App\Http\Controllers\Lupon\LuponPortalController::class, 'reports'])->name('reports');
+            Route::get('/profile', [\App\Http\Controllers\Lupon\LuponPortalController::class, 'profile'])->name('profile');
+            Route::post('/cases/{case}/proceedings', [\App\Http\Controllers\Lupon\LuponPortalController::class, 'proceeding'])->name('proceedings.store');
+            Route::post('/documents/{document}/issue', [LuponDocumentController::class, 'issue'])->name('documents.issue');
             // Lupon Case Management
             Route::get('/cases', [LuponCaseController::class, 'index'])->name('cases.index');
             Route::get('/cases/create', [LuponCaseController::class, 'create'])->name('cases.create');

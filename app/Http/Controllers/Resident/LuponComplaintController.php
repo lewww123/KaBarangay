@@ -76,15 +76,24 @@ class LuponComplaintController extends Controller
                         'narrative' => $complaint->narrative,
                         'requestedAction' => $complaint->requested_action,
                         'status' => $complaint->status,
-                        'luponNote' => $complaint->lupon_note,
+                        'luponNote' => null,
                         'assessedFee' => $complaint->assessed_fee,
                         'submittedDate' => (
                             $complaint->submitted_at
                             ?? $complaint->created_at
                         )?->format('F j, Y') ?? '',
-                        'trackingStatus' => $complaint->case ? LuponCaseWorkflow::tracking($complaint->case) : match ($complaint->status) {
-                            'For Payment' => 'For Payment', 'Rejected' => 'Rejected', default => 'For Review',
+                        // Residents follow the intake stages, and the stage names match the
+                        // staff queue tabs. Once the complaint is an official case the stage
+                        // is Case Created; the case's own progress is separate, secondary
+                        // information and never replaces the stage label.
+                        'trackingStatus' => match (true) {
+                            $complaint->case !== null, $complaint->status === 'Payment Verified' => 'Case Created',
+                            $complaint->status === 'Rejected' => 'Rejected',
+                            $complaint->status === 'Accepted' => 'Accepted',
+                            in_array($complaint->status, ['For Payment', 'Pending Payment', 'Payment Verification'], true) => 'For Payment',
+                            default => 'Under Review',
                         },
+                        'caseProgress' => $this->caseProgress($complaint),
                         'evidence' => $complaint->evidence->map(fn ($file) => LuponEvidenceStore::summary($file, 'resident'))->all(),
                         'case' => $complaint->case ? [
                             'id' => $complaint->case->id,
@@ -135,6 +144,23 @@ class LuponComplaintController extends Controller
     }
 
     /**
+     * The case's own progress words, kept separate from the intake stage.
+     * "Under Review" is an intake stage label, so a newly docketed case
+     * reports no progress rather than repeating a stage the resident already
+     * saw on the way in.
+     */
+    private function caseProgress(LuponComplaint $complaint): ?string
+    {
+        if (! $complaint->case) {
+            return null;
+        }
+
+        $progress = LuponCaseWorkflow::tracking($complaint->case);
+
+        return $progress === 'Under Review' ? null : $progress;
+    }
+
+    /**
      * Save a new complaint for review by the Lupong Tagapamayapa.
      */
     public function store(Request $request): RedirectResponse
@@ -145,6 +171,7 @@ class LuponComplaintController extends Controller
             ->firstOrFail();
 
         $validated = $request->validate([
+            'submission_token' => ['required', 'uuid'],
             'evidence' => LuponCatalog::EVIDENCE_RULES,
             'evidence.*' => LuponCatalog::FILE_RULES,
             'respondentName' => ['required', 'string', 'max:255'],
@@ -184,11 +211,17 @@ class LuponComplaintController extends Controller
             'incident_location' => $validated['incidentLocation'],
             'narrative' => $validated['narrative'],
             'requested_action' => $validated['requestedAction'],
-            'status' => 'Submitted',
+            'status' => 'Under Review',
+            'submission_token' => $validated['submission_token'],
             'submitted_at' => now(),
         ];
 
         $complaint = DB::transaction(function () use ($attributes, $request, $resident) {
+            Resident::whereKey($resident->id)->lockForUpdate()->firstOrFail();
+            $existing = LuponComplaint::where('resident_id', $resident->id)->where('submission_token', $attributes['submission_token'])->first();
+            if ($existing) {
+                return $existing;
+            }
             $complaint = $this->createWithReference($attributes);
             LuponEvidenceStore::store($request->file('evidence', []), $complaint, null, $resident->id);
 
@@ -204,7 +237,7 @@ class LuponComplaintController extends Controller
             context: [
                 'action' => 'submitted',
                 'entity_reference' => $complaint->reference,
-                'new_status' => 'Submitted',
+                'new_status' => 'Under Review',
             ],
             ipAddress: $request->ip()
         );
@@ -213,7 +246,7 @@ class LuponComplaintController extends Controller
             ->route('resident.lupon')
             ->with(
                 'success',
-                'Your complaint has been submitted for review by the Lupong Tagapamayapa.'
+                'Your complaint has been submitted and is under review. If the barangay assesses a filing fee, you will see the amount here and pay it at the barangay office.'
             );
     }
 
@@ -223,7 +256,7 @@ class LuponComplaintController extends Controller
         $attempts = 0;
 
         while ($attempts < 5) {
-            $reference = $this->nextReference($prefix);
+            $reference = \App\Support\LuponReferences::next($prefix);
 
             try {
                 return DB::transaction(function () use ($attributes, $reference) {
@@ -237,6 +270,8 @@ class LuponComplaintController extends Controller
                     throw $exception;
                 }
 
+                $existing = LuponComplaint::where('resident_id', $attributes['resident_id'])->where('submission_token', $attributes['submission_token'])->first();
+                if ($existing) { return $existing; }
                 $attempts++;
             }
         }

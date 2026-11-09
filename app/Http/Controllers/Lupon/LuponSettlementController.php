@@ -8,6 +8,7 @@ use App\Models\LuponDocument;
 use App\Models\LuponSettlement;
 use App\Support\AuditLogger;
 use App\Support\LuponAccess;
+use App\Support\LuponCache;
 use App\Support\LuponCaseWorkflow;
 use App\Support\LuponDocuments;
 use Carbon\Carbon;
@@ -47,6 +48,7 @@ class LuponSettlementController extends Controller
             $hearing?->update(['status' => 'Held', 'outcome' => 'Settled', 'notes' => $data['terms']]);
             AuditLogger::record('lupon_settlement.recorded', barangayId: $locked->barangay_id, actorId: $request->user()->id, entityType: 'lupon_case', entityId: $locked->id, context: ['case_number' => $locked->case_number, 'new_status' => 'settled']);
         });
+        LuponCache::forget((int) $case->barangay_id);
 
         return back()->with('success', 'Written settlement recorded. The ten-day repudiation period is now tracked.');
     }

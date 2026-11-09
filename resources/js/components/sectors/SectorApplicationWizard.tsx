@@ -191,13 +191,13 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                     href={cancelUrl}
                     className="inline-flex items-center text-xs font-semibold text-ink-muted hover:text-ink-strong"
                 >
-                    ← Back to Applications
+                    Back to Applications
                 </Link>
             </div>
 
             {submissionError && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-900 shadow-card">
-                    ⚠️ {submissionError}
+                    {submissionError}
                 </div>
             )}
 
@@ -205,7 +205,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                 /* SUCCESS STATE */
                 <div className="space-y-4 rounded-xl border border-emerald-200 bg-white p-8 text-center shadow-card">
                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700">
-                        ✓
+                        
                     </div>
                     <h2 className="text-xl font-semibold text-ink-strong">
                         Application Intake Completed
@@ -236,7 +236,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                             href={cancelUrl}
                             className="rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-white shadow-card hover:bg-brand-deep"
                         >
-                            View Applications Queue →
+                            View Applications Queue 
                         </Link>
                     </div>
                 </div>
@@ -289,7 +289,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                                             }}
                                             className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-ink-faint hover:text-ink-muted"
                                         >
-                                            ✕
+                                            
                                         </button>
                                     )}
                                 </div>
@@ -365,7 +365,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
 
                                 {isAlreadyMember ? (
                                     <p className="mt-3 text-xs font-medium text-amber-900">
-                                        ⚠️ This resident is already recognized
+                                        This resident is already recognized
                                         in the {sectorTitle} sector. Duplicate
                                         sector registration is prevented.
                                     </p>
@@ -453,7 +453,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
 
                                         {doc.file && (
                                             <p className="text-[11px] font-medium text-emerald-700">
-                                                ✓ Selected: {doc.file.name} (
+                                                Selected: {doc.file.name} (
                                                 {(doc.file.size / 1024).toFixed(
                                                     1,
                                                 )}{' '}

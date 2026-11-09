@@ -98,7 +98,7 @@ function DisbursementContent({ documents, resident }: Props) {
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <span className="rounded-md border border-brand/20 bg-brand/5 px-2 py-0.5 text-[11px] font-semibold text-brand">
+                                            <span className="rounded-lg border border-brand/20 bg-brand/5 px-2 py-0.5 text-[11px] font-semibold text-brand">
                                                 {disbursementFileType(document)}
                                             </span>
 
@@ -182,7 +182,7 @@ function DisbursementContent({ documents, resident }: Props) {
                                             },
                                         );
                                     }}
-                                    className={`rounded-md px-3 py-1.5 text-xs ${
+                                    className={`rounded-lg px-3 py-1.5 text-xs ${
                                         link.active
                                             ? 'bg-brand text-white'
                                             : link.url

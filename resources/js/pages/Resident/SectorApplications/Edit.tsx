@@ -78,7 +78,7 @@ export default function ResidentSectorApplicationEdit({
                     Sector: {application.sector}
                 </p>
                 {application.correction_notes && (
-                    <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                         <strong className="block text-amber-800">
                             Correction Instructions:
                         </strong>
@@ -97,7 +97,7 @@ export default function ResidentSectorApplicationEdit({
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             rows={4}
-                            className="mt-1 block w-full rounded-md border-line shadow-card focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-lg border-line shadow-card focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             placeholder="Add any additional information needed for correction"
                         />
                         {errors['details.notes'] && (
@@ -115,7 +115,7 @@ export default function ResidentSectorApplicationEdit({
                             name="documents[]"
                             multiple
                             onChange={(e) => setFiles(e.target.files)}
-                            className="mt-1 block w-full text-sm text-ink-muted file:mr-4 file:rounded-md file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700"
+                            className="mt-1 block w-full text-sm text-ink-muted file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700"
                         />
                         {errors.documents && (
                             <p className="mt-1 text-sm text-red-600">

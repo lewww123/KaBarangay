@@ -57,6 +57,22 @@ abstract class TestCase extends BaseTestCase
         return $app;
     }
 
+    public function actingAs(\Illuminate\Contracts\Auth\Authenticatable $user, $guard = null)
+    {
+        parent::actingAs($user, $guard);
+
+        if ($user instanceof \App\Models\User && ! session()->has('_without_staff_assignment')) {
+            $assignment = $user->staffAssignments()->where('is_active', true)->first();
+            if ($assignment) {
+                session(['staff_assignment_id' => $assignment->id]);
+            } else {
+                session()->forget('staff_assignment_id');
+            }
+        }
+
+        return $this;
+    }
+
     protected function prepareUrlForRequest($uri): string
     {
         if (is_string($uri) && ($uri === '/' || $uri === '/login' || $uri === '/logout' || preg_match('#^/(?:admin|clerk|lupon|pwd|senior|api/qr)(?:/|$)#', $uri) === 1)) {

@@ -77,34 +77,34 @@ export default function DepartmentLogin({ barangay, errors = {} }: Props) {
         <>
             <Head title="Department Login" />
 
-            <main className="min-h-screen bg-slate-50">
+            <main className="min-h-screen bg-canvas">
                 <div className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
                     <div className="w-full max-w-md">
                         {/* Brand */}
                         <div className="mb-8 text-center">
-                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg">
-                                <span className="text-2xl font-bold text-white">
+                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-blue-600 shadow-lg">
+                                <span className="text-2xl font-semibold text-white">
                                     K
                                 </span>
                             </div>
 
-                            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                            <h1 className="text-3xl font-semibold tracking-tight text-ink-strong">
                                 KaBarangay
                             </h1>
 
-                            <p className="mt-2 text-sm text-slate-500">
+                            <p className="mt-2 text-sm text-ink-muted">
                                 Barangay Management System
                             </p>
                         </div>
 
                         {/* Card */}
-                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                        <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card sm:p-8">
                             <div className="mb-6">
-                                <h2 className="text-xl font-semibold text-slate-900">
+                                <h2 className="text-xl font-semibold text-ink-strong">
                                     Department Login
                                 </h2>
 
-                                <p className="mt-2 text-sm leading-6 text-slate-500">
+                                <p className="mt-2 text-sm leading-6 text-ink-muted">
                                     Select your department and enter your
                                     credentials to continue.
                                 </p>
@@ -135,7 +135,7 @@ export default function DepartmentLogin({ barangay, errors = {} }: Props) {
                                 <div>
                                     <label
                                         htmlFor="department"
-                                        className="mb-2 block text-sm font-medium text-slate-700"
+                                        className="mb-2 block text-sm font-medium text-ink"
                                     >
                                         Department
                                     </label>
@@ -147,7 +147,7 @@ export default function DepartmentLogin({ barangay, errors = {} }: Props) {
                                             setDepartment(event.target.value)
                                         }
                                         disabled={processing}
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm text-slate-900 transition outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                        className="w-full rounded-xl border border-line bg-white px-4 py-3.5 text-sm text-ink-strong transition outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-secondary"
                                         required
                                     >
                                         <option value="">
@@ -165,7 +165,7 @@ export default function DepartmentLogin({ barangay, errors = {} }: Props) {
                                     </select>
 
                                     {department && (
-                                        <p className="mt-2 text-xs text-slate-500">
+                                        <p className="mt-2 text-xs text-ink-muted">
                                             {
                                                 departments.find(
                                                     (item) =>
@@ -187,7 +187,7 @@ export default function DepartmentLogin({ barangay, errors = {} }: Props) {
                                 <div>
                                     <label
                                         htmlFor="username"
-                                        className="mb-2 block text-sm font-medium text-slate-700"
+                                        className="mb-2 block text-sm font-medium text-ink"
                                     >
                                         Username
                                     </label>
@@ -202,7 +202,7 @@ export default function DepartmentLogin({ barangay, errors = {} }: Props) {
                                         placeholder="Enter your username"
                                         autoComplete="username"
                                         disabled={processing}
-                                        className="w-full rounded-xl border border-slate-300 px-4 py-3.5 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+                                        className="w-full rounded-xl border border-line px-4 py-3.5 text-sm text-ink-strong transition outline-none placeholder:text-ink-faint focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-secondary"
                                         required
                                     />
 
@@ -217,7 +217,7 @@ export default function DepartmentLogin({ barangay, errors = {} }: Props) {
                                 <div>
                                     <label
                                         htmlFor="password"
-                                        className="mb-2 block text-sm font-medium text-slate-700"
+                                        className="mb-2 block text-sm font-medium text-ink"
                                     >
                                         Password
                                     </label>
@@ -232,7 +232,7 @@ export default function DepartmentLogin({ barangay, errors = {} }: Props) {
                                         placeholder="Enter your password"
                                         autoComplete="current-password"
                                         disabled={processing}
-                                        className="w-full rounded-xl border border-slate-300 px-4 py-3.5 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+                                        className="w-full rounded-xl border border-line px-4 py-3.5 text-sm text-ink-strong transition outline-none placeholder:text-ink-faint focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-secondary"
                                         required
                                     />
 
@@ -258,14 +258,14 @@ export default function DepartmentLogin({ barangay, errors = {} }: Props) {
                                         !password ||
                                         processing
                                     }
-                                    className="w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    className="w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-card transition hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-300"
                                 >
                                     {processing ? 'Verifying...' : 'Continue'}
                                 </button>
                             </form>
                         </div>
 
-                        <p className="mt-6 text-center text-xs text-slate-400">
+                        <p className="mt-6 text-center text-xs text-ink-faint">
                             Authorized personnel only
                         </p>
                     </div>

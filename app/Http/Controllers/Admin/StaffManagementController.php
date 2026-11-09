@@ -158,6 +158,14 @@ class StaffManagementController extends Controller
         return back()->with('success', 'Staff assignment deactivated.');
     }
 
+    public function activate(Request $request, StaffAssignment $staff_assignment): RedirectResponse
+    {
+        $this->authorizeAssignment($request, $staff_assignment);
+        $staff_assignment->update(['is_active' => true]);
+
+        return back()->with('success', 'Staff assignment activated.');
+    }
+
     private function eligibleResident(Request $request, int $residentId): Resident
     {
         $resident = Resident::query()
