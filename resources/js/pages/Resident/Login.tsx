@@ -10,6 +10,8 @@ import {
 
 import { FormEvent, useEffect, useState } from 'react';
 
+import AuthLayout from '@/layouts/AuthLayout';
+
 type Barangay = {
     id: number;
     name: string;
@@ -152,7 +154,7 @@ export default function Login() {
         null;
 
     return (
-        <>
+        <AuthLayout variant="resident">
             <Head title="Resident Login" />
 
             <div className="mb-6">
@@ -427,6 +429,6 @@ export default function Login() {
                 Need assistance? Please contact the{' '}
                 {selectedBarangay?.name ?? 'Barangay San Jose'} office.
             </p>
-        </>
+        </AuthLayout>
     );
 }
