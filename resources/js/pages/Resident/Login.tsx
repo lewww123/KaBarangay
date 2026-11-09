@@ -300,7 +300,7 @@ export default function Login() {
                                         ? 'Hide password'
                                         : 'Show password'
                                 }
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint transition hover:text-ink-muted"
+                                className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-faint transition hover:bg-secondary hover:text-ink-muted"
                             >
                                 {showPassword ? (
                                     <EyeOff className="size-4" />
