@@ -92,7 +92,7 @@ export default function AuthLayout({
 }: Props) {
     if (variant === 'resident') {
         return (
-            <div className="min-h-screen bg-canvas lg:grid lg:grid-cols-[1.05fr_1fr]">
+            <div className="min-h-screen bg-canvas lg:grid lg:h-screen lg:grid-cols-[1.05fr_1fr] lg:overflow-hidden">
                 <BrandPanel
                     title="Barangay services, closer to home."
                     eyebrow="Resident Portal"
@@ -104,10 +104,10 @@ export default function AuthLayout({
                     ]}
                 />
 
-                <div className="relative bg-canvas">
+                <div className="relative bg-canvas lg:h-screen lg:overflow-hidden">
                     <FormBackdrop />
 
-                    <div className="relative flex min-h-screen flex-col px-5 py-8 lg:items-center lg:justify-center lg:py-10">
+                    <div className="relative flex min-h-screen flex-col px-5 py-8 lg:h-screen lg:min-h-0 lg:items-center lg:justify-center lg:overflow-hidden lg:px-8 lg:py-6">
                         <div className={cn('w-full', maxWidth, className)}>
                             <Logo className="mb-8 lg:hidden" />
                             {children}

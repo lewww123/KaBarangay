@@ -157,7 +157,7 @@ export default function Login() {
         <AuthLayout variant="resident">
             <Head title="Resident Login" />
 
-            <div className="mb-6">
+            <div className="mb-6 lg:mb-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">
                     Resident portal
                 </p>
@@ -170,7 +170,7 @@ export default function Login() {
                 </p>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-line-soft bg-surface p-5 shadow-card sm:p-6">
+            <div className="overflow-hidden rounded-xl border border-line-soft bg-surface p-5 shadow-card sm:p-6 lg:p-5">
                 {flash && (
                     <div className="mb-4 flex items-start gap-2.5 rounded-lg bg-success-soft px-4 py-3 text-sm text-success">
                         <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
@@ -178,7 +178,7 @@ export default function Login() {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="grid gap-4">
+                <form onSubmit={handleSubmit} className="grid gap-4 lg:gap-3">
                     <div className="grid gap-2">
                         <label
                             htmlFor="barangayId"
@@ -199,7 +199,7 @@ export default function Login() {
                                     }));
                                 }
                             }}
-                            className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink-strong outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/15 disabled:cursor-wait disabled:text-ink-faint"
+                            className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink-strong outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/15 disabled:cursor-wait disabled:text-ink-faint lg:h-10"
                         >
                             <option value="">
                                 {barangaysLoading
@@ -257,7 +257,7 @@ export default function Login() {
                                     }));
                                 }
                             }}
-                            className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15"
+                            className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15 lg:h-10"
                         />
                         {errors.identifier && (
                             <p className="text-sm text-destructive">
@@ -290,7 +290,7 @@ export default function Login() {
                                         }));
                                     }
                                 }}
-                                className="h-11 w-full rounded-lg border border-line bg-surface px-3 pr-11 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15"
+                                className="h-11 w-full rounded-lg border border-line bg-surface px-3 pr-11 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15 lg:h-10 lg:pr-10"
                             />
                             <button
                                 type="button"
@@ -302,7 +302,7 @@ export default function Login() {
                                         ? 'Hide password'
                                         : 'Show password'
                                 }
-                                className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-faint transition hover:bg-secondary hover:text-ink-muted"
+                                className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-faint transition hover:bg-secondary hover:text-ink-muted lg:h-7 lg:w-7"
                             >
                                 {showPassword ? (
                                     <EyeOff className="size-4" />
@@ -318,7 +318,7 @@ export default function Login() {
                         )}
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 lg:gap-2">
                         <label
                             htmlFor="remember"
                             className="flex cursor-pointer items-center gap-2 text-sm text-ink-muted"
@@ -355,7 +355,7 @@ export default function Login() {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60 lg:h-10"
                     >
                         {isSubmitting ? (
                             <>
@@ -371,7 +371,7 @@ export default function Login() {
                     </button>
                 </form>
 
-                <div className="my-5 flex items-center gap-3">
+                <div className="my-5 flex items-center gap-3 lg:my-4">
                     <span className="h-px flex-1 bg-line" />
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
                         New resident account
@@ -384,48 +384,51 @@ export default function Login() {
                 </p>
                 <Link
                     href="/resident/register"
-                    className="mt-3 flex h-11 w-full items-center justify-center rounded-lg border border-line bg-surface px-4 text-sm font-semibold text-brand transition-colors hover:bg-brand-soft"
+                    className="mt-3 flex h-11 w-full items-center justify-center rounded-lg border border-line bg-surface px-4 text-sm font-semibold text-brand transition-colors hover:bg-brand-soft lg:mt-2 lg:h-10"
                 >
                     Create Resident Account
                 </Link>
 
-                <div className="mt-5 flex items-start gap-3 rounded-xl border border-dashed border-line bg-surface/60 p-4">
-                    <Info className="mt-0.5 size-4 shrink-0 text-brand" />
-                    <div>
-                        <p className="text-sm font-semibold text-ink-strong">
-                            New account approval
-                        </p>
-                        <p className="mt-1 text-xs leading-5 text-ink-muted">
-                            New resident accounts must be reviewed and approved
-                            by the barangay before they can sign in.
-                        </p>
+                <div className="mt-5 grid gap-3 lg:mt-4 lg:grid-cols-2 lg:gap-3">
+                    <div className="flex items-start gap-3 rounded-xl border border-dashed border-line bg-surface/60 p-4 lg:p-3">
+                        <Info className="mt-0.5 size-4 shrink-0 text-brand" />
+                        <div>
+                            <p className="text-sm font-semibold text-ink-strong">
+                                New account approval
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-ink-muted lg:leading-4">
+                                New resident accounts must be reviewed and
+                                approved by the barangay before they can sign
+                                in.
+                            </p>
+                        </div>
                     </div>
-                </div>
 
-                <div className="mt-5 rounded-xl border border-line-soft bg-surface p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
-                        Demo — sign in as
-                    </p>
-                    <dl className="mt-2.5 grid gap-1.5 text-sm">
-                        <div className="flex items-center justify-between gap-3">
-                            <dt className="text-ink-muted">Resident ID</dt>
-                            <dd className="font-mono tnum text-ink-strong">
-                                {selectedBarangay
-                                    ? selectedBarangay.code + '-ADM-001'
-                                    : 'BSJ-ADM-001'}
-                            </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                            <dt className="text-ink-muted">Password</dt>
-                            <dd className="font-mono text-ink-strong">
-                                Admin@12345
-                            </dd>
-                        </div>
-                    </dl>
+                    <div className="rounded-xl border border-line-soft bg-surface p-4 lg:p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+                            Demo — sign in as
+                        </p>
+                        <dl className="mt-2.5 grid gap-1.5 text-sm lg:mt-2">
+                            <div className="flex items-center justify-between gap-3">
+                                <dt className="text-ink-muted">Resident ID</dt>
+                                <dd className="font-mono tnum text-ink-strong">
+                                    {selectedBarangay
+                                        ? selectedBarangay.code + '-ADM-001'
+                                        : 'BSJ-ADM-001'}
+                                </dd>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                                <dt className="text-ink-muted">Password</dt>
+                                <dd className="font-mono text-ink-strong">
+                                    Admin@12345
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
                 </div>
             </div>
 
-            <p className="mt-5 text-center text-xs text-ink-faint">
+            <p className="mt-5 text-center text-xs text-ink-faint lg:mt-3">
                 Need assistance? Please contact the{' '}
                 {selectedBarangay?.name ?? 'Barangay San Jose'} office.
             </p>
