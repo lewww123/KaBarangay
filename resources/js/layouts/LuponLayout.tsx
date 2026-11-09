@@ -74,10 +74,15 @@ export default function LuponLayout({
     };
 
     const shared = usePage<{
-        auth?: { user?: { name?: string } };
+        auth?: {
+            user?: { name?: string };
+            activeBarangay?: { id: number; name: string } | null;
+        };
     }>().props;
     user = user ?? shared.auth?.user;
-    const brand = barangayName || 'Barangay';
+    const resolvedBarangayName =
+        barangayName ?? shared.auth?.activeBarangay?.name ?? null;
+    const brand = resolvedBarangayName ? `Barangay ${resolvedBarangayName}` : 'Barangay';
     const casesActive = active === 'cases';
     const [casesOpen, setCasesOpen] = useState(casesActive);
     const activeStage = caseStage ?? 'all';
