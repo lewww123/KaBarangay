@@ -3,100 +3,372 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="theme-color" content="#3B6FA8" />
         <title>Saved pages · KaBarangay</title>
         <style>
+            @font-face {
+                font-family: 'Inter';
+                font-style: normal;
+                font-weight: 400;
+                font-display: swap;
+                src: url('/fonts/Inter-Regular.woff2') format('woff2');
+            }
+            @font-face {
+                font-family: 'Inter';
+                font-style: normal;
+                font-weight: 500;
+                font-display: swap;
+                src: url('/fonts/Inter-Medium.woff2') format('woff2');
+            }
+            @font-face {
+                font-family: 'Inter';
+                font-style: normal;
+                font-weight: 600;
+                font-display: swap;
+                src: url('/fonts/Inter-SemiBold.woff2') format('woff2');
+            }
+
+            :root {
+                --white: #ffffff;
+                --canvas: #eef1f5;
+                --line: #c2cbd4;
+                --brand: #3b6fa8;
+                --ink: #444a52;
+                --ink-strong: #2f353c;
+                --ink-muted: #6b737c;
+                --brand-soft: #eaf1f8;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
             body {
                 margin: 0;
-                background: #f7f6f0;
-                color: #1c3021;
-                font:
-                    16px/1.7 system-ui,
+                min-height: 100vh;
+                background: var(--canvas);
+                color: var(--ink);
+                font-family:
+                    'Inter',
+                    ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    'Segoe UI',
                     sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+                -webkit-font-smoothing: antialiased;
             }
+
             main {
-                max-width: 720px;
-                margin: 48px auto;
+                width: min(760px, calc(100% - 32px));
+                margin: 40px auto;
                 padding: 28px;
+                border: 1px solid var(--line);
+                border-radius: 16px;
+                background: var(--white);
+                box-shadow: 0 16px 40px rgba(68, 74, 82, 0.08);
             }
-            h1 {
-                line-height: 1.2;
-            }
-            a {
-                color: #315b30;
-            }
-            button {
-                padding: 10px 16px;
-                border: 1px solid #315b30;
-                border-radius: 8px;
-                background: white;
-                color: #315b30;
-                cursor: pointer;
-            }
-            nav {
+
+            .brand {
                 display: flex;
+                align-items: center;
                 gap: 12px;
-                flex-wrap: wrap;
+                padding-bottom: 20px;
+                border-bottom: 1px solid var(--canvas);
             }
-            li {
-                margin: 12px 0;
-                padding: 16px;
-                background: white;
-                border: 1px solid #dce3d8;
+
+            .brand img {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                object-fit: contain;
+            }
+
+            .brand-name {
+                margin: 0;
+                color: var(--ink-strong);
+                font-size: 15px;
+                font-weight: 600;
+                letter-spacing: -0.01em;
+            }
+
+            .brand-sub {
+                margin: 1px 0 0;
+                color: var(--ink-muted);
+                font-size: 12px;
+            }
+
+            .eyebrow {
+                margin: 24px 0 0;
+                color: var(--brand);
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+
+            h1 {
+                margin: 8px 0 0;
+                color: var(--ink-strong);
+                font-size: clamp(24px, 4vw, 32px);
+                line-height: 1.15;
+                letter-spacing: -0.03em;
+            }
+
+            .lead {
+                margin: 12px 0 0;
+                color: var(--ink-muted);
+                font-size: 14px;
+            }
+
+            .note {
+                margin: 22px 0 0;
+                padding: 16px 18px;
+                border: 1px solid #b8cfe6;
                 border-radius: 12px;
+                background: var(--brand-soft);
+                color: var(--ink);
+                font-size: 13px;
+                line-height: 1.65;
             }
-            ul {
+
+            .note strong {
+                color: var(--ink-strong);
+                font-weight: 600;
+            }
+
+            #kb-offline-message {
+                margin: 20px 0 12px;
+                color: var(--ink-muted);
+                font-size: 13px;
+            }
+
+            #kb-offline-pages {
+                margin: 12px 0 0;
                 padding: 0;
                 list-style: none;
             }
-            small {
-                display: block;
-                color: #526057;
-            }
-            .note {
-                padding: 18px;
-                background: #edf3e9;
+
+            #kb-offline-pages li {
+                margin: 0 0 10px;
+                padding: 14px 16px;
+                border: 1px solid var(--canvas);
                 border-radius: 12px;
+                background: var(--white);
+                transition:
+                    border-color 0.15s ease,
+                    background 0.15s ease;
+            }
+
+            #kb-offline-pages li:hover {
+                border-color: var(--line);
+                background: #f8fafc;
+            }
+
+            #kb-offline-pages a {
+                display: block;
+                color: var(--brand);
+                font-size: 14px;
+                font-weight: 600;
+                text-decoration: none;
+            }
+
+            #kb-offline-pages a:hover {
+                text-decoration: underline;
+            }
+
+            #kb-offline-pages small {
+                display: block;
+                margin-top: 3px;
+                color: var(--ink-muted);
+                font-size: 11px;
+            }
+
+            .quick-link {
+                display: inline-flex;
+                align-items: center;
+                margin: 4px 0 0;
+                color: var(--brand);
+                font-size: 13px;
+                font-weight: 600;
+                text-decoration: none;
+            }
+
+            .quick-link:hover {
+                text-decoration: underline;
+            }
+
+            nav {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 10px 14px;
+                margin: 24px 0 0;
+                padding-top: 20px;
+                border-top: 1px solid var(--canvas);
+            }
+
+            button,
+            nav a {
+                display: inline-flex;
+                min-height: 40px;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px;
+                font-family: inherit;
+                font-size: 13px;
+                font-weight: 600;
+                text-decoration: none;
+                transition:
+                    background 0.15s ease,
+                    border-color 0.15s ease,
+                    color 0.15s ease;
+            }
+
+            button {
+                padding: 0 16px;
+                border: 1px solid var(--line);
+                background: var(--white);
+                color: var(--ink);
+                cursor: pointer;
+            }
+
+            button:hover {
+                border-color: var(--brand);
+                color: var(--brand);
+            }
+
+            button[data-offline-action='reload'] {
+                border-color: var(--brand);
+                background: var(--brand);
+                color: var(--white);
+            }
+
+            button[data-offline-action='reload']:hover {
+                background: #2f5d8f;
+                color: var(--white);
+            }
+
+            button:disabled {
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+
+            nav a {
+                color: var(--brand);
+                padding: 0 2px;
+            }
+
+            nav a:hover {
+                text-decoration: underline;
+            }
+
+            .footer-note {
+                margin: 22px 0 0;
+                color: var(--ink-muted);
+                font-size: 11px;
+                line-height: 1.65;
+            }
+
+            #kb-offline-logged-out .lead {
+                margin-top: 10px;
+            }
+
+            @media (max-width: 560px) {
+                main {
+                    width: calc(100% - 24px);
+                    margin: 16px auto;
+                    padding: 20px;
+                    border-radius: 14px;
+                }
+
+                nav {
+                    align-items: stretch;
+                }
+
+                nav button {
+                    flex: 1 1 100%;
+                }
             }
         </style>
         <script src="/offline-viewer.js" defer></script>
     </head>
     <body>
         <main id="kb-offline-saved">
-            <p>KaBarangay · Saved pages</p>
+            <header class="brand">
+                <img
+                    src="/kabarangay-logo-192x192.png"
+                    alt=""
+                    width="40"
+                    height="40"
+                />
+                <div>
+                    <p class="brand-name">KaBarangay</p>
+                    <p class="brand-sub">Saved pages</p>
+                </div>
+            </header>
+
+            <p class="eyebrow">Offline mode</p>
             <h1>Mga page sa device na ito</h1>
-            <p class="note">
-                Read-only na kopya ng mga page na nabuksan habang online. Hindi
-                ito live data. Kailangan ng internet para mag-sign in,
-                mag-submit, magbayad, mag-approve, at kumuha ng bagong
-                impormasyon.
+            <p class="lead">
+                Read-only na kopya ng mga page na nabuksan habang online.
+                Hindi ito live data.
             </p>
+
+            <p class="note">
+                <strong>Paalala:</strong> Kailangan ng internet para
+                mag-sign in, mag-submit, magbayad, mag-approve, at kumuha ng
+                bagong impormasyon.
+            </p>
+
             <p id="kb-offline-message" role="status">
                 Binabasa ang saved pages…
             </p>
             <ul id="kb-offline-pages"></ul>
+
             <nav>
                 <button type="button" data-offline-action="reload">
-                    Subukan ang internet</button
-                ><button type="button" data-offline-action="logout">
-                    Log out at alisin ang saved pages</button
-                ><a href="/offline-certificates.html"
-                    >Offline certificate requests</a
-                ><a href="/resident/login">Resident login</a
-                ><a href="/staff/login">Staff login</a>
+                    Subukan ang internet
+                </button>
+                <button type="button" data-offline-action="logout">
+                    Log out at alisin ang saved pages
+                </button>
+                <a href="/offline-certificates.html">
+                    Offline certificate requests
+                </a>
+                <a href="/resident/login">Resident login</a>
+                <a href="/staff/login">Staff login</a>
             </nav>
-            <p>
-                <small
-                    >Hanggang 20 page, sa loob ng 24 oras mula nang ma-save.
-                    Mawawala ang offline copies kapag nag-log out, nagpalit ng
-                    account, o nag-clear ng site data. Hindi kasama ang private
-                    document downloads.</small
-                >
+
+            <p class="footer-note">
+                Hanggang 20 page, sa loob ng 24 oras mula nang ma-save.
+                Mawawala ang offline copies kapag nag-log out, nagpalit ng
+                account, o nag-clear ng site data. Hindi kasama ang private
+                document downloads.
             </p>
         </main>
+
         <main id="kb-offline-logged-out" hidden>
-            <p>KaBarangay</p>
+            <header class="brand">
+                <img
+                    src="/kabarangay-logo-192x192.png"
+                    alt=""
+                    width="40"
+                    height="40"
+                />
+                <div>
+                    <p class="brand-name">KaBarangay</p>
+                    <p class="brand-sub">Resident &amp; Staff Portal</p>
+                </div>
+            </header>
+
+            <p class="eyebrow">Signed out</p>
             <h1>Mag-sign in ulit sa KaBarangay</h1>
-            <p>Kumonekta sa internet para makapag-sign in ulit.</p>
+            <p class="lead">
+                Kumonekta sa internet para makapag-sign in ulit.
+            </p>
+
             <nav>
                 <a href="/resident/login">Resident login</a>
                 <a href="/staff/login">Staff login</a>

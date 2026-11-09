@@ -3,127 +3,373 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="theme-color" content="#3B6FA8" />
         <meta
             http-equiv="Content-Security-Policy"
             content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
         />
-        <title>Offline Attendance · KaBarangay</title>
+        <title>Offline attendance · KaBarangay</title>
         <style>
+            @font-face {
+                font-family: 'Inter';
+                font-style: normal;
+                font-weight: 400;
+                font-display: swap;
+                src: url('/fonts/Inter-Regular.woff2') format('woff2');
+            }
+            @font-face {
+                font-family: 'Inter';
+                font-style: normal;
+                font-weight: 500;
+                font-display: swap;
+                src: url('/fonts/Inter-Medium.woff2') format('woff2');
+            }
+            @font-face {
+                font-family: 'Inter';
+                font-style: normal;
+                font-weight: 600;
+                font-display: swap;
+                src: url('/fonts/Inter-SemiBold.woff2') format('woff2');
+            }
+
+            :root {
+                --white: #ffffff;
+                --canvas: #eef1f5;
+                --line: #c2cbd4;
+                --brand: #3b6fa8;
+                --brand-deep: #2f5d8f;
+                --brand-soft: #eaf1f8;
+                --ink: #444a52;
+                --ink-strong: #2f353c;
+                --ink-muted: #6b737c;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
             body {
-                font: 16px/1.5 system-ui;
-                background: #f7f6f0;
-                color: #1f3023;
-                max-width: 850px;
+                max-width: 900px;
                 margin: auto;
-                padding: 24px;
+                padding: 28px 20px 64px;
+                background: var(--canvas);
+                color: var(--ink);
+                font-family:
+                    'Inter',
+                    ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    'Segoe UI',
+                    sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+                -webkit-font-smoothing: antialiased;
             }
+
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 22px;
+                padding-bottom: 18px;
+                border-bottom: 1px solid var(--line);
+            }
+
+            .brand img {
+                width: 38px;
+                height: 38px;
+                border-radius: 9px;
+                object-fit: contain;
+            }
+
+            .brand-name {
+                display: block;
+                color: var(--ink-strong);
+                font-size: 14px;
+                font-weight: 600;
+                letter-spacing: -0.01em;
+            }
+
+            .brand-sub {
+                display: block;
+                color: var(--ink-muted);
+                font-size: 11px;
+            }
+
+            .eyebrow {
+                margin: 0 0 6px;
+                color: var(--brand);
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+
+            h1 {
+                margin: 0;
+                color: var(--ink-strong);
+                font-size: clamp(26px, 5vw, 32px);
+                line-height: 1.15;
+                letter-spacing: -0.03em;
+            }
+
+            h2 {
+                margin: 0 0 10px;
+                color: var(--ink-strong);
+                font-size: 18px;
+                line-height: 1.25;
+                letter-spacing: -0.02em;
+            }
+
+            p {
+                margin: 10px 0;
+            }
+
             section {
-                background: white;
-                border: 1px solid #ddd;
-                border-radius: 12px;
-                padding: 20px;
                 margin: 16px 0;
+                padding: 20px;
+                border: 1px solid var(--line);
+                border-radius: 14px;
+                background: var(--white);
+                box-shadow: 0 12px 28px rgba(68, 74, 82, 0.06);
             }
+
             label {
                 display: block;
-                margin-top: 12px;
+                margin-top: 13px;
+                color: var(--ink-strong);
+                font-size: 12px;
+                font-weight: 600;
             }
+
             input,
             select,
             button {
-                font: inherit;
-                padding: 10px;
                 max-width: 100%;
-                box-sizing: border-box;
+                font: inherit;
             }
+
             input,
             select {
                 width: 100%;
+                margin-top: 5px;
+                padding: 10px 12px;
+                border: 1px solid var(--line);
+                border-radius: 8px;
+                background: var(--white);
+                color: var(--ink);
             }
+
+            input:focus,
+            select:focus {
+                border-color: var(--brand);
+                outline: 3px solid rgba(59, 111, 168, 0.18);
+                outline-offset: 1px;
+            }
+
             button {
-                background: #315b30;
-                color: white;
-                border: 0;
-                border-radius: 6px;
-                margin: 8px 8px 0 0;
+                display: inline-flex;
+                min-height: 40px;
+                align-items: center;
+                justify-content: center;
+                margin: 10px 8px 0 0;
+                padding: 0 15px;
+                border: 1px solid var(--brand);
+                border-radius: 8px;
+                background: var(--brand);
+                color: var(--white);
+                font-size: 12px;
+                font-weight: 600;
                 cursor: pointer;
+                transition:
+                    background 0.15s ease,
+                    border-color 0.15s ease;
             }
+
+            button:hover {
+                border-color: var(--brand-deep);
+                background: var(--brand-deep);
+            }
+
             button:disabled {
-                opacity: 0.5;
+                cursor: wait;
+                opacity: 0.55;
             }
-            li {
-                margin: 12px 0;
+
+            #logout,
+            #clear-results,
+            #camera {
+                border-color: var(--line);
+                background: var(--white);
+                color: var(--ink);
             }
+
+            #logout:hover,
+            #clear-results:hover,
+            #camera:hover {
+                border-color: var(--brand);
+                color: var(--brand);
+            }
+
             #notice {
-                background: #fff1c4;
-                padding: 16px;
+                margin: 18px 0 0;
+                padding: 14px 16px;
+                border: 1px solid #b8cfe6;
+                border-radius: 11px;
+                background: var(--brand-soft);
+                color: var(--ink);
+                font-size: 13px;
             }
+
+            .page-links {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px 14px;
+                margin-top: 14px;
+            }
+
+            .page-links a {
+                color: var(--brand);
+                font-size: 12px;
+                font-weight: 600;
+                text-decoration: none;
+            }
+
+            .page-links a:hover {
+                text-decoration: underline;
+            }
+
+            .page-links .divider {
+                color: var(--line);
+            }
+
+            li {
+                margin: 10px 0;
+                padding: 10px 12px;
+                border: 1px solid var(--canvas);
+                border-radius: 9px;
+                background: #f8fafc;
+                font-size: 12px;
+            }
+
+            ul {
+                padding-left: 0;
+                list-style: none;
+            }
+
             a {
-                color: #315b30;
+                color: var(--brand);
             }
+
             video {
                 width: 100%;
                 max-width: 400px;
+                margin-top: 12px;
+                border-radius: 10px;
+            }
+
+            #camera-note,
+            .muted {
+                color: var(--ink-muted);
+                font-size: 12px;
+            }
+
+            @media (max-width: 560px) {
+                body {
+                    padding: 18px 14px 48px;
+                }
+
+                section {
+                    padding: 16px;
+                }
+
+                button {
+                    width: 100%;
+                    margin-right: 0;
+                }
             }
         </style>
     </head>
     <body>
+        <div class="brand">
+            <img
+                src="/kabarangay-logo-192x192.png"
+                alt=""
+                width="38"
+                height="38"
+            />
+            <span>
+                <span class="brand-name">KaBarangay</span>
+                <span class="brand-sub">Staff offline attendance</span>
+            </span>
+        </div>
+
+        <p class="eyebrow">Offline mode</p>
         <h1>Offline attendance</h1>
         <p id="notice" role="status">Preparing local attendance…</p>
-        <a href="/offline.html">Saved pages</a> ·
-        <a href="/staff/login">Sign in online</a
-        ><button id="logout" type="button">Log out / lock device</button>
+
+        <div class="page-links">
+            <a href="/offline.html">Saved pages</a>
+            <span class="divider">·</span>
+            <a href="/staff/login">Sign in online</a>
+            <button id="logout" type="button">Log out / lock device</button>
+        </div>
+
         <section>
-            <label
-                >Prepared program or update<select id="event"></select
-            ></label>
+            <label for="event">Prepared program or update</label>
+            <select id="event"></select>
             <p id="prepared"></p>
-            <label
-                >Record as<select id="status">
-                    <option value="present">Present</option>
-                    <option value="claimed">Claimed (aid received)</option>
-                </select></label
-            >
-            <p>
+
+            <label for="status">Record as</label>
+            <select id="status">
+                <option value="present">Present</option>
+                <option value="claimed">Claimed (aid received)</option>
+            </select>
+
+            <p class="muted">
                 Entries are pending until the server confirms them. Existing
                 attendance will never be overwritten.
             </p>
         </section>
+
         <section>
             <h2>Manual attendance</h2>
-            <label
-                >Search prepared roster<input
-                    id="search"
-                    type="search"
-                    placeholder="Name or resident number" /></label
-            ><label>Resident<select id="resident"></select></label
-            ><button id="manual" type="button">
+            <label for="search">Search prepared roster</label>
+            <input
+                id="search"
+                type="search"
+                placeholder="Name or resident number"
+            />
+            <label for="resident">Resident</label>
+            <select id="resident"></select>
+            <button id="manual" type="button">
                 Save manual attendance locally
             </button>
         </section>
+
         <section>
             <h2>QR attendance</h2>
-            <label
-                >Scan using a USB/Bluetooth QR scanner, or enter the QR
-                token<input
-                    id="qr"
-                    autocomplete="off"
-                    spellcheck="false" /></label
-            ><button id="scan" type="button">Save QR attendance locally</button
-            ><button id="camera" type="button">Use camera if supported</button
-            ><video id="video" hidden autoplay muted playsinline></video>
+            <label for="qr">
+                Scan using a USB/Bluetooth QR scanner, or enter the QR token
+            </label>
+            <input id="qr" autocomplete="off" spellcheck="false" />
+            <button id="scan" type="button">Save QR attendance locally</button>
+            <button id="camera" type="button">Use camera if supported</button>
+            <video id="video" hidden autoplay muted playsinline></video>
             <p id="camera-note">
-                Keyboard scanners work without internet. Camera scanning depends
-                on browser support.
+                Keyboard scanners work without internet. Camera scanning
+                depends on browser support.
             </p>
         </section>
+
         <section>
             <h2>Local records</h2>
-            <button id="sync" type="button">Sync now</button
-            ><button id="clear-results" type="button">
+            <button id="sync" type="button">Sync now</button>
+            <button id="clear-results" type="button">
                 Clear finished local results
             </button>
-            <p>
+            <p class="muted">
                 Clearing finished results removes only local synced/rejected
                 entries; pending entries and server records stay. Keep this
                 browser's site data until all entries have a confirmed result.
@@ -131,6 +377,7 @@
             </p>
             <ul id="entries"></ul>
         </section>
+
         <script src="/offline-attendance-store.js" defer></script>
         <script src="/offline-attendance.js" defer></script>
     </body>

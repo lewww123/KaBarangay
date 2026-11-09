@@ -3,165 +3,371 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="theme-color" content="#3B6FA8" />
         <title>Offline certificate requests · KaBarangay</title>
         <style>
+            @font-face {
+                font-family: 'Inter';
+                font-style: normal;
+                font-weight: 400;
+                font-display: swap;
+                src: url('/fonts/Inter-Regular.woff2') format('woff2');
+            }
+            @font-face {
+                font-family: 'Inter';
+                font-style: normal;
+                font-weight: 500;
+                font-display: swap;
+                src: url('/fonts/Inter-Medium.woff2') format('woff2');
+            }
+            @font-face {
+                font-family: 'Inter';
+                font-style: normal;
+                font-weight: 600;
+                font-display: swap;
+                src: url('/fonts/Inter-SemiBold.woff2') format('woff2');
+            }
+
+            :root {
+                --white: #ffffff;
+                --canvas: #eef1f5;
+                --line: #c2cbd4;
+                --brand: #3b6fa8;
+                --brand-deep: #2f5d8f;
+                --brand-soft: #eaf1f8;
+                --ink: #444a52;
+                --ink-strong: #2f353c;
+                --ink-muted: #6b737c;
+            }
+
             * {
                 box-sizing: border-box;
             }
+
             body {
                 margin: 0;
-                background: #f7f6f0;
-                color: #1d3021;
-                font:
-                    15px/1.6 system-ui,
+                background: var(--canvas);
+                color: var(--ink);
+                font-family:
+                    'Inter',
+                    ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    'Segoe UI',
                     sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+                -webkit-font-smoothing: antialiased;
             }
+
             header {
-                background: #315b30;
-                color: white;
-                padding: 20px;
+                border-bottom: 1px solid var(--line);
+                background: var(--white);
             }
-            header div,
+
+            .header-inner,
             main {
-                max-width: 960px;
+                width: min(960px, calc(100% - 40px));
                 margin: auto;
             }
-            header a {
-                color: white;
-            }
-            main {
-                padding: 24px 20px 64px;
-            }
-            h1 {
-                line-height: 1.2;
-                font-size: 30px;
-            }
-            h2 {
-                font-size: 20px;
-            }
-            a {
-                color: #315b30;
-            }
-            nav,
-            .actions {
+
+            .header-inner {
                 display: flex;
-                gap: 10px;
                 flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: 14px 20px;
+                padding: 16px 0;
             }
-            button,
-            .button {
-                font: inherit;
-                padding: 9px 14px;
-                border: 1px solid #315b30;
-                border-radius: 8px;
-                background: white;
-                color: #315b30;
-                cursor: pointer;
+
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                color: var(--ink-strong);
                 text-decoration: none;
             }
-            button.primary {
-                background: #315b30;
-                color: white;
+
+            .brand img {
+                width: 38px;
+                height: 38px;
+                border-radius: 9px;
+                object-fit: contain;
             }
-            button:disabled {
-                opacity: 0.5;
-                cursor: wait;
-            }
-            label {
+
+            .brand-name {
                 display: block;
+                font-size: 14px;
                 font-weight: 600;
-                margin: 14px 0 6px;
+                letter-spacing: -0.01em;
             }
-            input,
-            select,
-            textarea {
-                font: inherit;
+
+            .brand-sub {
                 display: block;
-                width: 100%;
-                padding: 10px;
-                border: 1px solid #cbd5c7;
-                border-radius: 8px;
-                background: white;
+                color: var(--ink-muted);
+                font-size: 11px;
+                font-weight: 400;
             }
-            textarea {
-                min-height: 84px;
+
+            .header-nav {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px 18px;
             }
+
+            .header-nav a {
+                color: var(--brand);
+                font-size: 12px;
+                font-weight: 600;
+                text-decoration: none;
+            }
+
+            .header-nav a:hover {
+                text-decoration: underline;
+            }
+
+            main {
+                padding: 28px 0 64px;
+            }
+
+            h1 {
+                margin: 0;
+                color: var(--ink-strong);
+                font-size: clamp(25px, 4vw, 32px);
+                line-height: 1.15;
+                letter-spacing: -0.03em;
+            }
+
+            h2 {
+                margin: 0 0 8px;
+                color: var(--ink-strong);
+                font-size: 18px;
+                line-height: 1.25;
+                letter-spacing: -0.02em;
+            }
+
+            h3 {
+                margin: 10px 0 2px;
+                color: var(--ink-strong);
+                font-size: 15px;
+            }
+
+            p {
+                margin: 10px 0;
+            }
+
+            a {
+                color: var(--brand);
+            }
+
+            .page-lead {
+                margin: 8px 0 18px;
+                color: var(--ink-muted);
+                font-size: 14px;
+            }
+
             .card {
+                margin: 16px 0;
                 padding: 22px;
-                margin: 18px 0;
-                background: white;
-                border: 1px solid #dce3d8;
+                border: 1px solid var(--line);
                 border-radius: 14px;
+                background: var(--white);
+                box-shadow: 0 12px 28px rgba(68, 74, 82, 0.06);
             }
+
             .note {
-                padding: 16px;
-                border-radius: 10px;
-                background: #edf3e9;
+                padding: 15px 17px;
+                border: 1px solid #b8cfe6;
+                border-radius: 11px;
+                background: var(--brand-soft);
             }
+
             .warning {
-                background: #fff4cf;
+                border: 1px solid #e6c77a;
+                background: #fff8e6;
             }
+
             .error {
-                color: #9c2222;
+                color: #b3261e;
                 white-space: pre-line;
             }
+
             .muted {
-                color: #58645b;
-                font-size: 13px;
-            }
-            .pill {
-                display: inline-block;
-                border-radius: 20px;
-                background: #edf3e9;
-                padding: 3px 10px;
-                font-weight: 650;
+                color: var(--ink-muted);
                 font-size: 12px;
             }
+
+            .pill {
+                display: inline-block;
+                margin-bottom: 2px;
+                padding: 3px 9px;
+                border-radius: 999px;
+                background: var(--brand-soft);
+                color: var(--brand);
+                font-size: 11px;
+                font-weight: 600;
+            }
+
             small {
                 display: block;
             }
+
             .row {
                 display: flex;
                 gap: 16px;
+                align-items: flex-start;
                 justify-content: space-between;
-                align-items: start;
             }
+
+            nav,
+            .actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 9px;
+            }
+
+            .actions {
+                margin-top: 16px;
+            }
+
+            button,
+            .button {
+                display: inline-flex;
+                min-height: 40px;
+                align-items: center;
+                justify-content: center;
+                padding: 0 15px;
+                border: 1px solid var(--line);
+                border-radius: 8px;
+                background: var(--white);
+                color: var(--ink);
+                font-family: inherit;
+                font-size: 12px;
+                font-weight: 600;
+                text-decoration: none;
+                cursor: pointer;
+                transition:
+                    background 0.15s ease,
+                    border-color 0.15s ease,
+                    color 0.15s ease;
+            }
+
+            button:hover,
+            .button:hover {
+                border-color: var(--brand);
+                color: var(--brand);
+            }
+
+            button.primary,
+            .button.primary {
+                border-color: var(--brand);
+                background: var(--brand);
+                color: var(--white);
+            }
+
+            button.primary:hover,
+            .button.primary:hover {
+                border-color: var(--brand-deep);
+                background: var(--brand-deep);
+                color: var(--white);
+            }
+
+            button:disabled {
+                cursor: wait;
+                opacity: 0.55;
+            }
+
+            label {
+                display: block;
+                margin: 14px 0 6px;
+                color: var(--ink-strong);
+                font-size: 12px;
+                font-weight: 600;
+            }
+
+            input,
+            select,
+            textarea {
+                display: block;
+                width: 100%;
+                padding: 10px 12px;
+                border: 1px solid var(--line);
+                border-radius: 8px;
+                background: var(--white);
+                color: var(--ink);
+                font: inherit;
+            }
+
+            input:focus,
+            select:focus,
+            textarea:focus {
+                border-color: var(--brand);
+                outline: 3px solid rgba(59, 111, 168, 0.18);
+                outline-offset: 1px;
+            }
+
+            textarea {
+                min-height: 84px;
+                resize: vertical;
+            }
+
             .hidden,
             [hidden] {
                 display: none !important;
             }
-            .actions {
-                margin-top: 16px;
-            }
+
             button:focus-visible,
             a:focus-visible {
-                outline: 3px solid #b47e1d;
-                outline-offset: 3px;
+                outline: 3px solid rgba(59, 111, 168, 0.3);
+                outline-offset: 2px;
             }
+
             pre {
-                white-space: pre-wrap;
                 font: inherit;
+                white-space: pre-wrap;
             }
+
             #message {
                 position: sticky;
-                top: 0;
+                top: 10px;
                 z-index: 1;
+                margin: 14px 0;
             }
+
+            #message:empty {
+                display: none;
+            }
+
+            #requests .card {
+                box-shadow: none;
+            }
+
             ul {
                 padding-left: 20px;
             }
-            @media (max-width: 600px) {
+
+            @media (max-width: 640px) {
+                .header-inner,
                 main {
-                    padding: 20px 14px;
+                    width: calc(100% - 28px);
                 }
+
+                main {
+                    padding-top: 20px;
+                }
+
                 .card {
-                    padding: 16px;
+                    padding: 17px;
                 }
+
                 .row {
                     display: block;
                 }
-                .actions button {
-                    flex: 1;
+
+                .actions button,
+                .actions .button {
+                    flex: 1 1 100%;
                 }
             }
         </style>
@@ -170,16 +376,33 @@
     </head>
     <body>
         <header>
-            <div>
-                <strong>KaBarangay</strong>
-                <nav>
-                    <a href="/resident/certificates">Online requests</a
-                    ><a href="/offline.html">Saved pages</a>
+            <div class="header-inner">
+                <a class="brand" href="/offline.html">
+                    <img
+                        src="/kabarangay-logo-192x192.png"
+                        alt=""
+                        width="38"
+                        height="38"
+                    />
+                    <span>
+                        <span class="brand-name">KaBarangay</span>
+                        <span class="brand-sub">Offline certificate requests</span>
+                    </span>
+                </a>
+                <nav class="header-nav" aria-label="Offline links">
+                    <a href="/resident/certificates">Online requests</a>
+                    <a href="/offline.html">Saved pages</a>
                 </nav>
             </div>
         </header>
+
         <main>
             <h1>Offline certificate requests</h1>
+            <p class="page-lead">
+                Maghanda ng draft kahit walang internet. Ang request ay
+                opisyal lang kapag na-sync at nakakuha ng reference number.
+            </p>
+
             <p class="note">
                 Puwedeng gumawa ng draft at maghanda ng certificate request
                 kahit offline.
@@ -187,8 +410,10 @@
                 Official reference number lang ang kumpirmasyon na natanggap ng
                 server ang request.
             </p>
+
             <p id="connection" class="muted"></p>
             <div id="message" role="status" aria-live="polite"></div>
+
             <div id="locked" class="card" hidden>
                 <h2>Sign in online to unlock your drafts</h2>
                 <p>
@@ -196,8 +421,11 @@
                     Requests habang online upang maihanda ang catalog. Ang
                     drafts ng ibang account ay hindi mabubuksan dito.
                 </p>
-                <a class="button" href="/resident/login">Resident login</a>
+                <a class="button primary" href="/resident/login">
+                    Resident login
+                </a>
             </div>
+
             <div id="unlocked" hidden>
                 <section class="card">
                     <div class="row">
@@ -206,8 +434,12 @@
                             <p id="catalog-date" class="muted"></p>
                         </div>
                         <div class="actions">
-                            <button id="refresh">Refresh catalog</button
-                            ><button id="sync" class="primary">Sync now</button>
+                            <button id="refresh" type="button">
+                                Refresh catalog
+                            </button>
+                            <button id="sync" class="primary" type="button">
+                                Sync now
+                            </button>
                         </div>
                     </div>
                     <p class="muted">
@@ -216,50 +448,59 @@
                         mong i-review muli bago ma-submit.
                     </p>
                 </section>
+
                 <section class="card">
                     <h2 id="editor-title">New draft</h2>
                     <form id="editor">
-                        <label for="certificate">Certificate</label
-                        ><select id="certificate" required>
+                        <label for="certificate">Certificate</label>
+                        <select id="certificate" required>
                             <option value="">Select certificate</option>
                         </select>
                         <div id="certificate-info" class="note hidden"></div>
-                        <label for="purpose">Purpose</label
-                        ><textarea
+
+                        <label for="purpose">Purpose</label>
+                        <textarea
                             id="purpose"
                             required
                             maxlength="500"
                         ></textarea>
+
                         <div id="business" hidden>
-                            <label for="business-name">Business name</label
-                            ><input id="business-name" maxlength="255" /><label
-                                for="business-address"
-                                >Business address</label
-                            ><textarea
+                            <label for="business-name">Business name</label>
+                            <input id="business-name" maxlength="255" />
+                            <label for="business-address">Business address</label>
+                            <textarea
                                 id="business-address"
                                 maxlength="500"
                             ></textarea>
                         </div>
+
                         <div id="fields"></div>
-                        <label for="notes">Additional notes (optional)</label
-                        ><textarea id="notes" maxlength="2000"></textarea>
+
+                        <label for="notes">Additional notes (optional)</label>
+                        <textarea id="notes" maxlength="2000"></textarea>
+
                         <p class="muted">
                             Drafts are encrypted on this device. Logging out
                             locks them; sign in to the same resident account
                             online to unlock them. Clearing site data
                             permanently removes unsynced drafts.
                         </p>
+
                         <div class="actions">
                             <button type="button" id="save-draft">
-                                Save draft on this device</button
-                            ><button type="submit" class="primary">
-                                Review and queue request</button
-                            ><button type="button" id="new-draft">
+                                Save draft on this device
+                            </button>
+                            <button type="submit" class="primary">
+                                Review and queue request
+                            </button>
+                            <button type="button" id="new-draft">
                                 Clear editor
                             </button>
                         </div>
                     </form>
                 </section>
+
                 <section id="review" class="card warning" hidden>
                     <h2>Review before queueing</h2>
                     <div id="review-details"></div>
@@ -270,11 +511,13 @@
                         release ay dadaan pa rin sa opisyal na barangay process.
                     </p>
                     <div class="actions">
-                        <button id="confirm" class="primary">
-                            Confirm — queue request</button
-                        ><button id="back">Back to edit</button>
+                        <button id="confirm" class="primary" type="button">
+                            Confirm at queue request
+                        </button>
+                        <button id="back" type="button">Back to edit</button>
                     </div>
                 </section>
+
                 <section class="card">
                     <h2>Your local requests</h2>
                     <p class="muted">

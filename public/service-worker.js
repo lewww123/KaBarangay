@@ -59,6 +59,7 @@ const assetPath = (input) => {
         (/^\/build\/assets\/[\w.~-]+\.(?:css|woff2?|png|svg|ico)$/.test(
             url.pathname,
         ) ||
+            /^\/fonts\/[\w.-]+\.woff2$/.test(url.pathname) ||
             [
                 '/offline-viewer.js',
                 '/offline-certificate-store.js',
@@ -68,6 +69,8 @@ const assetPath = (input) => {
                 '/favicon.ico',
                 '/favicon.svg',
                 '/apple-touch-icon.png',
+                '/kabarangay-logo-192x192.png',
+                '/kabarangay-logo-512x512.png',
             ].includes(url.pathname))
     );
 };
@@ -103,6 +106,11 @@ self.addEventListener('install', (event) => {
                 '/offline-attendance.html',
                 '/offline-attendance-store.js',
                 '/offline-attendance.js',
+                '/fonts/Inter-Regular.woff2',
+                '/fonts/Inter-Medium.woff2',
+                '/fonts/Inter-SemiBold.woff2',
+                '/kabarangay-logo-192x192.png',
+                '/kabarangay-logo-512x512.png',
             ]) {
                 const response = await fetch(path, { cache: 'reload' });
                 if (!response.ok)

@@ -81,6 +81,7 @@
     if (!list || !message || !('serviceWorker' in navigator)) return;
     const attendance = document.createElement('a');
     attendance.href = '/offline-attendance.html';
+    attendance.className = 'quick-link';
     attendance.textContent = 'Offline staff attendance · manual, QR & sync';
     list.before(attendance);
     try {
