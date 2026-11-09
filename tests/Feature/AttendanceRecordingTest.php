@@ -401,4 +401,119 @@ class AttendanceRecordingTest extends TestCase
 
         $this->assertDatabaseCount('announcement_attendances', 0);
     }
+
+    public function test_claim_is_blocked_when_resident_has_no_attendance_record(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170004001']);
+        $announcement = $this->createAnnouncement($this->barangay, ['requires_attendance' => true]);
+
+        $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
+            'resident_id' => $resident->id,
+            'status' => 'claimed',
+        ])->assertRedirect()
+            ->assertSessionHas('attendance_outcome', 'claim_requires_presence')
+            ->assertSessionHas('warning', 'This resident is not present.');
+
+        $this->assertDatabaseCount('announcement_attendances', 0);
+    }
+
+    public function test_claim_is_blocked_when_resident_is_absent(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170004002']);
+        $announcement = $this->createAnnouncement($this->barangay, ['requires_attendance' => true]);
+
+        $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
+            'resident_id' => $resident->id,
+            'status' => 'absent',
+        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'recorded');
+
+        $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
+            'resident_id' => $resident->id,
+            'status' => 'claimed',
+        ])->assertRedirect()
+            ->assertSessionHas('attendance_outcome', 'claim_requires_presence')
+            ->assertSessionHas('warning', 'This resident is not present.');
+
+        $this->assertDatabaseCount('announcement_attendances', 1);
+        $this->assertDatabaseHas('announcement_attendances', [
+            'announcement_id' => $announcement->id,
+            'resident_id' => $resident->id,
+            'status' => 'absent',
+        ]);
+    }
+
+    public function test_present_resident_claim_attempt_is_not_blocked_as_not_present(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $resident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170004003']);
+        $announcement = $this->createAnnouncement($this->barangay, ['requires_attendance' => true]);
+
+        $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
+            'resident_id' => $resident->id,
+            'status' => 'present',
+        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'recorded');
+
+        $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
+            'resident_id' => $resident->id,
+            'status' => 'claimed',
+        ])->assertRedirect()
+            ->assertSessionHas('attendance_outcome', 'existing_record_conflict')
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('announcement_attendances', [
+            'announcement_id' => $announcement->id,
+            'resident_id' => $resident->id,
+            'status' => 'present',
+        ]);
+    }
+
+    public function test_direct_claim_api_rejects_invalid_resident_id(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $announcement = $this->createAnnouncement($this->barangay, ['requires_attendance' => true]);
+
+        $this->actingAs($clerk)->post($this->clerkMarkUrl($announcement), [
+            'resident_id' => 999999,
+            'status' => 'claimed',
+        ])->assertSessionHasErrors('resident_id');
+
+        $this->assertDatabaseCount('announcement_attendances', 0);
+    }
+
+    public function test_pwd_and_senior_claims_require_presence(): void
+    {
+        $pwdStaff = $this->createStaff($this->barangay, 'pwd_staff');
+        $pwdResident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170004004']);
+        $this->assignSector($pwdResident, 'pwd');
+        $pwdAnnouncement = $this->createAnnouncement($this->barangay, [
+            'target_audience' => 'pwd',
+            'requires_attendance' => true,
+        ]);
+
+        $this->actingAs($pwdStaff)->post($this->pwdMarkUrl($pwdAnnouncement), [
+            'resident_id' => $pwdResident->id,
+            'status' => 'claimed',
+        ])->assertRedirect()
+            ->assertSessionHas('attendance_outcome', 'claim_requires_presence')
+            ->assertSessionHas('warning', 'This resident is not present.');
+
+        $seniorStaff = $this->createStaff($this->barangay, 'senior_staff');
+        $seniorResident = $this->createResident($this->barangay, $this->purok, ['mobile' => '09170004005']);
+        $this->assignSector($seniorResident, 'senior');
+        $seniorAnnouncement = $this->createAnnouncement($this->barangay, [
+            'target_audience' => 'senior_citizens',
+            'requires_attendance' => true,
+        ]);
+
+        $this->actingAs($seniorStaff)->post($this->seniorMarkUrl($seniorAnnouncement), [
+            'resident_id' => $seniorResident->id,
+            'status' => 'claimed',
+        ])->assertRedirect()
+            ->assertSessionHas('attendance_outcome', 'claim_requires_presence')
+            ->assertSessionHas('warning', 'This resident is not present.');
+
+        $this->assertDatabaseCount('announcement_attendances', 0);
+    }
 }

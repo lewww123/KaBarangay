@@ -181,11 +181,18 @@ class AnnouncementAttendanceDuplicateHandlingTest extends TestCase
         [$staff, $resident, $announcement] = $this->portalFixture($role, $sector, $audience);
         $secondStaff = $this->createStaff($this->barangay, $role);
 
-        $this->actingAs($staff)->post($this->markUrl($portal, $announcement), [
+        // Pre-existing claimed record: first-time claim now requires presence
+        // (approved rule). Duplicate/conflict handling for existing records
+        // must still preserve the original metadata.
+        AnnouncementAttendance::create([
+            'barangay_id' => $announcement->barangay_id,
+            'announcement_id' => $announcement->id,
             'resident_id' => $resident->id,
             'status' => 'claimed',
             'method' => 'manual',
-        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'recorded');
+            'attended_at' => now(),
+            'verified_by' => $staff->id,
+        ]);
 
         $original = AnnouncementAttendance::firstOrFail();
         $attendedAt = $original->attended_at->getTimestamp();
@@ -197,8 +204,8 @@ class AnnouncementAttendanceDuplicateHandlingTest extends TestCase
             'status' => 'claimed',
             'method' => 'manual',
         ])->assertRedirect()
-            ->assertSessionHas('attendance_outcome', 'already_claimed')
-            ->assertSessionHas('warning', 'Already claimed. This attendee has already claimed their aid.');
+            ->assertSessionHas('attendance_outcome', 'claim_requires_presence')
+            ->assertSessionHas('warning', 'This resident is not present.');
 
         $this->assertDatabaseCount('announcement_attendances', 1);
         $fresh = $original->fresh();
@@ -249,11 +256,16 @@ class AnnouncementAttendanceDuplicateHandlingTest extends TestCase
     ): void {
         [$staff, $resident, $announcement] = $this->portalFixture($role, $sector, $audience);
 
-        $this->actingAs($staff)->post($this->markUrl($portal, $announcement), [
+        // Pre-existing claimed record: first-time claim now requires presence.
+        AnnouncementAttendance::create([
+            'barangay_id' => $announcement->barangay_id,
+            'announcement_id' => $announcement->id,
             'resident_id' => $resident->id,
             'status' => 'claimed',
             'method' => 'manual',
-        ])->assertRedirect()->assertSessionHas('attendance_outcome', 'recorded');
+            'attended_at' => now(),
+            'verified_by' => $staff->id,
+        ]);
 
         $original = AnnouncementAttendance::firstOrFail();
         $attendedAt = $original->attended_at->getTimestamp();

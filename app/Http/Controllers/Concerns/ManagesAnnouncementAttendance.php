@@ -155,6 +155,14 @@ trait ManagesAnnouncementAttendance
     ): array {
         $existing = $this->findAttendanceRecord($announcement, $resident);
 
+        if ($status === 'claimed' && ($existing === null || $existing->status !== 'present')) {
+            return [
+                'outcome' => 'claim_requires_presence',
+                'message' => 'This resident is not present.',
+                'tone' => 'warning',
+            ];
+        }
+
         if ($existing !== null) {
             return $this->existingAttendanceOutcome($existing, $status);
         }
