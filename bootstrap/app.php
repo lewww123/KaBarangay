@@ -27,12 +27,21 @@ return Application::configure(basePath: dirname(__DIR__))
                 'pwd' => 'pwd.dashboard',
                 'senior' => 'senior.dashboard',
             ];
-            $departments = $user?->staffAssignments()->where('is_active', true)
-                ->orderBy('id')->pluck('department')->unique() ?? [];
-            foreach ($departments as $department) {
-                if (isset($destinations[$department]) && $user->hasActiveAssignment([$department])) {
-                    return route($destinations[$department]);
+            $selectedId = $request->session()->get('staff_assignment_id');
+            if ($selectedId) {
+                $assignment = $user?->staffAssignments()->where('is_active', true)->find($selectedId);
+                if ($assignment && isset($destinations[$assignment->department])) {
+                    return route($destinations[$assignment->department]);
                 }
+            }
+            $assignment = $user?->staffAssignments()->where('is_active', true)
+                ->where('barangay_id', $user->barangay_id)
+                ->whereIn('department', array_keys($destinations))
+                ->first();
+            if ($assignment && isset($destinations[$assignment->department])) {
+                $request->session()->put('staff_assignment_id', $assignment->id);
+
+                return route($destinations[$assignment->department]);
             }
             // Keep the valid session, but never redirect an unauthorized account in a loop.
             abort(403, 'No active authorized staff assignment is available for this account.');

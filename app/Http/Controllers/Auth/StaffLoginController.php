@@ -37,7 +37,12 @@ class StaffLoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $fullName = trim($validated['full_name']);
+        // Normalization helper: trim, collapse whitespace, lowercase
+        $normalize = fn (string $value): string => mb_strtolower(preg_replace('/\s+/', ' ', trim($value)));
+        $normalizedFullName = $normalize($validated['full_name']);
+        // Preserve raw name for logging / error messages
+        $fullName = $validated['full_name'];
+
         $assignment = StaffAssignment::query()
             ->with(['resident.account', 'user'])
             ->where('barangay_id', $validated['barangay_id'])
@@ -49,16 +54,31 @@ class StaffLoginController extends Controller
                 ->where('status', 'active'))
             ->whereHas('user', fn ($query) => $query
                 ->where('barangay_id', $validated['barangay_id'])
-                ->where('name', $fullName)
                 ->whereColumn('users.resident_id', 'staff_assignments.resident_id')
                 ->where('status', 'active'))
             ->get()
-            ->first(fn (StaffAssignment $assignment) => $assignment->resident_id === $assignment->user?->resident_id
-                && $assignment->resident?->full_name === $fullName
-                && $assignment->user?->name === $fullName);
+            ->first(function (StaffAssignment $assignment) use ($normalize, $normalizedFullName): bool {
+                if ($assignment->resident_id !== $assignment->user?->resident_id) {
+                    return false;
+                }
+
+                if ($normalize($assignment->resident?->full_name ?? '') !== $normalizedFullName) {
+                    return false;
+                }
+
+                $userName = $normalize($assignment->user?->name ?? '');
+                $legacyName = $normalize(trim(($assignment->resident?->first_name ?? '').' '.($assignment->resident?->last_name ?? '')));
+
+                return $userName === $normalizedFullName || ($legacyName !== '' && $userName === $legacyName);
+            });
 
         $resident = $assignment?->resident;
-        if ($assignment === null || $resident?->account === null || ! $resident->account->is_active || ! Hash::check($validated['password'], $resident->account->password)) {
+        if (
+            $assignment === null ||
+            $resident?->account === null ||
+            ! $resident->account->is_active ||
+            ! Hash::check($validated['password'], $resident->account->password)
+        ) {
             LoginAttemptRecorder::record(
                 LoginAttemptRecorder::ACTOR_STAFF,
                 LoginAttemptRecorder::CHANNEL_STAFF,
@@ -73,6 +93,7 @@ class StaffLoginController extends Controller
         }
 
         Auth::login($assignment->user);
+$request->session()->put('staff_assignment_id', $assignment->id);
         $request->session()->regenerate();
         RateLimiter::clear(LoginIdentifier::middlewareKey(
             'login-staff',

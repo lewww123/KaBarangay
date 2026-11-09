@@ -162,18 +162,173 @@ class RoleAuthorizationTest extends TestCase
     public function test_super_admin_is_denied_on_every_portal(): void
     {
         $superAdmin = $this->createStaff($this->barangay, 'super_admin');
+        $assignment = \App\Models\StaffAssignment::create([
+            'user_id' => $superAdmin->id,
+            'resident_id' => $superAdmin->resident_id,
+            'barangay_id' => $this->barangay->id,
+            'department' => 'super_admin',
+            'position' => 'Super Admin',
+            'is_active' => true,
+        ]);
 
-        $this->actingAs($superAdmin)->get('/admin')->assertStatus(403);
-        $this->actingAs($superAdmin)->get('/clerk/dashboard')->assertStatus(403);
-        $this->actingAs($superAdmin)->get('/senior/dashboard')->assertStatus(403);
-        $this->actingAs($superAdmin)->get('/pwd/dashboard')->assertStatus(403);
+        $this->actingAs($superAdmin)->withSession(['staff_assignment_id' => $assignment->id]);
+
+        $this->get('/admin')->assertStatus(403);
+        $this->get('/clerk/dashboard')->assertStatus(403);
+        $this->get('/senior/dashboard')->assertStatus(403);
+        $this->get('/pwd/dashboard')->assertStatus(403);
     }
 
-    public function test_inactive_staff_account_is_denied(): void
+    public function test_inactive_staff_account_invalidates_session_and_redirects(): void
     {
         $inactive = $this->createStaff($this->barangay, 'clerk', ['status' => 'inactive']);
+        $assignment = $inactive->staffAssignments()->first();
 
-        $this->actingAs($inactive)->get('/clerk/dashboard')->assertStatus(403);
+        $response = $this->actingAs($inactive)
+            ->withSession(['staff_assignment_id' => $assignment->id, 'marker' => 'preserved'])
+            ->get('/clerk/dashboard');
+
+        $response->assertRedirect(route('login'));
+        $this->assertGuest();
+        $this->assertFalse(session()->has('marker'));
+    }
+
+    public function test_inactive_staff_account_gets_json_401(): void
+    {
+        $inactive = $this->createStaff($this->barangay, 'clerk', ['status' => 'inactive']);
+        $assignment = $inactive->staffAssignments()->first();
+
+        $this->actingAs($inactive)
+            ->withSession(['staff_assignment_id' => $assignment->id])
+            ->getJson('/clerk/dashboard')
+            ->assertStatus(401)
+            ->assertJson(['message' => 'Unauthenticated.']);
+
+        $this->assertGuest();
+    }
+
+    public function test_missing_selected_assignment_id_invalidates_session_and_redirects(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $response = $this->actingAs($clerk)
+            ->withSession(['staff_assignment_id' => null, 'marker' => 'preserved'])
+            ->get('/clerk/dashboard');
+
+        $response->assertRedirect(route('login'));
+        $this->assertGuest();
+        $this->assertFalse(session()->has('marker'));
+    }
+
+    public function test_missing_selected_assignment_id_inertia_request_redirects(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $response = $this->actingAs($clerk)
+            ->withSession(['staff_assignment_id' => null])
+            ->get('/clerk/dashboard', [
+                'X-Inertia' => 'true',
+                'X-Inertia-Version' => \Inertia\Inertia::getVersion(),
+            ]);
+
+        $this->assertTrue(in_array($response->getStatusCode(), [302, 409], true));
+        $this->assertGuest();
+    }
+
+    public function test_missing_selected_assignment_id_gets_json_401(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $this->actingAs($clerk)
+            ->withSession(['staff_assignment_id' => null])
+            ->getJson('/clerk/dashboard')
+            ->assertStatus(401)
+            ->assertJson(['message' => 'Unauthenticated.']);
+
+        $this->assertGuest();
+    }
+
+    public function test_deactivated_selected_assignment_invalidates_session_and_redirects(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $assignment = $clerk->staffAssignments()->first();
+        $assignment->update(['is_active' => false]);
+
+        $response = $this->actingAs($clerk)
+            ->withSession(['staff_assignment_id' => $assignment->id, 'marker' => 'preserved'])
+            ->get('/clerk/dashboard');
+
+        $response->assertRedirect(route('login'));
+        $this->assertGuest();
+        $this->assertFalse(session()->has('marker'));
+    }
+
+    public function test_deactivated_selected_assignment_gets_json_401(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $assignment = $clerk->staffAssignments()->first();
+        $assignment->update(['is_active' => false]);
+
+        $this->actingAs($clerk)
+            ->withSession(['staff_assignment_id' => $assignment->id])
+            ->getJson('/clerk/dashboard')
+            ->assertStatus(401)
+            ->assertJson(['message' => 'Unauthenticated.']);
+
+        $this->assertGuest();
+    }
+
+    public function test_deactivation_of_unselected_assignment_preserves_active_session(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $adminAssignment = $admin->staffAssignments()->first();
+
+        // Create a secondary clerk assignment
+        $clerkAssignment = \App\Models\StaffAssignment::create([
+            'user_id' => $admin->id,
+            'resident_id' => $admin->resident_id,
+            'barangay_id' => $this->barangay->id,
+            'department' => 'clerk',
+            'position' => 'Barangay Clerk',
+            'is_active' => true,
+        ]);
+
+        // Select the admin assignment in session
+        $this->actingAs($admin)->withSession(['staff_assignment_id' => $adminAssignment->id]);
+
+        // Deactivate the unselected clerk assignment
+        $clerkAssignment->update(['is_active' => false]);
+
+        // The session with active selected admin assignment remains valid
+        $this->get('/admin')->assertOk();
+    }
+
+    public function test_admin_cannot_access_lupon_portal_without_selected_lupon_assignment(): void
+    {
+        $admin = $this->createStaff($this->barangay, 'admin');
+
+        $this->actingAs($admin)->get('/lupon/dashboard')->assertStatus(403);
+    }
+
+    public function test_authenticated_user_accessing_unauthorized_portal_gets_styled_403_page(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $response = $this->actingAs($clerk)->get('/admin');
+
+        $response->assertStatus(403);
+        $response->assertSee('Access Restricted');
+        $response->assertSee('Return to Staff Login');
+    }
+
+    public function test_authenticated_user_accessing_unauthorized_portal_gets_json_403(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $response = $this->actingAs($clerk)->getJson('/admin');
+
+        $response->assertStatus(403);
+        $response->assertJson(['message' => 'Access denied.']);
     }
 
     public function test_lupon_login_redirects_to_lupon_dashboard(): void
