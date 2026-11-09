@@ -61,7 +61,7 @@
         <script src="/offline-viewer.js" defer></script>
     </head>
     <body>
-        <main>
+        <main id="kb-offline-saved">
             <p>KaBarangay · Saved pages</p>
             <h1>Mga page sa device na ito</h1>
             <p class="note">
@@ -92,6 +92,15 @@
                     document downloads.</small
                 >
             </p>
+        </main>
+        <main id="kb-offline-logged-out" hidden>
+            <p>KaBarangay</p>
+            <h1>Mag-sign in ulit sa KaBarangay</h1>
+            <p>Kumonekta sa internet para makapag-sign in ulit.</p>
+            <nav>
+                <a href="/resident/login">Resident login</a>
+                <a href="/staff/login">Staff login</a>
+            </nav>
         </main>
     </body>
 </html>

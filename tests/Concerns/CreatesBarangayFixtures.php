@@ -85,7 +85,7 @@ trait CreatesBarangayFixtures
             ]);
         }
 
-        return $user;
+        return $user->load('staffAssignments');
     }
 
     /** Log in a staff member with their session-scoped staff assignment. */

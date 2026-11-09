@@ -27,6 +27,20 @@ const eligible = (page: Page) =>
 
 export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
     useEffect(() => protectSession(initialPage), [initialPage]);
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('offline_uncached') !== '1') return;
+        const from = params.get('from') || 'That page';
+        notifyConnectivity(
+            'error',
+            `${from} is not available offline on this device. Showing a saved KaBarangay page instead.`,
+            12000,
+        );
+        params.delete('offline_uncached');
+        params.delete('from');
+        const next = location.pathname + (params.toString() ? `?${params}` : '') + location.hash;
+        window.history.replaceState({}, '', next);
+    }, []);
     const [privatePage, setPrivatePage] = useState(eligible(initialPage));
     const countPending = (items: { status: string }[]) =>
         items.filter((item) => UNSYNCED_STATUSES.includes(item.status)).length;
@@ -307,26 +321,25 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
         );
         const stopBefore = router.on('before', (event) => {
             const visit = event.detail.visit;
-            const logout = ['/logout', '/resident/logout'].includes(
-                visit.url.pathname,
-            );
+            const logout =
+                visit.method.toLowerCase() === 'post' &&
+                ['/logout', '/resident/logout'].includes(visit.url.pathname);
             if (logout) {
                 loggingOut = true;
                 clearTimeout(timer);
-                if (!navigator.onLine || !networkAvailable) {
+                if (!navigator.onLine) {
                     void tell({
                         type: 'KB_LOGOUT',
                         path: visit.url.pathname,
-                    }).finally(() =>
-                        location.replace('/offline.html?loggedout=1'),
-                    );
+                    })
+                        .catch(() => {})
+                        .finally(() =>
+                            location.replace('/offline.html?loggedout=1'),
+                        );
                     return false;
                 }
-                // The worker also clears storage before forwarding online logout.
-                void tell({
-                    type: 'KB_LOGOUT',
-                    path: visit.url.pathname,
-                }).catch(() => {});
+                // Let the request test reachability. The worker clears local
+                // data and falls back to offline logout if the request fails.
                 return;
             }
             if (isOnline()) return;
@@ -416,7 +429,12 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
         navigator.serviceWorker?.addEventListener('message', workerMessage);
         publish();
         void probe();
-        if ('serviceWorker' in navigator && !import.meta.env.DEV) {
+        const enableSw =
+            'serviceWorker' in navigator &&
+            (!import.meta.env.DEV ||
+                import.meta.env.VITE_ENABLE_SW === 'true' ||
+                new URLSearchParams(location.search).has('sw'));
+        if (enableSw) {
             void (async () => {
                 try {
                     await navigator.serviceWorker.register(
@@ -459,6 +477,8 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
                         );
                 }
             })();
+        } else if ('serviceWorker' in navigator && !import.meta.env.DEV) {
+            // Fallback: no-op when disabled; dev remains explicit opt-in.
         }
         return () => {
             closed = true;

@@ -3,9 +3,13 @@
 namespace App\Http\Middleware;
 
 use App\Models\StaffAssignment;
+use App\Support\OfflineDegraded;
 use Closure;
+use Illuminate\Database\ConnectionException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use PDOException;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureStaffRole
@@ -40,26 +44,36 @@ class EnsureStaffRole
             return $this->unauthenticated($request);
         }
 
-        $assignment = StaffAssignment::query()
-            ->whereKey($assignmentId)
-            ->where('is_active', true)
-            ->where('user_id', $user->id)
-            ->where('barangay_id', $user->barangay_id)
-            ->where('resident_id', $user->resident_id)
-            // Strict parity with User::hasActiveAssignment(): re-validate the
-            // user row so a cached model cannot outlive a bulk deactivation,
-            // and fail closed on missing barangay/resident/account relations.
-            ->whereHas('user', fn ($query) => $query
-                ->where('status', 'active')
+        try {
+            $assignment = StaffAssignment::query()
+                ->whereKey($assignmentId)
+                ->where('is_active', true)
+                ->where('user_id', $user->id)
                 ->where('barangay_id', $user->barangay_id)
-                ->where('resident_id', $user->resident_id))
-            ->whereHas('barangay', fn ($barangay) => $barangay->where('is_active', true))
-            ->whereHas('resident', fn ($resident) => $resident
-                ->where('barangay_id', $user->barangay_id)
-                ->where('status', 'active')
-                ->whereHas('account', fn ($account) => $account->where('is_active', true)))
-            ->select(['id', 'department'])
-            ->first();
+                ->where('resident_id', $user->resident_id)
+                // Strict parity with User::hasActiveAssignment(): re-validate the
+                // user row so a cached model cannot outlive a bulk deactivation,
+                // and fail closed on missing barangay/resident/account relations.
+                ->whereHas('user', fn ($query) => $query
+                    ->where('status', 'active')
+                    ->where('barangay_id', $user->barangay_id)
+                    ->where('resident_id', $user->resident_id))
+                ->whereHas('barangay', fn ($barangay) => $barangay->where('is_active', true))
+                ->whereHas('resident', fn ($resident) => $resident
+                    ->where('barangay_id', $user->barangay_id)
+                    ->where('status', 'active')
+                    ->whereHas('account', fn ($account) => $account->where('is_active', true)))
+                ->select(['id', 'department'])
+                ->first();
+        } catch (QueryException|ConnectionException|PDOException $exception) {
+            if (! OfflineDegraded::causedByDatabaseLoss($exception)) {
+                throw $exception;
+            }
+
+            // The account database is unavailable, so this assignment cannot be verified.
+            // Keep the session intact and degrade instead of falsely denying or logging out.
+            return OfflineDegraded::respond($request, $exception);
+        }
 
         if (! $assignment) {
             Auth::logout();

@@ -3,10 +3,14 @@
 namespace App\Http\Middleware;
 
 use App\Support\CertificateTemplates;
+use App\Support\OfflineDegraded;
 use App\Support\OfflineIdentity;
+use Illuminate\Database\ConnectionException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Middleware;
+use PDOException;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -48,17 +52,27 @@ class HandleInertiaRequests extends Middleware
 
                 return [
                     'user' => $user,
-                    'staffAssignments' => Inertia::optional(fn () => $user?->staffAssignments()
-                        ->where('is_active', true)
-                        ->with('barangay:id,name')
-                        ->select(['id', 'user_id', 'barangay_id', 'department', 'position'])
-                        ->get()
-                        ->map(fn ($assignment) => [
-                            'department' => $assignment->department,
-                            'position' => $assignment->position,
-                            'barangay' => $assignment->barangay?->name,
-                        ])
-                        ->values() ?? []),
+                    'staffAssignments' => Inertia::optional(function () use ($user) {
+                        try {
+                            return $user?->staffAssignments()
+                                ->where('is_active', true)
+                                ->with('barangay:id,name')
+                                ->select(['id', 'user_id', 'barangay_id', 'department', 'position'])
+                                ->get()
+                                ->map(fn ($assignment) => [
+                                    'department' => $assignment->department,
+                                    'position' => $assignment->position,
+                                    'barangay' => $assignment->barangay?->name,
+                                ])
+                                ->values() ?? [];
+                        } catch (QueryException|ConnectionException|PDOException $exception) {
+                            if (! OfflineDegraded::causedByDatabaseLoss($exception)) {
+                                throw $exception;
+                            }
+
+                            return [];
+                        }
+                    }),
                 ];
             },
             'flash' => fn () => [
@@ -70,9 +84,21 @@ class HandleInertiaRequests extends Middleware
             ],
             // Certificate types and whether an approved template is available.
             // Drives the "Coming Soon" state in the clerk certificate form.
-            'certificateTypes' => fn () => $request->is('clerk/certificates')
-                ? CertificateTemplates::options($request->user()?->barangay_id)
-                : [],
+            'certificateTypes' => function () use ($request) {
+                if (! $request->is('clerk/certificates')) {
+                    return [];
+                }
+
+                try {
+                    return CertificateTemplates::options($request->user()?->barangay_id);
+                } catch (QueryException|ConnectionException|PDOException $exception) {
+                    if (! OfflineDegraded::causedByDatabaseLoss($exception)) {
+                        throw $exception;
+                    }
+
+                    return [];
+                }
+            },
         ];
     }
 }
