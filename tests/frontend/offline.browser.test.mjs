@@ -78,7 +78,7 @@ let slowResponse;
 const appScript = `import {offlineSnapshot} from '/snapshot.js';
 window.appBooted=true;
 window.rpc=async(message)=>{const registration=await navigator.serviceWorker.ready;return new Promise(resolve=>{const c=new MessageChannel();c.port1.onmessage=e=>resolve(e.data);(navigator.serviceWorker.controller||registration.active).postMessage(message,[c.port2])})};
-window.prepare=async()=>{for(let i=0;i<150;i++){if(document.querySelector('[data-kb-offline-control]')?.textContent.includes('Saved for offline'))return {ok:true};await new Promise(resolve=>setTimeout(resolve,100));}throw Error('Automatic offline preparation did not finish: '+document.querySelector('[data-kb-offline-control]')?.textContent)};`;
+window.prepare=async()=>{const here=location.pathname+location.search;for(let i=0;i<150;i++){const saved=await window.rpc({type:'KB_LIST'});if(saved?.pages?.some((page)=>page.path===here))return {ok:true};await new Promise(resolve=>setTimeout(resolve,100));}throw Error('Automatic offline preparation did not finish for '+here);};`;
 const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     res.setHeader('Cache-Control', 'no-store');
@@ -402,14 +402,6 @@ try {
         'Business writes must never be replayed on reconnect',
     );
     assert.equal((await talk(page, { type: 'KB_LIST' })).pages.length, 0);
-    console.log(
-        'PASS: automatic saving, offline reload/navigation, styled read-only snapshots, secret/form/document exclusions, fallback, no write queue, account isolation, 24-hour expiry, 20-page limit, offline logout and server logout on reconnect.',
-    );
-} finally {
-    await browser?.close();
-    server.closeAllConnections();
-    await new Promise((resolve) => server.close(resolve));
-}
 
     scope = scopeA;
     await page.goto(origin + '/resident/certificates');
@@ -444,3 +436,11 @@ try {
         pendingLogout: false,
     });
     assert.equal(logouts, 2, 'Online logout must send only one request');
+    console.log(
+        'PASS: automatic saving, offline reload/navigation, styled read-only snapshots, secret/form/document exclusions, fallback, no write queue, account isolation, 24-hour expiry, 20-page limit, offline logout and server logout on reconnect.',
+    );
+} finally {
+    await browser?.close();
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+}
