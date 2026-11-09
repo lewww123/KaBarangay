@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Loader2, LogIn } from 'lucide-react';
 import LegalLinks from '@/components/LegalLinks';
 import AuthLayout from '@/layouts/AuthLayout';
 
@@ -461,12 +462,20 @@ export default function Login() {
 
                                 <button
                                     type="submit"
-
                                     disabled={isSubmitting}
-
-                                    className="flex min-h-12 w-full items-center justify-center rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white shadow-card transition hover:bg-brand-deep active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
+                                    className="mt-1 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    {isSubmitting ? 'Signing In...' : 'Sign In'}
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="size-4 animate-spin" />
+                                            Signing in…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <LogIn className="size-4" />
+                                            Sign In
+                                        </>
+                                    )}
                                 </button>
                             </form>
 
