@@ -1,5 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState, type ReactNode } from 'react';
+<<<<<<< HEAD
 import DesktopOnly from '@/components/DesktopOnly';
 import { LogoMark } from '@/components/Logo';
 import {
@@ -11,6 +12,9 @@ import {
     Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+=======
+import { formatBarangayLabel } from '@/lib/formatBarangayLabel';
+>>>>>>> e99d47a23cca919e7bb55c9a2e127b6294fb698b
 
 type LegacyLuponPage =
     | 'dashboard'
@@ -72,9 +76,20 @@ export default function LuponLayout({
         router.post('/logout');
     };
 
+<<<<<<< HEAD
     const shared = usePage<{ auth?: { user?: { name?: string } } }>().props;
+=======
+    const shared = usePage<{
+        auth?: {
+            user?: { name?: string };
+            activeBarangay?: { id: number; name: string } | null;
+        };
+    }>().props;
+>>>>>>> e99d47a23cca919e7bb55c9a2e127b6294fb698b
     user = user ?? shared.auth?.user;
-    const brand = barangayName || 'Barangay';
+    const brand = formatBarangayLabel(
+        barangayName ?? shared.auth?.activeBarangay?.name ?? null,
+    );
     const casesActive = active === 'cases';
     const [casesOpen, setCasesOpen] = useState(casesActive);
     const activeStage = caseStage ?? 'all';

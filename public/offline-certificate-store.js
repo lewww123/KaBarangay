@@ -352,6 +352,9 @@
             } catch {
                 return { offline: true };
             }
+            // The server could not read account state: keep every queued item and retry later
+            // instead of treating an unavailable database as a changed account.
+            if (server?.identity === 'unresolved') return { offline: true };
             const items = (await list())
                 .filter((item) =>
                     ['pending', 'syncing', 'login-required'].includes(

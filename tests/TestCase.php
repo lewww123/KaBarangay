@@ -62,12 +62,30 @@ abstract class TestCase extends BaseTestCase
         parent::actingAs($user, $guard);
 
         if ($user instanceof \App\Models\User && ! session()->has('_without_staff_assignment')) {
-            $assignment = $user->staffAssignments()->where('is_active', true)->first();
+            $resolved = false;
+
+            try {
+                $assignment = $user->staffAssignments()->where('is_active', true)->first();
+                $resolved = true;
+            } catch (\Illuminate\Database\QueryException|\Illuminate\Database\ConnectionException|\PDOException $exception) {
+                if (! \App\Support\OfflineDegraded::causedByDatabaseLoss($exception)) {
+                    throw $exception;
+                }
+
+                // During a simulated database outage the assignment cannot be re-read.
+                // Use preloaded relations when available and never fabricate an assignment.
+                $assignment = $user->relationLoaded('staffAssignments')
+                    ? $user->getRelation('staffAssignments')->firstWhere('is_active', true)
+                    : null;
+                $resolved = $user->relationLoaded('staffAssignments');
+            }
+
             if ($assignment) {
                 session(['staff_assignment_id' => $assignment->id]);
-            } else {
+            } elseif ($resolved) {
                 session()->forget('staff_assignment_id');
             }
+            // Unresolved during DB loss: preserve any existing session value.
         }
 
         return $this;

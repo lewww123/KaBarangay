@@ -3,10 +3,14 @@
 namespace App\Http\Middleware;
 
 use App\Models\Resident;
+use App\Support\OfflineDegraded;
 use App\Support\ResidentContext;
 use Closure;
+use Illuminate\Database\ConnectionException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use PDOException;
 use Symfony\Component\HttpFoundation\Response;
 
 class ResidentAuth
@@ -29,14 +33,34 @@ class ResidentAuth
         }
 
         // Make sure the resident still exists and is active.
-        $resident = ResidentContext::find();
+        try {
+            $resident = ResidentContext::find();
+        } catch (QueryException|ConnectionException|PDOException $exception) {
+            if (! OfflineDegraded::causedByDatabaseLoss($exception)) {
+                throw $exception;
+            }
+
+            // An unreachable database is not evidence that this resident is gone;
+            // answering null here would fall into the logout branch below.
+            return OfflineDegraded::respond($request, $exception);
+        }
 
         // If the resident no longer exists, is inactive,
         // or has no active login account, log them out.
         if (
             ! $resident
         ) {
-            $candidate = Resident::query()->with('account')->find($residentId);
+            try {
+                $candidate = Resident::query()->with('account')->find($residentId);
+            } catch (QueryException|ConnectionException|PDOException $exception) {
+                if (! OfflineDegraded::causedByDatabaseLoss($exception)) {
+                    throw $exception;
+                }
+
+                // The session is still intact here, so degrading costs the
+                // resident nothing they had before this request.
+                return OfflineDegraded::respond($request, $exception);
+            }
 
             $reason = match (true) {
                 $candidate === null => 'resident_not_found',

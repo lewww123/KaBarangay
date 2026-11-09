@@ -1,7 +1,8 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import DesktopOnly from '@/components/DesktopOnly';
 import { LogoMark } from '@/components/Logo';
+import { formatBarangayLabel } from '@/lib/formatBarangayLabel';
 import {
     ClipboardCheck,
     LayoutDashboard,
@@ -37,6 +38,10 @@ export default function PwdLayout({ children, active, user }: PwdLayoutProps) {
     const handleLogout = () => {
         router.post('/logout');
     };
+    const { auth } = usePage<{
+        auth?: { activeBarangay?: { id: number; name: string } | null };
+    }>().props;
+    const barangayLabel = formatBarangayLabel(auth?.activeBarangay?.name);
 
     const navItems: NavItem[] = [
         { label: 'Dashboard', to: '/pwd/dashboard', icon: LayoutDashboard, active: active === 'dashboard' },
@@ -54,7 +59,7 @@ export default function PwdLayout({ children, active, user }: PwdLayoutProps) {
                         <LogoMark tone="onBrand" size="sm" />
                         <div className="leading-tight">
                             <p className="text-sm font-semibold text-ink-strong">
-                                Barangay San Jose
+                                {barangayLabel}
                             </p>
                             <p className="text-xs text-ink-muted">
                                 PWD Sector Portal
