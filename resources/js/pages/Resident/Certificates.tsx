@@ -572,7 +572,7 @@ function CertificatesContent({
                                 {cameFromAssistant && selectedCertificate && (
                                     <div className="mb-4 rounded-xl border border-brand/25 bg-brand-soft p-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand/15 text-brand">
                                                 <CertificateOutlineIcon small />
                                             </div>
                                             <div className="min-w-0 flex-1">
