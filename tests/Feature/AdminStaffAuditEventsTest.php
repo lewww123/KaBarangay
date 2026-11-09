@@ -110,6 +110,18 @@ class AdminStaffAuditEventsTest extends TestCase
         $this->assertDatabaseHas('staff_assignments', ['id' => $assignment->id, 'is_active' => false]);
     }
 
+    public function test_admin_can_activate_an_assignment(): void
+    {
+        $admin = $this->portalAdmin();
+        $assignment = $this->assignment($this->barangay, $this->purok, 'clerk', 'Records Clerk');
+        $assignment->update(['is_active' => false]);
+
+        $this->actingAs($admin)->patch("/admin/staff/{$assignment->id}/activate")
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('staff_assignments', ['id' => $assignment->id, 'is_active' => true]);
+    }
+
     public function test_cross_barangay_assignment_mutations_are_forbidden(): void
     {
         $admin = $this->portalAdmin();
@@ -121,6 +133,7 @@ class AdminStaffAuditEventsTest extends TestCase
             'position' => 'Records Clerk',
         ])->assertForbidden();
         $this->actingAs($admin)->patch("/admin/staff/{$assignment->id}/deactivate")->assertForbidden();
+        $this->actingAs($admin)->patch("/admin/staff/{$assignment->id}/activate")->assertForbidden();
     }
 
     private function portalAdmin(): User

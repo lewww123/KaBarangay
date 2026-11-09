@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CertificateRequestController as AdminCertificateRequestController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmergencyContactController as AdminEmergencyContactController;
+use App\Http\Controllers\Admin\HouseholdController as AdminHouseholdController;
 use App\Http\Controllers\Admin\OrgChartController as AdminOrgChartController;
 use App\Http\Controllers\Admin\PopulationController;
 use App\Http\Controllers\Admin\ReportsController;
@@ -640,9 +641,18 @@ Route::group(['domain' => config('app.staff_domain')], function () {
 
             // Resident Masterlist / Claims
             Route::post('/residents', [AdminResidentController::class, 'store'])->name('residents.store');
+            Route::match(['put', 'patch'], '/residents/{resident}', [AdminResidentController::class, 'update'])->name('residents.update');
             Route::get('/residents/households/search', [AdminResidentController::class, 'searchHouseholds'])->name('residents.households.search');
             Route::patch('/residents/{resident}/household', [AdminResidentController::class, 'updateHousehold'])->name('residents.household.update');
             Route::get('/residents/{resident}/qr/credential', [AdminResidentController::class, 'showQrCredential'])->name('residents.qr.credential');
+
+            // Household Management
+            Route::post('/households', [AdminHouseholdController::class, 'store'])->name('households.store');
+            Route::get('/households/{household}', [AdminHouseholdController::class, 'show'])->name('households.show');
+            Route::match(['put', 'patch'], '/households/{household}', [AdminHouseholdController::class, 'update'])->name('households.update');
+            Route::post('/households/{household}/members', [AdminHouseholdController::class, 'addMember'])->name('households.members.add');
+            Route::delete('/households/{household}/members/{resident}', [AdminHouseholdController::class, 'removeMember'])->name('households.members.remove');
+            Route::post('/households/{household}/members/{resident}/transfer', [AdminHouseholdController::class, 'transferMember'])->name('households.members.transfer');
 
             // Resident Registrations
             Route::get('/residents', [ResidentRegistrationController::class, 'index'])->name('residents');
@@ -675,6 +685,7 @@ Route::group(['domain' => config('app.staff_domain')], function () {
             Route::post('/staff', [StaffManagementController::class, 'store'])->name('staff.store');
             Route::put('/staff/{staff_assignment}', [StaffManagementController::class, 'update'])->name('staff.update');
             Route::patch('/staff/{staff_assignment}/deactivate', [StaffManagementController::class, 'deactivate'])->name('staff.deactivate');
+            Route::patch('/staff/{staff_assignment}/activate', [StaffManagementController::class, 'activate'])->name('staff.activate');
 
             Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log');
             Route::get('/reports', [ReportsController::class, 'index'])->name('reports');

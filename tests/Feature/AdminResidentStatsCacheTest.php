@@ -22,7 +22,7 @@ class AdminResidentStatsCacheTest extends TestCase
         $otherUser = $this->createStaff($this->createBarangay('Other Stats', 'OTHER-STATS'), 'admin');
         $aggregateQueries = 0;
         DB::listen(function ($query) use (&$aggregateQueries): void {
-            if (str_contains($query->sql, 'total_residents') && str_contains($query->sql, 'pending_reviews')) {
+            if (str_contains($query->sql, 'total_residents')) {
                 $aggregateQueries++;
             }
         });

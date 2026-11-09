@@ -83,16 +83,26 @@ class AdminDeferredPropsTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Residents')
                 ->where('filters.resident_search', 'Juan')
+                ->where('filters.tab', 'all')
                 ->missing('allResidents')
                 ->missing('stats')
+                ->missing('puroks')
+                ->missing('tabCounts')
+                ->missing('pendingRegistrations')
+                ->missing('needsCorrectionRegistrations')
+                ->missing('rejectedRegistrations')
+                ->missing('addedByAdmin')
+                ->missing('households')
                 ->loadDeferredProps(fn ($page) => $page
                     ->has('allResidents')
-                    ->has('pendingRegistrations')
-                    ->has('needsCorrectionRegistrations')
-                    ->has('rejectedRegistrations')
                     ->has('puroks')
-                    ->has('addedByAdmin')
-                    ->has('stats')));
+                    ->has('tabCounts')
+                    ->has('stats')
+                    ->missing('pendingRegistrations')
+                    ->missing('needsCorrectionRegistrations')
+                    ->missing('rejectedRegistrations')
+                    ->missing('addedByAdmin')
+                    ->missing('households')));
     }
 
     public function test_report_heavy_props_are_deferred_while_filters_and_window_stay_eager(): void

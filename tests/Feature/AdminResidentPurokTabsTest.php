@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Barangay;
 use App\Models\Purok;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -98,7 +99,12 @@ class AdminResidentPurokTabsTest extends TestCase
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
-            ->get('/admin/residents')
+            ->get('/admin/residents', [
+
+                'X-Inertia-Version' => app(HandleInertiaRequests::class)->version(request()) ?? '',
+                'X-Inertia-Partial-Component' => 'Admin/Residents',
+                'X-Inertia-Partial-Data' => 'allResidents,pendingRegistrations,filters',
+            ])
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('pendingRegistrations.data', 1)
@@ -133,7 +139,12 @@ class AdminResidentPurokTabsTest extends TestCase
         $admin = $this->createStaff($this->barangay, 'admin');
 
         $this->actingAs($admin)
-            ->get('/admin/residents?purok='.$this->purok->id)
+            ->get('/admin/residents?purok='.$this->purok->id, [
+
+                'X-Inertia-Version' => app(HandleInertiaRequests::class)->version(request()) ?? '',
+                'X-Inertia-Partial-Component' => 'Admin/Residents',
+                'X-Inertia-Partial-Data' => 'allResidents,pendingRegistrations,filters',
+            ])
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('pendingRegistrations.data', 1)

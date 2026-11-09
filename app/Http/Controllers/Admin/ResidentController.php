@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreResidentRequest;
+use App\Http\Requests\Admin\UpdateResidentRequest;
 use App\Models\Barangay;
 use App\Models\Household;
 use App\Models\Resident;
@@ -240,6 +241,13 @@ class ResidentController extends Controller
                 }
             }
 
+            if ($resident->household_id && (! $household || $resident->household_id !== $household->id)) {
+                Household::query()
+                    ->where('id', $resident->household_id)
+                    ->where('head_resident_id', $resident->id)
+                    ->update(['head_resident_id' => null]);
+            }
+
             $resident->update([
                 'household_id' => $household?->id,
                 'household_relationship' => $household
@@ -259,6 +267,96 @@ class ResidentController extends Controller
         );
 
         return back()->with('success', 'Resident household assignment updated.');
+    }
+
+    public function update(UpdateResidentRequest $request, Resident $resident): RedirectResponse
+    {
+        abort_unless(
+            (int) $resident->barangay_id === (int) $request->user()->barangay_id,
+            404
+        );
+
+        $validated = $request->validated();
+        $user = $request->user();
+
+        DB::transaction(function () use ($validated, $user, $resident) {
+            $resident = Resident::query()->lockForUpdate()->findOrFail($resident->id);
+
+            $householdMode = $validated['household_mode'] ?? 'preserve';
+            $household = null;
+
+            if ($householdMode === 'new') {
+                $household = Household::query()->create([
+                    'barangay_id' => $resident->barangay_id,
+                    'purok_id' => $validated['purok_id'],
+                    'household_code' => 'HH-'.Str::upper(Str::random(8)),
+                    'head_resident_id' => $resident->id,
+                ]);
+            } elseif ($householdMode === 'existing') {
+                $household = Household::query()
+                    ->where('barangay_id', $user->barangay_id)
+                    ->findOrFail($validated['household_id']);
+            }
+
+            $updateData = [
+                'purok_id' => $validated['purok_id'],
+                'first_name' => $validated['first_name'],
+                'middle_name' => $validated['middle_name'] ?? null,
+                'last_name' => $validated['last_name'],
+                'suffix' => $validated['suffix'] ?? null,
+                'birthdate' => $validated['birthdate'],
+                'sex' => $validated['sex'],
+                'civil_status' => $validated['civil_status'],
+                'address_line' => $validated['address_line'],
+                'mobile' => $validated['mobile'],
+                'email' => $validated['email'],
+            ];
+
+            if ($householdMode === 'new') {
+                if ($resident->household_id && $resident->household_id !== $household->id) {
+                    Household::query()
+                        ->where('id', $resident->household_id)
+                        ->where('head_resident_id', $resident->id)
+                        ->update(['head_resident_id' => null]);
+                }
+                $updateData['household_id'] = $household->id;
+                $updateData['household_relationship'] = 'Head';
+            } elseif ($householdMode === 'existing') {
+                if ($resident->household_id && $resident->household_id !== $household->id) {
+                    Household::query()
+                        ->where('id', $resident->household_id)
+                        ->where('head_resident_id', $resident->id)
+                        ->update(['head_resident_id' => null]);
+                }
+                $updateData['household_id'] = $household->id;
+                $updateData['household_relationship'] = $validated['household_relationship'];
+            } elseif ($householdMode === 'none') {
+                // If resident was head of their old household, clear head_resident_id if removed
+                if ($resident->household_id) {
+                    Household::query()
+                        ->where('id', $resident->household_id)
+                        ->where('head_resident_id', $resident->id)
+                        ->update(['head_resident_id' => null]);
+                }
+                $updateData['household_id'] = null;
+                $updateData['household_relationship'] = null;
+            }
+            // 'preserve': leave household_id and household_relationship as is
+
+            $resident->update($updateData);
+        });
+
+        AuditLogger::record(
+            'resident.updated',
+            $resident->barangay_id,
+            $user->id,
+            'resident',
+            $resident->id,
+            [],
+            $request->ip(),
+        );
+
+        return back()->with('success', 'Resident information updated successfully.');
     }
 
     /**
