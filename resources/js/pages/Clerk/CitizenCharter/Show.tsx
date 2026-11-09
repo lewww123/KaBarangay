@@ -165,7 +165,7 @@ function ClerkCitizenCharterShow({ service, user }: Props) {
                 )}
 
                 {/* HEADER CARD */}
-                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">

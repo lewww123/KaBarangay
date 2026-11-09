@@ -90,7 +90,7 @@ function HearingsIndex({
             <Head title="Lupon Hearings" />
 
             <div className="mx-auto max-w-7xl space-y-6 p-2 font-sans sm:p-4">
-                <header className="flex flex-col gap-4 rounded-xl border border-line-soft bg-white p-6 shadow-card sm:flex-row sm:items-center sm:justify-between">
+                <header className="flex flex-col gap-4 rounded-xl border border-line-soft bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <p className="text-xs font-semibold tracking-wide text-brand uppercase">
                             Lupon Desk

@@ -76,7 +76,7 @@ function SelectBarangayContent({ barangays }: Props) {
                         </div>
 
                         {/* Card */}
-                        <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card sm:p-8">
+                        <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-8">
                             <div className="mb-7">
                                 <h2 className="text-xl font-semibold text-ink-strong">
                                     Select your barangay

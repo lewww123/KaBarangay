@@ -29,7 +29,7 @@ export default function RegistrationPending() {
             <main className="mx-auto flex min-h-[calc(100dvh-64px)] max-w-7xl items-center justify-center px-4 py-8 sm:px-6">
                 <section
                     aria-labelledby="registration-submitted-title"
-                    className="w-full max-w-lg rounded-xl border border-line-soft bg-white p-6 shadow-card sm:p-8"
+                    className="w-full max-w-lg rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-8"
                 >
                     <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-soft text-brand">
                         <svg

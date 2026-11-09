@@ -342,7 +342,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                 </div>
 
                 {/* Case Banner */}
-                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
@@ -488,7 +488,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                             <>
                                 {' '}
                                 {/* Parties Card */}
-                                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                                <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
                                     <div className="flex items-center justify-between border-b border-line-soft pb-4">
                                         <h2 className="text-base font-semibold text-ink-strong">
                                             Mga partido sa kaso
@@ -714,7 +714,7 @@ function CaseShow({ auth, caseData, officials }: Props) {
                                 )}
                                 {/* Right Col: Originating Complaint or Manual Case Information */}
                                 <div className="space-y-6">
-                                    <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                                    <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
                                         <h2 className="border-b border-line-soft pb-3 text-base font-semibold text-ink-strong">
                                             {caseData.complaint
                                                 ? 'Originating Complaint Details'

@@ -18,7 +18,7 @@ export default function LuponTagapamayapa({ auth, barangayName }: Props) {
             <Head title="Lupon Tagapamayapa" />
 
             <div className="mx-auto max-w-4xl space-y-5">
-                <section className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                <section className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
                     <p className="text-xs font-semibold tracking-[0.16em] text-[#3f6f3d] uppercase">
                         Katarungang Pambarangay
                     </p>

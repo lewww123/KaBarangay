@@ -4917,7 +4917,7 @@ function ApplicationModal({
                     </div>
                 </div>
 
-                <div className="flex flex-col-reverse gap-2 border-t border-line-soft px-6 py-4 sm:flex-row sm:justify-end">
+                <div className="flex flex-col-reverse gap-2 border-t border-line-soft px-5 py-3 sm:flex-row sm:justify-end">
                     <button
                         type="button"
                         onClick={onClose}

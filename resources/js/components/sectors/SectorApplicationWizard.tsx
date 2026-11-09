@@ -243,7 +243,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
             ) : (
                 <div className="space-y-6">
                     {/* STEP 1: SCAN QR CODE / SEARCH RESIDENT */}
-                    <div className="space-y-5 rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                    <div className="space-y-5 rounded-xl border border-line-soft bg-white p-5 shadow-card">
                         <div className="flex items-center justify-between border-b border-line-soft pb-3">
                             <h2 className="flex items-center gap-2 text-base font-semibold text-ink-strong">
                                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-xs text-white">
@@ -399,7 +399,7 @@ export default function SectorApplicationWizard({ sector, cancelUrl }: Props) {
                     {/* STEP 2: APPLICATION FORM & DOCUMENTS */}
                     <form
                         onSubmit={handleSubmitApplication}
-                        className="space-y-6 rounded-xl border border-line-soft bg-white p-6 shadow-card"
+                        className="space-y-6 rounded-xl border border-line-soft bg-white p-5 shadow-card"
                     >
                         <div className="border-b border-line-soft pb-3">
                             <h2 className="flex items-center gap-2 text-base font-semibold text-ink-strong">

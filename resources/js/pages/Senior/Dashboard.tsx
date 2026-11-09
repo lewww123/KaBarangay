@@ -116,7 +116,7 @@ function SeniorDashboard({
                     </div>
 
                     {/* RECENT ANNOUNCEMENTS TABLE */}
-                    <div className="space-y-4 rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                    <div className="space-y-4 rounded-xl border border-line-soft bg-white p-5 shadow-card">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-lg font-semibold text-ink-strong">

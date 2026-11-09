@@ -294,7 +294,7 @@ function EmergencyNumbersContent({
                     aria-labelledby="contact-modal-title"
                 >
                     <div className="w-full max-w-lg overflow-hidden rounded-xl border border-line-soft bg-white shadow-xl">
-                        <div className="flex items-center justify-between border-b border-line-soft px-6 py-4">
+                        <div className="flex items-center justify-between border-b border-line-soft px-5 py-3">
                             <h3
                                 id="contact-modal-title"
                                 className="text-lg font-semibold text-ink-strong"
@@ -476,7 +476,7 @@ function EmergencyNumbersContent({
                     aria-modal="true"
                     aria-labelledby="delete-dialog-title"
                 >
-                    <div className="w-full max-w-md space-y-4 overflow-hidden rounded-xl border border-line-soft bg-white p-6 shadow-xl">
+                    <div className="w-full max-w-md space-y-4 overflow-hidden rounded-xl border border-line-soft bg-white p-5 shadow-card">
                         <div className="flex items-center gap-3 text-red-600">
                             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 text-xl font-semibold">
                                 

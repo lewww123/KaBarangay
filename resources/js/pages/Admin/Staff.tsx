@@ -410,7 +410,7 @@ export default function Staff({ assignments, filters, departments }: Props) {
                 aria-labelledby="staff-dialog-title"
                 className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-xl border-0 bg-white p-0 shadow-xl backdrop:bg-black/40"
             >
-                <div className="flex items-center justify-between border-b border-line-soft px-6 py-4">
+                <div className="flex items-center justify-between border-b border-line-soft px-5 py-3">
                     <h2 id="staff-dialog-title" className="text-lg font-semibold">
                         {editing ? 'Edit staff assignment' : 'Assign new staff'}
                     </h2>

@@ -511,7 +511,7 @@ export default function Sectors({
                                 </Link>
                             </div>
 
-                            <div className="rounded-lg border border-line-soft bg-white p-6">
+                            <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
                                 <h2 className="text-base font-semibold text-ink-strong">
                                     Sector Application Processing
                                 </h2>
@@ -1085,7 +1085,7 @@ export default function Sectors({
                                 </div>
                             </div>
 
-                            <div className="rounded-lg border border-line-soft bg-white p-6">
+                            <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
                                 <h2 className="text-base font-semibold text-ink-strong">
                                     Lupong Tagapamayapa Confidentiality Notice
                                 </h2>

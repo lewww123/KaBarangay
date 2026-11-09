@@ -190,7 +190,7 @@ export default function QrScanner() {
                 <div className="mx-auto max-w-2xl">
                     <div className="overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-gray-200">
                         {/* Scanner */}
-                        <div className="p-4 sm:p-6">
+                        <div className="p-4 sm:p-5">
                             <div
                                 id="resident-qr-reader"
                                 className="mx-auto w-full max-w-md overflow-hidden rounded-xl"

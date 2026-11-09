@@ -107,7 +107,7 @@ function SectorApplicationsContent({ resident, applications }: Props) {
                 </div>
 
                 {/* CURRENT SECTOR MEMBERSHIPS CARD */}
-                <div className="space-y-4 rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                <div className="space-y-4 rounded-xl border border-line-soft bg-white p-5 shadow-card">
                     <h2 className="border-b border-line-soft pb-3 text-base font-semibold tracking-tight text-ink-strong">
                         Your Active Accreditations
                     </h2>
@@ -192,7 +192,7 @@ function SectorApplicationsContent({ resident, applications }: Props) {
                 </div>
 
                 {/* MY SECTOR APPLICATIONS QUEUE */}
-                <div className="space-y-4 rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                <div className="space-y-4 rounded-xl border border-line-soft bg-white p-5 shadow-card">
                     <h2 className="border-b border-line-soft pb-3 text-base font-semibold tracking-tight text-ink-strong">
                         My Sector Applications & Review Status
                     </h2>

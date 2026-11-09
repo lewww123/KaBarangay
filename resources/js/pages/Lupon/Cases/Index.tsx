@@ -136,7 +136,7 @@ function CasesIndex({
 
             <div className="mx-auto max-w-7xl space-y-6 p-2 font-sans sm:p-4">
                 {/* Header */}
-                <div className="flex flex-col gap-4 rounded-xl border border-line-soft bg-white p-6 shadow-card sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-4 rounded-xl border border-line-soft bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold text-ink-strong">
                             Lupon Cases

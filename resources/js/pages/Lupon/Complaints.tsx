@@ -245,7 +245,7 @@ function LuponComplaints({
             <Head title={queueMode === 'payments' ? 'Payment Verification' : 'Complaint Submissions'} />
 
             <div className="mx-auto max-w-7xl space-y-6 p-2 font-sans sm:p-4">
-                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                             <h1 className="text-2xl font-semibold text-ink-strong">

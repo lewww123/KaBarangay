@@ -93,7 +93,7 @@ function LuponCaseContent({ viewerRole = 'complainant', caseData }: Props) {
                 </div>
 
                 {/* Case Banner */}
-                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                             <div className="flex flex-wrap items-center gap-2">
@@ -145,7 +145,7 @@ function LuponCaseContent({ viewerRole = 'complainant', caseData }: Props) {
                     <EvidenceList files={caseData.evidence} />
                 </section>
                 {/* Case Summary Card */}
-                <div className="space-y-4 rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                <div className="space-y-4 rounded-xl border border-line-soft bg-white p-5 shadow-card">
                     <h2 className="border-b border-line-soft pb-3 text-base font-semibold tracking-tight text-ink-strong">
                         Case Information
                     </h2>
@@ -182,7 +182,7 @@ function LuponCaseContent({ viewerRole = 'complainant', caseData }: Props) {
                 </div>
 
                 {/* Scheduled Hearings */}
-                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
                     <h2 className="border-b border-line-soft pb-3 text-base font-semibold tracking-tight text-ink-strong">
                         Proceedings & Hearings
                     </h2>

@@ -99,7 +99,7 @@ export default function VerifyResident({ verification }: Props) {
                         </div>
 
                         {/* Footer */}
-                        <div className="border-t border-line-soft bg-canvas px-6 py-4 text-center">
+                        <div className="border-t border-line-soft bg-canvas px-5 py-3 text-center">
                             <p className="text-xs text-ink-muted">
                                 KaBarangay • Resident Verification System
                             </p>

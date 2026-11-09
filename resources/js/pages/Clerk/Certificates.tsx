@@ -4188,7 +4188,7 @@ function Dashboard({
                             <div
                                 className={`flex max-h-[92vh] ${formStep === 2 ? 'w-[calc(100vw-2rem)] max-w-6xl' : 'w-[calc(100vw-2rem)] max-w-7xl'} flex-col overflow-hidden rounded-lg bg-white shadow-xl`}
                             >
-                                <div className="flex shrink-0 items-center justify-between bg-brand px-6 py-4 text-white">
+                                <div className="flex shrink-0 items-center justify-between bg-brand px-5 py-3 text-white">
                                     <h3 className="text-lg font-semibold">
                                         {formStep === 1
                                             ? 'Issue New Certificate'
@@ -4232,7 +4232,7 @@ function Dashboard({
 
                                             <form
                                                 onSubmit={handleProceedToReview}
-                                                className="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
+                                                className="grid grid-cols-1 gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
                                             >
                                                 <div className="min-w-0 space-y-4 lg:max-h-[calc(92vh-11rem)] lg:overflow-y-auto lg:pr-4">
                                                     {modalMode === 'qr' ? (
@@ -5902,7 +5902,7 @@ function Dashboard({
                 {requestDetailsOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                         <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
-                            <div className="flex shrink-0 items-center justify-between bg-brand px-6 py-4 text-white">
+                            <div className="flex shrink-0 items-center justify-between bg-brand px-5 py-3 text-white">
                                 <h3 className="text-lg font-semibold">
                                     Certificate Request Details
                                 </h3>
@@ -6428,7 +6428,7 @@ function Dashboard({
                         aria-labelledby="issuance-details-title"
                     >
                         <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
-                            <div className="flex shrink-0 items-center justify-between bg-brand px-6 py-4 text-white">
+                            <div className="flex shrink-0 items-center justify-between bg-brand px-5 py-3 text-white">
                                 <div>
                                     <h3
                                         id="issuance-details-title"

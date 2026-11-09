@@ -25,7 +25,7 @@ export default function RegistrationAccess({
     return (
         <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
             <Head title="Access Your Resident Application" />
-            <main className="w-full max-w-md rounded-xl border border-line-soft bg-white p-6 shadow-card sm:p-8">
+            <main className="w-full max-w-md rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-8">
                 <Link
                     href="/resident/register"
                     className="text-sm font-semibold text-brand hover:underline"

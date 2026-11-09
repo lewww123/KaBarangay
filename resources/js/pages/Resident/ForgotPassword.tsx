@@ -30,7 +30,7 @@ export default function ForgotPassword() {
                     </p>
                 </div>
 
-                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card sm:p-7">
+                <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-7">
                     {flash?.success && (
                         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">
                             {flash.success}

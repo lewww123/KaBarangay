@@ -13,7 +13,7 @@ export default function EmailVerification({ status, title, message }: Props) {
         <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
             <Head title={title} />
 
-            <div className="w-full max-w-md rounded-xl border border-line-soft bg-white p-6 text-center shadow-card sm:p-8">
+            <div className="w-full max-w-md rounded-xl border border-line-soft bg-white p-5 shadow-card text-center shadow-card sm:p-8">
                 <div
                     className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${success ? 'bg-brand-soft text-brand' : 'bg-amber-50 text-amber-700'}`}
                 >

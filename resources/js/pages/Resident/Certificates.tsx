@@ -619,7 +619,7 @@ function CertificatesContent({
                                     </section>
 
                                     {/* REQUEST DETAILS */}
-                                    <section className="rounded-xl border border-line-soft bg-white p-4 sm:p-6">
+                                    <section className="rounded-xl border border-line-soft bg-white p-4 sm:p-5">
                                         <h2 className="text-lg font-semibold text-ink-strong">
                                             Request Details
                                         </h2>
@@ -1122,7 +1122,7 @@ function CertificatesContent({
                         {/* REVIEW */}
                         {step === 'review' && selectedCertificate && (
                             <div className="mx-auto w-full max-w-3xl">
-                                <section className="rounded-xl border border-line-soft bg-white p-4 sm:p-6">
+                                <section className="rounded-xl border border-line-soft bg-white p-4 sm:p-5">
                                     <h2 className="text-xl font-semibold text-ink-strong">
                                         Review Your Request
                                     </h2>
@@ -1493,7 +1493,7 @@ function RequestDetailsModal({
                 </div>
 
                 {/* CONTENT */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5">
                     <div className="rounded-xl border border-line-soft bg-[#fafaf7] p-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <InfoItem

@@ -34,7 +34,7 @@ export default function ResetPassword({ token, email }: Props) {
                     </p>
                 </div>
 
-                <div className="rounded-xl border border-line-soft bg-white p-6 shadow-card sm:p-7">
+                <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card sm:p-7">
                     {errors.email && (
                         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
                             {errors.email}

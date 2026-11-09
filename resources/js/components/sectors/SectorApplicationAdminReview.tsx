@@ -45,7 +45,7 @@ export default function SectorApplicationAdminReview({
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
-                    <div className="space-y-4 rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                    <div className="space-y-4 rounded-xl border border-line-soft bg-white p-5 shadow-card">
                         <div className="flex items-center justify-between border-b border-line-soft pb-3">
                             <h2 className="text-base font-semibold text-ink-strong">
                                 Applicant Resident Profile
@@ -110,7 +110,7 @@ export default function SectorApplicationAdminReview({
                         </div>
                     </div>
 
-                    <div className="space-y-4 rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                    <div className="space-y-4 rounded-xl border border-line-soft bg-white p-5 shadow-card">
                         <h2 className="border-b border-line-soft pb-3 text-base font-semibold text-ink-strong">
                             Sector Staff Review
                         </h2>
@@ -139,7 +139,7 @@ export default function SectorApplicationAdminReview({
                         </div>
                     </div>
 
-                    <div className="space-y-4 rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                    <div className="space-y-4 rounded-xl border border-line-soft bg-white p-5 shadow-card">
                         <h2 className="border-b border-line-soft pb-3 text-base font-semibold text-ink-strong">
                             Supporting Evidentiary Documents
                         </h2>
@@ -184,7 +184,7 @@ export default function SectorApplicationAdminReview({
                 </div>
 
                 <div className="space-y-6">
-                    <div className="space-y-3 rounded-xl border border-line-soft bg-white p-6 shadow-card">
+                    <div className="space-y-3 rounded-xl border border-line-soft bg-white p-5 shadow-card">
                         <h3 className="text-xs font-semibold tracking-wider text-ink-muted uppercase">
                             Recorded Workflow
                         </h3>
