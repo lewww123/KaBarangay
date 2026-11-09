@@ -271,25 +271,26 @@ export default function OfflineSupport({ initialPage }: { initialPage: Page }) {
         );
         const stopBefore = router.on('before', (event) => {
             const visit = event.detail.visit;
-            const logout =
-                visit.method.toLowerCase() === 'post' &&
-                ['/logout', '/resident/logout'].includes(visit.url.pathname);
+            const logout = ['/logout', '/resident/logout'].includes(
+                visit.url.pathname,
+            );
             if (logout) {
                 loggingOut = true;
                 clearTimeout(timer);
-                if (!navigator.onLine) {
+                if (!navigator.onLine || !networkAvailable) {
                     void tell({
                         type: 'KB_LOGOUT',
                         path: visit.url.pathname,
-                    })
-                        .catch(() => {})
-                        .finally(() =>
-                            location.replace('/offline.html?loggedout=1'),
-                        );
+                    }).finally(() =>
+                        location.replace('/offline.html?loggedout=1'),
+                    );
                     return false;
                 }
-                // Let the request test reachability. The worker clears local
-                // data and falls back to offline logout if the request fails.
+                // The worker also clears storage before forwarding online logout.
+                void tell({
+                    type: 'KB_LOGOUT',
+                    path: visit.url.pathname,
+                }).catch(() => {});
                 return;
             }
             if (isOnline()) return;

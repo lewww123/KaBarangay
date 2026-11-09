@@ -375,12 +375,10 @@ try {
     assert.equal(await otherSnapshot.locator('#kb-offline-notice').count(), 0);
     await otherSnapshot.close();
     await page.waitForURL('**/offline.html?loggedout=1');
-    await page
-        .getByRole('heading', { name: 'Mag-sign in ulit sa KaBarangay' })
-        .waitFor();
-    assert.equal(
-        await page.getByRole('heading', { name: 'Mga page sa device na ito' }).count(),
-        0,
+    await page.waitForFunction(() =>
+        document
+            .querySelector('#kb-offline-message')
+            .textContent.includes('Na-clear'),
     );
     assert.equal((await talk(page, { type: 'KB_LIST' })).pages.length, 0);
     assert.equal(
@@ -410,37 +408,3 @@ try {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
 }
-
-    scope = scopeA;
-    await page.goto(origin + '/resident/certificates');
-    await page.waitForFunction(() => typeof window.prepare === 'function');
-    await page.evaluate(() => window.prepare());
-    // Simulate a stale offline indication after the server has become reachable.
-    await page.evaluate(() => {
-        navigator.serviceWorker.dispatchEvent(
-            new MessageEvent('message', { data: { type: 'KB_NETWORK_OFFLINE' } }),
-        );
-    });
-    await page.getByText('Offline Mode', { exact: true }).waitFor();
-    const logoutDestination = await page.evaluate(async () => {
-        const url = new URL('/resident/logout', location.origin);
-        const allowed = document.dispatchEvent(
-            new CustomEvent('inertia:before', {
-                cancelable: true,
-                detail: { visit: { method: 'post', url } },
-            }),
-        );
-        if (!allowed) return null;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': 'test-csrf-only', 'X-Inertia': 'true' },
-        });
-        return response.url;
-    });
-    assert.equal(logoutDestination, origin + '/resident/login');
-    assert.deepEqual(await talk(page, { type: 'KB_LIST' }), {
-        ok: true,
-        pages: [],
-        pendingLogout: false,
-    });
-    assert.equal(logouts, 2, 'Online logout must send only one request');
