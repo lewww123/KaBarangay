@@ -24,7 +24,7 @@ export default withDeferredPage(
     AnnouncementApprovals,
     ['announcements'],
     () => (
-        <AdminLayout active={'overview'}>
+        <AdminLayout active={'announcement-approvals'}>
             <AdminPageSkeleton rows={5} />
         </AdminLayout>
     ),
@@ -50,7 +50,7 @@ function AnnouncementApprovals({
     );
 
     return (
-        <AdminLayout active="overview">
+        <AdminLayout active="announcement-approvals">
             <Head title="Programs" />
 
                 <div className="space-y-5">

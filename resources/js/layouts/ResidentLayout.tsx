@@ -264,14 +264,14 @@ export default function ResidentLayout({
                     DESKTOP SIDEBAR
                 ======================================================== */}
 
-                <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start border-r border-line-soft bg-surface md:flex">
-                    <div className="flex h-16 shrink-0 items-center gap-3 border-b border-line-soft px-5">
-                        <LogoMark size="sm" />
+                <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start bg-brand md:flex">
+                    <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/15 px-4">
+                        <LogoMark tone="onBrand" size="sm" />
                         <div className="min-w-0 leading-tight">
-                            <p className="truncate text-[13px] font-semibold text-ink-strong">
+                            <p className="truncate text-[13px] font-semibold text-white">
                                 {barangayName}
                             </p>
-                            <p className="truncate text-[11px] text-ink-muted">
+                            <p className="truncate text-[11px] text-white/65">
                                 Resident Portal
                             </p>
                         </div>
@@ -280,7 +280,7 @@ export default function ResidentLayout({
                     <nav className="scrollbar-slim flex-1 space-y-4 overflow-y-auto px-3 py-5">
                         {residentMoreNav.map((group) => (
                             <div key={group.label}>
-                                <p className="mb-1.5 px-3 text-[10px] font-semibold tracking-wider text-ink-faint uppercase">
+                                <p className="mb-1.5 px-3 text-[10px] font-semibold tracking-wider text-white/50 uppercase">
                                     {group.label}
                                 </p>
                                 <div className="space-y-1">
@@ -296,32 +296,32 @@ export default function ResidentLayout({
                         ))}
                     </nav>
 
-                    <div className="shrink-0 border-t border-line-soft p-3">
+                    <div className="shrink-0 border-t border-white/15 p-3">
                         <Link
                             href="/resident/profile"
-                            className="flex items-center gap-3 rounded-xl bg-canvas px-3 py-2.5 transition-colors hover:bg-brand-soft"
+                            className="flex items-center gap-3 rounded-lg bg-white/10 px-3 py-2.5 transition-colors hover:bg-white/15"
                         >
-                            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand text-xs font-semibold text-white">
+                            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white text-xs font-semibold text-brand">
                                 {initials}
                             </span>
                             <div className="min-w-0 flex-1 leading-tight">
-                                <p className="truncate text-[13px] font-medium text-ink-strong">
+                                <p className="truncate text-[13px] font-medium text-white">
                                     {residentName}
                                 </p>
-                                <p className="truncate text-[11px] text-ink-muted">
+                                <p className="truncate text-[11px] text-white/65">
                                     Resident
                                 </p>
                             </div>
-                            <ChevronRight className="size-4 shrink-0 text-ink-faint" />
+                            <ChevronRight className="size-4 shrink-0 text-white/60" />
                         </Link>
 
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className="mt-1 flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-xs font-medium text-ink-muted transition-colors hover:bg-danger-soft hover:text-red-700"
+                            className="mt-2 flex h-9 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
                         >
-                            <LogOut className="size-4" />
-                            Logout
+                            <LogOut className="size-[18px] shrink-0" />
+                            <span>Logout</span>
                         </button>
                     </div>
                 </aside>
@@ -517,8 +517,8 @@ function SidebarLinkRow({
             href={item.to}
             className={
                 isActive
-                    ? 'flex min-h-10 items-center gap-3 rounded-lg bg-brand-soft px-3 text-sm font-medium text-brand-deep'
-                    : 'flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-ink-muted transition-colors hover:bg-canvas hover:text-ink-strong'
+                    ? 'flex min-h-10 items-center gap-3 rounded-lg bg-white px-3 text-sm font-medium text-brand shadow-card'
+                    : 'flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white'
             }
         >
             <Icon className="size-[18px] shrink-0" strokeWidth={1.9} />

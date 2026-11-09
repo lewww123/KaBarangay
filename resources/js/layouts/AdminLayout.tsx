@@ -1,26 +1,29 @@
-import { Link, router, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
-import DesktopOnly from '@/components/DesktopOnly';
-import { LogoMark } from '@/components/Logo';
-import { formatBarangayLabel } from '@/lib/formatBarangayLabel';
 import {
     BarChart3,
     Building2,
+    ClipboardCheck,
     ClipboardList,
     FileBarChart,
+    FileText,
     LayoutDashboard,
-    LogOut,
+    Megaphone,
     Network,
     Phone,
+    ScanLine,
     Settings,
     UserCog,
     Users,
 } from 'lucide-react';
 
+import DeskLayout, { DeskNavGroup, DeskNavLink } from '@/layouts/DeskLayout';
+
 type AdminPage =
     | 'overview'
     | 'residents'
     | 'qr-scanner'
+    | 'announcement-approvals'
     | 'sectors'
     | 'sector-applications'
     | 'certificates'
@@ -37,112 +40,119 @@ type AdminLayoutProps = {
     active: AdminPage;
 };
 
-type NavItem = {
-    label: string;
-    to: string;
-    icon: typeof LayoutDashboard;
-    active: boolean;
-};
-
 export default function AdminLayout({ children, active }: AdminLayoutProps) {
-    const handleLogout = () => {
-        router.post('/logout');
-    };
     const { auth } = usePage<{
-        auth?: { activeBarangay?: { id: number; name: string } | null };
+        auth?: {
+            user?: { name?: string };
+            activeBarangay?: { id: number; name: string } | null;
+        };
     }>().props;
-    const barangayLabel = formatBarangayLabel(auth?.activeBarangay?.name);
 
-    const navItems: NavItem[] = [
-        { label: 'Overview', to: '/admin', icon: LayoutDashboard, active: active === 'overview' },
-        { label: 'Residents', to: '/admin/residents', icon: Users, active: active === 'residents' },
-        { label: 'Sectors', to: '/admin/sectors', icon: Building2, active: active === 'sectors' || active === 'sector-applications' },
-        { label: 'Staff', to: '/admin/staff', icon: UserCog, active: active === 'staff' },
-        { label: 'Population', to: '/admin/population', icon: BarChart3, active: active === 'population' },
-        { label: 'Audit Log', to: '/admin/audit-log', icon: ClipboardList, active: active === 'audit-log' },
-        { label: 'Reports', to: '/admin/reports', icon: FileBarChart, active: active === 'reports' },
-        { label: 'Org Chart', to: '/admin/org-chart', icon: Network, active: active === 'org-chart' },
-        { label: 'Emergency Numbers', to: '/admin/emergency-numbers', icon: Phone, active: active === 'emergency-numbers' },
-        { label: 'Settings', to: '/admin/settings', icon: Settings, active: active === 'settings' },
-    ];
+    const name = auth?.user?.name || 'Barangay Admin';
 
     return (
-        <div className="min-h-screen bg-canvas text-ink">
-            <div className="hidden lg:block">
-                <header className="flex min-h-14 items-center justify-between border-b border-line-soft bg-surface px-5 py-3">
-                    <div className="flex items-center gap-3">
-                        <LogoMark tone="onBrand" size="sm" />
-                        <div className="leading-tight">
-                            <p className="text-sm font-semibold text-ink-strong">
-                                {barangayLabel}
-                            </p>
-                            <p className="text-xs text-ink-muted">
-                                Admin / Superuser
-                            </p>
-                        </div>
-                    </div>
+        <DeskLayout
+            portalLabel="Admin Portal"
+            user={{ name, role: 'Administrator' }}
+            searchPlaceholder="Search residents or requests"
+            nav={
+                <>
+                    <DeskNavGroup>
+                        <DeskNavLink
+                            href="/admin"
+                            icon={LayoutDashboard}
+                            label="Overview"
+                            active={active === 'overview'}
+                        />
+                        <DeskNavLink
+                            href="/admin/residents"
+                            icon={Users}
+                            label="Residents"
+                            active={active === 'residents'}
+                        />
+                        <DeskNavLink
+                            href="/admin/qr-scanner"
+                            icon={ScanLine}
+                            label="QR Scanner"
+                            active={active === 'qr-scanner'}
+                        />
+                        <DeskNavLink
+                            href="/admin/announcements/approvals"
+                            icon={Megaphone}
+                            label="Announcement Approvals"
+                            active={active === 'announcement-approvals'}
+                        />
+                        <DeskNavLink
+                            href="/admin/certificates"
+                            icon={FileText}
+                            label="Certificate Requests"
+                            active={active === 'certificates'}
+                        />
+                    </DeskNavGroup>
 
-                    <div className="flex items-center gap-3">
-                        <span className="hidden text-sm text-ink-muted sm:inline">
-                            Admin / Superuser
-                        </span>
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand">
-                            A
-                        </div>
-                    </div>
-                </header>
+                    <DeskNavGroup label="Barangay Records">
+                        <DeskNavLink
+                            href="/admin/sectors"
+                            icon={Building2}
+                            label="Sectors"
+                            active={active === 'sectors'}
+                        />
+                        <DeskNavLink
+                            href="/admin/sector-applications"
+                            icon={ClipboardCheck}
+                            label="Sector Applications"
+                            active={active === 'sector-applications'}
+                        />
+                        <DeskNavLink
+                            href="/admin/staff"
+                            icon={UserCog}
+                            label="Staff"
+                            active={active === 'staff'}
+                        />
+                        <DeskNavLink
+                            href="/admin/population"
+                            icon={BarChart3}
+                            label="Population"
+                            active={active === 'population'}
+                        />
+                        <DeskNavLink
+                            href="/admin/reports"
+                            icon={FileBarChart}
+                            label="Reports"
+                            active={active === 'reports'}
+                        />
+                        <DeskNavLink
+                            href="/admin/org-chart"
+                            icon={Network}
+                            label="Org Chart"
+                            active={active === 'org-chart'}
+                        />
+                        <DeskNavLink
+                            href="/admin/emergency-numbers"
+                            icon={Phone}
+                            label="Emergency Numbers"
+                            active={active === 'emergency-numbers'}
+                        />
+                    </DeskNavGroup>
 
-                <div className="flex min-h-[calc(100vh-57px)]">
-                    <aside className="flex w-60 shrink-0 flex-col border-r border-line-soft bg-surface px-3 py-5">
-                        <p className="mb-3 px-3 text-[10px] font-semibold tracking-wide text-ink-faint uppercase">
-                            Admin Access
-                        </p>
-
-                        <nav className="space-y-1">
-                            {navItems.map((item) => (
-                                <SidebarLink key={item.to} {...item} />
-                            ))}
-                        </nav>
-
-                        <div className="mt-auto border-t border-line-soft pt-4">
-                            <button
-                                type="button"
-                                onClick={handleLogout}
-                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-danger-soft"
-                            >
-                                <LogOut className="size-4" />
-                                <span>Logout</span>
-                            </button>
-                        </div>
-                    </aside>
-
-                    <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-7">
-                        {children}
-                    </main>
-                </div>
-            </div>
-
-            <div className="lg:hidden">
-                <DesktopOnly />
-            </div>
-        </div>
-    );
-}
-
-function SidebarLink({ label, to, icon: Icon, active }: NavItem) {
-    return (
-        <Link
-            prefetch="hover"
-            cacheFor="10s"
-            href={to}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                active
-                    ? 'bg-brand-soft text-brand'
-                    : 'text-ink-muted hover:bg-canvas hover:text-ink'
-            }`}
+                    <DeskNavGroup label="System">
+                        <DeskNavLink
+                            href="/admin/audit-log"
+                            icon={ClipboardList}
+                            label="Audit Log"
+                            active={active === 'audit-log'}
+                        />
+                        <DeskNavLink
+                            href="/admin/settings"
+                            icon={Settings}
+                            label="Settings"
+                            active={active === 'settings'}
+                        />
+                    </DeskNavGroup>
+                </>
+            }
         >
-            <Icon className="size-4 shrink-0" />
-            <span>{label}</span>
-        </Link>
+            {children}
+        </DeskLayout>
     );
 }

@@ -1,5 +1,15 @@
 import BirthdateInput from '@/components/BirthdateInput';
 import { Deferred, Head, router, useForm } from '@inertiajs/react';
+import {
+    ChevronLeft,
+    ChevronRight,
+    Home,
+    Search,
+    ShieldCheck,
+    UserRoundPlus,
+    Users,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import AdminPageSkeleton from '@/components/AdminPageSkeleton';
@@ -1411,23 +1421,27 @@ export default function Residents({
             <Head title="Residents" />
 
             <AdminLayout active="residents">
-                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold text-ink-strong">
+                <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+                    <div className="min-w-0">
+                        <p className="text-[11px] font-semibold tracking-wider text-brand uppercase">
+                            Admin
+                        </p>
+                        <h1 className="mt-1 text-xl font-semibold tracking-tight text-ink-strong">
                             Resident Management
                         </h1>
-                        <p className="mt-1 text-sm text-ink-muted">
+                        <p className="mt-1 max-w-2xl text-sm text-ink-muted">
                             Manage verified online accounts and official
                             Resident records
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
                             onClick={() => setShowCreateResident(true)}
-                            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30]"
+                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand/90"
                         >
+                            <UserRoundPlus className="size-4" />
                             Add Resident
                         </button>
                     </div>
@@ -1446,16 +1460,23 @@ export default function Residents({
                 >
                     <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <SummaryCard
+                            icon={Users}
                             title="Total Residents"
                             value={stats.totalResidents}
+                            hint="Official records in your barangay"
                         />
                         <SummaryCard
+                            icon={Home}
                             title="Households"
                             value={stats.totalHouseholds}
+                            hint="Grouped by household code"
+                            tone="neutral"
                         />
                         <SummaryCard
+                            icon={ShieldCheck}
                             title="Active Residents"
                             value={stats.activeResidents}
+                            hint="Cleared for barangay services"
                         />
                     </div>
 
@@ -1465,75 +1486,85 @@ export default function Residents({
                         onSelect={selectPurok}
                     />
 
-                    <div className="mb-5 flex flex-col gap-4 border-b border-line-soft sm:flex-row sm:items-end sm:justify-between">
-                        <div className="flex overflow-x-auto">
-                            <TabButton
-                                label={`All Residents (${allResidentsTotal})`}
-                                active={activeTab === 'all'}
-                                onClick={() => selectTab('all')}
-                            />
-                            <TabButton
-                                label={`Households (${householdTotal})`}
-                                active={activeTab === 'households'}
-                                onClick={() => selectTab('households')}
-                            />
-                            <TabButton
-                                label={`Added by Admin (${addedByAdminTotal})`}
-                                active={activeTab === 'added_by_admin'}
-                                onClick={() => selectTab('added_by_admin')}
-                            />
-                            <TabButton
-                                label={`Pending Accounts (${pendingTotal})`}
-                                active={activeTab === 'pending'}
-                                onClick={() => selectTab('pending')}
-                            />
-                            <TabButton
-                                label={`Needs Correction (${needsCorrectionTotal})`}
-                                active={activeTab === 'needs_correction'}
-                                onClick={() => selectTab('needs_correction')}
-                            />
-                            <TabButton
-                                label={`Rejected (${rejectedTotal})`}
-                                active={activeTab === 'rejected'}
-                                onClick={() => selectTab('rejected')}
-                            />
-                        </div>
+                    <div className="overflow-hidden rounded-xl border border-line-soft bg-surface">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-5 py-3">
+                            <div className="scrollbar-slim inline-flex max-w-full flex-nowrap gap-1 overflow-x-auto rounded-lg border border-line-soft bg-canvas p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                <TabButton
+                                    label="All Residents"
+                                    count={allResidentsTotal}
+                                    active={activeTab === 'all'}
+                                    onClick={() => selectTab('all')}
+                                />
+                                <TabButton
+                                    label="Households"
+                                    count={householdTotal}
+                                    active={activeTab === 'households'}
+                                    onClick={() => selectTab('households')}
+                                />
+                                <TabButton
+                                    label="Added by Admin"
+                                    count={addedByAdminTotal}
+                                    active={activeTab === 'added_by_admin'}
+                                    onClick={() => selectTab('added_by_admin')}
+                                />
+                                <TabButton
+                                    label="Pending Accounts"
+                                    count={pendingTotal}
+                                    active={activeTab === 'pending'}
+                                    onClick={() => selectTab('pending')}
+                                />
+                                <TabButton
+                                    label="Needs Correction"
+                                    count={needsCorrectionTotal}
+                                    active={activeTab === 'needs_correction'}
+                                    onClick={() => selectTab('needs_correction')}
+                                />
+                                <TabButton
+                                    label="Rejected"
+                                    count={rejectedTotal}
+                                    active={activeTab === 'rejected'}
+                                    onClick={() => selectTab('rejected')}
+                                />
+                            </div>
 
-                        <div className="pb-3">
-                            <input
-                                type="text"
-                                value={
-                                    activeTab === 'all' ||
-                                    activeTab === 'added_by_admin'
-                                        ? approvedSearch
-                                        : registrationSearch
-                                }
-                                onChange={(event) => {
-                                    if (
+                            <div className="relative w-full sm:w-72">
+                                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-faint" />
+                                <input
+                                    type="search"
+                                    value={
                                         activeTab === 'all' ||
                                         activeTab === 'added_by_admin'
-                                    ) {
-                                        setApprovedSearch(event.target.value);
-                                    } else {
-                                        setRegistrationSearch(
-                                            event.target.value,
-                                        );
+                                            ? approvedSearch
+                                            : registrationSearch
                                     }
-                                }}
-                                placeholder={
-                                    activeTab === 'all' ||
-                                    activeTab === 'added_by_admin'
-                                        ? 'Search resident...'
-                                        : 'Search applicant...'
-                                }
-                                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink-strong outline-none placeholder:text-ink-faint focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d] sm:w-72"
-                            />
+                                    onChange={(event) => {
+                                        if (
+                                            activeTab === 'all' ||
+                                            activeTab === 'added_by_admin'
+                                        ) {
+                                            setApprovedSearch(
+                                                event.target.value,
+                                            );
+                                        } else {
+                                            setRegistrationSearch(
+                                                event.target.value,
+                                            );
+                                        }
+                                    }}
+                                    placeholder={
+                                        activeTab === 'all' ||
+                                        activeTab === 'added_by_admin'
+                                            ? 'Search resident...'
+                                            : 'Search applicant...'
+                                    }
+                                    className="h-9 w-full rounded-lg border border-line-soft bg-surface pr-3 pl-9 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/20"
+                                />
+                            </div>
                         </div>
-                    </div>
 
                     {flash?.success && (
-                        <div className="mb-4 rounded-lg border border-[#b7d8b2] bg-[#edf4ea] px-4 py-3">
-                            <p className="text-sm font-medium text-[#3f6f3d]">
+                        <div className="mb-4 rounded-lg border border-success/30 bg-success-soft px-4 py-3">
+                            <p className="text-sm font-medium text-success">
                                 {flash.success}
                             </p>
                         </div>
@@ -1609,7 +1640,7 @@ export default function Residents({
                                             createHouseholdForm.reset();
                                             setShowCreateHousehold(true);
                                         }}
-                                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white shadow-card hover:bg-[#345c32]"
+                                        className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white shadow-card hover:bg-brand/90"
                                     >
                                         + Create Household
                                     </button>
@@ -1658,7 +1689,7 @@ export default function Residents({
                                         pendingPaginator.current_page > 1) && (
                                         <button
                                             type="button"
-                                            className="text-sm font-semibold text-[#315b30] underline"
+                                            className="text-sm font-semibold text-brand underline"
                                             onClick={() => {
                                                 setRegistrationSearch('');
                                                 lastQueriedRegistration.current =
@@ -1751,6 +1782,7 @@ export default function Residents({
                             />
                         </Deferred>
                     )}
+                    </div>
                 </Deferred>
 
                 {selectedApplication && (
@@ -2236,7 +2268,7 @@ export default function Residents({
                                     <button
                                         type="submit"
                                         disabled={createResidentForm.processing}
-                                        className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
+                                        className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-60"
                                     >
                                         {createResidentForm.processing
                                             ? 'Creating...'
@@ -2589,7 +2621,7 @@ export default function Residents({
                                     <button
                                         type="submit"
                                         disabled={editResidentForm.processing}
-                                        className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
+                                        className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-60"
                                     >
                                         {editResidentForm.processing
                                             ? 'Saving...'
@@ -2778,7 +2810,7 @@ export default function Residents({
                                     <button
                                         type="submit"
                                         disabled={createHouseholdForm.processing}
-                                        className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
+                                        className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-60"
                                     >
                                         {createHouseholdForm.processing ? 'Creating...' : 'Create Household'}
                                     </button>
@@ -2849,7 +2881,7 @@ export default function Residents({
                                                                     setViewingHousehold(null);
                                                                     openResidentDetails(m.id);
                                                                 }}
-                                                                className="font-medium text-[#3f6f3d] hover:underline"
+                                                                className="font-medium text-brand hover:underline"
                                                             >
                                                                 View
                                                             </button>
@@ -2930,7 +2962,7 @@ export default function Residents({
                                         <button
                                             type="submit"
                                             disabled={editHouseholdForm.processing}
-                                            className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-xs font-semibold text-white hover:bg-[#315b30] disabled:opacity-60"
+                                            className="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white hover:bg-brand/90 disabled:opacity-60"
                                         >
                                             {editHouseholdForm.processing ? 'Saving...' : 'Update Details'}
                                         </button>
@@ -3054,7 +3086,7 @@ export default function Residents({
                                                         setAddMemberResidentSearch('');
                                                         addMemberForm.setData('resident_id', '');
                                                     }}
-                                                    className="font-medium text-[#3f6f3d] hover:underline"
+                                                    className="font-medium text-brand hover:underline"
                                                 >
                                                     Change
                                                 </button>
@@ -3082,7 +3114,7 @@ export default function Residents({
                                                 <button
                                                     type="submit"
                                                     disabled={addMemberForm.processing || !addMemberForm.data.resident_id}
-                                                    className="rounded bg-[#3f6f3d] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#345c32] disabled:opacity-50"
+                                                    className="rounded bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand/90 disabled:opacity-50"
                                                 >
                                                     {addMemberForm.processing ? 'Adding...' : 'Add Member'}
                                                 </button>
@@ -3139,7 +3171,7 @@ export default function Residents({
                                                             }}
                                                             className="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-canvas"
                                                         >
-                                                            <span className="font-mono font-medium text-[#3f6f3d]">{h.code}</span>
+                                                            <span className="font-mono font-medium text-brand">{h.code}</span>
                                                             <span className="text-ink-muted">{h.head}</span>
                                                         </button>
                                                     ))}
@@ -3184,7 +3216,7 @@ export default function Residents({
                                     <button
                                         type="submit"
                                         disabled={transferMemberForm.processing || !transferMemberForm.data.target_household_id}
-                                        className="rounded bg-[#3f6f3d] px-3 py-1.5 font-medium text-white hover:bg-[#345c32] disabled:opacity-50"
+                                        className="rounded bg-brand px-3 py-1.5 font-medium text-white hover:bg-brand/90 disabled:opacity-50"
                                     >
                                         {transferMemberForm.processing ? 'Transferring...' : 'Confirm Transfer'}
                                     </button>
@@ -3212,16 +3244,16 @@ function HouseholdsTable({
     loadingHouseholdId: number | null;
 }) {
     return (
-        <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
+        <div className="overflow-hidden bg-white">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[640px]">
-                    <thead className="border-b border-line-soft bg-[#fafaf7]">
+                    <thead className="border-b border-line-soft bg-surface">
                         <tr>
                             <TableHead>Household Code</TableHead>
                             <TableHead>Family Head</TableHead>
                             <TableHead>Purok</TableHead>
                             <TableHead>Members</TableHead>
-                            <th className="px-5 py-3 text-right text-xs font-semibold tracking-wide text-ink-faint uppercase">
+                            <th className="px-5 py-3 text-right text-sm font-medium text-ink-muted">
                                 Action
                             </th>
                         </tr>
@@ -3232,7 +3264,7 @@ function HouseholdsTable({
                                 key={household.id}
                                 className="border-b border-line-soft"
                             >
-                                <td className="px-5 py-4 font-mono text-xs font-semibold text-[#3f6f3d]">
+                                <td className="px-5 py-4 font-mono text-xs font-semibold text-ink-muted">
                                     {household.code}
                                 </td>
                                 <td className="px-5 py-4 text-sm text-ink-strong">
@@ -3308,10 +3340,10 @@ function AddedByAdminResidentsTable({
     onView: (resident: Resident) => void;
 }) {
     return (
-        <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
+        <div className="overflow-hidden bg-white">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[1120px]">
-                    <thead className="border-b border-line-soft bg-[#fafaf7]">
+                    <thead className="border-b border-line-soft bg-surface">
                         <tr>
                             <TableHead>Resident ID</TableHead>
                             <TableHead>Resident</TableHead>
@@ -3320,7 +3352,7 @@ function AddedByAdminResidentsTable({
                             <TableHead>Resident Status</TableHead>
                             <TableHead>Login Account</TableHead>
                             <TableHead>QR Code</TableHead>
-                            <th className="px-5 py-3 text-right text-xs font-semibold tracking-wide text-ink-faint uppercase">
+                            <th className="px-5 py-3 text-right text-sm font-medium text-ink-muted">
                                 Action
                             </th>
                         </tr>
@@ -3335,11 +3367,11 @@ function AddedByAdminResidentsTable({
                                         : ''
                                 }
                             >
-                                <td className="px-5 py-4 font-mono text-xs font-semibold text-[#3f6f3d]">
+                                <td className="px-5 py-4 font-mono text-xs font-semibold text-ink-muted">
                                     <button
                                         type="button"
                                         onClick={() => onView(resident)}
-                                        className="text-left hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[#3f6f3d] focus-visible:outline-none"
+                                        className="text-left hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
                                         aria-label={`View details for Resident ID ${resident.residentId}`}
                                     >
                                         {resident.residentId}
@@ -3349,7 +3381,7 @@ function AddedByAdminResidentsTable({
                                     <button
                                         type="button"
                                         onClick={() => onView(resident)}
-                                        className="text-left text-sm font-medium text-ink-strong hover:text-[#3f6f3d] hover:underline"
+                                        className="text-left text-sm font-medium text-ink-strong hover:text-brand hover:underline"
                                     >
                                         {resident.fullName}
                                     </button>
@@ -3395,7 +3427,7 @@ function AddedByAdminResidentsTable({
                                             onClick={() =>
                                                 onToggleStatus(resident)
                                             }
-                                            className="text-xs font-medium text-[#3f6f3d] hover:underline"
+                                            className="text-xs font-medium text-brand hover:underline"
                                         >
                                             {resident.status === 'active'
                                                 ? 'Deactivate'
@@ -3407,7 +3439,7 @@ function AddedByAdminResidentsTable({
                                             onClick={() =>
                                                 onToggleAccount(resident)
                                             }
-                                            className="text-xs font-medium text-[#3f6f3d] hover:underline"
+                                            className="text-xs font-medium text-brand hover:underline"
                                         >
                                             {resident.accountActive
                                                 ? 'Disable Login'
@@ -3431,7 +3463,7 @@ function AddedByAdminResidentsTable({
                                             onClick={() =>
                                                 onReissueQr(resident)
                                             }
-                                            className="text-xs font-medium text-[#3f6f3d] hover:underline"
+                                            className="text-xs font-medium text-brand hover:underline"
                                         >
                                             {resident.qrStatus === 'none'
                                                 ? 'Issue QR'
@@ -3480,7 +3512,7 @@ function StatusBadge({
         <span
             className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
                 active
-                    ? 'bg-[#edf4ea] text-[#3f6f3d]'
+                    ? 'bg-success-soft text-success'
                     : 'bg-secondary text-ink-muted'
             }`}
         >
@@ -3498,18 +3530,25 @@ function Pagination<T>({
     onNavigate: (url: string) => void;
     label?: string;
 }) {
-    if (paginator.last_page <= 1) {
+    if (!paginator.total) {
         return null;
     }
 
     return (
-        <div className="flex flex-col gap-3 border-t border-line-soft px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-ink-muted">
-                Showing {paginator.from ?? 0}–{paginator.to ?? 0} of{' '}
-                {paginator.total} {label}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft px-5 py-3 text-xs text-ink-muted">
+            <p>
+                Showing{' '}
+                <span className="font-medium text-ink tnum">
+                    {paginator.from ?? 0}&ndash;{paginator.to ?? 0}
+                </span>{' '}
+                of{' '}
+                <span className="font-medium text-ink tnum">
+                    {paginator.total}
+                </span>
+                {label ? ` ${label}` : ''}
             </p>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
                 <button
                     type="button"
                     disabled={!paginator.prev_page_url}
@@ -3517,13 +3556,14 @@ function Pagination<T>({
                         paginator.prev_page_url &&
                         onNavigate(paginator.prev_page_url)
                     }
-                    className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="Previous page"
+                    className="grid size-8 place-items-center rounded-md border border-line-soft bg-surface text-ink-muted transition-colors hover:text-brand disabled:pointer-events-none disabled:opacity-40"
                 >
-                    Previous
+                    <ChevronLeft className="size-4" />
                 </button>
 
-                <span className="text-xs text-ink-muted">
-                    Page {paginator.current_page} of {paginator.last_page}
+                <span className="px-1 text-ink tnum">
+                    {paginator.current_page} / {paginator.last_page}
                 </span>
 
                 <button
@@ -3533,9 +3573,10 @@ function Pagination<T>({
                         paginator.next_page_url &&
                         onNavigate(paginator.next_page_url)
                     }
-                    className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="Next page"
+                    className="grid size-8 place-items-center rounded-md border border-line-soft bg-surface text-ink-muted transition-colors hover:text-brand disabled:pointer-events-none disabled:opacity-40"
                 >
-                    Next
+                    <ChevronRight className="size-4" />
                 </button>
             </div>
         </div>
@@ -3564,16 +3605,16 @@ function PendingRegistrationsTable({
     onRetryNotification: (notificationId: number) => void;
 }) {
     return (
-        <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
+        <div className="overflow-hidden bg-white">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[950px]">
-                    <thead className="border-b border-line-soft bg-[#fafaf7]">
+                    <thead className="border-b border-line-soft bg-surface">
                         <tr>
                             <TableHead>Applicant</TableHead>
                             <TableHead>Purok</TableHead>
                             <TableHead>Sector</TableHead>
                             <TableHead>Submitted</TableHead>
-                            <th className="px-5 py-3 text-right text-xs font-semibold tracking-wide text-ink-faint uppercase">
+                            <th className="px-5 py-3 text-right text-sm font-medium text-ink-muted">
                                 Action
                             </th>
                         </tr>
@@ -3667,7 +3708,7 @@ function PendingRegistrationsTable({
                                             disabled={
                                                 processingApproveId !== null
                                             }
-                                            className="rounded-lg bg-[#3f6f3d] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="rounded-lg bg-brand px-3 py-2 text-xs font-medium text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             {processingApproveId ===
                                             application.id
@@ -3729,10 +3770,10 @@ function AllResidentsTable({
     const rows = Array.isArray(paginator.data) ? paginator.data : [];
 
     return (
-        <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
+        <div className="overflow-hidden bg-white">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[1080px]">
-                    <thead className="border-b border-line-soft bg-[#fafaf7]">
+                    <thead className="border-b border-line-soft bg-surface">
                         <tr>
                             <TableHead>Resident ID</TableHead>
                             <TableHead>Resident</TableHead>
@@ -3740,7 +3781,7 @@ function AllResidentsTable({
                             <TableHead>Sector</TableHead>
                             <TableHead>Account</TableHead>
                             <TableHead>Resident Status</TableHead>
-                            <th className="px-5 py-3 text-right text-xs font-semibold tracking-wide text-ink-faint uppercase">
+                            <th className="px-5 py-3 text-right text-sm font-medium text-ink-muted">
                                 Action
                             </th>
                         </tr>
@@ -3752,8 +3793,8 @@ function AllResidentsTable({
                                 key={`${row.type}-${row.id}`}
                                 className={
                                     index !== rows.length - 1
-                                        ? 'border-b border-line-soft'
-                                        : ''
+                                        ? 'border-b border-line-soft transition-colors hover:bg-canvas/60'
+                                        : 'transition-colors hover:bg-canvas/60'
                                 }
                             >
                                 <td className="px-5 py-4 font-mono text-xs font-semibold text-ink-muted">
@@ -3761,7 +3802,7 @@ function AllResidentsTable({
                                 </td>
 
                                 <td className="px-5 py-4">
-                                    <p className="text-sm font-medium text-ink-strong">
+                                    <p className="text-sm font-semibold text-ink-strong">
                                         {row.fullName}
                                     </p>
                                     <p className="mt-0.5 text-xs text-ink-faint">
@@ -3817,7 +3858,7 @@ function AllResidentsTable({
                                             onClick={() =>
                                                 onToggleAccount(row)
                                             }
-                                            className="text-xs font-medium text-[#3f6f3d] hover:underline"
+                                            className="text-xs font-medium text-brand hover:underline"
                                         >
                                             {row.accountActive
                                                 ? 'Disable'
@@ -3873,16 +3914,16 @@ function RejectedRegistrationsTable({
     onRetryNotification: (notificationId: number) => void;
 }) {
     return (
-        <div className="overflow-hidden rounded-lg border border-line-soft bg-white">
+        <div className="overflow-hidden bg-white">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[950px]">
-                    <thead className="border-b border-line-soft bg-[#fafaf7]">
+                    <thead className="border-b border-line-soft bg-surface">
                         <tr>
                             <TableHead>Applicant</TableHead>
                             <TableHead>Purok</TableHead>
                             <TableHead>Sector</TableHead>
                             <TableHead>Reviewed</TableHead>
-                            <th className="px-5 py-3 text-right text-xs font-semibold tracking-wide text-ink-faint uppercase">
+                            <th className="px-5 py-3 text-right text-sm font-medium text-ink-muted">
                                 Action
                             </th>
                         </tr>
@@ -3999,11 +4040,11 @@ function StatusPill({ status }: { status: string }) {
     const normalized = (status || '').toLowerCase();
 
     const styles: Record<string, string> = {
-        active: 'bg-[#edf4ea] text-[#3f6f3d]',
-        approved: 'bg-[#edf4ea] text-[#3f6f3d]',
-        pending: 'bg-[#fff4d8] text-[#946b00]',
-        needs_correction: 'bg-[#fde8e8] text-[#b23b3b]',
-        rejected: 'bg-red-50 text-red-600',
+        active: 'bg-success-soft text-success',
+        approved: 'bg-success-soft text-success',
+        pending: 'bg-warning-soft text-warning',
+        needs_correction: 'bg-danger-soft text-destructive',
+        rejected: 'bg-danger-soft text-destructive',
         inactive: 'bg-secondary text-ink-muted',
     };
 
@@ -4256,7 +4297,7 @@ function ResidentQrPanel({ residentId }: { residentId: number }) {
     };
 
     return (
-        <div className="rounded-lg border border-line-soft bg-[#fafaf7] p-4">
+        <div className="rounded-lg border border-line-soft bg-canvas/60 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <p className="text-[10px] font-semibold tracking-wide text-ink-faint uppercase">
@@ -4272,7 +4313,7 @@ function ResidentQrPanel({ residentId }: { residentId: number }) {
                     type="button"
                     onClick={reveal}
                     disabled={loading}
-                    className="rounded-lg border border-[#3f6f3d] px-3 py-2 text-xs font-semibold text-[#3f6f3d] hover:bg-[#edf4ea] disabled:opacity-60"
+                    className="rounded-lg border border-brand px-3 py-2 text-xs font-semibold text-brand transition-colors hover:bg-brand-soft disabled:opacity-60"
                 >
                     {loading
                         ? 'Loading...'
@@ -4371,7 +4412,7 @@ function RegistrationDetailsBody({
             </div>
 
             {registration.review_notes && (
-                <div className="rounded-lg border border-line-soft bg-[#fafaf7] p-4">
+                <div className="rounded-lg border border-line-soft bg-canvas/60 p-4">
                     <p className="text-[10px] font-semibold tracking-wide text-ink-faint uppercase">
                         Review Notes
                     </p>
@@ -4957,7 +4998,7 @@ function ApplicationModal({
                             !selectedCandidate ||
                             selectedCandidate.account_exists
                         }
-                        className="rounded-lg bg-[#3f6f3d] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#315b30] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {processingApprove
                             ? 'Approving...'
@@ -5193,7 +5234,7 @@ function CorrectionRequestModal({
                         <button
                             type="submit"
                             disabled={form.processing}
-                            className="rounded-lg bg-[#3f6f3d] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                         >
                             {form.processing
                                 ? 'Saving…'
@@ -5216,7 +5257,7 @@ function ApplicationDocuments({
     );
     if (documents.length === 0) {
         return (
-            <div className="rounded-lg border border-line-soft bg-[#fafaf7] p-4">
+            <div className="rounded-lg border border-line-soft bg-canvas/60 p-4">
                 <p className="text-sm font-medium text-ink-muted">
                     No registration documents found.
                 </p>
@@ -5231,7 +5272,7 @@ function ApplicationDocuments({
                     key={document.id}
                     className="overflow-hidden rounded-lg border border-line-soft bg-white"
                 >
-                    <div className="border-b border-line-soft bg-[#fafaf7] px-4 py-3">
+                    <div className="border-b border-line-soft bg-canvas/60 px-4 py-3">
                         <div className="flex items-start justify-between gap-3">
                             <div>
                                 <p className="text-sm font-semibold text-ink-strong">
@@ -5457,54 +5498,74 @@ const inputClass =
     'w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-[#3f6f3d] focus:ring-1 focus:ring-[#3f6f3d]';
 
 function SummaryCard({
+    icon: Icon,
     title,
     value,
-    highlight = false,
+    hint,
+    tone = 'brand',
 }: {
+    icon: LucideIcon;
     title: string;
     value: number;
-    highlight?: boolean;
+    hint?: string;
+    tone?: 'brand' | 'neutral';
 }) {
     return (
-        <div
-            className={`rounded-lg border p-5 ${
-                highlight
-                    ? 'border-[#b7d8b2] bg-[#edf4ea]'
-                    : 'border-line-soft bg-white'
-            }`}
-        >
-            <p
-                className={`text-xs font-medium tracking-wide uppercase ${
-                    highlight ? 'text-[#3f6f3d]' : 'text-ink-faint'
-                }`}
-            >
-                {title}
+        <div className="rounded-xl border border-line-soft bg-surface p-4 shadow-card transition-shadow hover:shadow-raised">
+            <div className="flex items-start justify-between gap-3">
+                <span
+                    className={`grid size-9 place-items-center rounded-lg ${
+                        tone === 'brand'
+                            ? 'bg-brand-soft text-brand'
+                            : 'bg-canvas text-ink-muted'
+                    }`}
+                >
+                    <Icon className="size-[18px]" />
+                </span>
+            </div>
+
+            <p className="tnum mt-4 text-2xl font-semibold tracking-tight text-ink-strong">
+                {value}
             </p>
-            <p className="mt-3 text-3xl font-semibold text-ink-strong">{value}</p>
+            <p className="mt-0.5 text-[13px] text-ink-muted">{title}</p>
+            {hint && <p className="mt-2 text-xs text-ink-faint">{hint}</p>}
         </div>
     );
 }
 
 function TabButton({
     label,
+    count,
     active,
     onClick,
 }: {
     label: string;
+    count: number;
     active: boolean;
     onClick: () => void;
 }) {
     return (
         <button
             type="button"
+            role="tab"
+            aria-selected={active}
             onClick={onClick}
-            className={`border-b-2 px-4 py-3 text-sm font-medium whitespace-nowrap ${
+            className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-xs font-medium whitespace-nowrap transition-colors ${
                 active
-                    ? 'border-[#3f6f3d] text-[#3f6f3d]'
-                    : 'border-transparent text-ink-muted hover:text-ink'
+                    ? 'bg-surface text-ink-strong shadow-card'
+                    : 'text-ink-muted hover:text-ink-strong'
             }`}
         >
             {label}
+            <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none tnum ${
+                    active
+                        ? 'bg-brand-soft text-brand'
+                        : 'bg-surface text-ink-faint'
+                }`}
+            >
+                {count}
+            </span>
         </button>
     );
 }
@@ -5520,7 +5581,7 @@ function PurokTabs({
 }) {
     return (
         <div className="mb-5">
-            <p className="mb-2 text-xs font-semibold tracking-wide text-ink-faint uppercase">
+            <p className="mb-2 text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
                 Filter by Purok
             </p>
 
@@ -5528,10 +5589,10 @@ function PurokTabs({
                 <button
                     type="button"
                     onClick={() => onSelect(null)}
-                    className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition ${
+                    className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
                         selected === null
-                            ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
-                            : 'border-line bg-white text-ink-muted hover:bg-canvas'
+                            ? 'border-brand bg-brand text-white'
+                            : 'border-line-soft bg-surface text-ink-muted hover:bg-canvas'
                     }`}
                 >
                     All Puroks
@@ -5542,10 +5603,10 @@ function PurokTabs({
                         key={purok.id}
                         type="button"
                         onClick={() => onSelect(purok.id)}
-                        className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition ${
+                        className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
                             selected === purok.id
-                                ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
-                                : 'border-line bg-white text-ink-muted hover:bg-canvas'
+                                ? 'border-brand bg-brand text-white'
+                                : 'border-line-soft bg-surface text-ink-muted hover:bg-canvas'
                         }`}
                     >
                         {purok.name} ({purok.resident_count} residents,{' '}
@@ -5565,7 +5626,7 @@ function PurokTabs({
 
 function TableHead({ children }: { children: ReactNode }) {
     return (
-        <th className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-ink-faint uppercase">
+        <th className="px-5 py-3 text-left text-sm font-medium text-ink-muted">
             {children}
         </th>
     );
@@ -5585,7 +5646,7 @@ function SectorBadges({ sectors }: { sectors: Sector[] }) {
                     return (
                         <span
                             key={sector.id}
-                            className="rounded-full bg-[#edf4ea] px-2.5 py-1 text-xs font-medium text-[#3f6f3d]"
+                            className="rounded-full bg-success-soft px-2.5 py-1 text-xs font-medium text-success"
                         >
                             Senior
                         </span>
@@ -5596,7 +5657,7 @@ function SectorBadges({ sectors }: { sectors: Sector[] }) {
                     return (
                         <span
                             key={sector.id}
-                            className="rounded-full bg-[#eef3fb] px-2.5 py-1 text-xs font-medium text-[#416b9c]"
+                            className="rounded-full bg-info-soft px-2.5 py-1 text-xs font-medium text-info"
                         >
                             PWD
                         </span>
