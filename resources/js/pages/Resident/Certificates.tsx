@@ -119,6 +119,24 @@ function defaultDetails(certificate?: Certificate): Record<string, string> {
     return values;
 }
 
+function formatDisplayDate(value: string | null): string {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(`${value}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleDateString('en-PH', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+    });
+}
+
 /*
 |--------------------------------------------------------------------------
 | Main Page
@@ -465,14 +483,21 @@ function CertificatesContent({
                 {/* ======================================================
                     PAGE HEADER
                 ====================================================== */}
-                <section className="mb-5 sm:mb-6">
-                    <h1 className="text-2xl font-semibold text-ink-strong sm:text-3xl">
+                <section className="mx-auto mb-5 w-full max-w-4xl">
+                    <h1 className="text-xl font-semibold tracking-tight text-ink-strong">
                         Certificate Request
                     </h1>
-                    <p className="mt-2 text-sm leading-6 text-ink-muted sm:text-base">
+                    <p className="mt-1 text-sm text-ink-muted">
                         Request a barangay certificate or track your submitted
                         request.
                     </p>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('requests')}
+                        className="mt-2 inline-block text-sm font-semibold text-brand underline underline-offset-2"
+                    >
+                        Offline drafts &amp; pending requests
+                    </button>
                     {!online && (
                         <p className="mt-2 text-sm leading-6 text-amber-800">
                             {degraded
@@ -493,29 +518,47 @@ function CertificatesContent({
                 {/* ======================================================
                     TABS
                 ====================================================== */}
-                <div className="mb-6 flex w-full max-w-xl rounded-xl border border-line-soft bg-white p-1">
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('request')}
-                        className={`min-h-12 flex-1 rounded-lg px-2 text-sm font-semibold transition sm:px-4 sm:text-base ${
-                            activeTab === 'request'
-                                ? 'bg-[#3f6f3d] text-white'
-                                : 'text-ink-muted hover:bg-canvas'
-                        }`}
+                <div className="mx-auto mb-5 flex w-full max-w-4xl">
+                    <div
+                        role="tablist"
+                        className="inline-flex w-full max-w-xl gap-1 rounded-lg border border-line-soft bg-canvas p-1"
                     >
-                        Request Certificate
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('requests')}
-                        className={`min-h-12 flex-1 rounded-lg px-2 text-sm font-semibold transition sm:px-4 sm:text-base ${
-                            activeTab === 'requests'
-                                ? 'bg-[#3f6f3d] text-white'
-                                : 'text-ink-muted hover:bg-canvas'
-                        }`}
-                    >
-                        My Requests
-                    </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === 'request'}
+                            onClick={() => setActiveTab('request')}
+                            className={`inline-flex h-8 flex-1 items-center justify-center rounded-md px-3 text-xs font-medium whitespace-nowrap transition-colors ${
+                                activeTab === 'request'
+                                    ? 'bg-surface text-ink-strong shadow-card'
+                                    : 'text-ink-muted hover:text-ink-strong'
+                            }`}
+                        >
+                            Request Certificate
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === 'requests'}
+                            onClick={() => setActiveTab('requests')}
+                            className={`inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium whitespace-nowrap transition-colors ${
+                                activeTab === 'requests'
+                                    ? 'bg-surface text-ink-strong shadow-card'
+                                    : 'text-ink-muted hover:text-ink-strong'
+                            }`}
+                        >
+                            My Requests
+                            <span
+                                className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none tnum ${
+                                    activeTab === 'requests'
+                                        ? 'bg-brand-soft text-brand'
+                                        : 'bg-surface text-ink-faint'
+                                }`}
+                            >
+                                {requests.total}
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* ======================================================
@@ -525,11 +568,11 @@ function CertificatesContent({
                     <>
                         {/* FORM */}
                         {step === 'form' && (
-                            <div className="mx-auto w-full max-w-3xl">
+                            <div className="mx-auto w-full max-w-4xl">
                                 {cameFromAssistant && selectedCertificate && (
-                                    <div className="mb-4 rounded-xl border border-[#d7e7d2] bg-[#f3f8f1] p-4">
+                                    <div className="mb-4 rounded-xl border border-brand/25 bg-brand-soft p-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-brand">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
                                                 <CertificateOutlineIcon small />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -564,25 +607,25 @@ function CertificatesContent({
                                 <form
                                     onSubmit={handleContinue}
                                     data-kb-offline-queue=""
-                                    className="mx-auto w-full max-w-3xl"
+                                    className="mx-auto w-full max-w-4xl"
                                 >
                                     {/* VERIFIED RESIDENT */}
-                                    <section className="mb-4 rounded-xl border border-line-soft bg-white p-4 sm:mb-5 sm:p-6">
-                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <section className="mb-4 overflow-hidden rounded-xl border border-line-soft bg-white sm:mb-5">
+                                        <div className="flex flex-col gap-3 border-b border-line-soft px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
                                             <div>
-                                                <h2 className="text-lg font-semibold text-ink-strong">
+                                                <h2 className="text-sm font-semibold tracking-tight text-ink-strong">
                                                     Your Information
                                                 </h2>
-                                                <p className="mt-1 text-sm leading-6 text-ink-muted">
+                                                <p className="mt-0.5 text-xs text-ink-muted">
                                                     Taken from your verified
                                                     resident profile.
                                                 </p>
                                             </div>
-                                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#edf4ea] px-3 py-1.5 text-sm font-semibold text-brand">
+                                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
                                                 <CheckSmallIcon /> Verified
                                             </span>
                                         </div>
-                                        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
                                             <InfoItem
                                                 label="Resident Name"
                                                 value={resident.full_name}
@@ -600,7 +643,9 @@ function CertificatesContent({
                                             {resident.birthdate && (
                                                 <InfoItem
                                                     label="Date of Birth"
-                                                    value={resident.birthdate}
+                                                    value={formatDisplayDate(
+                                                        resident.birthdate,
+                                                    )}
                                                 />
                                             )}
                                             {resident.sex && (
@@ -609,30 +654,37 @@ function CertificatesContent({
                                                     value={resident.sex}
                                                 />
                                             )}
-                                            <div className="sm:col-span-2">
-                                                <InfoItem
-                                                    label="Barangay"
-                                                    value={`${resident.barangay.name}, ${resident.barangay.city_municipality}`}
-                                                />
-                                            </div>
+                                            <InfoItem
+                                                label="Barangay"
+                                                value={[
+                                                    resident.barangay.name,
+                                                    resident.barangay
+                                                        .city_municipality,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(', ')}
+                                            />
                                         </div>
                                     </section>
 
                                     {/* REQUEST DETAILS */}
-                                    <section className="rounded-xl border border-line-soft bg-white p-4 sm:p-5">
-                                        <h2 className="text-lg font-semibold text-ink-strong">
-                                            Request Details
-                                        </h2>
-                                        <p className="mt-1 text-sm leading-6 text-ink-muted">
-                                            Enter only the information needed
-                                            for this request.
-                                        </p>
+                                    <section className="overflow-hidden rounded-xl border border-line-soft bg-white">
+                                        <div className="border-b border-line-soft px-5 py-4">
+                                            <h2 className="text-sm font-semibold tracking-tight text-ink-strong">
+                                                Request Details
+                                            </h2>
+                                            <p className="mt-0.5 text-xs text-ink-muted">
+                                                Enter only the information needed
+                                                for this request.
+                                            </p>
+                                        </div>
 
+                                        <div className="space-y-5 p-5">
                                         {/* CERTIFICATE TYPE */}
-                                        <div className="mt-5 sm:mt-6">
+                                        <div>
                                             <label
                                                 htmlFor="certificate"
-                                                className="mb-2 block text-sm font-medium text-ink sm:text-base"
+                                                className="mb-1.5 block text-sm font-medium text-ink"
                                             >
                                                 Certificate Type *
                                             </label>
@@ -664,7 +716,7 @@ function CertificatesContent({
                                                 )}
                                             </select>
                                             {errors.certificate_id && (
-                                                <p className="mt-2 text-sm text-red-600">
+                                                <p className="mt-1.5 text-xs text-destructive">
                                                     {errors.certificate_id}
                                                 </p>
                                             )}
@@ -672,8 +724,8 @@ function CertificatesContent({
 
                                         {/* CERTIFICATE INFORMATION */}
                                         {selectedCertificate && (
-                                            <div className="mt-4 rounded-xl bg-[#f7f8f5] p-4">
-                                                <p className="text-base font-semibold text-ink-strong">
+                                            <div className="mt-4 rounded-xl bg-canvas p-4">
+                                                <p className="text-sm font-semibold text-ink-strong">
                                                     {selectedCertificate.name}
                                                 </p>
                                                 <p className="mt-1 text-sm leading-6 text-ink-muted">
@@ -683,7 +735,7 @@ function CertificatesContent({
                                                 </p>
 
                                                 {!selectedCertificate.available && (
-                                                    <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-800">
+                                                    <p className="mt-3 rounded-lg border border-warning/25 bg-warning-soft p-3 text-sm leading-6 text-warning">
                                                         This certificate is
                                                         currently unavailable.
                                                         Please choose another
@@ -692,7 +744,7 @@ function CertificatesContent({
                                                 )}
                                                 {selectedCertificate.available &&
                                                     !selectedCertificate.templateAvailable && (
-                                                        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                                        <div className="mt-3 rounded-lg border border-warning/25 bg-warning-soft px-3 py-2 text-sm text-warning">
                                                             This active service
                                                             can accept requests.
                                                             Certificate
@@ -710,7 +762,7 @@ function CertificatesContent({
                                                     .requirements?.length >
                                                     0 && (
                                                     <div className="mt-4">
-                                                        <p className="text-sm font-semibold text-ink">
+                                                        <p className="text-sm font-semibold text-ink-strong">
                                                             Requirements
                                                         </p>
                                                         <ul className="mt-2 space-y-2">
@@ -724,7 +776,7 @@ function CertificatesContent({
                                                                         }
                                                                         className="flex items-start gap-2 text-sm leading-6 text-ink-muted"
                                                                     >
-                                                                        <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#3f6f3d] text-white">
+                                                                        <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-success text-white">
                                                                             <CheckSmallIcon />
                                                                         </span>
                                                                         <span>
@@ -743,7 +795,7 @@ function CertificatesContent({
                                                     <span className="text-sm font-medium text-ink-muted">
                                                         Fee
                                                     </span>
-                                                    <span className="text-lg font-semibold text-brand">
+                                                    <span className="text-base font-semibold text-brand tnum">
                                                         {selectedCertificate.fee >
                                                         0
                                                             ? `₱${selectedCertificate.fee.toLocaleString()}`
@@ -755,11 +807,11 @@ function CertificatesContent({
 
                                         {/* FIXED PURPOSE */}
                                         {selectedCertificate?.fixedPurpose && (
-                                            <div className="mt-5 rounded-lg border border-[#d7e3d4] bg-[#edf4ea] p-4">
+                                            <div className="mt-5 rounded-lg border border-line-soft bg-canvas p-4">
                                                 <p className="text-sm font-medium text-ink-muted">
                                                     Purpose
                                                 </p>
-                                                <p className="mt-1 text-base font-semibold text-ink-strong">
+                                                <p className="mt-1 text-sm font-semibold text-ink-strong">
                                                     {
                                                         selectedCertificate.fixedPurpose
                                                     }
@@ -778,7 +830,7 @@ function CertificatesContent({
                                                 <div className="mt-5">
                                                     <label
                                                         htmlFor="purpose"
-                                                        className="mb-2 block text-sm font-medium text-ink sm:text-base"
+                                                        className="mb-1.5 block text-sm font-medium text-ink"
                                                     >
                                                         Purpose / Requirement
                                                         For *
@@ -831,7 +883,7 @@ function CertificatesContent({
                                                         </option>
                                                     </select>
                                                     {errors.purpose && (
-                                                        <p className="mt-2 text-sm text-red-600">
+                                                        <p className="mt-1.5 text-xs text-destructive">
                                                             {errors.purpose}
                                                         </p>
                                                     )}
@@ -842,7 +894,7 @@ function CertificatesContent({
                                                     <div className="mt-5">
                                                         <label
                                                             htmlFor="otherPurpose"
-                                                            className="mb-2 block text-sm font-medium text-ink sm:text-base"
+                                                            className="mb-1.5 block text-sm font-medium text-ink"
                                                         >
                                                             Please specify *
                                                         </label>
@@ -880,7 +932,7 @@ function CertificatesContent({
                                                 </p>
                                                 <div className="mt-4 space-y-4">
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium text-ink sm:text-base">
+                                                        <label className="mb-1.5 block text-sm font-medium text-ink">
                                                             Business Owner
                                                         </label>
                                                         <input
@@ -902,7 +954,7 @@ function CertificatesContent({
                                                     <div>
                                                         <label
                                                             htmlFor="businessName"
-                                                            className="mb-2 block text-sm font-medium text-ink sm:text-base"
+                                                            className="mb-1.5 block text-sm font-medium text-ink"
                                                         >
                                                             Business Name *
                                                         </label>
@@ -922,7 +974,7 @@ function CertificatesContent({
                                                             required
                                                         />
                                                         {errors.business_name && (
-                                                            <p className="mt-2 text-sm text-red-600">
+                                                            <p className="mt-1.5 text-xs text-destructive">
                                                                 {
                                                                     errors.business_name
                                                                 }
@@ -932,7 +984,7 @@ function CertificatesContent({
                                                     <div>
                                                         <label
                                                             htmlFor="businessAddress"
-                                                            className="mb-2 block text-sm font-medium text-ink sm:text-base"
+                                                            className="mb-1.5 block text-sm font-medium text-ink"
                                                         >
                                                             Business Address *
                                                         </label>
@@ -954,7 +1006,7 @@ function CertificatesContent({
                                                             required
                                                         />
                                                         {errors.business_address && (
-                                                            <p className="mt-2 text-sm text-red-600">
+                                                            <p className="mt-1.5 text-xs text-destructive">
                                                                 {
                                                                     errors.business_address
                                                                 }
@@ -986,7 +1038,7 @@ function CertificatesContent({
                                                             >
                                                                 <label
                                                                     htmlFor={`detail-${field.key}`}
-                                                                    className="mb-2 block text-sm font-medium text-ink sm:text-base"
+                                                                    className="mb-1.5 block text-sm font-medium text-ink"
                                                                 >
                                                                     {
                                                                         field.label
@@ -1050,7 +1102,7 @@ function CertificatesContent({
                                                                 {errors[
                                                                     `details.${field.key}`
                                                                 ] && (
-                                                                    <p className="mt-2 text-sm text-red-600">
+                                                                    <p className="mt-1.5 text-xs text-destructive">
                                                                         {
                                                                             errors[
                                                                                 `details.${field.key}`
@@ -1069,10 +1121,10 @@ function CertificatesContent({
                                         <div className="mt-5">
                                             <label
                                                 htmlFor="additionalDetails"
-                                                className="mb-2 block text-sm font-medium text-ink sm:text-base"
+                                                className="mb-1.5 block text-sm font-medium text-ink"
                                             >
                                                 Additional Details
-                                                <span className="ml-1 text-xs font-normal text-ink-faint sm:text-sm">
+                                                <span className="ml-1 text-xs font-normal text-ink-faint">
                                                     (Optional)
                                                 </span>
                                             </label>
@@ -1086,34 +1138,38 @@ function CertificatesContent({
                                                     )
                                                 }
                                                 placeholder="Enter additional information if needed"
-                                                className={`${inputClass} resize-none py-3`}
+                                                className="min-h-24 w-full resize-none rounded-lg border border-line bg-surface px-3 py-3 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15"
                                             />
                                             {errors.additional_details && (
-                                                <p className="mt-2 text-sm text-red-600">
+                                                <p className="mt-1.5 text-xs text-destructive">
                                                     {errors.additional_details}
                                                 </p>
                                             )}
                                         </div>
 
-                                        <button
-                                            type="submit"
-                                            className="mt-6 flex min-h-12 w-full items-center justify-center rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
-                                        >
-                                            Continue
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                void saveOfflineDraft()
-                                            }
-                                            disabled={
-                                                processing ||
-                                                !selectedCertificate
-                                            }
-                                            className="mt-3 min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 font-semibold text-brand disabled:opacity-50"
-                                        >
-                                            Save draft on this device
-                                        </button>
+                                        <div className="space-y-2">
+                                            <button
+                                                type="submit"
+                                                disabled={!selectedCertificate}
+                                                className="flex h-11 w-full items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-brand/40"
+                                            >
+                                                Continue
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    void saveOfflineDraft()
+                                                }
+                                                disabled={
+                                                    processing ||
+                                                    !selectedCertificate
+                                                }
+                                                className="flex h-11 w-full items-center justify-center rounded-lg border border-line bg-surface px-4 text-sm font-semibold text-ink-muted transition-colors hover:bg-canvas disabled:opacity-50"
+                                            >
+                                                Save draft on this device
+                                            </button>
+                                        </div>
+                                        </div>
                                     </section>
                                 </form>
                             </div>
@@ -1121,17 +1177,20 @@ function CertificatesContent({
 
                         {/* REVIEW */}
                         {step === 'review' && selectedCertificate && (
-                            <div className="mx-auto w-full max-w-3xl">
-                                <section className="rounded-xl border border-line-soft bg-white p-4 sm:p-5">
-                                    <h2 className="text-xl font-semibold text-ink-strong">
-                                        Review Your Request
-                                    </h2>
-                                    <p className="mt-2 text-sm leading-6 text-ink-muted sm:text-base">
-                                        Check the information before submitting
-                                        your request.
-                                    </p>
+                            <div className="mx-auto w-full max-w-4xl">
+                                <section className="overflow-hidden rounded-xl border border-line-soft bg-white">
+                                    <div className="border-b border-line-soft px-5 py-4">
+                                        <h2 className="text-sm font-semibold tracking-tight text-ink-strong">
+                                            Review Your Request
+                                        </h2>
+                                        <p className="mt-0.5 text-xs text-ink-muted">
+                                            Check the information before
+                                            submitting your request.
+                                        </p>
+                                    </div>
 
-                                    <div className="mt-5 sm:mt-6">
+                                    <div className="p-5">
+                                    <div>
                                         <ReviewRow
                                             label="Resident"
                                             value={resident.full_name}
@@ -1196,14 +1255,14 @@ function CertificatesContent({
                                         />
                                     </div>
 
-                                    <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                    <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                         <button
                                             type="button"
                                             onClick={() =>
                                                 void saveOfflineDraft()
                                             }
                                             disabled={processing}
-                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-4 font-semibold text-brand disabled:opacity-50"
+                                            className="inline-flex h-9 items-center justify-center rounded-md border border-line bg-surface px-4 text-sm font-medium text-ink-strong transition-colors hover:bg-canvas disabled:opacity-50"
                                         >
                                             Save draft on this device
                                         </button>
@@ -1211,7 +1270,7 @@ function CertificatesContent({
                                             type="button"
                                             onClick={() => setStep('form')}
                                             disabled={processing}
-                                            className="min-h-12 w-full rounded-lg border border-line px-6 text-base font-semibold text-ink-muted transition hover:bg-canvas disabled:opacity-50 sm:w-auto"
+                                            className="inline-flex h-9 w-full items-center justify-center rounded-md bg-secondary px-4 text-sm font-medium text-ink-strong transition-colors hover:bg-secondary/80 disabled:opacity-50 sm:w-auto"
                                         >
                                             Back
                                         </button>
@@ -1219,7 +1278,7 @@ function CertificatesContent({
                                             type="button"
                                             onClick={handleSubmitRequest}
                                             disabled={processing}
-                                            className="min-h-12 w-full rounded-lg bg-[#3f6f3d] px-6 text-base font-semibold text-white transition hover:bg-[#315b30] disabled:opacity-50 sm:w-auto"
+                                            className="inline-flex h-9 w-full items-center justify-center rounded-md bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50 sm:w-auto"
                                         >
                                             {processing
                                                 ? 'Submitting...'
@@ -1228,6 +1287,7 @@ function CertificatesContent({
                                                   : 'Submit (sends when online)'}
                                         </button>
                                     </div>
+                                    </div>
                                 </section>
                             </div>
                         )}
@@ -1235,29 +1295,29 @@ function CertificatesContent({
                         {/* SUCCESS */}
                         {step === 'success' && submittedRequest && (
                             <div className="mx-auto w-full max-w-xl">
-                                <section className="rounded-xl border border-line-soft bg-white p-5 text-center sm:p-7">
-                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#3f6f3d] text-white">
+                                <section className="overflow-hidden rounded-xl border border-line-soft bg-white p-6 text-center">
+                                    <span className="mx-auto grid size-14 place-items-center rounded-full bg-success-soft text-success">
                                         <CheckLargeIcon />
-                                    </div>
-                                    <h2 className="mt-5 text-xl font-semibold text-ink-strong sm:text-2xl">
+                                    </span>
+                                    <h2 className="mt-4 text-lg font-semibold text-ink-strong">
                                         Request Submitted
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-ink-muted sm:text-base">
+                                    <p className="mt-1 text-sm text-ink-muted">
                                         Your certificate request has been
                                         submitted for barangay review.
                                     </p>
-                                    <div className="mt-6 rounded-xl bg-[#f7f8f5] p-4 text-left sm:p-5">
+                                    <div className="mt-5 space-y-3 rounded-xl bg-canvas p-4 text-left">
                                         <InfoItem
                                             label="Request Number"
                                             value={submittedRequest.reference}
                                         />
-                                        <div className="my-4 border-t border-line-soft" />
+                                        <div className="border-t border-line-soft" />
                                         <InfoItem
                                             label="Certificate"
                                             value={submittedRequest.certificate}
                                         />
-                                        <div className="my-4 border-t border-line-soft" />
-                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="border-t border-line-soft" />
+                                        <div className="flex items-center justify-between gap-4">
                                             <span className="text-sm text-ink-muted">
                                                 Status
                                             </span>
@@ -1266,11 +1326,11 @@ function CertificatesContent({
                                             />
                                         </div>
                                     </div>
-                                    <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                                         <button
                                             type="button"
                                             onClick={resetForm}
-                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-5 text-base font-semibold text-brand transition hover:bg-[#edf4ea]"
+                                            className="inline-flex h-9 items-center justify-center rounded-md border border-line bg-surface px-4 text-sm font-medium text-ink-strong transition-colors hover:bg-canvas"
                                         >
                                             Request Another
                                         </button>
@@ -1279,7 +1339,7 @@ function CertificatesContent({
                                             onClick={() =>
                                                 setActiveTab('requests')
                                             }
-                                            className="min-h-12 rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
+                                            className="inline-flex h-9 items-center justify-center rounded-md bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover"
                                         >
                                             My Requests
                                         </button>
@@ -1291,16 +1351,16 @@ function CertificatesContent({
                         {/* SAVED ON DEVICE, NOT YET SENT */}
                         {step === 'queued' && (
                             <div className="mx-auto w-full max-w-xl">
-                                <section className="rounded-xl border border-amber-300 bg-amber-50 p-5 text-center sm:p-7">
-                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-white">
+                                <section className="overflow-hidden rounded-xl border border-warning/25 bg-warning-soft p-6 text-center">
+                                    <span className="mx-auto grid size-14 place-items-center rounded-full bg-warning text-white">
                                         <ClockLargeIcon />
-                                    </div>
-                                    <h2 className="mt-5 text-xl font-semibold text-amber-950 sm:text-2xl">
+                                    </span>
+                                    <h2 className="mt-4 text-lg font-semibold text-warning">
                                         {degraded
                                             ? 'Waiting for the Barangay data service'
                                             : 'Waiting for Internet Connection'}
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-amber-900 sm:text-base">
+                                    <p className="mt-1 text-sm text-warning">
                                         Your request has been saved on this
                                         device. It will be sent automatically
                                         once{' '}
@@ -1309,22 +1369,22 @@ function CertificatesContent({
                                             : 'your internet connection returns'}
                                         . The Barangay has not received it yet.
                                     </p>
-                                    <div className="mt-6 rounded-xl bg-white p-4 text-left">
+                                    <div className="mt-5 space-y-3 rounded-xl bg-white p-4 text-left">
                                         <InfoItem
                                             label="Saved on this device"
                                             value="No request number yet"
                                         />
-                                        <div className="my-4 border-t border-line-soft" />
+                                        <div className="border-t border-line-soft" />
                                         <InfoItem
                                             label="Status"
                                             value="Not yet received by the Barangay"
                                         />
                                     </div>
-                                    <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                                         <button
                                             type="button"
                                             onClick={resetForm}
-                                            className="min-h-12 rounded-lg border border-[#3f6f3d] px-5 text-base font-semibold text-brand transition hover:bg-[#edf4ea]"
+                                            className="inline-flex h-9 items-center justify-center rounded-md border border-line bg-surface px-4 text-sm font-medium text-ink-strong transition-colors hover:bg-canvas"
                                         >
                                             Request Another
                                         </button>
@@ -1334,7 +1394,7 @@ function CertificatesContent({
                                                 refreshLocalRequests();
                                                 setActiveTab('requests');
                                             }}
-                                            className="min-h-12 rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white transition hover:bg-[#315b30]"
+                                            className="inline-flex h-9 items-center justify-center rounded-md bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover"
                                         >
                                             My Requests
                                         </button>
@@ -1351,41 +1411,41 @@ function CertificatesContent({
                 {activeTab === 'requests' && (
                     <section className="mx-auto w-full max-w-4xl">
                         <div className="mb-4">
-                            <h2 className="text-xl font-semibold text-ink-strong">
+                            <h2 className="text-lg font-semibold tracking-tight text-ink-strong">
                                 My Requests
                             </h2>
-                            <p className="mt-1 text-sm leading-6 text-ink-muted sm:text-base">
+                            <p className="mt-1 text-sm text-ink-muted">
                                 View and track your submitted certificate
                                 requests.
                             </p>
                         </div>
                         {unsyncedLocalRequests.length > 0 && (
-                            <div className="mb-4 space-y-4">
+                            <div className="mb-4 space-y-3">
                                 {unsyncedLocalRequests.map((item) => (
                                     <LocalRequestRow key={item.id} item={item} />
                                 ))}
                             </div>
                         )}
                         {requests.data.length > 0 ? (
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {requests.data.map((request) => (
                                     <div
                                         key={request.id}
-                                        className="rounded-xl border border-line-soft bg-white p-4 sm:p-5"
+                                        className="overflow-hidden rounded-xl border border-line-soft bg-white"
                                     >
-                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
                                             <div className="min-w-0">
-                                                <p className="text-base font-semibold break-words text-ink-strong sm:text-lg">
+                                                <p className="text-sm font-semibold break-words text-ink-strong sm:text-base">
                                                     {request.certificate}
                                                 </p>
-                                                <p className="mt-1 text-sm font-medium break-all text-ink-muted">
+                                                <p className="mt-0.5 text-xs font-medium break-all text-ink-muted">
                                                     {request.reference}
                                                 </p>
-                                                <p className="mt-1 text-sm text-ink-faint">
+                                                <p className="mt-0.5 text-xs text-ink-faint">
                                                     Submitted: {request.date}
                                                 </p>
                                             </div>
-                                            <div className="flex flex-col gap-3 sm:items-end">
+                                            <div className="flex flex-col gap-2 sm:items-end">
                                                 <StatusBadge
                                                     status={request.status}
                                                 />
@@ -1396,7 +1456,7 @@ function CertificatesContent({
                                                             request,
                                                         )
                                                     }
-                                                    className="min-h-11 w-full rounded-lg border border-[#3f6f3d] px-4 text-sm font-semibold text-brand transition hover:bg-[#edf4ea] sm:w-auto"
+                                                    className="inline-flex h-8 w-full items-center justify-center rounded-lg border border-line bg-surface px-3 text-xs font-medium text-ink-strong transition-colors hover:bg-canvas sm:w-auto"
                                                 >
                                                     View Details
                                                 </button>
@@ -1410,24 +1470,31 @@ function CertificatesContent({
                                 />
                             </div>
                         ) : unsyncedLocalRequests.length === 0 ? (
-                            <div className="rounded-xl border border-line-soft bg-white p-7 text-center">
-                                <CertificateOutlineIcon />
-                                <h3 className="mt-4 text-lg font-semibold text-ink-strong">
-                                    No certificate requests
-                                </h3>
-                                <p className="mt-2 text-sm leading-6 text-ink-muted">
-                                    Your submitted requests will appear here.
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        resetForm();
-                                        setActiveTab('request');
-                                    }}
-                                    className="mt-5 min-h-12 w-full rounded-lg bg-[#3f6f3d] px-5 text-base font-semibold text-white sm:w-auto"
-                                >
-                                    Request Certificate
-                                </button>
+                            <div className="rounded-xl border border-line-soft bg-white">
+                                <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
+                                    <span className="grid size-12 place-items-center rounded-full bg-canvas text-ink-faint">
+                                        <CertificateOutlineIcon small />
+                                    </span>
+                                    <div className="max-w-sm space-y-1">
+                                        <p className="text-sm font-semibold text-ink-strong">
+                                            No certificate requests
+                                        </p>
+                                        <p className="text-xs leading-relaxed text-ink-muted">
+                                            Your submitted requests will appear
+                                            here.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            resetForm();
+                                            setActiveTab('request');
+                                        }}
+                                        className="inline-flex h-9 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-hover"
+                                    >
+                                        Request Certificate
+                                    </button>
+                                </div>
                             </div>
                         ) : null}
                     </section>
@@ -1454,7 +1521,7 @@ function CertificatesContent({
 */
 
 const inputClass =
-    'min-h-12 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-[#3f6f3d] focus:ring-2 focus:ring-[#3f6f3d]/20 sm:px-4 sm:text-base';
+    'h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink-strong outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/15';
 
 /*
 |--------------------------------------------------------------------------
@@ -1494,7 +1561,7 @@ function RequestDetailsModal({
 
                 {/* CONTENT */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-5">
-                    <div className="rounded-xl border border-line-soft bg-[#fafaf7] p-4">
+                    <div className="rounded-xl border border-line-soft bg-canvas p-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <InfoItem
                                 label="Certificate"
@@ -1580,7 +1647,7 @@ function RequestDetailsModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="min-h-11 w-full rounded-lg bg-[#3f6f3d] px-5 text-sm font-semibold text-white transition hover:bg-[#315b30] sm:ml-auto sm:block sm:w-auto"
+                        className="min-h-11 w-full rounded-lg bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-hover sm:ml-auto sm:block sm:w-auto"
                     >
                         Close
                     </button>
@@ -1670,7 +1737,7 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                                 <div
                                     className={`absolute top-9 left-[17px] h-[calc(100%-1px)] w-[2px] ${
                                         index < currentStep
-                                            ? 'bg-[#3f6f3d]'
+                                            ? 'bg-brand'
                                             : 'bg-line-soft'
                                     }`}
                                 />
@@ -1678,9 +1745,9 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                             <div
                                 className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 ${
                                     completed
-                                        ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                                        ? 'border-brand bg-brand text-white'
                                         : current
-                                          ? 'border-[#3f6f3d] bg-[#e8f2e5] text-brand'
+                                          ? 'border-brand bg-brand-soft text-brand'
                                           : 'border-line bg-white text-ink-faint'
                                 }`}
                             >
@@ -1732,15 +1799,15 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                             >
                                 {index > 0 && (
                                     <div
-                                        className={`absolute top-5 right-1/2 h-[3px] w-full ${reached ? 'bg-[#3f6f3d]' : 'bg-line-soft'}`}
+                                        className={`absolute top-5 right-1/2 h-[3px] w-full ${reached ? 'bg-brand' : 'bg-line-soft'}`}
                                     />
                                 )}
                                 <div
                                     className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 ${
                                         completed
-                                            ? 'border-[#3f6f3d] bg-[#3f6f3d] text-white'
+                                            ? 'border-brand bg-brand text-white'
                                             : current
-                                              ? 'border-[#3f6f3d] bg-[#e8f2e5] text-brand'
+                                              ? 'border-brand bg-brand-soft text-brand'
                                               : 'border-line bg-white text-ink-faint'
                                     }`}
                                 >
@@ -1770,9 +1837,9 @@ function RequestTracker({ status }: { status: RequestStatus }) {
             </div>
 
             {/* STATUS MESSAGE */}
-            <div className="mt-4 rounded-xl border border-[#d8e8d4] bg-[#f4f8f2] p-4">
+            <div className="mt-4 rounded-xl border border-line-soft bg-canvas p-4">
                 <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dcebd8] text-brand">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
                         <CurrentStatusIcon status={status} />
                     </div>
                     <div>
@@ -2003,10 +2070,8 @@ function getStatusMessage(status: RequestStatus) {
 function InfoItem({ label, value }: { label: string; value: string }) {
     return (
         <div className="min-w-0">
-            <p className="text-xs font-medium text-ink-muted sm:text-sm">
-                {label}
-            </p>
-            <p className="mt-1 text-sm font-semibold break-words text-ink-strong sm:text-base">
+            <p className="text-xs font-medium text-ink-muted">{label}</p>
+            <p className="mt-0.5 text-sm font-semibold break-words text-ink-strong">
                 {value}
             </p>
         </div>
@@ -2030,10 +2095,10 @@ function ReviewRow({
 }) {
     return (
         <div
-            className={`flex flex-col gap-1 py-4 sm:flex-row sm:justify-between sm:gap-6 ${!last ? 'border-b border-line-soft' : ''}`}
+            className={`flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-6 ${!last ? 'border-b border-line-soft' : ''}`}
         >
             <span className="text-sm text-ink-muted">{label}</span>
-            <span className="text-sm font-medium break-words text-ink-strong sm:max-w-[65%] sm:text-right sm:text-base">
+            <span className="text-sm font-medium break-words text-ink-strong sm:max-w-[65%] sm:text-right">
                 {value}
             </span>
         </div>
@@ -2048,18 +2113,18 @@ function ReviewRow({
 
 function StatusBadge({ status }: { status: RequestStatus }) {
     const styles: Record<RequestStatus, string> = {
-        Pending: 'bg-[#fff4d8] text-[#8a6700]',
-        'Needs Action': 'bg-[#fff0e5] text-[#a65316]',
-        'For Payment': 'bg-[#f3ecff] text-[#6f42a5]',
-        Processing: 'bg-[#eef3fb] text-[#416b9c]',
-        'Ready for Claim': 'bg-[#edf4ea] text-brand',
+        Pending: 'bg-warning-soft text-warning',
+        'Needs Action': 'bg-warning-soft text-warning',
+        'For Payment': 'bg-brand-soft text-brand',
+        Processing: 'bg-info-soft text-info',
+        'Ready for Claim': 'bg-success-soft text-success',
         Released: 'bg-secondary text-ink-muted',
-        Rejected: 'bg-[#fdecec] text-[#a33a3a]',
+        Rejected: 'bg-danger-soft text-destructive',
     };
 
     return (
         <span
-            className={`inline-flex w-fit items-center rounded-full px-3 py-1.5 text-xs font-semibold sm:text-sm ${styles[status]}`}
+            className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}
         >
             {status}
         </span>
