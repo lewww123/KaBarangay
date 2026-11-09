@@ -91,7 +91,7 @@ class ResidentRegistrationCorrectionController extends Controller
             );
         }
         foreach ($documentTargets as $target) {
-            $rules['documents.'.$target] = $target === 'live_identity_photo'
+            $rules['documents.'.$target] = in_array($target, ['live_identity_photo', 'valid_id'], true)
                 ? ['required', 'file', 'image', 'mimes:jpg,jpeg,png', 'max:5120']
                 : ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'];
         }

@@ -233,7 +233,10 @@ class ResidentRegistrationVerificationTest extends TestCase
             'sectors' => [],
             'password' => 'ResidentPassword123',
             'password_confirmation' => 'ResidentPassword123',
-            'valid_id' => UploadedFile::fake()->create('valid-id.pdf', 20, 'application/pdf'),
+            'valid_id' => UploadedFile::fake()->createWithContent(
+                'valid-id.png',
+                base64_decode(self::PNG_1X1, true),
+            ),
             'live_identity_photo' => UploadedFile::fake()->createWithContent(
                 'live-photo.png',
                 base64_decode(self::PNG_1X1, true),

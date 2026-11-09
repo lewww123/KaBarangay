@@ -46,6 +46,17 @@ class RegistrationEmailOtpTest extends TestCase
         unset($payload['valid_id'], $payload['live_identity_photo']);
         $this->postJson('/resident/register', $payload)->assertUnprocessable()->assertJsonValidationErrors(['email', 'mobile', 'valid_id', 'live_identity_photo']);
     }
+
+    public function test_valid_id_rejects_pdf_and_accepts_camera_captured_image_only(): void
+    {
+        $payload = $this->payload();
+        $payload['valid_id'] = UploadedFile::fake()->create('valid-id.pdf', 20, 'application/pdf');
+        $this->postJson('/resident/register', $payload)->assertUnprocessable()->assertJsonValidationErrors('valid_id');
+
+        $payload = $this->payload('img');
+        $payload['valid_id'] = UploadedFile::fake()->createWithContent('valid-id.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='));
+        $this->post('/resident/register', $payload)->assertSessionHasNoErrors()->assertRedirect(route('resident.registration.submitted'));
+    }
     public function test_duplicate_email_and_mobile_still_reject_existing_applicants(): void
     {
         $payload = $this->payload();
@@ -66,7 +77,7 @@ class RegistrationEmailOtpTest extends TestCase
             'sex' => 'Female', 'civil_status' => 'Single', 'address_line' => 'Test Street',
             'mobile' => '09980000701', 'email' => 'resident@example.test',
             'password' => 'ResidentPassword123', 'password_confirmation' => 'ResidentPassword123',
-            'valid_id' => UploadedFile::fake()->create('valid-id.pdf', 20, 'application/pdf'),
+            'valid_id' => UploadedFile::fake()->createWithContent('valid-id.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')),
             'live_identity_photo' => UploadedFile::fake()->createWithContent('live.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')),
         ];
     }

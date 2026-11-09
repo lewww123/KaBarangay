@@ -198,12 +198,16 @@ class StoreResidentRegistrationRequest extends FormRequest
             |--------------------------------------------------------------------------
             | Identity Documents
             |--------------------------------------------------------------------------
+            |
+            | Valid ID is captured live from the device camera and must be an image.
+            |
             */
 
             'valid_id' => [
                 'required',
                 'file',
-                'mimes:jpg,jpeg,png,pdf',
+                'image',
+                'mimes:jpg,jpeg,png',
                 'max:5120',
             ],
 
@@ -294,7 +298,9 @@ class StoreResidentRegistrationRequest extends FormRequest
 
             'live_identity_photo.required' => 'A live identity photo is required.',
 
-            'valid_id.required' => 'Please provide a valid identification document.',
+            'valid_id.required' => 'Please capture a clear photo of your valid government ID using your device camera.',
+            'valid_id.image' => 'The valid government ID must be a captured image (JPG or PNG).',
+            'valid_id.mimes' => 'The valid government ID must be a JPG or PNG image.',
         ];
     }
 }
