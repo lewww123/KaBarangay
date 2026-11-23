@@ -46,6 +46,29 @@ class RegistrationEmailOtpTest extends TestCase
         unset($payload['valid_id'], $payload['live_identity_photo']);
         $this->postJson('/resident/register', $payload)->assertUnprocessable()->assertJsonValidationErrors(['email', 'mobile', 'valid_id', 'live_identity_photo']);
     }
+
+    public function test_valid_id_rejects_pdf_and_accepts_png_and_jpeg(): void
+    {
+        $payload = $this->payload();
+        $payload['valid_id'] = UploadedFile::fake()->create('valid-id.pdf', 20, 'application/pdf');
+        $this->postJson('/resident/register', $payload)->assertUnprocessable()->assertJsonValidationErrors('valid_id');
+
+        $png = $this->payload('png');
+        $this->post('/resident/register', $png)
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('resident.registration.submitted'));
+
+        $jpg = $this->payload('jpg');
+        $jpg['mobile'] = '09980000702';
+        $jpg['email'] = 'jpeg-resident@example.test';
+        $jpg['valid_id'] = UploadedFile::fake()->createWithContent(
+            'valid-id.jpg',
+            base64_decode('/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD8qqKKKAP/2Q==', true),
+        );
+        $this->post('/resident/register', $jpg)
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('resident.registration.submitted'));
+    }
     public function test_duplicate_email_and_mobile_still_reject_existing_applicants(): void
     {
         $payload = $this->payload();
@@ -66,7 +89,7 @@ class RegistrationEmailOtpTest extends TestCase
             'sex' => 'Female', 'civil_status' => 'Single', 'address_line' => 'Test Street',
             'mobile' => '09980000701', 'email' => 'resident@example.test',
             'password' => 'ResidentPassword123', 'password_confirmation' => 'ResidentPassword123',
-            'valid_id' => UploadedFile::fake()->create('valid-id.pdf', 20, 'application/pdf'),
+            'valid_id' => UploadedFile::fake()->createWithContent('valid-id.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')),
             'live_identity_photo' => UploadedFile::fake()->createWithContent('live.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')),
         ];
     }

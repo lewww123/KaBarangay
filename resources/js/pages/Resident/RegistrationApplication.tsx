@@ -1,5 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
-import { FormEvent } from 'react';
+import { FormEvent, useState } from 'react';
+import { ValidIdCameraCapture } from './Register';
 
 type SelectOption = { value: string; label: string };
 
@@ -46,6 +47,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function RegistrationApplication({ application }: Props) {
     const logout = useForm({});
+    const [missingDocumentError, setMissingDocumentError] = useState(false);
     const correction = application.correction;
     const correctionForm = useForm<{
         fields: Record<string, string>;
@@ -77,6 +79,16 @@ export default function RegistrationApplication({ application }: Props) {
 
     function submitCorrection(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        if (
+            correction?.document_targets.some(
+                (target) => !(correctionForm.data.documents[target.key] instanceof File),
+            )
+        ) {
+            setMissingDocumentError(true);
+            return;
+        }
+
+        setMissingDocumentError(false);
         correctionForm.post(
             `/resident/application/${encodeURIComponent(application.reference)}/correction`,
             {
@@ -330,66 +342,68 @@ export default function RegistrationApplication({ application }: Props) {
                                             {correction.document_targets.map(
                                                 (target) => (
                                                     <div key={target.key}>
-                                                        <label
-                                                            htmlFor={`correction-document-${target.key}`}
-                                                            className="mb-1 block text-sm font-medium text-ink"
-                                                        >
-                                                            {target.label}
-                                                        </label>
-                                                        <input
-                                                            id={`correction-document-${target.key}`}
-                                                            type="file"
-                                                            accept={
-                                                                target.key ===
-                                                                'live_identity_photo'
-                                                                    ? 'image/jpeg,image/png'
-                                                                    : 'image/jpeg,image/png,application/pdf'
-                                                            }
-                                                            onChange={(event) =>
-                                                                correctionForm.setData(
-                                                                    'documents',
-                                                                    {
-                                                                        ...correctionForm
-                                                                            .data
-                                                                            .documents,
-                                                                        [target.key]:
-                                                                            event
-                                                                                .target
-                                                                                .files?.[0] ??
-                                                                            null,
-                                                                    },
-                                                                )
-                                                            }
-                                                            required
-                                                            className="block w-full rounded-lg border border-line bg-white p-2 text-sm"
-                                                        />
-                                                        {correctionForm.errors[
-                                                            `documents.${target.key}`
-                                                        ] && (
-                                                            <p
-                                                                role="alert"
-                                                                className="mt-1 text-xs text-red-700"
+                                                        {target.key !== 'valid_id' && (
+                                                            <label
+                                                                htmlFor={`correction-document-${target.key}`}
+                                                                className="mb-1 block text-sm font-medium text-ink"
                                                             >
-                                                                {
-                                                                    correctionForm
-                                                                        .errors[
-                                                                        `documents.${target.key}`
-                                                                    ]
-                                                                }
-                                                            </p>
+                                                                {target.label}
+                                                            </label>
                                                         )}
+                                                        {target.key === 'valid_id' ? (
+                                                            <ValidIdCameraCapture
+                                                                value={correctionForm.data.documents[target.key] ?? null}
+                                                                error={correctionForm.errors[`documents.${target.key}`]}
+                                                                onChange={(file) =>
+                                                                    correctionForm.setData('documents', {
+                                                                        ...correctionForm.data.documents,
+                                                                        [target.key]: file,
+                                                                    })
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <input
+                                                                id={`correction-document-${target.key}`}
+                                                                type="file"
+                                                                accept={
+                                                                    target.key === 'live_identity_photo'
+                                                                        ? 'image/jpeg,image/png'
+                                                                        : 'image/jpeg,image/png,application/pdf'
+                                                                }
+                                                                onChange={(event) =>
+                                                                    correctionForm.setData('documents', {
+                                                                        ...correctionForm.data.documents,
+                                                                        [target.key]:
+                                                                            event.target.files?.[0] ?? null,
+                                                                    })
+                                                                }
+                                                                required
+                                                                className="block w-full rounded-lg border border-line bg-white p-2 text-sm"
+                                                            />
+                                                        )}
+                                                        {target.key !== 'valid_id' &&
+                                                            correctionForm.errors[`documents.${target.key}`] && (
+                                                                <p
+                                                                    role="alert"
+                                                                    className="mt-1 text-xs text-red-700"
+                                                                >
+                                                                    {correctionForm.errors[`documents.${target.key}`]}
+                                                                </p>
+                                                            )}
                                                     </div>
                                                 ),
                                             )}
                                         </fieldset>
                                     )}
 
-                                    {correctionErrors.correction && (
+                                    {(missingDocumentError || correctionErrors.correction) && (
                                         <p
                                             role="alert"
                                             className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
                                         >
-                                            {correctionErrors.correction}
+                                            {missingDocumentError
+                                                ? 'Please complete every required correction document before resubmitting.'
+                                                : correctionErrors.correction}
                                         </p>
                                     )}
 

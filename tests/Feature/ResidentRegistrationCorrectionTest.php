@@ -295,7 +295,7 @@ class ResidentRegistrationCorrectionTest extends TestCase
         $this->post('/resident/application/'.$registration->public_id.'/correction', [
             'fields' => [],
             'documents' => [
-                'valid_id' => $this->imageUpload('new-id.jpg'),
+                'valid_id' => $this->imageUpload('new-id.png'),
                 'live_identity_photo' => $this->imageUpload('new-photo.png'),
                 'senior_proof' => UploadedFile::fake()->create('new-senior.pdf', 100, 'application/pdf'),
                 'pwd_proof' => $this->imageUpload('new-pwd.jpg'),
@@ -349,6 +349,50 @@ class ResidentRegistrationCorrectionTest extends TestCase
         $this->assertSame(1, RegistrationDocument::query()
             ->where('resident_registration_id', $registration->id)
             ->count());
+    }
+
+    public function test_valid_id_pdf_is_rejected_without_changing_the_document_and_jpeg_can_be_resubmitted(): void
+    {
+        $registration = $this->createPendingRegistration($this->barangay, $this->purok, [
+            'mobile' => '09980000614',
+        ]);
+        $prior = $this->createDocument($registration, 'valid_id', null, 'old-id.png');
+        $original = Storage::disk('local')->get($prior->path);
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $this->requestCorrection($admin, $registration, [
+            'instructions' => 'Capture a new photo of the valid ID.',
+            'document_targets' => ['valid_id'],
+        ]);
+        $this->loginApplicant($registration);
+        $url = '/resident/application/'.$registration->public_id.'/correction';
+
+        $this->post($url, [
+            'documents' => [
+                'valid_id' => UploadedFile::fake()->create('not-an-image.pdf', 40, 'application/pdf'),
+            ],
+        ])->assertSessionHasErrors('documents.valid_id');
+
+        $this->assertSame('needs_correction', $registration->fresh()->status);
+        $this->assertNull($prior->fresh()->superseded_at);
+        Storage::disk('local')->assertExists($prior->path);
+        $this->assertSame($original, Storage::disk('local')->get($prior->path));
+        $this->assertSame(1, RegistrationDocument::query()
+            ->where('resident_registration_id', $registration->id)->count());
+
+        $this->post($url, [
+            'documents' => [
+                'valid_id' => UploadedFile::fake()->createWithContent(
+                    'new-id.jpg',
+                    base64_decode('/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD8qqKKKAP/2Q==', true),
+                ),
+            ],
+        ])->assertSessionHasNoErrors();
+
+        $replacement = RegistrationDocument::query()->where('supersedes_document_id', $prior->id)->sole();
+        $this->assertSame('image/jpeg', $replacement->mime_type);
+        $this->assertNotNull($prior->fresh()->superseded_at);
+        $this->assertSame($original, Storage::disk('local')->get($prior->path));
+        Storage::disk('local')->assertExists($replacement->path);
     }
 
     public function test_database_failure_during_resubmission_rolls_back_state_and_cleans_only_new_uploads(): void

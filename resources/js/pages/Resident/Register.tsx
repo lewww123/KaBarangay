@@ -1,6 +1,16 @@
 import BirthdateInput from '@/components/BirthdateInput';
 import { LogoMark } from '@/components/Logo';
-import { readRegistrationDraft, saveRegistrationDraft, readRegistrationFiles, saveRegistrationFiles, clearRegistrationDraft, REGISTRATION_FILE_FIELDS } from '@/lib/registrationDraft';
+import {
+    clearRegistrationDraft,
+    type DraftFiles,
+    isValidSavedIdImage,
+    readRegistrationDraft,
+    readRegistrationFiles,
+    REGISTRATION_FILE_FIELDS,
+    saveRegistrationDraft,
+    saveRegistrationFiles,
+    VALID_ID_CAMERA_VERSION,
+} from '@/lib/registrationDraft';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { X } from 'lucide-react';
 import LegalLinks from '@/components/LegalLinks';
@@ -81,6 +91,7 @@ function RegistrationContent({
     const [step, setStep] = useState(savedDraft?.step ?? 1);
     const [draftFilesReady, setDraftFilesReady] = useState(false);
     const [draftStorageError, setDraftStorageError] = useState(false);
+    const [legacyValidId, setLegacyValidId] = useState(false);
     const submittedDraft = useRef(false);
     const [clientErrors, setClientErrors] = useState<ClientErrors>({});
     const [acceptedDeclaration, setAcceptedDeclaration] = useState(false);
@@ -121,17 +132,42 @@ function RegistrationContent({
             return;
         }
         let active = true;
-        void readRegistrationFiles().then(files => {
+        void readRegistrationFiles().then(async (record) => {
             if (!active) return;
+            const files = record && typeof record === 'object' && Object.getPrototypeOf(record) === Object.prototype
+                ? record as Record<string, unknown>
+                : undefined;
+            const confirmedId =
+                files?.validIdCameraVersion === VALID_ID_CAMERA_VERSION &&
+                await isValidSavedIdImage(files.valid_id).catch(() => false);
+            if (!active) return;
+
+            const rejectedCapture =
+                (record !== undefined && !files) ||
+                files?.valid_id != null ||
+                files?.validIdCameraVersion !== undefined;
+            if (!confirmedId && (rejectedCapture || savedDraft.step > 4)) {
+                setLegacyValidId(true);
+                setStep(4);
+            }
+
             setData(current => {
                 const restored = { ...current };
                 for (const key of REGISTRATION_FILE_FIELDS) {
-                    const file = files[key];
+                    if (key === 'valid_id' && !confirmedId) continue;
+                    const file = files?.[key];
                     if (!restored[key] && file instanceof File) restored[key] = file;
                 }
                 return restored;
             });
-        }).catch(() => { if (active) setDraftStorageError(true); })
+        }).catch(() => {
+            if (!active) return;
+            setDraftStorageError(true);
+            if (savedDraft.step > 4) {
+                setLegacyValidId(true);
+                setStep(4);
+            }
+        })
             .finally(() => { if (active) setDraftFilesReady(true); });
         return () => { active = false; };
     }, [savedDraft, setData]);
@@ -147,7 +183,13 @@ function RegistrationContent({
 
     useEffect(() => {
         if (!draftFilesReady || submittedDraft.current) return;
-        const files = Object.fromEntries(REGISTRATION_FILE_FIELDS.map(key => [key, data[key]]));
+        const files: DraftFiles = {
+            valid_id: data.valid_id,
+            live_identity_photo: data.live_identity_photo,
+            senior_proof: data.senior_proof,
+            pwd_proof: data.pwd_proof,
+            validIdCameraVersion: data.valid_id ? VALID_ID_CAMERA_VERSION : undefined,
+        };
         void saveRegistrationFiles(files).catch(() => setDraftStorageError(true));
     }, [draftFilesReady, data.valid_id, data.live_identity_photo, data.senior_proof, data.pwd_proof]);
 
@@ -184,7 +226,9 @@ function RegistrationContent({
     const isPwd = data.sectors.includes('pwd');
 
     const fieldError = (key: string) =>
-        clientErrors[key] ?? (errors as Record<string, string>)[key];
+        (key === 'valid_id' && legacyValidId && !data.valid_id
+            ? 'Capture and confirm a new Valid ID photo to continue. Your other draft details were preserved.'
+            : undefined) ?? clientErrors[key] ?? (errors as Record<string, string>)[key];
 
     const clearFieldError = (key: string) => {
         setClientErrors((current) => {
@@ -312,7 +356,7 @@ function RegistrationContent({
 
         if (targetStep === 4) {
             if (!data.valid_id) {
-                nextErrors.valid_id = 'Please provide a valid ID.';
+                nextErrors.valid_id = 'Please capture and confirm a photo of your valid government ID.';
             }
 
             if (!data.live_identity_photo) {
@@ -377,8 +421,22 @@ function RegistrationContent({
         return Object.keys(nextErrors).length === 0;
     };
 
+    const requireConfirmedId = () => {
+        if (data.valid_id) return true;
+        setClientErrors({
+            valid_id: 'Please capture and confirm a photo of your valid government ID.',
+        });
+        setStep(4);
+        scrollTop();
+        return false;
+    };
+
     const nextStep = () => {
-        if (!validateStep()) {
+        if (
+            !draftFilesReady ||
+            (step > 4 && !requireConfirmedId()) ||
+            !validateStep()
+        ) {
             return;
         }
 
@@ -397,7 +455,7 @@ function RegistrationContent({
         event.preventDefault();
 
 
-        if (!validateStep(6)) {
+        if (!draftFilesReady || !requireConfirmedId() || !validateStep(6)) {
             return;
         }
 
@@ -1379,17 +1437,13 @@ function IdentityVerificationStep({
             <div>
                 <SectionTitle
                     title="Valid Identification"
-                    description="Upload a clear image or PDF of your valid identification document."
+                    description="Capture a clear live photo of your valid government ID using your device camera."
                 />
                 <div className="mt-4">
-                    <FileUpload
-                        title="Valid ID"
-                        description="Accepted: JPG, PNG, or PDF. Maximum 5 MB."
-                        accept="image/jpeg,image/png,application/pdf"
+                    <ValidIdCameraCapture
                         value={validId}
                         error={errors('valid_id')}
                         onChange={(file) => setFile('valid_id', file)}
-                        icon={<IdCardIcon />}
                     />
                 </div>
             </div>
@@ -1722,18 +1776,54 @@ function ReviewStep({
     );
 }
 
-function LiveCameraCapture({
-    value,
-    error,
-    onChange,
-}: {
+type CameraGuide = 'face' | 'document';
+type CameraFacingPreference = 'user' | 'environment';
+
+type CameraCaptureProps = {
     value: File | null;
     error?: string;
     onChange: (file: File | null) => void;
-}) {
+    facingModePreference?: CameraFacingPreference;
+    mirror?: boolean;
+    guide?: CameraGuide;
+    filenamePrefix?: string;
+    title: string;
+    description: string;
+    openButtonLabel: string;
+    openingButtonLabel: string;
+    preparingLabel?: string;
+    readyHint: string;
+    capturedTitle: string;
+    capturedDescription: string;
+    previewAlt: string;
+    footerHelp: string;
+    icon: ReactNode;
+};
+
+function CameraCaptureField({
+    value,
+    error,
+    onChange,
+    facingModePreference = 'user',
+    mirror = true,
+    guide = 'face',
+    filenamePrefix = 'capture',
+    title,
+    description,
+    openButtonLabel,
+    openingButtonLabel,
+    preparingLabel = 'Preparing camera...',
+    readyHint,
+    capturedTitle,
+    capturedDescription,
+    previewAlt,
+    footerHelp,
+    icon,
+}: CameraCaptureProps) {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const cameraAttempt = useRef(0);
 
     const [cameraOpen, setCameraOpen] = useState(false);
     const [cameraReady, setCameraReady] = useState(false);
@@ -1741,18 +1831,20 @@ function LiveCameraCapture({
     const [startingCamera, setStartingCamera] = useState(false);
     const [capturing, setCapturing] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [unconfirmed, setUnconfirmed] = useState<File | null>(null);
+    const previewFile = unconfirmed ?? value;
 
     useEffect(() => {
-        if (!value) {
+        if (!previewFile) {
             setPreviewUrl(null);
             return;
         }
 
-        const url = URL.createObjectURL(value);
+        const url = URL.createObjectURL(previewFile);
         setPreviewUrl(url);
 
         return () => URL.revokeObjectURL(url);
-    }, [value]);
+    }, [previewFile]);
 
     useEffect(() => {
         if (!cameraOpen || !streamRef.current || !videoRef.current) {
@@ -1760,10 +1852,15 @@ function LiveCameraCapture({
         }
 
         const video = videoRef.current;
+        const attempt = cameraAttempt.current;
         video.srcObject = streamRef.current;
 
         const markReady = () => {
-            if (video.videoWidth > 0 && video.videoHeight > 0) {
+            if (
+                attempt === cameraAttempt.current &&
+                video.videoWidth > 0 &&
+                video.videoHeight > 0
+            ) {
                 setCameraReady(true);
             }
         };
@@ -1790,11 +1887,14 @@ function LiveCameraCapture({
 
     useEffect(() => {
         return () => {
+            cameraAttempt.current++;
             streamRef.current?.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
         };
     }, []);
 
     const stopCamera = () => {
+        cameraAttempt.current++;
         streamRef.current?.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
 
@@ -1805,32 +1905,53 @@ function LiveCameraCapture({
 
         setCameraReady(false);
         setCameraOpen(false);
+        setStartingCamera(false);
         setCapturing(false);
     };
 
-    const requestCamera = async () => {
-        // Start with lightweight constraints so laptops and phones open faster.
-        try {
-            return await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: { ideal: 'user' },
-                    width: { ideal: 640, max: 1280 },
-                    height: { ideal: 480, max: 720 },
-                    frameRate: { ideal: 24, max: 30 },
-                },
-                audio: false,
-            });
-        } catch (firstError) {
-            // Fallback for older browsers/devices that reject advanced constraints.
+    const requestCamera = async (attempt: number) => {
+        const base = {
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+            frameRate: { ideal: 24, max: 30 },
+        };
+        const attempts =
+            facingModePreference === 'environment'
+                ? [
+                      { video: { facingMode: { ideal: 'environment' }, ...base }, audio: false },
+                      { video: { facingMode: { ideal: 'user' }, ...base }, audio: false },
+                      { video: true, audio: false },
+                  ]
+                : [
+                      {
+                          video: {
+                              facingMode: { ideal: 'user' },
+                              width: { ideal: 640, max: 1280 },
+                              height: { ideal: 480, max: 720 },
+                              frameRate: { ideal: 24, max: 30 },
+                          },
+                          audio: false,
+                      },
+                      { video: true, audio: false },
+                  ];
+
+        let lastError;
+        for (const constraints of attempts) {
             try {
-                return await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: false,
-                });
-            } catch {
-                throw firstError;
+                return await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (attemptError) {
+                if (
+                    attempt !== cameraAttempt.current ||
+                    (attemptError instanceof DOMException &&
+                        ['NotAllowedError', 'SecurityError'].includes(attemptError.name))
+                ) {
+                    throw attemptError;
+                }
+                lastError = attemptError;
             }
         }
+
+        throw lastError;
     };
 
     const openCamera = async () => {
@@ -1858,25 +1979,35 @@ function LiveCameraCapture({
             return;
         }
 
-        try {
-            setStartingCamera(true);
-            stopCamera();
+        stopCamera();
+        const attempt = cameraAttempt.current;
+        setStartingCamera(true);
 
-            const stream = await requestCamera();
+        try {
+            const stream = await requestCamera(attempt);
+            if (attempt !== cameraAttempt.current) {
+                stream.getTracks().forEach((track) => track.stop());
+                return;
+            }
             streamRef.current = stream;
             setCameraOpen(true);
         } catch (cameraException) {
+            if (attempt !== cameraAttempt.current) return;
             const exception = cameraException as DOMException;
 
-            if (exception?.name === 'NotAllowedError') {
+            if (exception?.name === 'NotAllowedError' || exception?.name === 'SecurityError') {
                 setCameraError(
                     'Camera permission was blocked. Allow camera access in your browser settings, then try again.',
                 );
-            } else if (exception?.name === 'NotFoundError') {
+            } else if (exception?.name === 'NotFoundError' || exception?.name === 'DevicesNotFoundError') {
                 setCameraError('No camera was detected on this device.');
-            } else if (exception?.name === 'NotReadableError') {
+            } else if (exception?.name === 'NotReadableError' || exception?.name === 'TrackStartError') {
                 setCameraError(
                     'The camera is currently being used by another app. Close the other camera app and try again.',
+                );
+            } else if (exception?.name === 'OverconstrainedError' || exception?.name === 'ConstraintNotSatisfiedError') {
+                setCameraError(
+                    'The requested camera is not available on this device. Please try again.',
                 );
             } else {
                 setCameraError(
@@ -1884,7 +2015,7 @@ function LiveCameraCapture({
                 );
             }
         } finally {
-            setStartingCamera(false);
+            if (attempt === cameraAttempt.current) setStartingCamera(false);
         }
     };
 
@@ -1914,7 +2045,7 @@ function LiveCameraCapture({
 
         // Keep the image clear enough for manual identity review without creating
         // a large file that is slow on phones or lower-powered laptops.
-        const maxWidth = 720;
+        const maxWidth = guide === 'face' ? 720 : 1280;
         const sourceWidth = video.videoWidth;
         const sourceHeight = video.videoHeight;
         const scale = Math.min(1, maxWidth / sourceWidth);
@@ -1927,20 +2058,25 @@ function LiveCameraCapture({
         const context = canvas.getContext('2d', { alpha: false });
 
         if (!context) {
-            setCameraError('Unable to capture the photo.');
+            setCameraError('Unable to capture the photo. Please try again.');
             setCapturing(false);
             return;
         }
 
-        // Mirror the saved selfie so it matches the live front-camera preview.
-        context.save();
-        context.translate(outputWidth, 0);
-        context.scale(-1, 1);
-        context.drawImage(video, 0, 0, outputWidth, outputHeight);
-        context.restore();
+        if (mirror) {
+            context.save();
+            context.translate(outputWidth, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, outputWidth, outputHeight);
+            context.restore();
+        } else {
+            context.drawImage(video, 0, 0, outputWidth, outputHeight);
+        }
 
+        const attempt = cameraAttempt.current;
         canvas.toBlob(
             (blob) => {
+                if (attempt !== cameraAttempt.current) return;
                 if (!blob) {
                     setCameraError(
                         'Unable to capture the photo. Please try again.',
@@ -1949,17 +2085,30 @@ function LiveCameraCapture({
                     return;
                 }
 
+                if (blob.size > 5 * 1024 * 1024) {
+                    setCameraError(
+                        'The captured image is larger than 5 MB. Move closer, improve lighting, and try again.',
+                    );
+                    setCapturing(false);
+                    return;
+                }
+
                 const file = new File(
                     [blob],
-                    `live-identity-${Date.now()}.jpg`,
+                    `${filenamePrefix}-${Date.now()}.jpg`,
                     { type: 'image/jpeg' },
                 );
 
-                onChange(file);
+                if (guide === 'document') {
+                    onChange(null);
+                    setUnconfirmed(file);
+                } else {
+                    onChange(file);
+                }
                 stopCamera();
             },
             'image/jpeg',
-            0.82,
+            guide === 'face' ? 0.82 : 0.9,
         );
     };
 
@@ -1974,26 +2123,36 @@ function LiveCameraCapture({
                             playsInline
                             muted
                             disablePictureInPicture
-                            className="h-full w-full scale-x-[-1] object-cover"
+                            className={`h-full w-full object-cover ${mirror ? 'scale-x-[-1]' : ''}`}
                         />
 
                         {!cameraReady && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/65 text-white">
                                 <div className="flex items-center gap-2 text-sm font-semibold">
                                     <SpinnerIcon />
-                                    Preparing camera...
+                                    {preparingLabel}
                                 </div>
                             </div>
                         )}
 
-                        {cameraReady && (
+                        {cameraReady && guide === 'face' && (
                             <>
                                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                                     <div className="h-[72%] w-[58%] max-w-[260px] rounded-[50%] border-2 border-dashed border-white/80 shadow-[0_0_0_999px_rgba(0,0,0,0.18)]" />
                                 </div>
-
                                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs font-semibold whitespace-nowrap text-white">
-                                    Position your face inside the guide
+                                    {readyHint}
+                                </div>
+                            </>
+                        )}
+
+                        {cameraReady && guide === 'document' && (
+                            <>
+                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+                                    <div className="h-[68%] w-[92%] max-w-[560px] rounded-2xl border-2 border-dashed border-white/85 shadow-[0_0_0_999px_rgba(0,0,0,0.22)]" />
+                                </div>
+                                <div className="absolute bottom-3 left-1/2 max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-center text-xs font-semibold text-white">
+                                    {readyHint}
                                 </div>
                             </>
                         )}
@@ -2029,37 +2188,46 @@ function LiveCameraCapture({
                         </button>
                     </div>
                 </div>
-            ) : value && previewUrl ? (
+            ) : previewFile && previewUrl ? (
                 <div className="rounded-xl border border-line bg-surface p-4">
                     <div className="grid gap-4 sm:grid-cols-[180px_1fr] sm:items-center">
                         <img
                             src={previewUrl}
-                            alt="Live identity photo preview"
-                            className="aspect-[4/3] w-full rounded-xl border border-line-soft bg-white object-cover"
+                            alt={previewAlt}
+                            className={`aspect-[4/3] w-full rounded-xl border border-line-soft bg-white ${guide === 'document' ? 'object-contain' : 'object-cover'}`}
                         />
 
                         <div>
                             <div className="flex items-center gap-2 text-brand">
                                 <CircleCheckIcon />
                                 <p className="text-sm font-semibold">
-                                    Live identity photo captured
+                                    {unconfirmed ? 'Review your Valid ID photo' : capturedTitle}
                                 </p>
                             </div>
 
                             <p className="mt-2 text-xs leading-5 text-ink-muted">
-                                This photo was captured directly from this
-                                device camera.
+                                {capturedDescription}
                             </p>
 
+                            {unconfirmed && !startingCamera && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onChange(unconfirmed);
+                                        setUnconfirmed(null);
+                                    }}
+                                    className="mr-2 mt-4 min-h-10 rounded-lg bg-brand px-4 text-xs font-semibold text-white hover:bg-brand-deep"
+                                >
+                                    Use this ID photo
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={openCamera}
                                 disabled={startingCamera}
                                 className="mt-4 min-h-10 rounded-lg border border-line bg-white px-4 text-xs font-semibold text-ink hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {startingCamera
-                                    ? 'Opening Camera...'
-                                    : 'Retake Photo'}
+                                {startingCamera ? openingButtonLabel : 'Retake Photo'}
                             </button>
                         </div>
                     </div>
@@ -2068,24 +2236,18 @@ function LiveCameraCapture({
                 <div
                     className={[
                         'flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center sm:p-8',
-                        error
+                        error || cameraError
                             ? 'border-red-300 bg-red-50/30'
                             : 'border-line bg-canvas/50',
                     ].join(' ')}
                 >
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-soft text-brand">
-                        <CameraIcon />
+                        {icon}
                     </div>
 
-                    <p className="mt-3 text-sm font-semibold text-ink-strong">
-                        Live Identity Photo
-                    </p>
+                    <p className="mt-3 text-sm font-semibold text-ink-strong">{title}</p>
 
-                    <p className="mt-1 max-w-md text-xs leading-5 text-ink-muted">
-                        Open your device camera and take a current photo of
-                        yourself. Gallery upload is not available for this
-                        verification step.
-                    </p>
+                    <p className="mt-1 max-w-md text-xs leading-5 text-ink-muted">{description}</p>
 
                     <button
                         type="button"
@@ -2096,31 +2258,99 @@ function LiveCameraCapture({
                         {startingCamera ? (
                             <>
                                 <SpinnerIcon />
-                                Opening Camera...
+                                {openingButtonLabel}
                             </>
                         ) : (
                             <>
                                 <CameraIcon />
-                                Open Camera
+                                {openButtonLabel}
                             </>
                         )}
                     </button>
                 </div>
             )}
 
+            {guide === 'document' && startingCamera && (
+                <button
+                    type="button"
+                    onClick={stopCamera}
+                    className="mt-2 min-h-10 rounded-lg border border-line px-4 text-xs font-semibold"
+                >
+                    Cancel camera
+                </button>
+            )}
             <canvas ref={canvasRef} className="hidden" />
 
             {(cameraError || error) && (
-                <p className="mt-2 text-xs font-semibold text-red-600">
-                    {cameraError || error}
-                </p>
+                <p role="alert" className="mt-2 text-xs font-semibold text-red-600">{cameraError || error}</p>
             )}
 
-            <p className="mt-2 text-xs leading-5 text-ink-faint">
-                Works with laptop webcams and phone front cameras. Camera
-                permission is required; deployed sites must use HTTPS.
-            </p>
+            <p className="mt-2 text-xs leading-5 text-ink-faint">{footerHelp}</p>
         </div>
+    );
+}
+
+function LiveCameraCapture({
+    value,
+    error,
+    onChange,
+}: {
+    value: File | null;
+    error?: string;
+    onChange: (file: File | null) => void;
+}) {
+    return (
+        <CameraCaptureField
+            value={value}
+            error={error}
+            onChange={onChange}
+            facingModePreference="user"
+            mirror
+            guide="face"
+            filenamePrefix="live-identity"
+            title="Live Identity Photo"
+            description="Open your device camera and take a current photo of yourself. Gallery upload is not available for this verification step."
+            openButtonLabel="Open Camera"
+            openingButtonLabel="Opening Camera..."
+            readyHint="Position your face inside the guide"
+            capturedTitle="Live identity photo captured"
+            capturedDescription="This photo was captured directly from this device camera."
+            previewAlt="Live identity photo preview"
+            footerHelp="Works with laptop webcams and phone front cameras. Camera permission is required; deployed sites must use HTTPS."
+            icon={<CameraIcon />}
+        />
+    );
+}
+
+export function ValidIdCameraCapture({
+    value,
+    error,
+    onChange,
+}: {
+    value: File | null;
+    error?: string;
+    onChange: (file: File | null) => void;
+}) {
+    return (
+        <CameraCaptureField
+            value={value}
+            error={error}
+            onChange={onChange}
+            facingModePreference="environment"
+            mirror={false}
+            guide="document"
+            filenamePrefix="valid-id"
+            title="Valid Government ID"
+            description="Use your device camera to capture a clear, readable photo of your valid government ID. Keep the whole ID inside the guide, avoid glare, and make sure text and photo are sharp. Gallery, file upload, and PDF are not available for this step."
+            openButtonLabel="Open Valid ID Camera"
+            openingButtonLabel="Opening Valid ID camera..."
+            readyHint="Place your valid ID inside the guide. Keep it flat, bright, and readable."
+            capturedTitle="Valid ID photo captured"
+            capturedDescription="This image was captured directly from your device camera. Review it for clarity before continuing."
+            previewAlt="Valid government ID capture preview"
+            footerHelp="Uses your device camera only (rear camera preferred; front camera fallback if needed). Camera permission is required; deployed sites must use HTTPS. Maximum 5 MB."
+            icon={<IdCardIcon />}
+        />
     );
 }
 
