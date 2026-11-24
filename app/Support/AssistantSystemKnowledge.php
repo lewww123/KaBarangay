@@ -17,15 +17,19 @@ final class AssistantSystemKnowledge
             'sector_applications' => ['url' => '/resident/sector-applications', 'steps' => ['Buksan ang Sector Services o sector applications.', 'Piliin ang available sector at kumpletuhin ang hinihinging detalye at proof.', 'Suriin at isumite. Subaybayan ang application status at tugunan ang correction request kung mayroon.']],
             'registration' => ['url' => '/resident/register', 'steps' => ['Piliin ang barangay at purok, at kumpletuhin ang personal at sector information.', 'Ibigay ang required identity documents at live identity photo ayon sa form.', 'Maglagay ng required mobile number at gumawa ng password. Optional ang email; unverified pa ang mobile.', 'Suriin at isumite para sa admin review.', 'Ipapadala sa inilagay na email ang approval, correction o rejection decision.']],
             'other_pages' => ['announcements' => '/resident/announcements', 'programs' => '/resident/programs', 'citizens_charter' => '/resident/citizen-charter', 'organization_and_officials' => '/resident/org-chart', 'profile' => '/resident/profile', 'settings' => '/resident/settings'],
-            'catalog_note' => 'Database catalog at published descriptions lamang ang facts. Kapag wala ang isang dokumento sa active catalog, huwag sabihing available ito. Huwag mag-imbento ng fees, processing time, eligibility o downloadable documents. Hindi pa kinukuha ang buong nilalaman ng charter PDF; gamitin ang published description at ibigay ang link kung kailangan ang buong official document.',
+            'catalog_note' => 'Database catalog at published descriptions lamang ang facts. Kapag wala ang isang dokumento sa active catalog, huwag sabihing available ito. Fee 0 ay Libre; ang fee na walang halaga ay Hindi pa na-specify, hindi Libre at hindi dapat hulaan. Ang published_services ay mula lamang sa parehong barangay; huwag gamitin ang entry ng ibang barangay. Huwag pumili ng katumbas na Citizen’s Charter service para sa isang certificate kung hindi ito tahasang nabanggit o hindi malinaw ang tugma; i-report ang pagtutugma bilang hindi pa na-verify at ituro ang opisyal na Charter link o barangay office. Huwag kunin ang eksaktong fee o requirements mula sa PDF description. Huwag mag-imbento ng fees, processing time, eligibility o downloadable documents.',
             'certificates' => [], 'published_services' => [],
         ];
         if (! $resident) {
             return $knowledge;
         }
-        $knowledge['certificates'] = Certificate::query()->where('barangay_id', $resident->barangay_id)->where('is_active', true)->orderBy('name')->limit(100)->get()->map(fn ($certificate) => [
-            'name' => $certificate->name, 'description' => $certificate->description, 'fee_php' => $certificate->fee, 'requirements' => $certificate->requirements ?? [], 'additional_fields' => CertificateRequestDetails::fieldsForCertificate($certificate), 'url' => '/resident/certificates',
-        ])->all();
+        $knowledge['certificates'] = Certificate::query()->where('barangay_id', $resident->barangay_id)->where('is_active', true)->orderBy('name')->limit(100)->get()->map(function ($certificate) {
+            $fee = $certificate->fee === null ? null : (float) $certificate->fee;
+
+            return [
+                'name' => $certificate->name, 'description' => $certificate->description, 'fee_php' => $certificate->fee, 'fee_label' => $fee === null ? 'Not specified' : ($fee === 0.0 ? 'Free' : '₱'.number_format($fee, 2)), 'requirements' => $certificate->requirements ?? [], 'additional_fields' => CertificateRequestDetails::fieldsForCertificate($certificate), 'url' => '/resident/certificates',
+            ];
+        })->all();
         $knowledge['published_services'] = CitizenCharterService::query()->where('barangay_id', $resident->barangay_id)->visibleToResidents()->orderBy('display_order')->limit(30)->get(['id', 'title', 'category', 'description'])->map(fn ($service) => ['title' => $service->title, 'category' => $service->category, 'description' => $service->description, 'url' => '/resident/citizen-charter/'.$service->id])->all();
 
         return $knowledge;

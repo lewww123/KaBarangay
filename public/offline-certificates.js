@@ -6,7 +6,8 @@
         reviewing = null,
         busy = false,
         displayedCertificate = null,
-        renderEpoch = 0;
+        renderEpoch = 0,
+        renderQueue = Promise.resolve();
     const labels = {
         draft: 'Draft',
         pending: 'Pending sync',
@@ -19,8 +20,17 @@
         $('message').textContent = text;
         $('message').className = text ? 'note ' + (error ? 'warning' : '') : '';
     };
-    const money = (fee) =>
-        '₱' + Number(fee).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+    const money = (fee) => {
+        if (fee === null || fee === undefined) return 'Not specified';
+        if (Number(fee) === 0) return '₱0.00';
+
+        return (
+            '₱' +
+            Number(fee).toLocaleString('en-PH', {
+                minimumFractionDigits: 2,
+            })
+        );
+    };
     const selected = () =>
         context?.certificates.find(
             (item) => String(item.id) === $('certificate').value,
@@ -153,7 +163,12 @@
                 new Date(context.preparedAt).toLocaleString('en-PH', {
                     timeZone: 'Asia/Manila',
                 });
-            const current = $('certificate').value;
+            const current =
+                $('certificate').value ||
+                (editing
+                    ? items.find((item) => item.id === editing)?.data.form
+                          .certificate_id || ''
+                    : '');
             $('certificate').replaceChildren(
                 new Option('Select certificate', ''),
             );
@@ -232,7 +247,7 @@
                     remove.onclick = async () => {
                         try {
                             await store.remove(item.id);
-                            await render();
+                            await queueRender();
                         } catch (error) {
                             message(error.message, true);
                         }
@@ -271,6 +286,10 @@
             : 'Offline. Drafts and pending requests stay on this device.';
         $('sync').disabled = $('refresh').disabled = !navigator.onLine || busy;
     }
+    const queueRender = () => {
+        renderQueue = renderQueue.then(render, render);
+        return renderQueue;
+    };
     async function refresh() {
         const response = await fetch('/resident/certificates/offline-context', {
             credentials: 'same-origin',
@@ -293,7 +312,8 @@
             throw new Error(
                 'Nagbago ang session. Mag-sign in muli bago mag-sync.',
             );
-        await render();
+        context = await store.context();
+        await queueRender();
     }
     async function sync() {
         if (busy || !navigator.onLine) return;
@@ -314,7 +334,7 @@
             message(error.message, true);
         } finally {
             busy = false;
-            await render();
+            await queueRender();
         }
     }
     $('certificate').addEventListener('change', () => certificateFields());
@@ -323,7 +343,7 @@
         try {
             editing = await store.saveDraft(formData(), editing);
             message('Draft saved on this device. Hindi pa ito submitted.');
-            await render();
+            await queueRender();
         } catch (error) {
             message(error.message, true);
         }
@@ -376,7 +396,7 @@
             await store.queue(id);
             clear();
             message('Pending sync — hindi pa officially submitted.');
-            await render();
+            await queueRender();
             if (navigator.onLine) await sync();
         } catch (error) {
             message(error.message, true);
@@ -387,7 +407,7 @@
     $('sync').onclick = sync;
     $('refresh').onclick = () =>
         refresh().catch((error) => message(error.message, true));
-    globalThis.addEventListener('kb-certificate-queue', () => void render());
+    globalThis.addEventListener('kb-certificate-queue', () => void queueRender());
     const lockScreen = () => {
         renderEpoch++;
         context = null;
@@ -415,7 +435,7 @@
     document.addEventListener('visibilitychange', restorePrivatePage);
     navigator.serviceWorker?.addEventListener('message', (event) => {
         if (event.data?.type === 'KB_PRIVATE_LOCKED') lockScreen();
-        if (event.data?.type === 'KB_CERT_QUEUE_CHANGED') void render();
+        if (event.data?.type === 'KB_CERT_QUEUE_CHANGED') void queueRender();
     });
     globalThis.addEventListener(
         'online',
@@ -424,11 +444,11 @@
                 .then(sync)
                 .catch((error) => message(error.message, true)),
     );
-    globalThis.addEventListener('offline', () => void render());
+    globalThis.addEventListener('offline', () => void queueRender());
     setInterval(() => {
         if (navigator.onLine) void sync();
     }, 30000);
-    void render().then(() => {
+    void queueRender().then(() => {
         if (navigator.onLine)
             void refresh()
                 .then(sync)

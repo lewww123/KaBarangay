@@ -48,6 +48,11 @@ class Certificate extends Model
         ];
     }
 
+    public function hasPublishedFee(): bool
+    {
+        return $this->fee !== null;
+    }
+
     public function barangay(): BelongsTo
     {
         return $this->belongsTo(Barangay::class);

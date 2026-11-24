@@ -56,7 +56,7 @@ type CertificateField = {
 type Certificate = {
     id: string;
     name: string;
-    fee: number;
+    fee: number | null;
     description: string;
     requirements: string[];
     requiresBusinessDetails?: boolean;
@@ -85,6 +85,14 @@ type CertificateRequest = {
     additionalDetails?: string;
     details?: CertificateRequestDetailsRow[];
     adminNote?: string | null;
+};
+
+const formatCertificateFee = (fee: number | null | undefined): string => {
+    if (fee === null || fee === undefined) {
+        return 'Not specified';
+    }
+
+    return fee > 0 ? `₱${fee.toLocaleString()}` : 'Free';
 };
 
 interface PageProps {
@@ -796,10 +804,9 @@ function CertificatesContent({
                                                         Fee
                                                     </span>
                                                     <span className="text-base font-semibold text-brand tnum">
-                                                        {selectedCertificate.fee >
-                                                        0
-                                                            ? `₱${selectedCertificate.fee.toLocaleString()}`
-                                                            : 'Free'}
+                                                        {formatCertificateFee(
+                                                            selectedCertificate.fee,
+                                                        )}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1246,11 +1253,9 @@ function CertificatesContent({
 
                                         <ReviewRow
                                             label="Fee"
-                                            value={
-                                                selectedCertificate.fee > 0
-                                                    ? `₱${selectedCertificate.fee.toLocaleString()}`
-                                                    : 'Free'
-                                            }
+                                            value={formatCertificateFee(
+                                                selectedCertificate.fee,
+                                            )}
                                             last
                                         />
                                     </div>
@@ -1571,11 +1576,7 @@ function RequestDetailsModal({
                             <InfoItem label="Submitted" value={request.date} />
                             <InfoItem
                                 label="Fee"
-                                value={
-                                    request.fee > 0
-                                        ? `₱${request.fee.toLocaleString()}`
-                                        : 'Free'
-                                }
+                                value={formatCertificateFee(request.fee)}
                             />
                             {request.businessName && (
                                 <InfoItem

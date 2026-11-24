@@ -39,7 +39,7 @@ final class AssistantResidentRecords
 
     public function isTrackingQuestion(string $message): bool
     {
-        if (preg_match('/\b(paano|how|proseso|process|steps)\b/iu', $message)) {
+        if (preg_match('/\b(paano|how|proseso|process|steps|magkano|fee|presyo|bayad|requirement|requirements|kinakailangan)\b/iu', $message)) {
             return false;
         }
 

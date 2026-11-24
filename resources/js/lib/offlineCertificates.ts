@@ -22,9 +22,9 @@ export type LocalCertificateRequest = {
     updatedAt: number;
     data: {
         certificateName: string;
-        estimatedFee?: number;
+        estimatedFee?: number | null;
         form?: OfflineCertificateForm;
-        result?: { reference: string; status?: string; fee?: number };
+        result?: { reference: string; status?: string; fee?: number | null };
         error?: string | null;
     };
 };

@@ -60,6 +60,9 @@ class OfflineCertificateController extends Controller
             if (! hash_equals(OfflineCertificateContext::revision($certificate), $envelope['catalog_revision'])) {
                 return response()->json(['code' => 'catalog_changed', 'message' => 'The certificate fee, requirements or form details changed. Refresh the catalog and review the current information before submitting.'], 409);
             }
+            if (! $certificate->hasPublishedFee()) {
+                return response()->json(['code' => 'fee_not_specified', 'message' => 'This certificate has no published fee yet. Ask the barangay office to set the fee before submitting a request.'], 409);
+            }
 
             $created = app(CertificateRequestController::class)->createValidatedRequest($request, [
                 'client_request_id' => $envelope['client_request_id'], 'client_payload_hash' => $hash,

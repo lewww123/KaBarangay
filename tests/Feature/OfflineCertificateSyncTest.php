@@ -54,6 +54,44 @@ class OfflineCertificateSyncTest extends TestCase
         $this->getJson('/offline/session')->assertJsonPath('owner', $response->json('owner'));
     }
 
+    public function test_context_keeps_a_null_catalog_fee_as_null(): void
+    {
+        $this->certificate->update(['fee' => null]);
+
+        $this->getJson('/resident/certificates/offline-context')->assertOk()
+            ->assertJsonPath('certificates.0.fee', null);
+    }
+
+    public function test_new_offline_request_with_null_catalog_fee_is_rejected_and_zero_is_accepted(): void
+    {
+        $this->certificate->update(['fee' => null]);
+        $data = $this->payload();
+
+        $this->postJson('/resident/certificates/sync', $data)
+            ->assertConflict()->assertJsonPath('code', 'fee_not_specified');
+        $this->assertDatabaseCount('certificate_requests', 0);
+
+        $this->certificate->update(['fee' => 0]);
+        $data['catalog_revision'] = OfflineCertificateContext::revision($this->certificate->fresh());
+
+        $this->postJson('/resident/certificates/sync', $data)
+            ->assertCreated()->assertJsonPath('fee', '0.00');
+        $this->assertEquals('0.00', CertificateRequest::sole()->fee);
+    }
+
+    public function test_accepted_offline_replay_precedes_null_fee_and_catalog_validation(): void
+    {
+        $data = $this->payload();
+        $reference = $this->postJson('/resident/certificates/sync', $data)
+            ->assertCreated()->json('reference');
+
+        $this->certificate->update(['fee' => null, 'is_active' => false]);
+
+        $this->postJson('/resident/certificates/sync', $data)
+            ->assertOk()->assertJsonPath('reference', $reference)->assertJsonPath('replayed', true);
+        $this->assertDatabaseCount('certificate_requests', 1);
+    }
+
     public function test_sync_creates_one_official_pending_request_using_the_database_fee(): void
     {
         $data = $this->payload(['fee' => 1, 'status' => 'Released', 'resident_id' => 999]);

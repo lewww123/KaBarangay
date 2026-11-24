@@ -24,7 +24,7 @@ final class OfflineCertificateContext
         return [
             'id' => (string) $certificate->id,
             'name' => $certificate->name,
-            'fee' => (string) $certificate->fee,
+            'fee' => $certificate->fee === null ? null : (string) $certificate->fee,
             'description' => $certificate->description ?? '',
             'requirements' => $certificate->requirements ?? [],
             'fixedPurpose' => CertificateRequestDetails::fixedPurpose($type),

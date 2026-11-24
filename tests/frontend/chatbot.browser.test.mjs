@@ -145,7 +145,7 @@ try {
         .waitFor();
     await page
         .getByRole('log')
-        .getByRole('link', { name: 'Buksan ang record →' })
+        .getByRole('link', { name: 'Buksan ang record' })
         .waitFor();
     assert.equal(await page.locator('header svg').count(), 1);
     await page.reload({ waitUntil: 'domcontentloaded' });

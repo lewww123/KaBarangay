@@ -7,8 +7,12 @@ use App\Models\Certificate;
 use App\Models\CertificateRequest;
 use App\Models\Purok;
 use App\Models\Resident;
+use App\Support\AssistantSystemKnowledge;
 use App\Support\CertificateRequestDetails;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
@@ -335,6 +339,57 @@ class ResidentCertificateRequestTest extends TestCase
         $this->assertNotNull($request->submitted_at);
     }
 
+    public function test_catalog_fee_null_is_exposed_as_null_and_zero_is_preserved(): void
+    {
+        $free = $this->createCertificate($this->barangay, [
+            'code' => 'ZERO-FEE',
+            'name' => 'Zero Fee Certificate',
+            'fee' => 0,
+        ]);
+        $unspecified = $this->createCertificate($this->barangay, [
+            'code' => 'NO-FEE',
+            'name' => 'Unspecified Fee Certificate',
+            'fee' => null,
+        ]);
+
+        $response = $this->withSession(['resident_id' => $this->resident->id])
+            ->get('/resident/certificates')
+            ->assertOk();
+
+        $certificates = collect($response->inertiaProps('certificates'))->keyBy('id');
+
+        $this->assertEquals(0, $certificates[(string) $free->id]['fee']);
+        $this->assertNull($certificates[(string) $unspecified->id]['fee']);
+    }
+
+    public function test_null_catalog_fee_cannot_be_requested(): void
+    {
+        $this->certificate->update(['fee' => null]);
+
+        $this->withSession(['resident_id' => $this->resident->id])
+            ->post('/resident/certificates', [
+                'certificate_id' => $this->certificate->id,
+                'purpose' => 'Employment abroad',
+            ])
+            ->assertSessionHasErrors('certificate_id');
+
+        $this->assertSame(0, CertificateRequest::query()->count());
+    }
+
+    public function test_zero_fee_request_is_still_accepted_as_free(): void
+    {
+        $this->certificate->update(['fee' => 0]);
+
+        $this->withSession(['resident_id' => $this->resident->id])
+            ->post('/resident/certificates', [
+                'certificate_id' => $this->certificate->id,
+                'purpose' => 'Employment abroad',
+            ])
+            ->assertRedirect(route('resident.certificates'));
+
+        $this->assertSame('0.00', CertificateRequest::sole()->fee);
+    }
+
     public function test_requests_exceeding_the_limit_are_throttled(): void
     {
         $session = ['resident_id' => $this->resident->id];
@@ -509,5 +564,89 @@ class ResidentCertificateRequestTest extends TestCase
                 ->where('requests.data.0.id', $request->id)
                 ->where('requests.data.0.additionalDetails', 'Legacy free-text note.')
                 ->has('requests.data.0.details', 0));
+    }
+
+    public function test_knowledge_snapshot_labels_zero_as_free_and_null_as_not_specified(): void
+    {
+        $free = $this->createCertificate($this->barangay, [
+            'code' => 'NLQ-FREE',
+            'name' => 'Zero Fee Certificate',
+            'fee' => 0,
+        ]);
+        $unspecified = $this->createCertificate($this->barangay, [
+            'code' => 'NLQ-UNSPECIFIED',
+            'name' => 'Unspecified Fee Certificate',
+            'fee' => null,
+        ]);
+
+        $knowledge = app(AssistantSystemKnowledge::class)->snapshot($this->resident);
+        $certificates = collect($knowledge['certificates'])->keyBy('name');
+
+        $this->assertSame('Free', $certificates[$free->name]['fee_label']);
+        $this->assertSame('Not specified', $certificates[$unspecified->name]['fee_label']);
+        $this->assertSame(0.0, (float) $certificates[$free->name]['fee_php']);
+        $this->assertNull($certificates[$unspecified->name]['fee_php']);
+    }
+
+    public function test_fee_migration_up_is_nullable_without_default_and_down_blocks_null_rollback(): void
+    {
+        $connection = 'fee_migration_test';
+        $database = tempnam(sys_get_temp_dir(), 'kab-fee-');
+        $this->assertNotFalse($database);
+
+        $originalDefault = config('database.default');
+        config([
+            'database.connections.'.$connection => [
+                'driver' => 'sqlite',
+                'url' => null,
+                'database' => $database,
+                'prefix' => '',
+                'foreign_key_constraints' => true,
+            ],
+            'database.default' => $connection,
+        ]);
+        DB::purge($connection);
+
+        try {
+            Schema::create('certificates', function (Blueprint $table) {
+                $table->id();
+                $table->decimal('fee', 10, 2)->default(0);
+            });
+
+            $zeroId = DB::table('certificates')->insertGetId(['fee' => 0]);
+            $migration = require database_path('migrations/2026_11_24_000001_make_certificate_catalog_fee_nullable.php');
+            $migration->up();
+
+            $feeColumn = collect(DB::select('PRAGMA table_info(certificates)'))->firstWhere('name', 'fee');
+            $this->assertSame(0, (int) $feeColumn->notnull);
+            $this->assertNull($feeColumn->dflt_value);
+            $this->assertSame(0.0, (float) DB::table('certificates')->where('id', $zeroId)->value('fee'));
+
+            $nullId = DB::table('certificates')->insertGetId(['fee' => null]);
+            $message = null;
+            try {
+                $migration->down();
+            } catch (\RuntimeException $exception) {
+                $message = $exception->getMessage();
+            }
+
+            $this->assertSame('Cannot roll back certificate fee migration while NULL fees exist.', $message);
+            $this->assertNull(DB::table('certificates')->where('id', $nullId)->value('fee'));
+
+            DB::table('certificates')->where('id', $nullId)->delete();
+            $migration->down();
+
+            $feeColumn = collect(DB::select('PRAGMA table_info(certificates)'))->firstWhere('name', 'fee');
+            $this->assertSame(1, (int) $feeColumn->notnull);
+            $this->assertSame(0.0, (float) DB::table('certificates')->where('id', $zeroId)->value('fee'));
+        } finally {
+            DB::purge($connection);
+            config(['database.default' => $originalDefault]);
+            foreach ([$database, $database.'-wal', $database.'-shm'] as $file) {
+                if (is_string($file) && file_exists($file)) {
+                    @unlink($file);
+                }
+            }
+        }
     }
 }

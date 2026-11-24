@@ -8,14 +8,16 @@ use App\Models\LuponCase;
 use App\Models\LuponComplaint;
 use App\Models\Resident;
 use App\Support\AssistantResidentRecords;
+use App\Support\AssistantSystemKnowledge;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\Concerns\CreatesBarangayFixtures;
+use Tests\Concerns\UsesCertificateNlqDatabase;
 use Tests\TestCase;
 
 class ChatbotTrackingTest extends TestCase
 {
-    use CreatesBarangayFixtures, RefreshDatabase;
+    use CreatesBarangayFixtures, RefreshDatabase, UsesCertificateNlqDatabase;
 
     private Resident $resident;
 
@@ -79,6 +81,31 @@ class ChatbotTrackingTest extends TestCase
         $this->postJson('/chatbot/send', ['message' => 'Status ng kaso ko'])->assertOk()->assertJsonPath('records.0.reference', 'KP-2026-001')->assertJsonPath('records.0.status', 'Mediation active')->assertDontSee('Private narrative')->assertDontSee('Private dispute');
     }
 
+    public function test_fee_and_requirements_prompt_is_grounded_in_same_barangay_and_marks_charter_matches_unverified(): void
+    {
+        config(['services.groq.key' => 'test-key', 'services.groq.ca_bundle' => null]);
+        $this->useCertificateNlqDatabase();
+        $this->withSession(['resident_id' => $this->certificateNlqResidentId()]);
+        Http::fake(['api.groq.com/*' => Http::response(['choices' => [['message' => ['content' => '1. Ihambing ang catalog at published service.']]]])]);
+
+        $this->postJson('/chatbot/send', ['message' => 'Magkano ang fee at requirements ng certificate?'])
+            ->assertOk()->assertExactJson(['reply' => '1. Ihambing ang catalog at published service.']);
+
+        Http::assertSent(function ($request) {
+            $messages = (string) json_encode($request['messages'], JSON_UNESCAPED_UNICODE);
+
+            return str_contains($messages, 'fee_label')
+                && str_contains($messages, 'Not specified')
+                && str_contains($messages, 'Proof of residence')
+                && str_contains($messages, 'published_services')
+                && str_contains($messages, 'Published requirements for residency certification')
+                && str_contains($messages, 'parehong barangay')
+                && str_contains($messages, 'hindi pa na-verify')
+                && ! str_contains($messages, 'Hidden Foreign Fee Certificate')
+                && ! str_contains($messages, 'Hidden Foreign Charter Service');
+        });
+    }
+
     public function test_how_to_questions_use_portal_steps_and_current_barangay_catalog(): void
     {
         config(['services.groq.key' => 'test-key', 'services.groq.ca_bundle' => null]);
@@ -94,5 +121,19 @@ class ChatbotTrackingTest extends TestCase
 
             return str_contains($messages, 'My Requests') && str_contains($messages, 'Submit Request') && str_contains($messages, 'Proof of residence') && str_contains($messages, '25.00') && ! str_contains($messages, 'Hidden Inactive Certificate') && ! str_contains($messages, 'Hidden Foreign Certificate');
         });
+    }
+
+    public function test_knowledge_snapshot_labels_zero_free_and_null_not_specified(): void
+    {
+        config(['services.groq.key' => 'test-key', 'services.groq.ca_bundle' => null]);
+        $this->useCertificateNlqDatabase();
+        $resident = Resident::findOrFail($this->certificateNlqResidentId());
+
+        $knowledge = app(AssistantSystemKnowledge::class)->snapshot($resident);
+        $certificates = collect($knowledge['certificates'])->keyBy('name');
+
+        $this->assertSame('Free', $certificates['Free Certificate']['fee_label']);
+        $this->assertSame('Not specified', $certificates['Unspecified Certificate']['fee_label']);
+        $this->assertArrayNotHasKey('Hidden Foreign Fee Certificate', $certificates->all());
     }
 }

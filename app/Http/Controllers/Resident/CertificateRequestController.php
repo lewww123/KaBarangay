@@ -81,7 +81,7 @@ class CertificateRequestController extends Controller
                         return [
                             'id' => (string) $certificate->id,
                             'name' => $certificate->name,
-                            'fee' => (float) $certificate->fee,
+                            'fee' => $certificate->fee === null ? null : (float) $certificate->fee,
                             'description' => $certificate->description ?? '',
                             'requirements' => $certificate->requirements ?? [],
                             'requiresBusinessDetails' => CertificateRequestDetails::requiresBusinessDetails(
@@ -178,6 +178,12 @@ class CertificateRequestController extends Controller
             ->where('barangay_id', $resident->barangay_id)
             ->where('is_active', true)
             ->findOrFail($certificateInput['certificate_id']);
+
+        if (! $certificate->hasPublishedFee()) {
+            throw ValidationException::withMessages([
+                'certificate_id' => 'This certificate has no published fee yet. Ask the barangay office to set the fee before submitting a request.',
+            ]);
+        }
 
         $certificateType = CertificateRequestDetails::typeForCertificate(
             $certificate,

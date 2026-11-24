@@ -118,40 +118,24 @@ const cacheableAssetResponse = (path, response) => {
 const assetPath = (input) => {
     const url = new URL(input, self.location.origin);
     if (url.origin !== self.location.origin) return false;
-    if (
+    return (
         /^\/build\/assets\/[\w.~-]+\.(?:css|js|mjs|woff2?|png|svg|ico|webp)$/.test(
             url.pathname,
-<<<<<<< HEAD
         ) ||
-            /^\/fonts\/[\w.-]+\.woff2$/.test(url.pathname) ||
-            [
-                '/offline-viewer.js',
-                '/offline-certificate-store.js',
-                '/offline-certificates.js',
-                '/offline-attendance-store.js',
-                '/offline-attendance.js',
-                '/favicon.ico',
-                '/favicon.svg',
-                '/apple-touch-icon.png',
-                '/kabarangay-logo-192x192.png',
-                '/kabarangay-logo-512x512.png',
-            ].includes(url.pathname))
+        /^\/fonts\/[\w.-]+\.woff2$/.test(url.pathname) ||
+        [
+            '/offline-viewer.js',
+            '/offline-certificate-store.js',
+            '/offline-certificates.js',
+            '/offline-attendance-store.js',
+            '/offline-attendance.js',
+            '/favicon.ico',
+            '/favicon.svg',
+            '/apple-touch-icon.png',
+            '/kabarangay-logo-192x192.png',
+            '/kabarangay-logo-512x512.png',
+        ].includes(url.pathname)
     );
-=======
-        )
-    )
-        return true;
-    return [
-        '/offline-viewer.js',
-        '/offline-certificate-store.js',
-        '/offline-certificates.js',
-        '/offline-attendance-store.js',
-        '/offline-attendance.js',
-        '/favicon.ico',
-        '/favicon.svg',
-        '/apple-touch-icon.png',
-    ].includes(url.pathname);
->>>>>>> e99d47a23cca919e7bb55c9a2e127b6294fb698b
 };
 
 const setScope = async (scope) => {

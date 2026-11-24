@@ -31,6 +31,23 @@ class ChatbotTest extends TestCase
             && $request['messages'][6]['content'] === 'Paano kumuha ng certificate?');
     }
 
+    public function test_server_authored_prompts_define_fee_labels_and_unverified_charter_handling(): void
+    {
+        Http::fake(['api.groq.com/*' => Http::response(['choices' => [['message' => ['content' => 'Sagot mula sa catalog.']]]])]);
+        $this->postJson('/chatbot/send', ['message' => 'Magkano ang fee at requirements ng residency?'])
+            ->assertOk()->assertExactJson(['reply' => 'Sagot mula sa catalog.']);
+        Http::assertSent(function (Request $request) {
+            $system = array_column(array_slice($request['messages'], 0, 5), 'content');
+            $prompt = (string) json_encode($system, JSON_UNESCAPED_UNICODE);
+
+            return count($system) === 5
+                && str_contains($prompt, 'Ang fee na 0 ay Libre')
+                && str_contains($prompt, 'Hindi pa na-specify')
+                && str_contains($prompt, 'parehong barangay')
+                && str_contains($prompt, 'hindi pa na-verify');
+        });
+    }
+
     public function test_validation_prevents_invalid_messages_and_system_history_injection(): void
     {
         Http::fake();
@@ -73,7 +90,10 @@ class ChatbotTest extends TestCase
     {
         $this->withMiddleware(ResidentAuth::class);
         Http::fake();
-        $this->postJson('/chatbot/send', ['message' => 'Hello'])->assertRedirect('/resident/login');
+        $this->postJson('/chatbot/send', ['message' => 'Hello'])
+            ->assertStatus(401)
+            ->assertExactJson(['message' => 'Unauthenticated.'])
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private');
         Http::assertNothingSent();
     }
 

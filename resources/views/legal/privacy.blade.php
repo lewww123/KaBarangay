@@ -46,9 +46,9 @@
 </section>
 <section id="ai">
     <h2>5. Paano ginagamit ang impormasyon sa Kabarangay AI?</h2>
-    <p>Para makabuo ng AI response, ipinapadala sa Groq API ang iyong tanong, limitadong nakaraang usapan, gabay sa system, at snapshot ng mga kaugnay na record ng naka-login mong account. Maaaring kasama sa snapshot ang reference number, uri ng serbisyo, status, petsa, at hearing schedule o venue. Hindi dapat maglagay ng password, reset link, o hindi kailangang sensitibong detalye sa chat.</p>
-    <p>Ang mga tanong na kinikilala ng system bilang direktang status tracking ay sinasagot mula sa account records nang hindi tumatawag sa Groq para sa sagot na iyon. Sa ibang AI questions, maaaring maisama ang record snapshot kahit hindi ka tahasang humingi ng status.</p>
-    <p>Opsiyonal ang paggamit ng AI chat. Maaari mong gamitin ang mga normal na form at request pages nang hindi ito ginagamit. Ang sagot ng AI ay gabay at hindi opisyal na approval o desisyon.</p>
+    <p>Para makabuo ng AI response, ipinapadala sa Groq API ang iyong tanong, limitadong nakaraang usapan, gabay sa system, at snapshot ng mga kaugnay na record ng naka-login mong account. Maaaring kasama sa snapshot ang reference number, uri ng serbisyo, status, petsa, hearing schedule o venue, at ang kasalukuyang fee at requirements ng mga aktibong certificate sa barangay. Hindi dapat maglagay ng password, reset link, o hindi kailangang sensitibong detalye sa chat.</p>
+    <p>Ang mga tanong na kinikilala ng system bilang direktang status tracking ay sinasagot mula sa account records nang hindi tumatawag sa Groq para sa sagot na iyon. Ang mga tanong tungkol sa proseso, halaga, requirements, o paghahambing ng published service ay ipinapadala sa Groq kasama ang barangay-scoped catalog at published Citizen’s Charter descriptions. Hindi kasama sa snapshot ang records ng ibang residente.</p>
+    <p>Opsiyonal ang paggamit ng AI chat. Maaari mong gamitin ang mga normal na form at request pages nang hindi ito ginagamit. Ang sagot ng AI ay gabay at hindi opisyal na approval, desisyon, o pagbabago ng fee; kung ang fee ay Hindi pa na-specify, kumpirmahin sa barangay office bago mag-submit.</p>
 </section>
 <section id="storage">
     <h2>6. Cookies at browser storage</h2>
