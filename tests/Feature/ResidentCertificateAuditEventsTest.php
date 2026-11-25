@@ -676,11 +676,13 @@ class ResidentCertificateAuditEventsTest extends TestCase
             'action',
             'department',
             'entity_reference',
+            'entity_uuid',
             'new_role',
             'new_status',
             'previous_role',
             'previous_status',
             'reason_code',
+            'verified_collection_id',
         ];
 
         $rows = $this->rows();

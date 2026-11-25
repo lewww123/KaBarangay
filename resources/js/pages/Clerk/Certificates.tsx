@@ -6107,10 +6107,11 @@ function Dashboard({
                                                             {requestDetails.fee}
                                                         </p>
                                                         <p className="text-[11px] text-ink-muted">
-                                                            Confirm payment once
-                                                            collected from
-                                                            resident to mark
-                                                            ready for claim.
+                                                            Confirm payment only
+                                                            after the collection
+                                                            is encoded and
+                                                            verified in the
+                                                            financial ledger.
                                                         </p>
                                                     </div>
                                                     <button

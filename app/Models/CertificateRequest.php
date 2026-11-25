@@ -16,6 +16,10 @@ class CertificateRequest extends Model
         'client_payload_hash',
         'purpose',
         'fee',
+        'or_number',
+        'amount_paid',
+        'is_waived',
+        'collection_id',
         'status',
         'business_name',
         'business_address',
@@ -33,6 +37,8 @@ class CertificateRequest extends Model
     {
         return [
             'fee' => 'decimal:2',
+            'amount_paid' => 'decimal:2',
+            'is_waived' => 'boolean',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'processing_at' => 'datetime',
@@ -55,5 +61,13 @@ class CertificateRequest extends Model
     public function certificate(): BelongsTo
     {
         return $this->belongsTo(Certificate::class)->withoutGlobalScope('approved_barangay_catalog');
+    }
+
+    /**
+     * @return BelongsTo<Collection, $this>
+     */
+    public function collection(): BelongsTo
+    {
+        return $this->belongsTo(Collection::class);
     }
 }

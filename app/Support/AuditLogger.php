@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\AuditLog;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
 
@@ -32,11 +33,13 @@ final class AuditLogger
         'action',
         'department',
         'entity_reference',
+        'entity_uuid',
         'new_role',
         'new_status',
         'previous_role',
         'previous_status',
         'reason_code',
+        'verified_collection_id',
     ];
 
     private const EVENT_MAX_LENGTH = 60;
@@ -129,6 +132,14 @@ final class AuditLogger
 
         foreach ($context as $key => $value) {
             if (! is_string($key) || ! in_array($key, self::CONTEXT_ALLOWLIST, true)) {
+                continue;
+            }
+
+            if ($key === 'entity_uuid') {
+                if (is_string($value) && Str::isUuid(trim($value))) {
+                    $sanitized[$key] = strtolower(trim($value));
+                }
+
                 continue;
             }
 

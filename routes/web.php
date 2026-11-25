@@ -5,6 +5,11 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CertificateRequestController as AdminCertificateRequestController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmergencyContactController as AdminEmergencyContactController;
+use App\Http\Controllers\Admin\FinancialDisclosure\AllocationController as FinancialDisclosureAllocationController;
+use App\Http\Controllers\Admin\FinancialDisclosure\CollectionController as FinancialDisclosureCollectionController;
+use App\Http\Controllers\Admin\FinancialDisclosure\DisbursementController as FinancialDisclosureDisbursementController;
+use App\Http\Controllers\Admin\FinancialDisclosure\FinancialAttachmentController as FinancialDisclosureAttachmentController;
+use App\Http\Controllers\Admin\FinancialDisclosure\StatusAndReportsController as FinancialDisclosureStatusAndReportsController;
 use App\Http\Controllers\Admin\HouseholdController as AdminHouseholdController;
 use App\Http\Controllers\Admin\OrgChartController as AdminOrgChartController;
 use App\Http\Controllers\Admin\PopulationController;
@@ -41,6 +46,7 @@ use App\Http\Controllers\Resident\AnnouncementController as ResidentAnnouncement
 use App\Http\Controllers\Resident\CertificateRequestController;
 use App\Http\Controllers\Resident\CitizenCharterController as ResidentCitizenCharterController;
 use App\Http\Controllers\Resident\DisbursementDocumentController as ResidentDisbursementDocumentController;
+use App\Http\Controllers\Resident\FinancialDisclosureController as ResidentFinancialDisclosureController;
 use App\Http\Controllers\Resident\LuponCaseController as ResidentLuponCaseController;
 use App\Http\Controllers\Resident\LuponComplaintController as ResidentLuponComplaintController;
 use App\Http\Controllers\Resident\NotificationController;
@@ -336,6 +342,15 @@ Route::prefix('resident')->name('resident.')->group(function () {
         Route::get('/disbursement/{disbursementDocument}', [ResidentDisbursementDocumentController::class, 'show'])->name('disbursement.show');
         Route::get('/disbursement/{disbursementDocument}/file', [ResidentDisbursementDocumentController::class, 'file'])->name('disbursement.file');
         Route::get('/disbursement/{disbursementDocument}/download', [ResidentDisbursementDocumentController::class, 'download'])->name('disbursement.download');
+
+        Route::get('/financial-disclosure', [ResidentFinancialDisclosureController::class, 'index'])->name('financial-disclosure');
+        Route::get('/financial-disclosure/download/{type}', [ResidentFinancialDisclosureController::class, 'download'])
+            ->where('type', 'collections|disbursements')
+            ->name('financial-disclosure.download');
+        Route::get('/financial-disclosure/attachment/{attachment}', [ResidentFinancialDisclosureController::class, 'attachment'])
+            ->whereUuid('attachment')
+            ->name('financial-disclosure.attachment');
+
         Route::get('/citizen-charter', [ResidentCitizenCharterController::class, 'index'])->name('citizen-charter');
         Route::get('/citizen-charter/{service}', [ResidentCitizenCharterController::class, 'show'])->name('citizen-charter.show');
         Route::get('/citizen-charter/{service}/file', [ResidentCitizenCharterController::class, 'file'])->name('citizen-charter.file');
@@ -691,6 +706,43 @@ Route::group(['domain' => config('app.staff_domain')], function () {
             Route::get('/reports', [ReportsController::class, 'index'])->name('reports');
             Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
             Route::get('/population', [PopulationController::class, 'index'])->name('population');
+
+            Route::prefix('financial-disclosure')->name('financial-disclosure.')->group(function () {
+                Route::get('/allocations', [FinancialDisclosureAllocationController::class, 'index'])->name('allocations.index');
+                Route::post('/allocations', [FinancialDisclosureAllocationController::class, 'store'])->name('allocations.store');
+                Route::get('/allocations/{allocation}', [FinancialDisclosureAllocationController::class, 'show'])->whereUuid('allocation')->name('allocations.show');
+                Route::match(['put', 'patch'], '/allocations/{allocation}', [FinancialDisclosureAllocationController::class, 'update'])->whereUuid('allocation')->name('allocations.update');
+                Route::post('/allocations/{allocation}/amendments', [FinancialDisclosureAllocationController::class, 'storeAmendment'])->whereUuid('allocation')->name('allocations.amendments.store');
+
+                Route::get('/collections', [FinancialDisclosureCollectionController::class, 'index'])->name('collections.index');
+                Route::post('/collections', [FinancialDisclosureCollectionController::class, 'store'])->name('collections.store');
+                Route::get('/collections/{collection}', [FinancialDisclosureCollectionController::class, 'show'])->whereUuid('collection')->name('collections.show');
+                Route::match(['put', 'patch'], '/collections/{collection}', [FinancialDisclosureCollectionController::class, 'update'])->whereUuid('collection')->name('collections.update');
+                Route::post('/collections/{collection}/verify', [FinancialDisclosureCollectionController::class, 'verify'])->whereUuid('collection')->name('collections.verify');
+                Route::post('/collections/{collection}/void', [FinancialDisclosureCollectionController::class, 'void'])->whereUuid('collection')->name('collections.void');
+
+                Route::get('/disbursements', [FinancialDisclosureDisbursementController::class, 'index'])->name('disbursements.index');
+                Route::post('/disbursements', [FinancialDisclosureDisbursementController::class, 'store'])->name('disbursements.store');
+                Route::get('/disbursements/{disbursement}', [FinancialDisclosureDisbursementController::class, 'show'])->whereUuid('disbursement')->name('disbursements.show');
+                Route::match(['put', 'patch'], '/disbursements/{disbursement}', [FinancialDisclosureDisbursementController::class, 'update'])->whereUuid('disbursement')->name('disbursements.update');
+                Route::post('/disbursements/{disbursement}/approve', [FinancialDisclosureDisbursementController::class, 'approve'])->whereUuid('disbursement')->name('disbursements.approve');
+                Route::post('/disbursements/{disbursement}/release', [FinancialDisclosureDisbursementController::class, 'release'])->whereUuid('disbursement')->name('disbursements.release');
+                Route::post('/disbursements/{disbursement}/void', [FinancialDisclosureDisbursementController::class, 'void'])->whereUuid('disbursement')->name('disbursements.void');
+
+                Route::get('/status-reports', [FinancialDisclosureStatusAndReportsController::class, 'index'])->name('status-reports.index');
+                Route::get('/status-reports/exports/{type}', [FinancialDisclosureStatusAndReportsController::class, 'export'])
+                    ->where('type', 'collections|disbursements|allocations|status-of-funds')
+                    ->name('status-reports.export');
+                Route::post('/status-reports/publication', [FinancialDisclosureStatusAndReportsController::class, 'publication'])->name('status-reports.publication');
+
+                Route::post('/attachments', [FinancialDisclosureAttachmentController::class, 'store'])->name('attachments.store');
+                Route::get('/attachments/{attachment}', [FinancialDisclosureAttachmentController::class, 'show'])
+                    ->whereUuid('attachment')
+                    ->name('attachments.show');
+                Route::get('/attachments/{attachment}/download', [FinancialDisclosureAttachmentController::class, 'download'])
+                    ->whereUuid('attachment')
+                    ->name('attachments.download');
+            });
 
             // Organizational Chart Management
             Route::get('/org-chart', [AdminOrgChartController::class, 'index'])->name('org-chart.index');

@@ -40,6 +40,7 @@ type ResidentPage =
     | 'updates'
     | 'programs'
     | 'disbursement'
+    | 'financial-disclosure'
     | 'charter'
     | 'org-chart'
     | 'chatbot'
@@ -89,6 +90,7 @@ const residentMoreNav: NavGroup[] = [
             { label: 'Updates', to: '/resident/updates', icon: History },
             { label: 'Programs', to: '/resident/programs', icon: CalendarDays },
             { label: 'Disbursement', to: '/resident/disbursement', icon: Banknote },
+            { label: 'Financial Disclosure', to: '/resident/financial-disclosure', icon: ShieldCheck },
         ],
     },
     {

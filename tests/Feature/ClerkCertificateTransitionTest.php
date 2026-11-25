@@ -6,6 +6,7 @@ use App\Models\Barangay;
 use App\Models\Certificate;
 use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
+use App\Models\Collection;
 use App\Models\Purok;
 use App\Support\CertificateRequestWorkflow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -60,6 +61,7 @@ class ClerkCertificateTransitionTest extends TestCase
         $this->createIssuance($request, $clerk);
         CertificateRequestWorkflow::apply($request, 'For Payment', 'Certificate generated. Payment required before claiming.');
         $this->assertSame('For Payment', $request->refresh()->status);
+        $this->recordVerifiedCollection($request);
 
         // 3. Dedicated payment confirmation advances to Ready for Claim
         $this->actingAs($clerk)
@@ -334,7 +336,17 @@ class ClerkCertificateTransitionTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('confirm_payment');
 
-        // 4. Succeeds with valid confirmation
+        // 4. Fails until a verified ledger collection exists
+        $this->actingAs($clerk)
+            ->postJson($this->confirmPaymentUrl($request), [
+                'confirm_payment' => true,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+        $this->assertSame('For Payment', $request->refresh()->status);
+        $this->recordVerifiedCollection($request);
+
+        // 5. Succeeds with valid confirmation
         $this->actingAs($clerk)
             ->postJson($this->confirmPaymentUrl($request), [
                 'confirm_payment' => true,
@@ -348,7 +360,7 @@ class ClerkCertificateTransitionTest extends TestCase
         $this->assertSame('Ready for Claim', $request->refresh()->status);
         $this->assertNotNull($request->ready_for_claim_at);
 
-        // 5. Repeated confirmation fails because it is no longer in For Payment
+        // 6. Repeated confirmation fails because it is no longer in For Payment
         $this->actingAs($clerk)
             ->postJson($this->confirmPaymentUrl($request), ['confirm_payment' => true])
             ->assertUnprocessable();
@@ -381,6 +393,15 @@ class ClerkCertificateTransitionTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('confirm_handover');
 
+        $this->actingAs($clerk)
+            ->postJson($this->releaseUrl($request), [
+                'confirm_handover' => true,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+
+        $this->recordVerifiedCollection($request);
+
         // 4. Succeeds with valid confirmation
         $this->actingAs($clerk)
             ->postJson($this->releaseUrl($request), [
@@ -399,6 +420,25 @@ class ClerkCertificateTransitionTest extends TestCase
         $this->actingAs($clerk)
             ->postJson($this->releaseUrl($request), ['confirm_handover' => true])
             ->assertUnprocessable();
+    }
+
+    public function test_confirm_release_accepts_waived_collection_without_or(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createRequest('REL-WAIVE-001');
+
+        $request->update(['status' => 'Ready for Claim', 'ready_for_claim_at' => now()]);
+        $this->createIssuance($request, $clerk);
+        $this->recordVerifiedCollection($request, true);
+
+        $this->actingAs($clerk)
+            ->postJson($this->releaseUrl($request), [
+                'confirm_handover' => true,
+            ])
+            ->assertOk()
+            ->assertJson(['status' => 'Released']);
+
+        $this->assertSame('Released', $request->refresh()->status);
     }
 
     public function test_tenant_isolation_on_payment_and_release(): void
@@ -561,6 +601,36 @@ class ClerkCertificateTransitionTest extends TestCase
             'issued_at' => now(),
             'reference' => 'ISSUE-'.now()->year.'-'.strtoupper(bin2hex(random_bytes(4))),
         ]);
+    }
+
+    private function recordVerifiedCollection(CertificateRequest $request, bool $waived = false): Collection
+    {
+        $encoder = $this->createStaff($this->barangay, 'admin');
+        $verifier = $this->createStaff($this->barangay, 'admin');
+
+        $collection = Collection::create([
+            'collection_date' => now()->toDateString(),
+            'collection_type' => $this->certificate->name,
+            'amount' => $waived ? 0 : $request->fee,
+            'or_number' => $waived ? null : 'OR-'.str_replace('-', '', $request->reference),
+            'payee_name' => $request->resident?->full_name ?? 'Test Resident',
+            'certificate_request_id' => $request->id,
+            'status' => 'Verified',
+            'encoded_by' => $encoder->id,
+            'verified_by' => $verifier->id,
+            'verified_at' => now(),
+            'is_waived' => $waived,
+            'waive_reason' => $waived ? 'Approved indigency waiver' : null,
+        ]);
+
+        $request->update([
+            'collection_id' => $collection->id,
+            'or_number' => $collection->or_number,
+            'amount_paid' => $collection->amount,
+            'is_waived' => $waived,
+        ]);
+
+        return $collection;
     }
 
     private function createRequest(string $reference, array $attributes = []): CertificateRequest

@@ -13,7 +13,11 @@ import {
     Users,
 } from 'lucide-react';
 
-import DeskLayout, { DeskNavGroup, DeskNavLink } from '@/layouts/DeskLayout';
+import DeskLayout, {
+    DeskNavGroup,
+    DeskNavLink,
+    DeskSubNavLink,
+} from '@/layouts/DeskLayout';
 
 type AdminPage =
     | 'overview'
@@ -27,6 +31,10 @@ type AdminPage =
     | 'population'
     | 'audit-log'
     | 'reports'
+    | 'financial-disclosure-allocation'
+    | 'financial-disclosure-collection'
+    | 'financial-disclosure-disbursement'
+    | 'financial-disclosure-status-reports'
     | 'org-chart'
     | 'emergency-numbers'
     | 'settings';
@@ -35,6 +43,33 @@ type AdminLayoutProps = {
     children: ReactNode;
     active: AdminPage;
 };
+
+const financialDisclosureLinks: {
+    id: AdminPage;
+    href: string;
+    label: string;
+}[] = [
+    {
+        id: 'financial-disclosure-allocation',
+        href: '/admin/financial-disclosure/allocations',
+        label: 'Allocation',
+    },
+    {
+        id: 'financial-disclosure-collection',
+        href: '/admin/financial-disclosure/collections',
+        label: 'Collection',
+    },
+    {
+        id: 'financial-disclosure-disbursement',
+        href: '/admin/financial-disclosure/disbursements',
+        label: 'Disbursement',
+    },
+    {
+        id: 'financial-disclosure-status-reports',
+        href: '/admin/financial-disclosure/status-reports',
+        label: 'Status & Reports',
+    },
+];
 
 export default function AdminLayout({ children, active }: AdminLayoutProps) {
     const { auth } = usePage<{
@@ -105,6 +140,17 @@ export default function AdminLayout({ children, active }: AdminLayoutProps) {
                             label="Emergency Numbers"
                             active={active === 'emergency-numbers'}
                         />
+                    </DeskNavGroup>
+
+                    <DeskNavGroup label="Financial Disclosure">
+                        {financialDisclosureLinks.map((item) => (
+                            <DeskSubNavLink
+                                key={item.id}
+                                href={item.href}
+                                label={item.label}
+                                active={active === item.id}
+                            />
+                        ))}
                     </DeskNavGroup>
 
                     <DeskNavGroup label="System">

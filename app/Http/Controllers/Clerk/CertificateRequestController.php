@@ -7,6 +7,7 @@ use App\Models\Barangay;
 use App\Models\Certificate;
 use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
+use App\Models\Collection as CollectionModel;
 use App\Models\OrgChartPosition;
 use App\Models\Resident;
 use App\Support\AuditLogger;
@@ -14,6 +15,7 @@ use App\Support\CertificateOfficials;
 use App\Support\CertificateRequestDetails;
 use App\Support\CertificateRequestWorkflow;
 use App\Support\CertificateTemplates;
+use App\Support\FinancialDisclosureScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +24,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 /**
@@ -567,9 +570,9 @@ class CertificateRequestController extends Controller
     /**
      * Dedicated Clerk action to confirm payment for a certificate request.
      *
-     * Payment confirmation is a Clerk attestation of actual collection, not
-     * independent accounting verification. Requires that the request is currently
-     * in 'For Payment' and has a valid linked issuance.
+     * Payment confirmation remains a Clerk attestation, but fee-bearing requests
+     * must have a verified, non-void collection in the authoritative ledger.
+     * The request must also be in 'For Payment' and have a valid linked issuance.
      */
     public function confirmPayment(
         Request $request,
@@ -605,16 +608,48 @@ class CertificateRequestController extends Controller
             ], 422);
         }
 
+        $requiresCollection = (float) $certificateRequest->fee > 0;
+
+        if ($requiresCollection && $this->verifiedCollectionFor($certificateRequest, $barangayId) === null) {
+            return response()->json([
+                'message' => 'Payment cannot be confirmed until a verified collection is recorded.',
+                'errors' => ['status' => ['Payment cannot be confirmed until a verified collection is recorded.']],
+            ], 422);
+        }
+
         $previousStatus = $certificateRequest->status;
         $note = $validated['admin_note'] ?? 'Payment confirmed by clerk. Certificate is ready for claim.';
+        $lockedRequest = null;
 
-        DB::transaction(function () use ($certificateRequest, $note) {
+        DB::transaction(function () use ($barangayId, $certificateRequest, $note, $requiresCollection, &$lockedRequest) {
+            $locked = CertificateRequest::query()
+                ->whereKey($certificateRequest->id)
+                ->where('barangay_id', $barangayId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($locked->status !== 'For Payment') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only requests in For Payment status can have payment confirmed.',
+                ]);
+            }
+
+            if ($requiresCollection && $this->verifiedCollectionFor($locked, $barangayId, true) === null) {
+                throw ValidationException::withMessages([
+                    'status' => 'Payment cannot be confirmed until a verified collection is recorded.',
+                ]);
+            }
+
             CertificateRequestWorkflow::apply(
-                $certificateRequest,
+                $locked,
                 'Ready for Claim',
                 $note,
             );
+
+            $lockedRequest = $locked;
         });
+
+        $certificateRequest = $lockedRequest;
 
         AuditLogger::record(
             'certificate_request.payment_confirmed',
@@ -626,6 +661,9 @@ class CertificateRequestController extends Controller
                 'action' => 'payment_confirmed',
                 'previous_status' => $previousStatus,
                 'new_status' => 'Ready for Claim',
+                'verified_collection_id' => $requiresCollection
+                    ? $this->verifiedCollectionFor($certificateRequest, $barangayId)?->id
+                    : null,
             ],
             $request->ip(),
         );
@@ -681,16 +719,47 @@ class CertificateRequestController extends Controller
             ], 422);
         }
 
+        if ((float) $certificateRequest->fee > 0 && ! $this->hasReleaseProof($certificateRequest, $barangayId)) {
+            return response()->json([
+                'message' => 'An OR number or a waiver reason is required before release.',
+                'errors' => ['status' => ['An OR number or a waiver reason is required before release.']],
+            ], 422);
+        }
+
         $previousStatus = $certificateRequest->status;
         $note = $validated['admin_note'] ?? 'Certificate physically handed over and released.';
 
-        DB::transaction(function () use ($certificateRequest, $note) {
+        $lockedRequest = null;
+
+        DB::transaction(function () use ($certificateRequest, $note, $barangayId, &$lockedRequest) {
+            $locked = CertificateRequest::query()
+                ->whereKey($certificateRequest->id)
+                ->where('barangay_id', $barangayId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($locked->status !== 'Ready for Claim') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only requests in Ready for Claim status can be released.',
+                ]);
+            }
+
+            if ((float) $locked->fee > 0 && ! $this->hasReleaseProof($locked, $barangayId, true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'An OR number or a waiver reason is required before release.',
+                ]);
+            }
+
             CertificateRequestWorkflow::apply(
-                $certificateRequest,
+                $locked,
                 'Released',
                 $note,
             );
+
+            $lockedRequest = $locked;
         });
+
+        $certificateRequest = $lockedRequest;
 
         AuditLogger::record(
             'certificate_request.released',
@@ -1090,6 +1159,48 @@ class CertificateRequestController extends Controller
             .' i.status as status,'
             .' i.issued_at as occurred_at'
         );
+    }
+
+    private function verifiedCollectionFor(
+        CertificateRequest $certificateRequest,
+        int $barangayId,
+        bool $lock = false,
+    ): ?CollectionModel {
+        $query = FinancialDisclosureScope::collections($barangayId)
+            ->where('collections.status', 'Verified')
+            ->whereNull('collections.void_reason')
+            ->where(function ($collections) use ($certificateRequest) {
+                $collections->where('collections.certificate_request_id', $certificateRequest->id);
+
+                if ($certificateRequest->collection_id !== null) {
+                    $collections->orWhere('collections.id', $certificateRequest->collection_id);
+                }
+            });
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        return $query->first();
+    }
+
+    private function hasReleaseProof(
+        CertificateRequest $certificateRequest,
+        int $barangayId,
+        bool $lock = false,
+    ): bool {
+        $collection = $this->verifiedCollectionFor($certificateRequest, $barangayId, $lock);
+
+        if ($collection === null) {
+            return false;
+        }
+
+        if ($collection->or_number !== null && trim((string) $collection->or_number) !== '') {
+            return true;
+        }
+
+        return (bool) $collection->is_waived
+            && trim((string) $collection->waive_reason) !== '';
     }
 
     /**

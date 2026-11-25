@@ -11,6 +11,7 @@ use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Mockery;
 use RuntimeException;
 use Tests\Concerns\CreatesBarangayFixtures;
@@ -499,6 +500,61 @@ class AdminAuditLogTest extends TestCase
                 ->where('event', 'login.failed')
                 ->value('context')
         );
+    }
+
+    public function test_writer_validates_entity_uuid_and_keeps_integer_entity_id_compatibility(): void
+    {
+        $entityUuid = (string) Str::uuid();
+
+        AuditLogger::record(
+            'financial_attachment.uploaded',
+            barangayId: $this->barangay->id,
+            entityType: 'financial_attachment',
+            context: [
+                'entity_uuid' => strtoupper($entityUuid),
+                'entity_reference' => 'Proof.pdf',
+            ],
+        );
+
+        AuditLogger::record(
+            'resident_registration.submitted',
+            barangayId: $this->barangay->id,
+            entityType: 'resident_registration',
+            entityId: 42,
+            context: [
+                'entity_uuid' => $entityUuid,
+                'entity_reference' => 'RES-42',
+            ],
+        );
+
+        AuditLogger::record(
+            'financial_attachment.uploaded',
+            barangayId: $this->barangay->id,
+            entityType: 'financial_attachment',
+            context: [
+                'entity_uuid' => 'not-a-uuid',
+                'entity_reference' => 'Bad.pdf',
+            ],
+        );
+
+        $financial = DB::table('audit_logs')
+            ->where('event', 'financial_attachment.uploaded')
+            ->where('entity_type', 'financial_attachment')
+            ->get()
+            ->keyBy(fn ($row) => json_decode($row->context, true)['entity_reference']);
+
+        $this->assertCount(2, $financial);
+        $this->assertNull($financial['Proof.pdf']->entity_id);
+        $this->assertSame('Proof.pdf', json_decode($financial['Proof.pdf']->context, true)['entity_reference']);
+        $this->assertSame($entityUuid, json_decode($financial['Proof.pdf']->context, true)['entity_uuid']);
+        $this->assertArrayNotHasKey('entity_uuid', json_decode($financial['Bad.pdf']->context, true));
+
+        $legacy = DB::table('audit_logs')
+            ->where('event', 'resident_registration.submitted')
+            ->sole();
+
+        $this->assertSame(42, (int) $legacy->entity_id);
+        $this->assertSame($entityUuid, json_decode($legacy->context, true)['entity_uuid']);
     }
 
     public function test_writer_stores_only_valid_ip_addresses(): void
