@@ -69,7 +69,7 @@ class AdminFinancialDisclosureNavigationTest extends TestCase
                 'Admin/FinancialDisclosure/Collection',
                 [
                     'Collection — Incoming Payments',
-                    'Pending certificate requests',
+                    'Pending certificate payments',
                     'Collection records',
                     'Status presentation',
                     'Waived collections',

@@ -1033,13 +1033,35 @@ class CertificateController extends Controller
 
         for ($attempt = 1; $attempt <= self::REFERENCE_ATTEMPTS; $attempt++) {
             try {
-                return DB::transaction(function () use ($attributes, $linkedRequest, $barangayId) {
+                return DB::transaction(function () use ($attributes, $linkedRequest, $barangayId, $feeSnapshot) {
                     // Serialize the control-number check within the issuing
                     // barangay. The unique index is the final concurrency guard.
                     DB::table('barangays')
                         ->where('id', $barangayId)
                         ->lockForUpdate()
                         ->first();
+
+                    $freshRequest = null;
+
+                    if ($linkedRequest !== null) {
+                        $freshRequest = CertificateRequest::query()
+                            ->whereKey($linkedRequest->id)
+                            ->where('barangay_id', $barangayId)
+                            ->lockForUpdate()
+                            ->first();
+
+                        if ($freshRequest === null) {
+                            throw ValidationException::withMessages([
+                                'certificate_request_id' => 'The selected certificate request was not found in your barangay.',
+                            ]);
+                        }
+
+                        if (! in_array($freshRequest->status, ['Processing', 'Needs Action', 'Pending'], true)) {
+                            throw ValidationException::withMessages([
+                                'certificate_request_id' => "This certificate request cannot be issued while in {$freshRequest->status} status.",
+                            ]);
+                        }
+                    }
 
                     if (isset($attributes['details']['pdf_path'])) {
                         $next = CertificateControlNumbers::next($barangayId, $attributes['certificate_type']);
@@ -1065,14 +1087,14 @@ class CertificateController extends Controller
                         'reference' => $this->makeReference(),
                     ]);
 
-                    if ($linkedRequest !== null) {
-                        $fee = (float) $linkedRequest->fee;
+                    if ($freshRequest !== null) {
+                        $fee = (float) $feeSnapshot;
                         $nextStatus = $fee > 0 ? 'For Payment' : 'Ready for Claim';
                         $note = $fee > 0
                             ? 'Certificate generated. Payment required before claiming.'
                             : 'Certificate generated and ready for claiming.';
 
-                        CertificateRequestWorkflow::apply($linkedRequest, $nextStatus, $note);
+                        CertificateRequestWorkflow::apply($freshRequest, $nextStatus, $note);
                     }
 
                     return $issuance;

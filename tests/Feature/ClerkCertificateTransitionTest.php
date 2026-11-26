@@ -10,6 +10,7 @@ use App\Models\Collection;
 use App\Models\Purok;
 use App\Support\CertificateRequestWorkflow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
 
@@ -61,13 +62,10 @@ class ClerkCertificateTransitionTest extends TestCase
         $this->createIssuance($request, $clerk);
         CertificateRequestWorkflow::apply($request, 'For Payment', 'Certificate generated. Payment required before claiming.');
         $this->assertSame('For Payment', $request->refresh()->status);
-        $this->recordVerifiedCollection($request);
 
-        // 3. Dedicated payment confirmation advances to Ready for Claim
+        // 3. Dedicated payment confirmation records the collection and advances to Ready for Claim
         $this->actingAs($clerk)
-            ->postJson($this->confirmPaymentUrl($request), [
-                'confirm_payment' => true,
-            ])
+            ->postJson($this->confirmPaymentUrl($request), $this->paymentPayload($request))
             ->assertOk();
         $this->assertSame('Ready for Claim', $request->refresh()->status);
         $readyForClaimAt = $request->refresh()->ready_for_claim_at;
@@ -309,49 +307,121 @@ class ClerkCertificateTransitionTest extends TestCase
         $this->assertSame('Pending', $request->refresh()->status);
     }
 
+    public function test_generic_status_cannot_move_for_payment_back_to_processing(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createRequest('PAY-BYPASS-001', ['status' => 'For Payment']);
+        $this->createIssuance($request, $clerk);
+
+        $this->actingAs($clerk)
+            ->patchJson($this->statusUrl($request), ['status' => 'Processing'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+
+        $fresh = $request->refresh();
+
+        $this->assertSame('For Payment', $fresh->status);
+        $this->assertNull($fresh->processing_at);
+    }
+
+    public function test_for_payment_can_still_move_to_needs_action_for_correction(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createRequest('PAY-CORR-001', ['status' => 'For Payment']);
+        $this->createIssuance($request, $clerk);
+
+        $this->actingAs($clerk)
+            ->patchJson($this->statusUrl($request), ['status' => 'Needs Action'])
+            ->assertOk();
+
+        $this->assertSame('Needs Action', $request->refresh()->status);
+
+        $this->transition($clerk, $request, 'Processing');
+
+        $this->assertSame('Processing', $request->refresh()->status);
+    }
+
+    public function test_status_update_revalidates_fresh_terminal_state(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createRequest('STALE-STATUS-001');
+
+        $stopMutation = $this->mutateRequestOnFirstSelect($request->id, [
+            'status' => 'Released',
+            'admin_note' => 'Changed after page load',
+            'released_at' => now(),
+        ]);
+
+        try {
+            $this->actingAs($clerk)
+                ->patchJson($this->statusUrl($request), [
+                    'status' => 'Processing',
+                    'admin_note' => 'Tampered note',
+                ])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('status');
+        } finally {
+            $stopMutation();
+        }
+
+        $fresh = $request->refresh();
+
+        $this->assertSame('Released', $fresh->status);
+        $this->assertSame('Changed after page load', $fresh->admin_note);
+        $this->assertNull($fresh->processing_at);
+    }
+
     public function test_confirm_payment_endpoint_rules(): void
     {
         $clerk = $this->createStaff($this->barangay, 'clerk');
         $request = $this->createRequest('PAY-RULE-001');
+        $payload = $this->paymentPayload($request);
 
-        // 1. Fails if not in 'For Payment'
         $this->actingAs($clerk)
-            ->postJson($this->confirmPaymentUrl($request), ['confirm_payment' => true])
-            ->assertUnprocessable();
+            ->postJson($this->confirmPaymentUrl($request), $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
 
-        // Move to For Payment without issuance
         $request->update(['status' => 'For Payment']);
 
-        // 2. Fails if no linked issuance exists
         $this->actingAs($clerk)
-            ->postJson($this->confirmPaymentUrl($request), ['confirm_payment' => true])
-            ->assertUnprocessable();
+            ->postJson($this->confirmPaymentUrl($request), $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
 
-        // Create issuance
         $this->createIssuance($request, $clerk);
 
-        // 3. Fails without confirmation payload
+        $withoutConfirmation = $payload;
+        unset($withoutConfirmation['confirm_payment']);
+
         $this->actingAs($clerk)
-            ->postJson($this->confirmPaymentUrl($request), [])
+            ->postJson($this->confirmPaymentUrl($request), $withoutConfirmation)
             ->assertUnprocessable()
             ->assertJsonValidationErrors('confirm_payment');
 
-        // 4. Fails until a verified ledger collection exists
-        $this->actingAs($clerk)
-            ->postJson($this->confirmPaymentUrl($request), [
-                'confirm_payment' => true,
-            ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('status');
-        $this->assertSame('For Payment', $request->refresh()->status);
-        $this->recordVerifiedCollection($request);
+        $missingOr = $payload;
+        $missingOr['or_number'] = null;
 
-        // 5. Succeeds with valid confirmation
         $this->actingAs($clerk)
-            ->postJson($this->confirmPaymentUrl($request), [
-                'confirm_payment' => true,
-                'admin_note' => 'Paid in cash at desk',
-            ])
+            ->postJson($this->confirmPaymentUrl($request), $missingOr)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('or_number');
+
+        $wrongAmount = $payload;
+        $wrongAmount['amount'] = '25.00';
+
+        $this->actingAs($clerk)
+            ->postJson($this->confirmPaymentUrl($request), $wrongAmount)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('amount');
+
+        $this->assertSame('For Payment', $request->refresh()->status);
+        $this->assertSame(0, Collection::query()->where('certificate_request_id', $request->id)->count());
+
+        $payload['admin_note'] = 'Paid in cash at desk';
+
+        $this->actingAs($clerk)
+            ->postJson($this->confirmPaymentUrl($request), $payload)
             ->assertOk()
             ->assertJson([
                 'status' => 'Ready for Claim',
@@ -359,11 +429,126 @@ class ClerkCertificateTransitionTest extends TestCase
 
         $this->assertSame('Ready for Claim', $request->refresh()->status);
         $this->assertNotNull($request->ready_for_claim_at);
+        $this->assertSame(1, Collection::query()->where('certificate_request_id', $request->id)->count());
 
-        // 6. Repeated confirmation fails because it is no longer in For Payment
         $this->actingAs($clerk)
-            ->postJson($this->confirmPaymentUrl($request), ['confirm_payment' => true])
-            ->assertUnprocessable();
+            ->postJson($this->confirmPaymentUrl($request), $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+    }
+
+    public function test_failed_collection_finalization_rolls_back_payment_confirmation(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createRequest('PAY-ROLLBACK-001');
+        $request->update(['status' => 'For Payment']);
+        $this->createIssuance($request, $clerk);
+
+        $payload = $this->paymentPayload($request);
+
+        Collection::create([
+            'collection_date' => now()->toDateString(),
+            'collection_type' => 'Other fee',
+            'amount' => 50,
+            'or_number' => $payload['or_number'],
+            'payee_name' => 'Other payee',
+            'status' => 'Verified',
+            'encoded_by' => $clerk->id,
+            'verified_by' => $clerk->id,
+            'verified_at' => now(),
+        ]);
+
+        $this->actingAs($clerk)
+            ->postJson($this->confirmPaymentUrl($request), $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('or_number');
+
+        $request->refresh();
+
+        $this->assertSame('For Payment', $request->status);
+        $this->assertNull($request->ready_for_claim_at);
+        $this->assertNull($request->collection_id);
+        $this->assertSame(0, Collection::query()->where('certificate_request_id', $request->id)->count());
+    }
+
+    public function test_confirm_payment_accepts_waiver_with_reason(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createRequest('PAY-WAIVE-001');
+        $request->update(['status' => 'For Payment']);
+        $this->createIssuance($request, $clerk);
+
+        $this->actingAs($clerk)
+            ->postJson($this->confirmPaymentUrl($request), [
+                'confirm_payment' => true,
+                'amount' => '0.00',
+                'or_number' => null,
+                'is_waived' => true,
+                'waive_reason' => 'Approved indigency waiver',
+            ])
+            ->assertOk();
+
+        $collection = Collection::query()->where('certificate_request_id', $request->id)->firstOrFail();
+
+        $this->assertDatabaseHas('collections', [
+            'id' => $collection->id,
+            'status' => 'Verified',
+            'amount' => 0,
+            'or_number' => null,
+            'is_waived' => true,
+            'waive_reason' => 'Approved indigency waiver',
+        ]);
+        $this->assertSame('Ready for Claim', $request->fresh()->status);
+    }
+
+    public function test_show_endpoint_includes_recorded_collection_details(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createRequest('PAY-SHOW-001');
+        $request->update(['status' => 'For Payment']);
+        $this->createIssuance($request, $clerk);
+
+        $this->actingAs($clerk)
+            ->postJson($this->confirmPaymentUrl($request), $this->paymentPayload($request))
+            ->assertOk();
+
+        $collection = Collection::query()->where('certificate_request_id', $request->id)->firstOrFail();
+
+        $this->actingAs($clerk)
+            ->getJson('/clerk/certificates/requests/'.$request->id)
+            ->assertOk()
+            ->assertJsonPath('collection.id', $collection->id)
+            ->assertJsonPath('collection.or_number', $collection->or_number)
+            ->assertJsonPath('collection.status', 'Verified');
+    }
+
+    public function test_certificate_collection_cannot_be_voided_after_ready_for_claim(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $admin = $this->createStaff($this->barangay, 'admin');
+        $request = $this->createRequest('PAY-VOID-001');
+        $request->update(['status' => 'For Payment']);
+        $this->createIssuance($request, $clerk);
+
+        $this->actingAs($clerk)
+            ->postJson($this->confirmPaymentUrl($request), $this->paymentPayload($request))
+            ->assertOk();
+
+        $collection = Collection::query()->where('certificate_request_id', $request->id)->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post('/admin/financial-disclosure/collections/'.$collection->id.'/void', [
+                'void_reason' => 'Clerk requested correction',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('collection');
+
+        $this->assertDatabaseHas('collections', [
+            'id' => $collection->id,
+            'status' => 'Verified',
+            'void_reason' => null,
+        ]);
+        $this->assertSame('Ready for Claim', $request->fresh()->status);
     }
 
     public function test_confirm_release_endpoint_rules(): void
@@ -543,6 +728,35 @@ class ClerkCertificateTransitionTest extends TestCase
         $this->assertSame('Pending', $request->status);
     }
 
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function mutateRequestOnFirstSelect(int $requestId, array $attributes): callable
+    {
+        $handled = false;
+
+        DB::listen(function ($query) use (&$handled, $requestId, $attributes): void {
+            if ($handled
+                || ! str_contains($query->sql, 'from "certificate_requests"')
+                || ! str_contains($query->sql, '"id" = ?')) {
+                return;
+            }
+
+            $bindings = array_map('strval', $query->bindings ?? []);
+
+            if (! in_array((string) $requestId, $bindings, true)) {
+                return;
+            }
+
+            $handled = true;
+            DB::table('certificate_requests')->where('id', $requestId)->update($attributes);
+        });
+
+        return function () use (&$handled): void {
+            $handled = true;
+        };
+    }
+
     private function snapshot(CertificateRequest $request): array
     {
         return [
@@ -585,6 +799,16 @@ class ClerkCertificateTransitionTest extends TestCase
     private function releaseUrl(CertificateRequest $request): string
     {
         return '/clerk/certificates/requests/'.$request->id.'/release';
+    }
+
+    private function paymentPayload(CertificateRequest $request): array
+    {
+        return [
+            'confirm_payment' => true,
+            'amount' => (string) $request->fee,
+            'or_number' => 'OR-'.str_replace('-', '', $request->reference),
+            'is_waived' => false,
+        ];
     }
 
     private function createIssuance(CertificateRequest $request, $clerk, ?float $fee = null): CertificateIssuance

@@ -41,7 +41,7 @@ final class CertificateRequestWorkflow
     private const TRANSITIONS = [
         'Pending' => ['Needs Action', 'For Payment', 'Processing', 'Ready for Claim', 'Rejected'],
         'Needs Action' => ['For Payment', 'Processing', 'Ready for Claim', 'Rejected'],
-        'For Payment' => ['Needs Action', 'Ready for Claim', 'Processing', 'Rejected'],
+        'For Payment' => ['Needs Action', 'Ready for Claim', 'Rejected'],
         'Processing' => ['For Payment', 'Needs Action', 'Ready for Claim', 'Rejected'],
         'Ready for Claim' => ['Needs Action', 'Released', 'Rejected'],
         'Released' => [],

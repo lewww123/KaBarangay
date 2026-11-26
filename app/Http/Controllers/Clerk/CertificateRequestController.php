@@ -12,12 +12,15 @@ use App\Models\OrgChartPosition;
 use App\Models\Resident;
 use App\Support\AuditLogger;
 use App\Support\CertificateOfficials;
+use App\Support\CertificatePaymentLedger;
 use App\Support\CertificateRequestDetails;
 use App\Support\CertificateRequestWorkflow;
 use App\Support\CertificateTemplates;
+use App\Support\FinancialDisclosureAudit;
 use App\Support\FinancialDisclosureScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -270,6 +273,8 @@ class CertificateRequestController extends Controller
             ->where('certificate_request_id', $certificateRequest->id)
             ->first();
 
+        $collection = $this->verifiedCollectionFor($certificateRequest, $barangayId);
+
         return response()->json([
             'id' => $certificateRequest->id,
             'reference' => $certificateRequest->reference,
@@ -308,6 +313,15 @@ class CertificateRequestController extends Controller
                 'id' => $issuance->id,
                 'reference' => $issuance->reference,
                 'issued_at' => $issuance->issued_at->format('F j, Y g:i A'),
+            ] : null,
+            'collection' => $collection ? [
+                'id' => $collection->id,
+                'or_number' => $collection->or_number,
+                'amount' => (string) $collection->amount,
+                'is_waived' => (bool) $collection->is_waived,
+                'waive_reason' => $collection->waive_reason,
+                'status' => $collection->status,
+                'verified_at' => $collection->verified_at?->format('F j, Y g:i A'),
             ] : null,
         ]);
     }
@@ -492,44 +506,61 @@ class CertificateRequestController extends Controller
         ]);
 
         $targetStatus = $validated['status'];
-        $currentStatus = $certificateRequest->status;
+        $previousStatus = null;
+        $lockedRequest = null;
 
-        // CRITICAL SERVER-SIDE TRANSITION RESTRICTIONS:
-        // Protected statuses (For Payment, Ready for Claim, Released) can NEVER be set directly
-        // via the generic status endpoint. They must follow their dedicated workflow actions:
-        // - 'For Payment': Automatically set upon linked certificate issuance (fee > 0).
-        // - 'Ready for Claim': Automatically set upon linked issuance (fee == 0) or via dedicated payment confirmation.
-        // - 'Released': Only set via dedicated physical handover release endpoint.
-        if ($targetStatus !== $currentStatus) {
-            if ($targetStatus === 'For Payment') {
-                return response()->json([
-                    'message' => 'The For Payment status is set automatically upon certificate issuance.',
-                    'errors' => ['status' => ['The For Payment status is set automatically upon certificate issuance.']],
-                ], 422);
-            }
-
-            if ($targetStatus === 'Ready for Claim') {
-                return response()->json([
-                    'message' => 'The Ready for Claim status requires payment confirmation or certificate issuance.',
-                    'errors' => ['status' => ['The Ready for Claim status requires payment confirmation or certificate issuance.']],
-                ], 422);
-            }
-
-            if ($targetStatus === 'Released') {
-                return response()->json([
-                    'message' => 'Dedicated physical handover confirmation is required to release a certificate.',
-                    'errors' => ['status' => ['Dedicated physical handover confirmation is required to release a certificate.']],
-                ], 422);
-            }
-        }
-
-        $previousStatus = $certificateRequest->status;
-
-        CertificateRequestWorkflow::apply(
+        DB::transaction(function () use (
             $certificateRequest,
+            $barangayId,
             $targetStatus,
-            $validated['admin_note'] ?? null,
-        );
+            $validated,
+            &$previousStatus,
+            &$lockedRequest,
+        ) {
+            $locked = CertificateRequest::query()
+                ->whereKey($certificateRequest->id)
+                ->where('barangay_id', $barangayId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $currentStatus = $locked->status;
+
+            // CRITICAL SERVER-SIDE TRANSITION RESTRICTIONS:
+            // Protected statuses (For Payment, Ready for Claim, Released) can NEVER be set directly
+            // via the generic status endpoint. They must follow their dedicated workflow actions:
+            // - 'For Payment': Automatically set upon linked certificate issuance (fee > 0).
+            // - 'Ready for Claim': Automatically set upon linked issuance (fee == 0) or via dedicated payment confirmation.
+            // - 'Released': Only set via dedicated physical handover confirmation.
+            if ($targetStatus !== $currentStatus) {
+                if ($targetStatus === 'For Payment') {
+                    throw ValidationException::withMessages([
+                        'status' => 'The For Payment status is set automatically upon certificate issuance.',
+                    ]);
+                }
+
+                if ($targetStatus === 'Ready for Claim') {
+                    throw ValidationException::withMessages([
+                        'status' => 'The Ready for Claim status requires payment confirmation or certificate issuance.',
+                    ]);
+                }
+
+                if ($targetStatus === 'Released') {
+                    throw ValidationException::withMessages([
+                        'status' => 'Dedicated physical handover confirmation is required to release a certificate.',
+                    ]);
+                }
+            }
+
+            $previousStatus = $currentStatus;
+
+            CertificateRequestWorkflow::apply(
+                $locked,
+                $targetStatus,
+                $validated['admin_note'] ?? null,
+            );
+
+            $lockedRequest = $locked;
+        });
 
         /*
         |--------------------------------------------------------------------------
@@ -542,16 +573,16 @@ class CertificateRequestController extends Controller
         |
         */
 
-        if ($certificateRequest->wasChanged('status')) {
+        if ($lockedRequest->wasChanged('status')) {
             AuditLogger::record(
                 'certificate_request.status_changed',
-                $certificateRequest->barangay_id,
+                $lockedRequest->barangay_id,
                 $request->user()->id,
                 'certificate_request',
-                $certificateRequest->id,
+                $lockedRequest->id,
                 [
                     'previous_status' => $previousStatus,
-                    'new_status' => $certificateRequest->status,
+                    'new_status' => $lockedRequest->status,
                 ],
                 $request->ip(),
             );
@@ -559,20 +590,20 @@ class CertificateRequestController extends Controller
 
         return response()->json([
             'message' => 'Certificate request status updated.',
-            'status' => $certificateRequest->status,
+            'status' => $lockedRequest->status,
             'allowed_statuses' => CertificateRequestWorkflow::genericStatuses(
-                $certificateRequest->status,
+                $lockedRequest->status,
             ),
-            'admin_note' => $certificateRequest->admin_note,
+            'admin_note' => $lockedRequest->admin_note,
         ]);
     }
 
     /**
-     * Dedicated Clerk action to confirm payment for a certificate request.
+     * Dedicated Clerk action that finalizes payment and creates the ledger record.
      *
-     * Payment confirmation remains a Clerk attestation, but fee-bearing requests
-     * must have a verified, non-void collection in the authoritative ledger.
-     * The request must also be in 'For Payment' and have a valid linked issuance.
+     * The request must be in 'For Payment' and have a valid linked issuance.
+     * Payment details are validated against the assessed fee, and the verified
+     * collection is created in the same transaction as the status transition.
      */
     public function confirmPayment(
         Request $request,
@@ -588,6 +619,10 @@ class CertificateRequestController extends Controller
         $validated = $request->validate([
             'confirm_payment' => ['required', 'accepted'],
             'admin_note' => ['nullable', 'string', 'max:1000'],
+            'amount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0'],
+            'or_number' => ['nullable', 'string', 'max:255'],
+            'is_waived' => ['required', 'boolean'],
+            'waive_reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
         if ($certificateRequest->status !== 'For Payment') {
@@ -608,74 +643,137 @@ class CertificateRequestController extends Controller
             ], 422);
         }
 
-        $requiresCollection = (float) $certificateRequest->fee > 0;
-
-        if ($requiresCollection && $this->verifiedCollectionFor($certificateRequest, $barangayId) === null) {
-            return response()->json([
-                'message' => 'Payment cannot be confirmed until a verified collection is recorded.',
-                'errors' => ['status' => ['Payment cannot be confirmed until a verified collection is recorded.']],
-            ], 422);
-        }
-
-        $previousStatus = $certificateRequest->status;
         $note = $validated['admin_note'] ?? 'Payment confirmed by clerk. Certificate is ready for claim.';
+        $isWaived = (bool) $validated['is_waived'];
         $lockedRequest = null;
+        $collection = null;
 
-        DB::transaction(function () use ($barangayId, $certificateRequest, $note, $requiresCollection, &$lockedRequest) {
-            $locked = CertificateRequest::query()
-                ->whereKey($certificateRequest->id)
-                ->where('barangay_id', $barangayId)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ($locked->status !== 'For Payment') {
-                throw ValidationException::withMessages([
-                    'status' => 'Only requests in For Payment status can have payment confirmed.',
-                ]);
-            }
-
-            if ($requiresCollection && $this->verifiedCollectionFor($locked, $barangayId, true) === null) {
-                throw ValidationException::withMessages([
-                    'status' => 'Payment cannot be confirmed until a verified collection is recorded.',
-                ]);
-            }
-
-            CertificateRequestWorkflow::apply(
-                $locked,
-                'Ready for Claim',
+        try {
+            DB::transaction(function () use (
+                $request,
+                $barangayId,
+                $certificateRequest,
+                $validated,
                 $note,
-            );
+                $isWaived,
+                &$lockedRequest,
+                &$collection,
+            ) {
+                $locked = CertificateRequest::query()
+                    ->whereKey($certificateRequest->id)
+                    ->where('barangay_id', $barangayId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $lockedRequest = $locked;
-        });
+                if ($locked->status !== 'For Payment') {
+                    throw ValidationException::withMessages([
+                        'status' => 'Only requests in For Payment status can have payment confirmed.',
+                    ]);
+                }
+
+                if (! CertificateIssuance::where('barangay_id', $barangayId)
+                    ->where('certificate_request_id', $locked->id)
+                    ->exists()) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Payment cannot be confirmed before certificate issuance.',
+                    ]);
+                }
+
+                $previousStatus = $locked->status;
+
+                $collection = CertificatePaymentLedger::finalizeForCertificateRequest(
+                    $locked,
+                    [
+                        'amount' => $validated['amount'] ?? null,
+                        'or_number' => $validated['or_number'] ?? null,
+                        'is_waived' => $isWaived,
+                        'waive_reason' => $validated['waive_reason'] ?? null,
+                    ],
+                    (int) $request->user()->id,
+                );
+
+                CertificateRequestWorkflow::apply($locked, 'Ready for Claim', $note);
+
+                $auditContext = [
+                    'amount' => number_format((float) $collection->amount, 2, '.', ''),
+                    'or_number' => $collection->or_number,
+                    'certificate_reference' => $locked->reference,
+                    'collection_uuid' => (string) $collection->id,
+                    'verified_collection_id' => (string) $collection->id,
+                ];
+                $reasonCode = $isWaived ? 'waived' : null;
+
+                FinancialDisclosureAudit::recordStrict(
+                    $request,
+                    $barangayId,
+                    (int) $request->user()->id,
+                    'collection_created',
+                    'collection',
+                    $collection->or_number ?? 'Waived collection',
+                    (string) $collection->id,
+                    null,
+                    'Verified',
+                    $reasonCode,
+                    $auditContext,
+                );
+
+                FinancialDisclosureAudit::recordStrict(
+                    $request,
+                    $barangayId,
+                    (int) $request->user()->id,
+                    'collection_verified',
+                    'collection',
+                    $collection->or_number ?? 'Waived collection',
+                    (string) $collection->id,
+                    null,
+                    'Verified',
+                    $reasonCode,
+                    $auditContext,
+                );
+
+                AuditLogger::recordOrFail(
+                    'certificate_request.payment_confirmed',
+                    $barangayId,
+                    (int) $request->user()->id,
+                    'certificate_request',
+                    $locked->id,
+                    array_merge([
+                        'action' => 'payment_confirmed',
+                        'previous_status' => $previousStatus,
+                        'new_status' => 'Ready for Claim',
+                    ], $auditContext),
+                    $request->ip(),
+                );
+
+                $lockedRequest = $locked;
+            });
+        } catch (QueryException $exception) {
+            if (! CertificatePaymentLedger::isDuplicateOrException($exception)) {
+                throw $exception;
+            }
+
+            throw ValidationException::withMessages([
+                'or_number' => 'This OR number is already recorded.',
+            ]);
+        }
 
         $certificateRequest = $lockedRequest;
 
-        AuditLogger::record(
-            'certificate_request.payment_confirmed',
-            $certificateRequest->barangay_id,
-            $request->user()->id,
-            'certificate_request',
-            $certificateRequest->id,
-            [
-                'action' => 'payment_confirmed',
-                'previous_status' => $previousStatus,
-                'new_status' => 'Ready for Claim',
-                'verified_collection_id' => $requiresCollection
-                    ? $this->verifiedCollectionFor($certificateRequest, $barangayId)?->id
-                    : null,
-            ],
-            $request->ip(),
-        );
-
         return response()->json([
-            'message' => 'Payment confirmed. Certificate is ready for claim.',
+            'message' => 'Payment confirmed. Collection recorded and certificate is ready for claim.',
             'status' => $certificateRequest->status,
             'allowed_statuses' => CertificateRequestWorkflow::genericStatuses(
                 $certificateRequest->status,
             ),
             'admin_note' => $certificateRequest->admin_note,
             'ready_for_claim_at' => $certificateRequest->ready_for_claim_at?->format('F j, Y g:i A'),
+            'collection' => [
+                'id' => $collection->id,
+                'or_number' => $collection->or_number,
+                'amount' => (string) $collection->amount,
+                'is_waived' => (bool) $collection->is_waived,
+                'status' => $collection->status,
+            ],
         ]);
     }
 

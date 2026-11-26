@@ -2050,7 +2050,7 @@ function getStatusMessage(status: RequestStatus) {
         case 'Pending':
             return 'Your request has been received and is waiting for review.';
         case 'For Payment':
-            return 'Please complete the required payment before processing can continue.';
+            return 'Please pay the assessed fee at the barangay office. The Clerk will record the payment before the certificate becomes ready for claim.';
         case 'Processing':
             return 'Your certificate is currently being prepared.';
         case 'Ready for Claim':

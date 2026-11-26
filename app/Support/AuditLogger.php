@@ -12,12 +12,9 @@ use Throwable;
  *
  * Call sites pass typed event data directly; nothing is inferred from the
  * request, and arbitrary payloads are never persisted. Context is filtered
- * through a fixed allowlist of small, non-sensitive keys, and a writer
- * failure is reported through Laravel's exception reporting instead of
- * breaking the business operation that triggered it.
- *
- * Catching failures here keeps workflows available; it does not make the
- * audit trail tamper-proof — a failed write is reported, not retried.
+ * through a fixed allowlist of small, non-sensitive keys. Ordinary writes
+ * report failures instead of breaking the triggering operation; recordOrFail()
+ * throws so an enclosing transaction cannot commit without its audit trail.
  */
 final class AuditLogger
 {
@@ -31,11 +28,16 @@ final class AuditLogger
      */
     private const CONTEXT_ALLOWLIST = [
         'action',
+        'amount',
+        'certificate_reference',
+        'certificate_request_uuid',
+        'collection_uuid',
         'department',
         'entity_reference',
         'entity_uuid',
         'new_role',
         'new_status',
+        'or_number',
         'previous_role',
         'previous_status',
         'reason_code',
@@ -48,12 +50,6 @@ final class AuditLogger
 
     private const CONTEXT_VALUE_MAX_LENGTH = 255;
 
-    /**
-     * Persist one audit record. Never throws: on any failure the exception is
-     * reported and the caller's operation continues.
-     *
-     * @param  array<string, mixed>  $context  allowlisted, non-sensitive metadata only
-     */
     public static function record(
         string $event,
         ?int $barangayId = null,
@@ -62,6 +58,31 @@ final class AuditLogger
         ?int $entityId = null,
         array $context = [],
         ?string $ipAddress = null,
+    ): void {
+        self::persist($event, $barangayId, $actorId, $entityType, $entityId, $context, $ipAddress, false);
+    }
+
+    public static function recordOrFail(
+        string $event,
+        ?int $barangayId = null,
+        ?int $actorId = null,
+        ?string $entityType = null,
+        ?int $entityId = null,
+        array $context = [],
+        ?string $ipAddress = null,
+    ): void {
+        self::persist($event, $barangayId, $actorId, $entityType, $entityId, $context, $ipAddress, true);
+    }
+
+    private static function persist(
+        string $event,
+        ?int $barangayId,
+        ?int $actorId,
+        ?string $entityType,
+        ?int $entityId,
+        array $context,
+        ?string $ipAddress,
+        bool $strict,
     ): void {
         try {
             AuditLog::create([
@@ -74,6 +95,10 @@ final class AuditLogger
                 'ip_address' => self::sanitizeIp($ipAddress),
             ]);
         } catch (Throwable $exception) {
+            if ($strict) {
+                throw $exception;
+            }
+
             report($exception);
         }
     }
@@ -135,7 +160,7 @@ final class AuditLogger
                 continue;
             }
 
-            if ($key === 'entity_uuid') {
+            if (in_array($key, ['entity_uuid', 'collection_uuid', 'certificate_request_uuid'], true)) {
                 if (is_string($value) && Str::isUuid(trim($value))) {
                     $sanitized[$key] = strtolower(trim($value));
                 }

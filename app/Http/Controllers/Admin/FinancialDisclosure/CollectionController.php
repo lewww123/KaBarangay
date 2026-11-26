@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\CertificateRequest;
 use App\Models\Collection;
+use App\Support\CertificatePaymentLedger;
 use App\Support\CollectionAnalytics;
 use App\Support\FinancialDisclosureAudit;
 use App\Support\FinancialDisclosureFilters;
@@ -61,13 +62,14 @@ class CollectionController extends Controller
             ->leftJoin('certificates', 'certificates.id', '=', 'certificate_requests.certificate_id')
             ->select('collections.*')
             ->with([
-                'certificateRequest:id,reference,fee,barangay_id,certificate_id',
+                'certificateRequest:id,reference,fee,barangay_id,certificate_id,status,ready_for_claim_at,released_at',
                 'certificateRequest.certificate:id,name,code',
                 'encodedBy:id,name',
                 'verifiedBy:id,name',
             ]);
 
         $analyticsService->applyPeriod($query, $period);
+        $authoritativeQuery = clone $query;
 
         FinancialDisclosureFilters::applySearch($query, $search, [
             'collections.or_number',
@@ -76,7 +78,7 @@ class CollectionController extends Controller
         ]);
 
         if ($orNumber !== '') {
-            $query->whereRaw('UPPER(TRIM(collections.or_number)) = ?', [$this->normalizeOr($orNumber)]);
+            $query->whereRaw('UPPER(TRIM(collections.or_number)) = ?', [CertificatePaymentLedger::normalizeOr($orNumber)]);
         }
 
         if ($payeeName !== '') {
@@ -127,7 +129,7 @@ class CollectionController extends Controller
             ->withQueryString()
             ->through(fn (Collection $collection) => $this->transformCollection($collection));
 
-        $analytics = $analyticsService->summarize(clone $query, $period);
+        $analytics = $analyticsService->summarize($authoritativeQuery, $period);
         $summary = [
             'verified_amount' => $analytics['totals']['amount'],
             'pending_count' => $analytics['totals']['pending_count'],
@@ -219,75 +221,36 @@ class CollectionController extends Controller
 
         $validated = $this->validatePayload($request, true);
 
-        $isWaived = (bool) $validated['is_waived'];
-        $orNumber = $this->resolveOr($validated['or_number'] ?? null);
-        $amount = round((float) $validated['amount'], 2);
-        $this->assertWaiverRules($isWaived, $amount, $validated['waive_reason'] ?? null, $orNumber);
+        if (($validated['certificate_request_id'] ?? null) !== null) {
+            throw ValidationException::withMessages([
+                'certificate_request_id' => 'Certificate collections are recorded when the Clerk confirms payment.',
+            ]);
+        }
 
-        $certificateRequestId = $validated['certificate_request_id'] ?? null;
-        $collectionType = $validated['collection_type'];
-        $payeeName = $validated['payee_name'];
+        $isWaived = (bool) $validated['is_waived'];
+        $orNumber = CertificatePaymentLedger::resolveOr($validated['or_number'] ?? null);
+        $amount = round((float) $validated['amount'], 2);
+        CertificatePaymentLedger::assertWaiverRules($isWaived, $amount, $validated['waive_reason'] ?? null, $orNumber);
 
         try {
-            $collection = DB::transaction(function () use (
-                $barangayId,
-                $actorId,
-                $validated,
-                $orNumber,
-                $amount,
-                $isWaived,
-                $certificateRequestId,
-                &$collectionType,
-                &$payeeName,
-            ) {
-                $this->assertUniqueOr($orNumber);
+            $collection = DB::transaction(function () use ($barangayId, $actorId, $validated, $orNumber, $amount, $isWaived) {
+                CertificatePaymentLedger::assertUniqueOr($orNumber);
 
-                $certificateRequest = null;
-
-                if ($certificateRequestId !== null) {
-                    $certificateRequest = CertificateRequest::query()
-                        ->whereKey($certificateRequestId)
-                        ->where('barangay_id', $barangayId)
-                        ->lockForUpdate()
-                        ->first();
-
-                    abort_unless($certificateRequest !== null, 404);
-
-                    $this->assertLinkedRequestPayment($certificateRequest, $amount, $isWaived);
-
-                    $certificate = $certificateRequest->certificate()->first();
-                    $resident = $certificateRequest->resident()->first();
-
-                    if ($certificate !== null) {
-                        $collectionType = $certificate->name;
-                    }
-
-                    if ($resident !== null) {
-                        $payeeName = $resident->full_name;
-                    }
-                }
-
-                $record = Collection::create([
+                return Collection::create([
                     'collection_date' => $validated['collection_date'],
-                    'collection_type' => $collectionType,
+                    'collection_type' => $validated['collection_type'],
                     'amount' => $amount,
                     'or_number' => $orNumber,
-                    'payee_name' => $payeeName,
-                    'certificate_request_id' => $certificateRequest?->id,
+                    'payee_name' => $validated['payee_name'],
+                    'certificate_request_id' => null,
                     'is_waived' => $isWaived,
                     'waive_reason' => $isWaived ? $validated['waive_reason'] : null,
                     'status' => 'Pending',
                     'encoded_by' => $actorId,
                 ]);
-
-                if ($certificateRequest !== null) {
-                    $certificateRequest->update(['collection_id' => $record->id]);
-                }
-
-                return $record;
             });
         } catch (QueryException $exception) {
-            if (! $this->isDuplicateOrException($exception)) {
+            if (! CertificatePaymentLedger::isDuplicateOrException($exception)) {
                 throw $exception;
             }
 
@@ -317,6 +280,12 @@ class CollectionController extends Controller
         $actorId = FinancialDisclosureScope::actorId($request->user());
         $record = FinancialDisclosureScope::collection($barangayId, $collection);
 
+        if ($record->certificate_request_id !== null) {
+            throw ValidationException::withMessages([
+                'collection' => 'Certificate collections cannot be edited from the financial ledger.',
+            ]);
+        }
+
         if ($record->status !== 'Pending' || $record->verified_by !== null || $record->void_reason !== null) {
             throw ValidationException::withMessages([
                 'collection' => 'Only pending collections can be edited.',
@@ -326,21 +295,14 @@ class CollectionController extends Controller
         $validated = $this->validatePayload($request, false);
 
         $isWaived = (bool) $validated['is_waived'];
-        $orNumber = $this->resolveOr($validated['or_number'] ?? null);
-        $this->assertUniqueOr($orNumber, $record->id);
+        $orNumber = CertificatePaymentLedger::resolveOr($validated['or_number'] ?? null);
+        CertificatePaymentLedger::assertUniqueOr($orNumber, $record->id);
 
         $amount = round((float) $validated['amount'], 2);
-        $this->assertWaiverRules($isWaived, $amount, $validated['waive_reason'] ?? null, $orNumber);
+        CertificatePaymentLedger::assertWaiverRules($isWaived, $amount, $validated['waive_reason'] ?? null, $orNumber);
 
         try {
-            DB::transaction(function () use (
-                $barangayId,
-                $record,
-                $validated,
-                $amount,
-                $isWaived,
-                $orNumber,
-            ) {
+            DB::transaction(function () use ($record, $validated, $amount, $isWaived, $orNumber) {
                 $locked = Collection::query()
                     ->whereKey($record->id)
                     ->lockForUpdate()
@@ -350,18 +312,6 @@ class CollectionController extends Controller
                     throw ValidationException::withMessages([
                         'collection' => 'Only pending collections can be edited.',
                     ]);
-                }
-
-                if ($locked->certificate_request_id !== null) {
-                    $certificateRequest = CertificateRequest::query()
-                        ->whereKey($locked->certificate_request_id)
-                        ->where('barangay_id', $barangayId)
-                        ->lockForUpdate()
-                        ->first();
-
-                    abort_unless($certificateRequest !== null, 404);
-
-                    $this->assertLinkedRequestPayment($certificateRequest, $amount, $isWaived, $locked->id);
                 }
 
                 $locked->update([
@@ -377,7 +327,7 @@ class CollectionController extends Controller
                 $record->setRawAttributes($locked->getAttributes());
             });
         } catch (QueryException $exception) {
-            if (! $this->isDuplicateOrException($exception)) {
+            if (! CertificatePaymentLedger::isDuplicateOrException($exception)) {
                 throw $exception;
             }
 
@@ -407,6 +357,12 @@ class CollectionController extends Controller
         $actorId = FinancialDisclosureScope::actorId($request->user());
         $record = FinancialDisclosureScope::collection($barangayId, $collection);
 
+        if ($record->certificate_request_id !== null) {
+            throw ValidationException::withMessages([
+                'collection' => 'Certificate collections are verified by Clerk payment confirmation.',
+            ]);
+        }
+
         if ($record->encoded_by === $actorId) {
             throw ValidationException::withMessages([
                 'verified_by' => 'The encoder cannot verify their own collection.',
@@ -417,7 +373,7 @@ class CollectionController extends Controller
             abort(403, 'Unauthorized barangay access.');
         }
 
-        DB::transaction(function () use ($record, $barangayId, $actorId) {
+        DB::transaction(function () use ($record, $actorId) {
             $locked = Collection::query()
                 ->whereKey($record->id)
                 ->lockForUpdate()
@@ -434,30 +390,6 @@ class CollectionController extends Controller
                 'verified_by' => $actorId,
                 'verified_at' => now(),
             ]);
-
-            if ($locked->certificate_request_id !== null) {
-                $certificateRequest = CertificateRequest::query()
-                    ->whereKey($locked->certificate_request_id)
-                    ->where('barangay_id', $barangayId)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($certificateRequest !== null) {
-                    if ($certificateRequest->collection_id !== null
-                        && (string) $certificateRequest->collection_id !== (string) $locked->id) {
-                        throw ValidationException::withMessages([
-                            'collection' => 'This certificate request is linked to another collection.',
-                        ]);
-                    }
-
-                    $certificateRequest->update([
-                        'collection_id' => $locked->id,
-                        'or_number' => $locked->or_number,
-                        'amount_paid' => $locked->amount,
-                        'is_waived' => $locked->is_waived,
-                    ]);
-                }
-            }
         });
 
         FinancialDisclosureAudit::record(
@@ -488,10 +420,49 @@ class CollectionController extends Controller
         $previousStatus = $record->status;
 
         DB::transaction(function () use ($record, $validated, $barangayId, &$previousStatus) {
+            $certificateRequest = null;
+
+            if ($record->certificate_request_id !== null) {
+                $certificateRequest = CertificateRequest::query()
+                    ->whereKey($record->certificate_request_id)
+                    ->where('barangay_id', $barangayId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($certificateRequest === null) {
+                    throw ValidationException::withMessages([
+                        'collection' => 'The linked certificate request is no longer available.',
+                    ]);
+                }
+            }
+
             $locked = Collection::query()
                 ->whereKey($record->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            if ($certificateRequest !== null
+                && (string) $locked->certificate_request_id !== (string) $certificateRequest->id) {
+                throw ValidationException::withMessages([
+                    'collection' => 'The certificate payment link changed before the collection could be voided.',
+                ]);
+            }
+
+            if ($certificateRequest !== null && $certificateRequest->status !== 'For Payment') {
+                throw ValidationException::withMessages([
+                    'collection' => 'Only certificate payments awaiting claim can be voided.',
+                ]);
+            }
+
+            if ($certificateRequest !== null
+                && (
+                    $certificateRequest->ready_for_claim_at !== null
+                    || $certificateRequest->released_at !== null
+                )) {
+                throw ValidationException::withMessages([
+                    'collection' => 'Payment proof cannot be voided after the certificate is ready for claim or released.',
+                ]);
+            }
 
             if ($locked->status === 'Voided') {
                 throw ValidationException::withMessages([
@@ -505,23 +476,15 @@ class CollectionController extends Controller
                 'void_reason' => $validated['void_reason'],
             ]);
 
-            if ($locked->certificate_request_id !== null) {
-                $certificateRequest = CertificateRequest::query()
-                    ->whereKey($locked->certificate_request_id)
-                    ->where('barangay_id', $barangayId)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($certificateRequest !== null
-                    && $certificateRequest->collection_id !== null
-                    && (string) $certificateRequest->collection_id === (string) $locked->id) {
-                    $certificateRequest->update([
-                        'collection_id' => null,
-                        'or_number' => null,
-                        'amount_paid' => null,
-                        'is_waived' => false,
-                    ]);
-                }
+            if ($certificateRequest !== null
+                && $certificateRequest->collection_id !== null
+                && (string) $certificateRequest->collection_id === (string) $locked->id) {
+                $certificateRequest->update([
+                    'collection_id' => null,
+                    'or_number' => null,
+                    'amount_paid' => null,
+                    'is_waived' => false,
+                ]);
             }
 
             $record->setRawAttributes($locked->getAttributes());
@@ -543,44 +506,6 @@ class CollectionController extends Controller
         return back()->with('success', 'Collection voided successfully.');
     }
 
-    private function assertLinkedRequestPayment(
-        CertificateRequest $certificateRequest,
-        float $amount,
-        bool $isWaived,
-        ?string $collectionId = null,
-    ): void {
-        if ($certificateRequest->status !== 'For Payment' || (float) $certificateRequest->fee <= 0) {
-            throw ValidationException::withMessages([
-                'certificate_request_id' => 'Only certificate requests awaiting payment can be linked.',
-            ]);
-        }
-
-        if ($certificateRequest->collection_id !== null
-            && ($collectionId === null || (string) $certificateRequest->collection_id !== $collectionId)) {
-            throw ValidationException::withMessages([
-                'certificate_request_id' => 'This certificate request already has a linked collection.',
-            ]);
-        }
-
-        $duplicate = Collection::query()
-            ->where('certificate_request_id', $certificateRequest->id)
-            ->when($collectionId !== null, fn ($query) => $query->where('id', '!=', $collectionId))
-            ->where('status', '!=', 'Voided')
-            ->exists();
-
-        if ($duplicate) {
-            throw ValidationException::withMessages([
-                'certificate_request_id' => 'An active collection already exists for this certificate request.',
-            ]);
-        }
-
-        if (! $isWaived && round((float) $certificateRequest->fee, 2) !== $amount) {
-            throw ValidationException::withMessages([
-                'amount' => 'The amount must match the certificate fee unless the collection is waived.',
-            ]);
-        }
-    }
-
     private function validatePayload(Request $request, bool $creating): array
     {
         $rules = [
@@ -600,78 +525,6 @@ class CollectionController extends Controller
         return $request->validate($rules);
     }
 
-    private function normalizeOr(string $orNumber): string
-    {
-        return mb_strtoupper(trim($orNumber));
-    }
-
-    private function resolveOr(mixed $value): ?string
-    {
-        $normalized = $this->normalizeOr(is_string($value) ? $value : '');
-
-        if ($normalized === '') {
-            return null;
-        }
-
-        return $normalized;
-    }
-
-    private function assertUniqueOr(?string $orNumber, ?string $ignoreId = null): void
-    {
-        if ($orNumber === null || $orNumber === '') {
-            return;
-        }
-
-        $duplicate = Collection::query()
-            ->when($ignoreId !== null, fn ($query) => $query->where('id', '!=', $ignoreId))
-            ->whereRaw('UPPER(TRIM(or_number)) = ?', [$orNumber])
-            ->exists()
-            || CertificateRequest::query()
-                ->whereRaw('UPPER(TRIM(or_number)) = ?', [$orNumber])
-                ->exists();
-
-        if ($duplicate) {
-            throw ValidationException::withMessages([
-                'or_number' => 'This OR number is already recorded.',
-            ]);
-        }
-    }
-
-    private function isDuplicateOrException(QueryException $exception): bool
-    {
-        $code = (int) ($exception->errorInfo[1] ?? 0);
-        $message = strtolower($exception->getMessage());
-
-        return $code === 1062 || str_contains($message, 'unique constraint') || str_contains($message, 'duplicate entry');
-    }
-
-    private function assertWaiverRules(bool $isWaived, float $amount, ?string $reason, ?string $orNumber): void
-    {
-        if (! $isWaived && ($orNumber === null || $orNumber === '')) {
-            throw ValidationException::withMessages([
-                'or_number' => 'An OR number is required unless the collection is waived.',
-            ]);
-        }
-
-        if ($isWaived && $amount !== 0.0) {
-            throw ValidationException::withMessages([
-                'amount' => 'A waived collection must have an amount of zero.',
-            ]);
-        }
-
-        if ($isWaived && trim((string) $reason) === '') {
-            throw ValidationException::withMessages([
-                'waive_reason' => 'A reason is required for waived collections.',
-            ]);
-        }
-
-        if (! $isWaived && $amount <= 0) {
-            throw ValidationException::withMessages([
-                'amount' => 'A non-waived collection must have an amount greater than zero.',
-            ]);
-        }
-    }
-
     private function transformCollection(Collection $collection): array
     {
         return [
@@ -686,6 +539,9 @@ class CollectionController extends Controller
             'payee_name' => $collection->payee_name,
             'certificate_request_id' => $collection->certificate_request_id,
             'certificate_reference' => $collection->certificateRequest?->reference,
+            'certificate_request_status' => $collection->certificateRequest?->status,
+            'certificate_ready_for_claim' => $collection->certificateRequest?->ready_for_claim_at !== null,
+            'certificate_released' => $collection->certificateRequest?->released_at !== null,
             'is_waived' => (bool) $collection->is_waived,
             'waive_reason' => $collection->waive_reason,
             'status' => $collection->status,

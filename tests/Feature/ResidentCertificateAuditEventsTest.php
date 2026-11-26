@@ -674,11 +674,16 @@ class ResidentCertificateAuditEventsTest extends TestCase
 
         $allowlist = [
             'action',
+            'amount',
+            'certificate_reference',
+            'certificate_request_uuid',
+            'collection_uuid',
             'department',
             'entity_reference',
             'entity_uuid',
             'new_role',
             'new_status',
+            'or_number',
             'previous_role',
             'previous_status',
             'reason_code',

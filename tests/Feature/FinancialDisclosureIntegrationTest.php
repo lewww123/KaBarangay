@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Allocation;
 use App\Models\Certificate;
+use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
 use App\Models\Collection;
 use App\Models\Disbursement;
@@ -239,11 +240,10 @@ class FinancialDisclosureIntegrationTest extends TestCase
         $this->assertFinancialAudit('collection_voided', $collection->id, 'OR-COLLECTION-001');
     }
 
-    public function test_certificate_linkage_uses_only_eligible_requests_and_prevents_double_encoding(): void
+    public function test_certificate_collections_are_created_by_clerk_confirmation_and_admin_cannot_bypass(): void
     {
         $context = $this->financialContext();
-        $this->actingAs($context['admin']);
-
+        $clerk = $this->createStaff($context['barangay'], 'clerk');
         $certificate = Certificate::create([
             'barangay_id' => $context['barangay']->id,
             'code' => 'FD-CERT-'.Str::upper(Str::random(6)),
@@ -252,119 +252,113 @@ class FinancialDisclosureIntegrationTest extends TestCase
             'is_active' => true,
         ]);
 
-        $eligible = CertificateRequest::create([
-            'barangay_id' => $context['barangay']->id,
-            'resident_id' => $context['resident']->id,
-            'certificate_id' => $certificate->id,
-            'reference' => 'FD-REQ-PAYABLE-'.Str::upper(Str::random(6)),
-            'purpose' => 'Employment',
-            'fee' => 50,
-            'status' => 'For Payment',
-            'submitted_at' => now(),
+        $request = $this->createCollectionCertificateRequest(
+            $context,
+            $certificate,
+            'FD-REQ-PAYABLE-'.Str::upper(Str::random(6)),
+            50,
+        );
+        $this->createIssuanceFor($context, $certificate, $request, $clerk);
+
+        $this->actingAs($context['admin'])
+            ->post('/admin/financial-disclosure/collections', [
+                'collection_date' => '2026-11-10',
+                'collection_type' => 'Certificate fee',
+                'amount' => '50.00',
+                'or_number' => 'OR-ADMIN-BYPASS-'.Str::upper(Str::random(6)),
+                'payee_name' => 'Juan Dela Cruz',
+                'certificate_request_id' => $request->id,
+                'is_waived' => false,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('certificate_request_id');
+
+        $this->assertDatabaseMissing('collections', [
+            'certificate_request_id' => $request->id,
         ]);
 
-        $this->get('/admin/financial-disclosure/collections')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('pendingCertificates.0.reference', $eligible->reference));
+        $orNumber = 'OR-CERT-'.Str::upper(Str::random(8));
 
-        $this->post('/admin/financial-disclosure/collections', [
-            'collection_date' => '2026-11-10',
-            'collection_type' => 'Certificate fee',
-            'amount' => '50.00',
-            'or_number' => 'OR-CERT-'.Str::upper(Str::random(6)),
-            'payee_name' => 'Juan Dela Cruz',
-            'certificate_request_id' => $eligible->id,
-            'is_waived' => false,
-        ])->assertRedirect();
+        $this->actingAs($clerk)
+            ->postJson("/clerk/certificates/requests/{$request->id}/confirm-payment", [
+                'confirm_payment' => true,
+                'amount' => '50.00',
+                'or_number' => $orNumber,
+                'is_waived' => false,
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'Ready for Claim');
+
+        $collection = Collection::query()->where('or_number', $orNumber)->firstOrFail();
 
         $this->assertDatabaseHas('collections', [
-            'certificate_request_id' => $eligible->id,
+            'id' => $collection->id,
+            'certificate_request_id' => $request->id,
             'collection_type' => 'Barangay Clearance',
-            'status' => 'Pending',
+            'status' => 'Verified',
+            'encoded_by' => $clerk->id,
+            'verified_by' => $clerk->id,
         ]);
-        $this->assertNotNull($eligible->fresh()->collection_id);
-
-        $mismatch = CertificateRequest::create([
-            'barangay_id' => $context['barangay']->id,
-            'resident_id' => $context['resident']->id,
-            'certificate_id' => $certificate->id,
-            'reference' => 'FD-REQ-MISMATCH-'.Str::upper(Str::random(6)),
-            'purpose' => 'Employment',
-            'fee' => 50,
-            'status' => 'For Payment',
-            'submitted_at' => now(),
+        $this->assertDatabaseHas('certificate_requests', [
+            'id' => $request->id,
+            'collection_id' => $collection->id,
+            'status' => 'Ready for Claim',
+            'or_number' => $orNumber,
+            'amount_paid' => 50,
         ]);
+        $this->assertFinancialAudit('collection_created', $collection->id, $orNumber);
+        $this->assertFinancialAudit('collection_verified', $collection->id, $orNumber);
 
-        $this->post('/admin/financial-disclosure/collections', [
-            'collection_date' => '2026-11-10',
-            'collection_type' => 'Certificate fee',
-            'amount' => '75.00',
-            'or_number' => 'OR-CERT-MISMATCH-'.Str::upper(Str::random(6)),
-            'payee_name' => 'Juan Dela Cruz',
-            'certificate_request_id' => $mismatch->id,
-            'is_waived' => false,
-        ])->assertRedirect()->assertSessionHasErrors('amount');
+        $createdAudit = DB::table('audit_logs')
+            ->where('event', FinancialDisclosureStatus::PUBLIC_EVENT_PREFIX.'collection_created')
+            ->where('entity_type', 'financial_collection')
+            ->orderByDesc('id')
+            ->firstOrFail();
+        $auditContext = json_decode((string) $createdAudit->context, true);
+        $this->assertSame('50.00', $auditContext['amount'] ?? null);
+        $this->assertSame($orNumber, $auditContext['or_number'] ?? null);
 
-        $this->post('/admin/financial-disclosure/collections', [
-            'collection_date' => '2026-11-10',
-            'collection_type' => 'Certificate fee',
-            'amount' => '50.00',
-            'or_number' => 'OR-CERT-DUP-'.Str::upper(Str::random(6)),
-            'payee_name' => 'Juan Dela Cruz',
-            'certificate_request_id' => $eligible->id,
-            'is_waived' => false,
-        ])->assertRedirect()->assertSessionHasErrors('certificate_request_id');
+        $secondRequest = $this->createCollectionCertificateRequest(
+            $context,
+            $certificate,
+            'FD-REQ-DUP-'.Str::upper(Str::random(6)),
+            50,
+        );
+        $this->createIssuanceFor($context, $certificate, $secondRequest, $clerk);
 
-        $ineligible = CertificateRequest::create([
-            'barangay_id' => $context['barangay']->id,
-            'resident_id' => $context['resident']->id,
-            'certificate_id' => $certificate->id,
-            'reference' => 'FD-REQ-PENDING-'.Str::upper(Str::random(6)),
-            'purpose' => 'Employment',
-            'fee' => 50,
-            'status' => 'Pending',
-            'submitted_at' => now(),
-        ]);
+        $this->actingAs($clerk)
+            ->postJson("/clerk/certificates/requests/{$secondRequest->id}/confirm-payment", [
+                'confirm_payment' => true,
+                'amount' => '50.00',
+                'or_number' => strtolower($orNumber),
+                'is_waived' => false,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('or_number');
 
-        $this->post('/admin/financial-disclosure/collections', [
-            'collection_date' => '2026-11-10',
-            'collection_type' => 'Certificate fee',
-            'amount' => '50.00',
-            'or_number' => 'OR-CERT-INELIGIBLE-'.Str::upper(Str::random(6)),
-            'payee_name' => 'Juan Dela Cruz',
-            'certificate_request_id' => $ineligible->id,
-            'is_waived' => false,
-        ])->assertRedirect()->assertSessionHasErrors('certificate_request_id');
-
-        $legacy = CertificateRequest::create([
-            'barangay_id' => $context['barangay']->id,
-            'resident_id' => $context['resident']->id,
-            'certificate_id' => $certificate->id,
-            'reference' => 'FD-REQ-LEGACY-'.Str::upper(Str::random(6)),
-            'purpose' => 'Employment',
-            'fee' => 50,
-            'status' => 'For Payment',
-            'or_number' => 'OR-LEGACY-FD',
-            'submitted_at' => now(),
+        $this->assertDatabaseMissing('collections', [
+            'certificate_request_id' => $secondRequest->id,
         ]);
 
-        $this->assertNotNull($legacy->id);
+        $this->actingAs($context['admin'])
+            ->post("/admin/financial-disclosure/collections/{$collection->id}/void", [
+                'void_reason' => 'Attempted void after release approval',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('collection');
 
-        $this->post('/admin/financial-disclosure/collections', [
-            'collection_date' => '2026-11-10',
-            'collection_type' => 'Certificate fee',
-            'amount' => '50.00',
-            'or_number' => 'or-legacy-fd',
-            'payee_name' => 'Juan Dela Cruz',
-            'is_waived' => false,
-        ])->assertRedirect()->assertSessionHasErrors('or_number');
+        $this->assertDatabaseHas('collections', [
+            'id' => $collection->id,
+            'status' => 'Verified',
+            'void_reason' => null,
+        ]);
+        $this->assertSame('Ready for Claim', $request->fresh()->status);
     }
 
-    public function test_editing_linked_collection_revalidates_fee_and_waiver(): void
+    public function test_admin_cannot_edit_or_verify_certificate_collections(): void
     {
         $context = $this->financialContext();
-        $this->actingAs($context['admin']);
-
+        $clerk = $this->createStaff($context['barangay'], 'clerk');
         $certificate = Certificate::create([
             'barangay_id' => $context['barangay']->id,
             'code' => 'FD-CERT-'.Str::upper(Str::random(6)),
@@ -373,39 +367,50 @@ class FinancialDisclosureIntegrationTest extends TestCase
             'is_active' => true,
         ]);
 
-        $eligible = CertificateRequest::create([
-            'barangay_id' => $context['barangay']->id,
-            'resident_id' => $context['resident']->id,
-            'certificate_id' => $certificate->id,
-            'reference' => 'FD-REQ-UPDATE-'.Str::upper(Str::random(6)),
-            'purpose' => 'Employment',
-            'fee' => 50,
-            'status' => 'For Payment',
-            'submitted_at' => now(),
+        $request = $this->createCollectionCertificateRequest(
+            $context,
+            $certificate,
+            'FD-REQ-UPDATE-'.Str::upper(Str::random(6)),
+            50,
+        );
+        $this->createIssuanceFor($context, $certificate, $request, $clerk);
+
+        $orNumber = 'OR-LINKED-UPDATE-'.Str::upper(Str::random(6));
+
+        $this->actingAs($clerk)
+            ->postJson("/clerk/certificates/requests/{$request->id}/confirm-payment", [
+                'confirm_payment' => true,
+                'amount' => '50.00',
+                'or_number' => $orNumber,
+                'is_waived' => false,
+            ])
+            ->assertOk();
+
+        $collection = Collection::query()->where('or_number', $orNumber)->firstOrFail();
+
+        $this->actingAs($context['admin'])
+            ->put("/admin/financial-disclosure/collections/{$collection->id}", [
+                'collection_date' => '2026-11-10',
+                'collection_type' => 'Certificate fee',
+                'amount' => '25.00',
+                'or_number' => $orNumber,
+                'payee_name' => 'Juan Dela Cruz',
+                'is_waived' => false,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('collection');
+
+        $this->actingAs($context['verifier'])
+            ->post("/admin/financial-disclosure/collections/{$collection->id}/verify")
+            ->assertRedirect()
+            ->assertSessionHasErrors('collection');
+
+        $this->assertDatabaseHas('collections', [
+            'id' => $collection->id,
+            'amount' => 50,
+            'status' => 'Verified',
+            'verified_by' => $clerk->id,
         ]);
-
-        $this->post('/admin/financial-disclosure/collections', [
-            'collection_date' => '2026-11-10',
-            'collection_type' => 'Certificate fee',
-            'amount' => '50.00',
-            'or_number' => 'OR-LINKED-UPDATE',
-            'payee_name' => 'Juan Dela Cruz',
-            'certificate_request_id' => $eligible->id,
-            'is_waived' => false,
-        ])->assertRedirect();
-
-        $collection = Collection::query()->where('or_number', 'OR-LINKED-UPDATE')->firstOrFail();
-
-        $this->put("/admin/financial-disclosure/collections/{$collection->id}", [
-            'collection_date' => '2026-11-10',
-            'collection_type' => 'Certificate fee',
-            'amount' => '25.00',
-            'or_number' => 'OR-LINKED-UPDATE',
-            'payee_name' => 'Juan Dela Cruz',
-            'is_waived' => false,
-        ])->assertRedirect()->assertSessionHasErrors('amount');
-
-        $this->assertSame('50.00', (string) $collection->fresh()->amount);
     }
 
     public function test_voiding_a_verified_collection_clears_the_certificate_payment_snapshot(): void
@@ -464,6 +469,195 @@ class FinancialDisclosureIntegrationTest extends TestCase
             'amount_paid' => null,
             'is_waived' => false,
         ]);
+    }
+
+    public function test_voiding_collection_after_ready_for_claim_demotion_preserves_payment_proof(): void
+    {
+        $context = $this->financialContext();
+        $this->actingAs($context['admin']);
+
+        $certificate = Certificate::create([
+            'barangay_id' => $context['barangay']->id,
+            'code' => 'FD-CERT-DEMOTED-'.Str::upper(Str::random(6)),
+            'name' => 'Barangay Clearance',
+            'fee' => 50,
+            'is_active' => true,
+        ]);
+        $certificateRequest = $this->createCollectionCertificateRequest(
+            $context,
+            $certificate,
+            'FD-REQ-DEMOTED-'.Str::upper(Str::random(6)),
+            50,
+        );
+
+        $collection = $this->createCollection([
+            'collection_type' => $certificate->name,
+            'certificate_request_id' => $certificateRequest->id,
+            'or_number' => 'OR-DEMOTED-'.Str::upper(Str::random(6)),
+            'status' => 'Verified',
+            'verified_by' => $context['verifier']->id,
+            'verified_at' => now(),
+        ]);
+        $certificateRequest->update([
+            'status' => 'Needs Action',
+            'ready_for_claim_at' => now(),
+            'collection_id' => $collection->id,
+            'or_number' => $collection->or_number,
+            'amount_paid' => $collection->amount,
+            'is_waived' => false,
+        ]);
+
+        $this->post("/admin/financial-disclosure/collections/{$collection->id}/void", [
+            'void_reason' => 'Attempted reversal after claim readiness',
+        ])->assertRedirect()->assertSessionHasErrors('collection');
+
+        $this->assertDatabaseHas('collections', [
+            'id' => $collection->id,
+            'status' => 'Verified',
+            'void_reason' => null,
+        ]);
+        $this->assertDatabaseHas('certificate_requests', [
+            'id' => $certificateRequest->id,
+            'status' => 'Needs Action',
+            'collection_id' => $collection->id,
+            'or_number' => $collection->or_number,
+            'amount_paid' => 50,
+        ]);
+    }
+
+    public function test_voiding_collection_for_released_certificate_is_blocked(): void
+    {
+        $context = $this->financialContext();
+        $this->actingAs($context['admin']);
+
+        $certificate = Certificate::create([
+            'barangay_id' => $context['barangay']->id,
+            'code' => 'FD-CERT-REL-'.Str::upper(Str::random(6)),
+            'name' => 'Barangay Clearance',
+            'fee' => 50,
+            'is_active' => true,
+        ]);
+        $certificateRequest = $this->createCollectionCertificateRequest(
+            $context,
+            $certificate,
+            'FD-REQ-RELEASED-'.Str::upper(Str::random(6)),
+            50,
+        );
+
+        $collection = $this->createCollection([
+            'collection_type' => $certificate->name,
+            'certificate_request_id' => $certificateRequest->id,
+            'or_number' => 'OR-RELEASED-'.Str::upper(Str::random(6)),
+            'status' => 'Verified',
+            'verified_by' => $context['verifier']->id,
+            'verified_at' => now(),
+        ]);
+        $certificateRequest->update([
+            'status' => 'Released',
+            'ready_for_claim_at' => now()->subDay(),
+            'released_at' => now(),
+            'collection_id' => $collection->id,
+            'or_number' => $collection->or_number,
+            'amount_paid' => $collection->amount,
+            'is_waived' => false,
+        ]);
+
+        $this->post("/admin/financial-disclosure/collections/{$collection->id}/void", [
+            'void_reason' => 'Attempted reversal after release',
+        ])->assertRedirect()->assertSessionHasErrors('collection');
+
+        $this->assertDatabaseHas('collections', [
+            'id' => $collection->id,
+            'status' => 'Verified',
+            'void_reason' => null,
+        ]);
+        $this->assertSame($collection->id, $certificateRequest->fresh()->collection_id);
+    }
+
+    public function test_voiding_collection_for_demoted_request_without_claim_proof_is_blocked(): void
+    {
+        $context = $this->financialContext();
+        $this->actingAs($context['admin']);
+
+        $certificate = Certificate::create([
+            'barangay_id' => $context['barangay']->id,
+            'code' => 'FD-CERT-CORRECTION-'.Str::upper(Str::random(6)),
+            'name' => 'Barangay Clearance',
+            'fee' => 50,
+            'is_active' => true,
+        ]);
+        $certificateRequest = $this->createCollectionCertificateRequest(
+            $context,
+            $certificate,
+            'FD-REQ-CORRECTION-'.Str::upper(Str::random(6)),
+            50,
+        );
+
+        $collection = $this->createCollection([
+            'collection_type' => $certificate->name,
+            'certificate_request_id' => $certificateRequest->id,
+            'or_number' => 'OR-CORRECTION-'.Str::upper(Str::random(6)),
+            'status' => 'Verified',
+            'verified_by' => $context['verifier']->id,
+            'verified_at' => now(),
+        ]);
+        $certificateRequest->update([
+            'status' => 'Needs Action',
+            'collection_id' => $collection->id,
+            'or_number' => $collection->or_number,
+            'amount_paid' => $collection->amount,
+        ]);
+
+        $this->post("/admin/financial-disclosure/collections/{$collection->id}/void", [
+            'void_reason' => 'Attempted reversal during correction',
+        ])->assertRedirect()->assertSessionHasErrors('collection');
+
+        $this->assertDatabaseHas('collections', [
+            'id' => $collection->id,
+            'status' => 'Verified',
+            'void_reason' => null,
+        ]);
+    }
+
+    public function test_collection_index_exposes_request_status_for_void_action_consistency(): void
+    {
+        $context = $this->financialContext();
+
+        $certificate = Certificate::create([
+            'barangay_id' => $context['barangay']->id,
+            'code' => 'FD-CERT-UI-'.Str::upper(Str::random(6)),
+            'name' => 'Barangay Clearance',
+            'fee' => 50,
+            'is_active' => true,
+        ]);
+        $certificateRequest = $this->createCollectionCertificateRequest(
+            $context,
+            $certificate,
+            'FD-REQ-UI-'.Str::upper(Str::random(6)),
+            50,
+        );
+        $collection = $this->createCollection([
+            'collection_type' => $certificate->name,
+            'certificate_request_id' => $certificateRequest->id,
+            'or_number' => 'OR-UI-'.Str::upper(Str::random(6)),
+            'status' => 'Verified',
+            'verified_by' => $context['verifier']->id,
+            'verified_at' => now(),
+        ]);
+        $certificateRequest->update([
+            'collection_id' => $collection->id,
+            'or_number' => $collection->or_number,
+            'amount_paid' => $collection->amount,
+        ]);
+
+        $this->actingAs($context['admin'])
+            ->get('/admin/financial-disclosure/collections')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('collections.data.0.id', $collection->id)
+                ->where('collections.data.0.certificate_request_status', 'For Payment')
+                ->where('collections.data.0.certificate_ready_for_claim', false)
+                ->where('collections.data.0.certificate_released', false));
     }
 
     public function test_collection_analytics_and_filters_are_database_driven(): void
@@ -608,42 +802,42 @@ class FinancialDisclosureIntegrationTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->where('filters.certificate_id', $clearance->id)
                 ->where('collections.total', 4)
-                ->where('analytics.totals.amount', 200)
-                ->where('analytics.totals.paid_count', 2));
+                ->where('analytics.totals.amount', 250)
+                ->where('analytics.totals.paid_count', 3));
 
         $this->get('/admin/financial-disclosure/collections?period=daily&date=2026-11-10&certificate_id='.$clearance->id)
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('collections.total', 2)
-                ->where('analytics.totals.amount', 100)
-                ->where('analytics.totals.paid_count', 1)
+                ->where('analytics.totals.amount', 150)
+                ->where('analytics.totals.paid_count', 2)
                 ->where('analytics.totals.waived_count', 1));
 
         $this->get('/admin/financial-disclosure/collections?period=weekly&date=2026-11-10&certificate_id='.$clearance->id)
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('analytics.totals.amount', 200)
-                ->where('analytics.totals.paid_count', 2));
+                ->where('analytics.totals.amount', 250)
+                ->where('analytics.totals.paid_count', 3));
 
         $this->get('/admin/financial-disclosure/collections?period=yearly&date=2026-12-15&certificate_id='.$clearance->id)
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('analytics.totals.amount', 200)
-                ->where('analytics.totals.paid_count', 2));
+                ->where('analytics.totals.amount', 300)
+                ->where('analytics.totals.paid_count', 4));
 
         $this->get('/admin/financial-disclosure/collections?period=range&date_from=2026-11-10&date_to=2026-11-30&certificate_id='.$indigency->id)
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('collections.total', 2)
-                ->where('analytics.totals.amount', 50)
-                ->where('analytics.totals.paid_count', 1));
+                ->where('analytics.totals.amount', 150)
+                ->where('analytics.totals.paid_count', 2));
 
         $this->get('/admin/financial-disclosure/collections?period=monthly&date=2026-11-15&status=Pending')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('collections.total', 1)
-                ->where('analytics.totals.amount', 0)
-                ->where('analytics.totals.paid_count', 0));
+                ->where('analytics.totals.amount', 250)
+                ->where('analytics.totals.paid_count', 3));
 
         $this->get('/admin/financial-disclosure/collections?period=range&date_from=2026-11-30&date_to=2026-11-10')
             ->assertRedirect()
@@ -958,6 +1152,7 @@ class FinancialDisclosureIntegrationTest extends TestCase
             'or_number' => null,
             'is_waived' => true,
             'waive_reason' => '-malicious-formula',
+            'status' => 'Verified',
         ]);
 
         $collectionsCsv = $this->get('/admin/financial-disclosure/status-reports/exports/collections')
@@ -1035,6 +1230,41 @@ class FinancialDisclosureIntegrationTest extends TestCase
         $this->assertFinancialAudit('attachment_uploaded', $attachment->id, 'Proof.pdf');
     }
 
+    public function test_collection_csv_export_distinguishes_realized_totals_from_raw_ledger_rows(): void
+    {
+        $context = $this->financialContext();
+        $this->actingAs($context['admin']);
+
+        $this->createCollection([
+            'collection_date' => '2026-11-10',
+            'or_number' => 'OR-EXPORT-REALIZED',
+            'status' => 'Verified',
+            'verified_by' => $context['verifier']->id,
+            'verified_at' => now(),
+        ]);
+        $this->createCollection([
+            'collection_date' => '2026-11-10',
+            'or_number' => 'OR-EXPORT-PENDING',
+            'status' => 'Pending',
+        ]);
+
+        $realizedCsv = $this->get('/admin/financial-disclosure/status-reports/exports/collections?year=2026&month=11')
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringContainsString('OR-EXPORT-REALIZED', $realizedCsv);
+        $this->assertStringNotContainsString('OR-EXPORT-PENDING', $realizedCsv);
+        $this->assertStringContainsString('Realized collections', $realizedCsv);
+
+        $rawCsv = $this->get('/admin/financial-disclosure/status-reports/exports/collections?year=2026&month=11&status=Pending')
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringContainsString('OR-EXPORT-PENDING', $rawCsv);
+        $this->assertStringNotContainsString('OR-EXPORT-REALIZED', $rawCsv);
+        $this->assertStringContainsString('Raw ledger (status: Pending)', $rawCsv);
+    }
+
     private function financialContext(): array
     {
         $barangay = $this->createBarangay('Integration Barangay', 'FD-INTEGRATION-'.Str::upper(Str::random(4)));
@@ -1085,6 +1315,22 @@ class FinancialDisclosureIntegrationTest extends TestCase
             'fee' => $fee,
             'status' => 'For Payment',
             'submitted_at' => now(),
+        ]);
+    }
+
+    private function createIssuanceFor(array $context, Certificate $certificate, CertificateRequest $request, User $clerk): CertificateIssuance
+    {
+        return CertificateIssuance::create([
+            'barangay_id' => $context['barangay']->id,
+            'certificate_request_id' => $request->id,
+            'resident_id' => $context['resident']->id,
+            'certificate_type' => $certificate->name,
+            'resident_name' => $context['resident']->full_name,
+            'purok' => $context['resident']->purok?->name ?? '',
+            'fee' => $request->fee,
+            'issued_by' => $clerk->id,
+            'issued_at' => now(),
+            'reference' => 'ISSUE-'.Str::upper(Str::random(10)),
         ]);
     }
 

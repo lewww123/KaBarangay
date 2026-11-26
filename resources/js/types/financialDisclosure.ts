@@ -68,6 +68,9 @@ export type CollectionRecord = {
     payee_name: string;
     certificate_request_id: number | null;
     certificate_reference: string | null;
+    certificate_request_status: string | null;
+    certificate_ready_for_claim: boolean;
+    certificate_released: boolean;
     is_waived: boolean;
     waive_reason: string | null;
     status: string;

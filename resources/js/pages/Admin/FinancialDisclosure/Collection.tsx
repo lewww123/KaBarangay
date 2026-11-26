@@ -48,7 +48,6 @@ type CollectionFormData = {
     amount: string;
     or_number: string;
     payee_name: string;
-    certificate_request_id: string;
     is_waived: boolean;
     waive_reason: string;
 };
@@ -104,7 +103,6 @@ export default function Collection() {
         amount: '',
         or_number: '',
         payee_name: '',
-        certificate_request_id: '',
         is_waived: false,
         waive_reason: '',
     };
@@ -172,9 +170,6 @@ export default function Collection() {
             amount: String(record.amount),
             or_number: record.or_number ?? '',
             payee_name: record.payee_name,
-            certificate_request_id: record.certificate_request_id
-                ? String(record.certificate_request_id)
-                : '',
             is_waived: record.is_waived,
             waive_reason: record.waive_reason ?? '',
         });
@@ -231,6 +226,14 @@ export default function Collection() {
 
     const rows = Array.isArray(collections.data) ? collections.data : [];
 
+    const canVoid = (record: CollectionRecord) =>
+        record.certificate_request_id === null
+        || (
+            record.certificate_request_status === 'For Payment'
+            && !record.certificate_ready_for_claim
+            && !record.certificate_released
+        );
+
     return (
         <>
             <Head title="Financial Disclosure - Collection" />
@@ -239,7 +242,7 @@ export default function Collection() {
                     <FinancialPageHeader
                         eyebrow="Financial Disclosure / Admin"
                         title="Collection — Incoming Payments"
-                        description="Encode, verify, and void database-backed collections with OR integrity, waiver handling, and certificate-request linkage."
+                        description="Encode, verify, and void non-certificate collections with OR integrity and waiver handling. Clerk confirmations record certificate collections."
                     />
 
                     <FinancialAlert
@@ -417,13 +420,13 @@ export default function Collection() {
 
                     <FinancialSection
                         id="pending-certificate-collections"
-                        title="Pending certificate requests"
-                        description="Fee-bearing requests awaiting payment representation. No duplicate collection is created automatically."
+                        title="Pending certificate payments"
+                        description="Fee-bearing requests awaiting Clerk payment confirmation. These are informational and cannot be encoded here."
                     >
                         {pendingCertificates.length === 0 ? (
                             <FinancialEmptyState
                                 title="No pending fee-bearing requests"
-                                description="Certificate requests requiring payment will appear here until a linked collection is encoded."
+                                description="Certificate requests requiring payment will appear here until a Clerk confirms payment."
                             />
                         ) : (
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -807,7 +810,8 @@ export default function Collection() {
                                                             View
                                                         </button>
                                                         {record.status ===
-                                                        'Pending' ? (
+                                                            'Pending' &&
+                                                        !record.certificate_request_id ? (
                                                             <>
                                                                 <button
                                                                     type="button"
@@ -836,7 +840,8 @@ export default function Collection() {
                                                             </>
                                                         ) : null}
                                                         {record.status !==
-                                                        'Voided' ? (
+                                                            'Voided' &&
+                                                        canVoid(record) ? (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
@@ -919,7 +924,6 @@ export default function Collection() {
                         >
                             <CollectionForm
                                 form={createForm}
-                                certificates={pendingCertificates}
                                 onSubmit={submitCreate}
                             />
                         </FinancialModal>
@@ -933,9 +937,7 @@ export default function Collection() {
                         >
                             <CollectionForm
                                 form={editForm}
-                                certificates={[]}
                                 onSubmit={submitEdit}
-                                disableCertificate
                             />
                         </FinancialModal>
                     ) : null}
@@ -1057,19 +1059,10 @@ export default function Collection() {
 
 function CollectionForm({
     form,
-    certificates,
     onSubmit,
-    disableCertificate = false,
 }: {
     form: ReturnType<typeof useForm<CollectionFormData>>;
-    certificates: Array<{
-        id: number;
-        reference: string;
-        payee_name: string;
-        amount: number;
-    }>;
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-    disableCertificate?: boolean;
 }) {
     return (
         <form
@@ -1140,32 +1133,6 @@ function CollectionForm({
                     }
                 />
             </FinancialField>
-            {disableCertificate ? null : (
-                <FinancialField
-                    label="Certificate request"
-                    error={form.errors.certificate_request_id}
-                    hint="Optional. Pending fee-bearing requests are listed."
-                >
-                    <select
-                        className={inputClass}
-                        value={form.data.certificate_request_id}
-                        onChange={(event) =>
-                            form.setData(
-                                'certificate_request_id',
-                                event.target.value,
-                            )
-                        }
-                    >
-                        <option value="">No certificate link</option>
-                        {certificates.map((certificate) => (
-                            <option key={certificate.id} value={certificate.id}>
-                                {certificate.reference} —{' '}
-                                {certificate.payee_name}
-                            </option>
-                        ))}
-                    </select>
-                </FinancialField>
-            )}
             <label className="text-ink-strong flex items-center gap-2 text-sm">
                 <input
                     type="checkbox"

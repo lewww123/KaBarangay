@@ -12,8 +12,10 @@ use App\Models\Purok;
 use App\Support\CertificateTemplates;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\Concerns\CreatesBarangayFixtures;
 use Tests\TestCase;
@@ -203,6 +205,84 @@ class CertificateIssuanceGenerationTest extends TestCase
 
         $this->assertSame($request->id, $issuance->certificate_request_id);
         $this->assertSame('300.00', $issuance->fee);
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function staleIssuanceStatuses(): array
+    {
+        return [
+            'for payment' => ['For Payment'],
+            'ready for claim' => ['Ready for Claim'],
+            'released' => ['Released'],
+            'rejected' => ['Rejected'],
+        ];
+    }
+
+    #[DataProvider('staleIssuanceStatuses')]
+    public function test_linked_issuance_revalidates_fresh_status_before_recording(string $status): void
+    {
+        $this->requireDelayedPsaTemplate();
+
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createDelayedPsaRequest();
+        $attributes = ['status' => $status, 'admin_note' => 'Changed after preview'];
+
+        if ($status === 'Ready for Claim') {
+            $attributes['ready_for_claim_at'] = now();
+        } elseif ($status === 'Released') {
+            $attributes['released_at'] = now();
+        } elseif ($status === 'Rejected') {
+            $attributes['rejected_at'] = now();
+        }
+
+        $stopMutation = $this->mutateRequestOnFirstSelect($request->id, $attributes);
+
+        try {
+            $this->actingAs($clerk)
+                ->from('/clerk/certificates')
+                ->post('/clerk/generate-certificate', $this->validDelayedPsaPayload([
+                    'certificate_request_id' => $request->id,
+                ]))
+                ->assertRedirect('/clerk/certificates')
+                ->assertSessionHasErrors('certificate_request_id');
+        } finally {
+            $stopMutation();
+        }
+
+        $this->assertSame(0, CertificateIssuance::query()->count());
+
+        $fresh = $request->refresh();
+
+        $this->assertSame($status, $fresh->status);
+        $this->assertSame('Changed after preview', $fresh->admin_note);
+    }
+
+    public function test_linked_issuance_keeps_existing_valid_starting_statuses(): void
+    {
+        $this->requireDelayedPsaTemplate();
+
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        foreach (['Needs Action', 'Processing'] as $status) {
+            $request = $this->createDelayedPsaRequest();
+            $request->update(['status' => $status]);
+
+            $this->actingAs($clerk)
+                ->post('/clerk/generate-certificate', $this->validDelayedPsaPayload([
+                    'certificate_request_id' => $request->id,
+                    'control_no' => 'CTRL-2026-'.str_pad((string) ($status === 'Needs Action' ? 21 : 22), 4, '0', STR_PAD_LEFT),
+                ]))
+                ->assertOk();
+
+            $issuance = CertificateIssuance::query()
+                ->where('certificate_request_id', $request->id)
+                ->firstOrFail();
+
+            $this->assertSame('50.00', $issuance->fee);
+            $this->assertSame('For Payment', $request->refresh()->status);
+        }
     }
 
     public function test_manual_generation_stores_null_fee_and_snapshots(): void
@@ -552,11 +632,88 @@ class CertificateIssuanceGenerationTest extends TestCase
         $this->assertSame(0, CertificateIssuance::count());
     }
 
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function mutateRequestOnFirstSelect(int $requestId, array $attributes): callable
+    {
+        $handled = false;
+
+        DB::listen(function ($query) use (&$handled, $requestId, $attributes): void {
+            if ($handled
+                || ! str_contains($query->sql, 'from "certificate_requests"')
+                || ! str_contains($query->sql, '"id" = ?')) {
+                return;
+            }
+
+            $bindings = array_map('strval', $query->bindings ?? []);
+
+            if (! in_array((string) $requestId, $bindings, true)) {
+                return;
+            }
+
+            $handled = true;
+            DB::table('certificate_requests')->where('id', $requestId)->update($attributes);
+        });
+
+        return function () use (&$handled): void {
+            $handled = true;
+        };
+    }
+
     private function requireTricycleTemplate(): void
     {
         if (! CertificateTemplates::isAvailable('Tricycle')) {
             $this->markTestSkipped('The Tricycle template is not present in this environment.');
         }
+    }
+
+    private function requireDelayedPsaTemplate(): void
+    {
+        if (! CertificateTemplates::isAvailable('Delayed PSA Registration')) {
+            $this->markTestSkipped('The Delayed PSA template is not present in this environment.');
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function validDelayedPsaPayload(array $overrides = []): array
+    {
+        return array_merge([
+            'certificate_type' => 'Delayed PSA Registration',
+            'resident_name' => 'Juan Dela Cruz',
+            'purok' => 'Purok 1',
+            'purpose' => '',
+            'control_no' => 'CTRL-2026-0020',
+            'fee' => '50',
+            'signatory_name' => '',
+            'signatory_title' => '',
+            'date_of_birth' => '1990-01-01',
+            'sex' => 'MALE',
+            'nationality' => 'FILIPINO',
+            'birth_place' => 'PUERTO PRINCESA CITY',
+            'father_name' => 'Pedro Dela Cruz',
+            'mother_maiden_name' => 'Maria Dela Cruz',
+            'parents_marriage_details' => '12 June 1985, Puerto Princesa City',
+            'residency_start_year' => '1995',
+            'details_confirmed' => '1',
+        ], $overrides);
+    }
+
+    private function createDelayedPsaRequest(): CertificateRequest
+    {
+        $certificate = Certificate::firstOrCreate([
+            'barangay_id' => $this->barangay->id,
+            'code' => 'delayed-psa-registration',
+        ], [
+            'name' => 'Delayed PSA Registration',
+            'fee' => 50,
+            'is_active' => true,
+        ]);
+
+        return $this->createRequestFor($this->barangay, $this->purok, $certificate, 50);
     }
 
     /**
