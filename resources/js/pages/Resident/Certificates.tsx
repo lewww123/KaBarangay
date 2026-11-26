@@ -6,6 +6,7 @@ import {
     useState,
     useSyncExternalStore,
 } from 'react';
+import { Info } from 'lucide-react';
 import Pagination from '@/components/Pagination';
 import ResidentLayout from '@/layouts/ResidentLayout';
 import PortalPageSkeleton from '@/components/PortalPageSkeleton';
@@ -93,6 +94,14 @@ const formatCertificateFee = (fee: number | null | undefined): string => {
     }
 
     return fee > 0 ? `₱${fee.toLocaleString()}` : 'Free';
+};
+
+const formatAssessedFee = (fee: number | null | undefined): string => {
+    if (fee === null || fee === undefined || fee <= 0) {
+        return '';
+    }
+
+    return ` of ₱${fee.toLocaleString()}`;
 };
 
 interface PageProps {
@@ -577,6 +586,24 @@ function CertificatesContent({
                         {/* FORM */}
                         {step === 'form' && (
                             <div className="mx-auto w-full max-w-4xl">
+                                <div
+                                    role="note"
+                                    className="mb-4 flex items-start gap-3 rounded-xl border border-brand/25 bg-brand-soft p-4"
+                                >
+                                    <Info
+                                        className="mt-0.5 size-4 shrink-0 text-brand"
+                                        aria-hidden="true"
+                                    />
+                                    <p className="text-sm leading-6 text-ink-muted">
+                                        Some barangay certificates may require
+                                        payment of a fee. The amount, if
+                                        applicable, will be determined or
+                                        confirmed by the Barangay Clerk. Please
+                                        check the assessed fee before proceeding
+                                        with payment.
+                                    </p>
+                                </div>
+
                                 {cameFromAssistant && selectedCertificate && (
                                     <div className="mb-4 rounded-xl border border-brand/25 bg-brand-soft p-4">
                                         <div className="flex items-start gap-3">
@@ -1575,7 +1602,7 @@ function RequestDetailsModal({
                             <InfoItem label="Purpose" value={request.purpose} />
                             <InfoItem label="Submitted" value={request.date} />
                             <InfoItem
-                                label="Fee"
+                                label="Assessed Fee"
                                 value={formatCertificateFee(request.fee)}
                             />
                             {request.businessName && (
@@ -1638,7 +1665,10 @@ function RequestDetailsModal({
                             Follow the progress of your certificate request.
                         </p>
                         <div className="mt-5">
-                            <RequestTracker status={request.status} />
+                            <RequestTracker
+                                status={request.status}
+                                fee={request.fee}
+                            />
                         </div>
                     </div>
                 </div>
@@ -1664,7 +1694,13 @@ function RequestDetailsModal({
 |--------------------------------------------------------------------------
 */
 
-function RequestTracker({ status }: { status: RequestStatus }) {
+function RequestTracker({
+    status,
+    fee,
+}: {
+    status: RequestStatus;
+    fee: number | null;
+}) {
     if (status === 'Rejected') {
         return (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -1848,7 +1884,7 @@ function RequestTracker({ status }: { status: RequestStatus }) {
                             {getFriendlyStatusTitle(status)}
                         </p>
                         <p className="mt-1 text-sm leading-6 text-ink-muted">
-                            {getStatusMessage(status)}
+                            {getStatusMessage(status, fee)}
                         </p>
                     </div>
                 </div>
@@ -2045,12 +2081,15 @@ function getFriendlyStatusTitle(status: RequestStatus) {
 |--------------------------------------------------------------------------
 */
 
-function getStatusMessage(status: RequestStatus) {
+function getStatusMessage(
+    status: RequestStatus,
+    fee: number | null,
+) {
     switch (status) {
         case 'Pending':
             return 'Your request has been received and is waiting for review.';
         case 'For Payment':
-            return 'Please pay the assessed fee at the barangay office. The Clerk will record the payment before the certificate becomes ready for claim.';
+            return `Please pay the assessed fee${formatAssessedFee(fee)} at the barangay office. The Clerk will record the payment before the certificate becomes ready for claim.`;
         case 'Processing':
             return 'Your certificate is currently being prepared.';
         case 'Ready for Claim':

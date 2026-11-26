@@ -9,6 +9,7 @@ use App\Models\CertificateIssuance;
 use App\Models\CertificateRequest;
 use App\Models\OrgChartPosition;
 use App\Models\Purok;
+use App\Support\CertificateControlNumbers;
 use App\Support\CertificateTemplates;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -285,26 +286,89 @@ class CertificateIssuanceGenerationTest extends TestCase
         }
     }
 
-    public function test_manual_generation_stores_null_fee_and_snapshots(): void
+    public function test_manual_generation_stores_server_catalog_fee_and_ignores_client_fee(): void
     {
-        $this->requireTricycleTemplate();
-
         $clerk = $this->createStaff($this->barangay, 'clerk');
 
-        $this->actingAs($clerk)
-            ->post('/clerk/generate-certificate', $this->validPayload([
+        $response = $this->actingAs($clerk)
+            ->post('/clerk/generate-certificate', $this->validPdfPayload([
                 'purok' => 'Purok 7',
                 'fee' => '999',
             ]))
             ->assertOk();
 
+        $this->deleteDownloadedFile($response);
+
         $issuance = CertificateIssuance::query()->first();
 
         $this->assertNull($issuance->certificate_request_id);
         $this->assertNull($issuance->resident_id);
-        $this->assertNull($issuance->fee);
+        $this->assertSame('300.00', $issuance->fee);
         $this->assertSame('Purok 7', $issuance->purok);
         $this->assertSame('Juan Dela Cruz', $issuance->resident_name);
+    }
+
+    public function test_manual_generation_rejects_an_invalid_fee(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+
+        $this->actingAs($clerk)
+            ->from('/clerk/certificates')
+            ->post('/clerk/generate-certificate', $this->validPdfPayload([
+                'fee' => 'abc',
+            ]))
+            ->assertRedirect('/clerk/certificates')
+            ->assertSessionHasErrors('fee');
+
+        $this->assertSame(0, CertificateIssuance::query()->count());
+    }
+
+    public function test_linked_issuance_snapshots_freshly_locked_fee(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createRequest(50);
+        $stopMutation = $this->mutateRequestOnFirstSelect($request->id, ['fee' => 90]);
+        $response = null;
+
+        try {
+            $response = $this->actingAs($clerk)
+                ->post('/clerk/generate-certificate', $this->validPdfPayload([
+                    'certificate_request_id' => $request->id,
+                    'fee' => '5',
+                ]))
+                ->assertOk();
+        } finally {
+            $stopMutation();
+        }
+
+        $this->deleteDownloadedFile($response);
+
+        $issuance = CertificateIssuance::query()->first();
+
+        $this->assertSame($request->id, $issuance->certificate_request_id);
+        $this->assertSame('90.00', $issuance->fee);
+        $this->assertSame('90.00', $request->refresh()->fee);
+        $this->assertSame('For Payment', $request->status);
+    }
+
+    public function test_zero_fee_linked_issuance_marks_request_ready_for_claim(): void
+    {
+        $clerk = $this->createStaff($this->barangay, 'clerk');
+        $request = $this->createRequest(0);
+
+        $response = $this->actingAs($clerk)
+            ->post('/clerk/generate-certificate', $this->validPdfPayload([
+                'certificate_request_id' => $request->id,
+                'fee' => '0',
+            ]))
+            ->assertOk();
+
+        $this->deleteDownloadedFile($response);
+
+        $issuance = CertificateIssuance::query()->first();
+
+        $this->assertSame('0.00', $issuance->fee);
+        $this->assertSame('Ready for Claim', $request->refresh()->status);
     }
 
     public function test_registered_resident_snapshot_is_resolved_server_side(): void
@@ -672,6 +736,38 @@ class CertificateIssuanceGenerationTest extends TestCase
     {
         if (! CertificateTemplates::isAvailable('Delayed PSA Registration')) {
             $this->markTestSkipped('The Delayed PSA template is not present in this environment.');
+        }
+    }
+
+    private function validPdfPayload(array $overrides = []): array
+    {
+        return array_merge([
+            'output_format' => 'pdf',
+            'certificate_type' => 'Tricycle',
+            'resident_name' => 'Juan Dela Cruz',
+            'purok' => 'Purok 1',
+            'purpose' => 'Employment',
+            'control_no' => CertificateControlNumbers::next($this->barangay->id, 'Tricycle'),
+            'fee' => '300',
+            'franchise_no' => 'FR-123',
+            'business_name' => 'JDC Trading',
+            'business_address' => 'Purok 1',
+            'signatory_name' => 'HON. TEST',
+            'signatory_title' => 'Punong Barangay',
+            'rendered_pdf' => base64_encode("%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"),
+        ], $overrides);
+    }
+
+    private function deleteDownloadedFile($response): void
+    {
+        if (! isset($response->baseResponse) || ! method_exists($response->baseResponse, 'getFile')) {
+            return;
+        }
+
+        $file = $response->baseResponse->getFile();
+
+        if ($file !== null && is_file($file->getPathname())) {
+            @unlink($file->getPathname());
         }
     }
 

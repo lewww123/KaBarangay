@@ -92,6 +92,9 @@ interface RequestDetails {
     };
     purpose: string;
     fee: string;
+    fee_assessment_allowed: boolean;
+    assessment_version: number;
+    updated_at: string;
     business_name: string | null;
     business_address: string | null;
     notes: string | null;
@@ -309,16 +312,6 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 type CertificateTab = 'requests' | 'issued' | 'all';
-
-const CERTIFICATE_FEES: Record<string, string> = {
-    Residency: '100',
-    Indigency: '50',
-    'Delayed PSA Registration': '50',
-    'Marriage Cohabitation': '100',
-    'Scholarship Certificate': '50',
-    Tricycle: '300',
-    'Sari-sari Store': '100',
-};
 
 const DELAYED_PSA_TYPE = 'Delayed PSA Registration';
 
@@ -588,6 +581,7 @@ export default withDeferredPage(
 function Dashboard({
     auth,
     certificateTypes = [],
+    certificateFees = {},
     signatories = [],
     default_punong_barangay = null,
     kagawads = [],
@@ -609,6 +603,7 @@ function Dashboard({
 }: {
     auth: { user: User };
     certificateTypes?: CertificateTypeOption[];
+    certificateFees?: Record<string, string | number | null>;
     signatories?: SignatoryOption[];
     punong_barangay?: CertificateOfficial | null;
     default_punong_barangay?: CertificateOfficial | null;
@@ -997,6 +992,23 @@ function Dashboard({
     const [paymentOrDraft, setPaymentOrDraft] = useState('');
     const [waivePaymentDraft, setWaivePaymentDraft] = useState(false);
     const [waiveReasonDraft, setWaiveReasonDraft] = useState('');
+    const [feeAssessmentDraft, setFeeAssessmentDraft] = useState('');
+    const [savingFeeAssessment, setSavingFeeAssessment] = useState(false);
+
+    const normalizeFeeDraft = (fee: unknown): string => {
+        if (typeof fee === 'number') {
+            return Number.isFinite(fee) ? String(fee) : '';
+        }
+
+        if (typeof fee !== 'string') {
+            return '';
+        }
+
+        const trimmed = fee.trim();
+        const wholeNumber = /^(\d+)(?:\.0+)?$/.exec(trimmed);
+
+        return wholeNumber ? wholeNumber[1] : trimmed;
+    };
 
     const initializePaymentDraft = (details: RequestDetails) => {
         setPaymentAmountDraft(details.collection?.amount ?? details.fee);
@@ -1130,6 +1142,7 @@ function Dashboard({
             setDetailDraft(response.data.detail_values);
             setStatusDraft(response.data.status);
             setAdminNoteDraft(response.data.admin_note ?? '');
+            setFeeAssessmentDraft(normalizeFeeDraft(response.data.fee));
             initializePaymentDraft(response.data);
         } catch {
             setRequestDetailsError('Unable to load request details right now.');
@@ -1150,6 +1163,8 @@ function Dashboard({
         setPaymentOrDraft('');
         setWaivePaymentDraft(false);
         setWaiveReasonDraft('');
+        setFeeAssessmentDraft('');
+        setSavingFeeAssessment(false);
         setRequestActionError(null);
         setRequestActionSuccess(null);
     };
@@ -1164,6 +1179,8 @@ function Dashboard({
         try {
             const response = await axios.patch<{
                 message: string;
+                updated_at: string;
+                assessment_version: number;
                 details: RequestDetailRow[];
                 original_details: RequestDetailRow[];
                 detail_values: Record<string, string>;
@@ -1181,8 +1198,11 @@ function Dashboard({
                           original_details: response.data.original_details,
                           detail_values: response.data.detail_values,
                           notes: response.data.notes,
-                          original_notes: response.data.original_notes,
-                      }
+                           original_notes: response.data.original_notes,
+                           updated_at: response.data.updated_at,
+                           assessment_version: response.data.assessment_version,
+                       }
+
                     : current,
             );
             setDetailDraft(response.data.detail_values);
@@ -1199,6 +1219,70 @@ function Dashboard({
         }
     };
 
+    const saveFeeAssessment = async () => {
+        if (!requestDetails || savingFeeAssessment) return;
+
+        const fee = feeAssessmentDraft.trim();
+
+        if (!/^\d+$/.test(fee)) {
+            setRequestActionError(
+                'Enter a whole-number fee of zero or more.',
+            );
+            return;
+        }
+
+        setSavingFeeAssessment(true);
+        setRequestActionError(null);
+        setRequestActionSuccess(null);
+
+        try {
+            const response = await axios.patch<{
+                message: string;
+                fee: string;
+                updated_at: string;
+                fee_assessment_allowed: boolean;
+                assessment_version: number;
+            }>(
+                `/clerk/certificates/requests/${requestDetails.id}/assess-fee`,
+                {
+                    fee,
+                    expected_fee: requestDetails.fee,
+                    updated_at: requestDetails.updated_at,
+                    assessment_version: requestDetails.assessment_version,
+                },
+            );
+
+            setRequestDetails((current) => {
+                if (!current) return current;
+
+                const next = {
+                    ...current,
+                    fee: response.data.fee,
+                    updated_at: response.data.updated_at,
+                    fee_assessment_allowed:
+                        response.data.fee_assessment_allowed,
+                    assessment_version: response.data.assessment_version,
+                };
+
+                initializePaymentDraft(next);
+
+                return next;
+            });
+            setFeeAssessmentDraft(normalizeFeeDraft(response.data.fee));
+            setRequestActionSuccess(response.data.message);
+            router.reload({ only: ['requests'] });
+        } catch (error) {
+            setRequestActionError(
+                requestErrorMessage(
+                    error,
+                    'Unable to assess the certificate fee right now.',
+                ),
+            );
+        } finally {
+            setSavingFeeAssessment(false);
+        }
+    };
+
     const saveRequestStatus = async () => {
         if (!requestDetails || savingStatus || statusDraft === '') return;
 
@@ -1210,6 +1294,9 @@ function Dashboard({
             const response = await axios.patch<{
                 message: string;
                 status: string;
+                updated_at: string;
+                fee_assessment_allowed: boolean;
+                assessment_version: number;
                 allowed_statuses: string[];
                 admin_note: string | null;
             }>(`/clerk/certificates/requests/${requestDetails.id}/status`, {
@@ -1221,8 +1308,13 @@ function Dashboard({
                 current
                     ? {
                           ...current,
-                          status: response.data.status,
-                          allowed_statuses: response.data.allowed_statuses,
+                    status: response.data.status,
+                    updated_at: response.data.updated_at,
+                    fee_assessment_allowed:
+                        response.data.fee_assessment_allowed,
+                    assessment_version: response.data.assessment_version,
+                    allowed_statuses: response.data.allowed_statuses,
+
                       }
                     : current,
             );
@@ -1249,7 +1341,6 @@ function Dashboard({
 
     const defaultCertificateType =
         certificateTypes.find((type) => type.available)?.value ?? '';
-    const defaultFee = CERTIFICATE_FEES[defaultCertificateType] ?? '0';
 
     const { data, setData, processing, reset } = useForm({
         certificate_request_id: '',
@@ -1261,7 +1352,7 @@ function Dashboard({
         age: '',
         purok: '',
         certificate_type: defaultCertificateType,
-        fee: defaultFee,
+        fee: normalizeFeeDraft(certificateFees[defaultCertificateType] ?? ''),
         purpose: '',
         acting_captain_id: '',
         signatory_name: '',
@@ -1441,6 +1532,9 @@ function Dashboard({
             const response = await axios.patch<{
                 message: string;
                 status: string;
+                updated_at: string;
+                fee_assessment_allowed: boolean;
+                assessment_version: number;
                 allowed_statuses: string[];
                 admin_note: string | null;
             }>(`/clerk/certificates/requests/${requestDetails.id}/status`, {
@@ -1452,8 +1546,13 @@ function Dashboard({
                 current
                     ? {
                           ...current,
-                          status: response.data.status,
-                          allowed_statuses: response.data.allowed_statuses,
+                    status: response.data.status,
+                    updated_at: response.data.updated_at,
+                    fee_assessment_allowed:
+                        response.data.fee_assessment_allowed,
+                    assessment_version: response.data.assessment_version,
+                    allowed_statuses: response.data.allowed_statuses,
+
                       }
                     : current,
             );
@@ -1471,7 +1570,6 @@ function Dashboard({
 
     const handleInitiateIssuance = (req: RequestDetails) => {
         const certType = req.certificate_type || defaultCertificateType;
-        const fee = req.fee || CERTIFICATE_FEES[certType] || '0';
 
         setData((current) => ({
             ...current,
@@ -1480,7 +1578,7 @@ function Dashboard({
             resident_id: req.resident.id ? String(req.resident.id) : '',
             resident_name: req.resident.name,
             purok: req.resident.purok || current.purok,
-            fee: fee,
+            fee: normalizeFeeDraft(req.fee),
             purpose: req.purpose || current.purpose,
             business_name: req.business_name || current.business_name,
             business_address: req.business_address || current.business_address,
@@ -1553,6 +1651,9 @@ function Dashboard({
             const response = await axios.post<{
                 message: string;
                 status: string;
+                updated_at: string;
+                fee_assessment_allowed: boolean;
+                assessment_version: number;
                 allowed_statuses: string[];
                 admin_note: string | null;
                 collection: CollectionDetails;
@@ -1578,6 +1679,10 @@ function Dashboard({
                 const next = {
                     ...current,
                     status: response.data.status,
+                    updated_at: response.data.updated_at,
+                    fee_assessment_allowed:
+                        response.data.fee_assessment_allowed,
+                    assessment_version: response.data.assessment_version,
                     allowed_statuses: response.data.allowed_statuses,
                     admin_note: response.data.admin_note,
                     collection: response.data.collection,
@@ -1645,7 +1750,7 @@ function Dashboard({
         setData((current) => ({
             ...current,
             certificate_type: type,
-            fee: CERTIFICATE_FEES[type] || '0',
+            fee: normalizeFeeDraft(certificateFees[type] ?? ''),
             franchise_no: '',
             business_name: '',
             business_address: '',
@@ -4871,11 +4976,29 @@ function Dashboard({
                                                                     </label>
                                                                     <input
                                                                         type="text"
+                                                                        inputMode="decimal"
                                                                         value={
                                                                             data.fee
                                                                         }
-                                                                        readOnly
-                                                                        className="bg-secondary w-full rounded-lg border px-3 py-2 text-sm"
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'fee',
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        readOnly={
+                                                                            data.certificate_request_id !==
+                                                                                ''
+                                                                            || certificateFees[
+                                                                                data.certificate_type
+                                                                            ] !==
+                                                                                undefined
+                                                                        }
+                                                                        className="read-only:bg-secondary w-full rounded-lg border px-3 py-2 text-sm"
                                                                     />
                                                                 </div>
                                                                 {data.certificate_type !==
@@ -5634,11 +5757,29 @@ function Dashboard({
                                                                     </label>
                                                                     <input
                                                                         type="text"
+                                                                        inputMode="decimal"
                                                                         value={
                                                                             data.fee
                                                                         }
-                                                                        readOnly
-                                                                        className="bg-secondary w-full rounded-lg border px-3 py-2 text-sm"
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) =>
+                                                                            setData(
+                                                                                'fee',
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        readOnly={
+                                                                            data.certificate_request_id !==
+                                                                                ''
+                                                                            || certificateFees[
+                                                                                data.certificate_type
+                                                                            ] !==
+                                                                                undefined
+                                                                        }
+                                                                        className="read-only:bg-secondary w-full rounded-lg border px-3 py-2 text-sm"
                                                                     />
                                                                 </div>
                                                                 {data.certificate_type !==
@@ -6149,7 +6290,7 @@ function Dashboard({
                                             </div>
                                             <div>
                                                 <p className="text-[10px] font-semibold tracking-wide text-[#6e747c] uppercase">
-                                                    Fee
+                                                    Assessed Fee
                                                 </p>
                                                 <p className="text-ink-strong">
                                                     ₱{requestDetails.fee}
@@ -6238,6 +6379,61 @@ function Dashboard({
                                                     )}
                                                 </div>
                                             )}
+
+                                        {requestDetails.fee_assessment_allowed && (
+                                            <div className="border-brand/30 shadow-card rounded-lg border bg-[#f7f5ee] p-3.5">
+                                                <p className="text-brand mb-2 text-[10px] font-semibold tracking-wide uppercase">
+                                                    Fee Assessment
+                                                </p>
+                                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                    <div className="min-w-0">
+                                                        <p className="text-ink text-xs">
+                                                            Set the whole-number
+                                                            fee the resident must
+                                                            pay before payment is
+                                                            confirmed.
+                                                        </p>
+                                                        <p className="text-ink-muted mt-0.5 text-[11px]">
+                                                            Current assessed fee: ₱
+                                                            {requestDetails.fee}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex shrink-0 items-center gap-2">
+                                                        <span className="text-ink text-sm">₱</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="1"
+                                                            value={
+                                                                feeAssessmentDraft
+                                                            }
+                                                            onChange={(event) =>
+                                                                setFeeAssessmentDraft(
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="border-line bg-surface text-ink-strong min-h-9 w-28 rounded-lg border px-2.5 text-sm"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                void saveFeeAssessment()
+                                                            }
+                                                            disabled={
+                                                                savingFeeAssessment ||
+                                                                actionLoading
+                                                            }
+                                                            className="bg-brand shadow-card hover:bg-brand-deep inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                                        >
+                                                            {savingFeeAssessment
+                                                                ? 'Saving...'
+                                                                : 'Save Fee'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* WORKFLOW ACTIONS */}
                                         <div className="border-brand/30 shadow-card rounded-lg border bg-[#f7f5ee] p-3.5">

@@ -519,7 +519,7 @@ export default function StatusAndReports() {
                     <FinancialSection
                         id="report-exports"
                         title="Downloadable reports"
-                        description="CSV exports use the active report filters."
+                        description="Collections CSV exports realized collections by default. Applying a status filter exports the raw ledger instead."
                     >
                         <div className="border-line-soft flex flex-wrap gap-3 rounded-xl border bg-white p-5">
                             <a

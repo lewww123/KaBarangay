@@ -45,6 +45,8 @@ class StatusAndReportsController extends Controller
 
         $this->applyPeriod($collectionQuery, 'collection_date', $month, $quarter, $year);
         $this->applyPeriod($disbursementQuery, 'disbursement_date', $month, $quarter, $year);
+        $authoritativeCollectionQuery = clone $collectionQuery;
+        $authoritativeDisbursementQuery = clone $disbursementQuery;
 
         if ($status !== '') {
             $collectionQuery->where('status', $status);
@@ -100,12 +102,12 @@ class StatusAndReportsController extends Controller
         ), 2);
 
         $summary = [
-            'total_collections' => round((float) (clone $collectionQuery)
+            'total_collections' => round((float) (clone $authoritativeCollectionQuery)
                 ->where('status', 'Verified')
                 ->where('is_waived', false)
                 ->whereNull('void_reason')
                 ->sum('amount'), 2),
-            'total_disbursements' => round((float) (clone $disbursementQuery)
+            'total_disbursements' => round((float) (clone $authoritativeDisbursementQuery)
                 ->where('status', 'Released')
                 ->sum('amount'), 2),
             'total_approved' => $approvedTotal,
@@ -308,6 +310,10 @@ class StatusAndReportsController extends Controller
 
         if ($status !== '') {
             $query->where('status', $status);
+            $basis = 'Raw ledger (status: '.$status.')';
+        } else {
+            $query->where('status', 'Verified')->whereNull('void_reason');
+            $basis = 'Realized collections';
         }
 
         $rows = $query->orderByDesc('collection_date')
@@ -323,11 +329,12 @@ class StatusAndReportsController extends Controller
                 $collection->waive_reason ?? '',
                 $collection->status ?? '',
                 $collection->void_reason ?? '',
+                $basis,
             ]);
 
         return FinancialDisclosureExport::csv('collections'.$suffix.'.csv', [
             'Date', 'Type', 'Amount', 'OR Number', 'Payee', 'Certificate Reference',
-            'Waived', 'Waiver Reason', 'Status', 'Void Reason',
+            'Waived', 'Waiver Reason', 'Status', 'Void Reason', 'Basis',
         ], $rows);
     }
 

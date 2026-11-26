@@ -334,10 +334,6 @@ class CertificateController extends Controller
             }
         }
 
-        // Snapshot the trusted fee: only a validated linked request provides a
-        // server-stored fee; manual generation stores null.
-        $feeSnapshot = $linkedRequest !== null ? $linkedRequest->fee : null;
-
         // A request may supply the resident even when no resident_id was sent.
         // Use that resident's authoritative identity for both preview and issue.
         if ($resident !== null) {
@@ -479,7 +475,6 @@ class CertificateController extends Controller
                 $resident,
                 $certType,
                 $validated,
-                $feeSnapshot,
                 $purokSnapshot,
                 $residentNameSnapshot,
                 $this->issuanceSnapshot(
@@ -1007,7 +1002,6 @@ class CertificateController extends Controller
         ?Resident $resident,
         string $certType,
         array $validated,
-        int|float|string|null $feeSnapshot,
         ?string $purokSnapshot = null,
         ?string $residentNameSnapshot = null,
         ?array $detailsSnapshot = null,
@@ -1025,7 +1019,6 @@ class CertificateController extends Controller
             'resident_name' => $residentNameSnapshot ?? ($validated['resident_name'] ?? ''),
             'resident_number' => $resident?->resident_number,
             'purok' => $purokSnapshot ?? ($validated['purok'] ?? null),
-            'fee' => $feeSnapshot,
             'details' => $detailsSnapshot,
             'issued_by' => $userId,
             'issued_at' => now(),
@@ -1033,7 +1026,7 @@ class CertificateController extends Controller
 
         for ($attempt = 1; $attempt <= self::REFERENCE_ATTEMPTS; $attempt++) {
             try {
-                return DB::transaction(function () use ($attributes, $linkedRequest, $barangayId, $feeSnapshot) {
+                return DB::transaction(function () use ($attributes, $linkedRequest, $barangayId, $certType, $validated) {
                     // Serialize the control-number check within the issuing
                     // barangay. The unique index is the final concurrency guard.
                     DB::table('barangays')
@@ -1063,6 +1056,12 @@ class CertificateController extends Controller
                         }
                     }
 
+                    $feeSnapshot = $freshRequest !== null
+                        ? $freshRequest->fee
+                        : ($this->catalogFeeFor($barangayId, $certType) ?? $validated['fee']);
+
+                    $this->assertFeeSnapshot($feeSnapshot);
+
                     if (isset($attributes['details']['pdf_path'])) {
                         $next = CertificateControlNumbers::next($barangayId, $attributes['certificate_type']);
                         if ($attributes['control_no'] !== $next) {
@@ -1084,6 +1083,7 @@ class CertificateController extends Controller
 
                     $issuance = CertificateIssuance::create([
                         ...$attributes,
+                        'fee' => $feeSnapshot,
                         'reference' => $this->makeReference(),
                     ]);
 
@@ -1124,6 +1124,32 @@ class CertificateController extends Controller
         }
 
         throw new InvalidArgumentException('Unable to generate a unique issuance reference.');
+    }
+
+    private function catalogFeeFor(int $barangayId, string $certType): int|float|string|null
+    {
+        return Certificate::query()
+            ->where('barangay_id', $barangayId)
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get(['name', 'code', 'fee'])
+            ->first(fn (Certificate $certificate) => CertificateRequestDetails::typeForCertificate($certificate) === $certType)
+            ?->fee;
+    }
+
+    private function assertFeeSnapshot(mixed $feeSnapshot): void
+    {
+        if ($feeSnapshot === null || (is_string($feeSnapshot) && trim($feeSnapshot) === '')) {
+            throw ValidationException::withMessages([
+                'fee' => 'This certificate has no published fee yet. Ask the administrator to set the fee before issuing it.',
+            ]);
+        }
+
+        if (! is_numeric($feeSnapshot) || (float) $feeSnapshot < 0) {
+            throw ValidationException::withMessages([
+                'fee' => 'The certificate fee must be zero or more.',
+            ]);
+        }
     }
 
     private function makeReference(): string

@@ -95,6 +95,35 @@ class FinancialDisclosureSchemaTest extends TestCase
         $this->assertContains('certificate_requests_collection_idx', $this->indexNames('certificate_requests'));
     }
 
+    public function test_disclosure_periods_tenant_schema_integrity_is_preserved(): void
+    {
+        $column = collect(DB::select("PRAGMA table_info('disclosure_periods')"))
+            ->firstWhere('name', 'barangay_id');
+        $this->assertNotNull($column);
+        $this->assertSame(1, (int) $column->notnull);
+        $this->assertNull($column->dflt_value);
+
+        $foreignKey = collect(DB::select("PRAGMA foreign_key_list('disclosure_periods')"))
+            ->firstWhere('table', 'barangays');
+        $this->assertNotNull($foreignKey);
+        $this->assertSame('barangay_id', $foreignKey->from);
+        $this->assertSame('RESTRICT', strtoupper((string) $foreignKey->on_delete));
+
+        $indexes = collect(Schema::getIndexes('disclosure_periods'));
+
+        $tenantPeriodIndex = $indexes->firstWhere('name', 'disclosure_periods_tenant_period_idx');
+        $this->assertIsArray($tenantPeriodIndex);
+        $this->assertTrue($tenantPeriodIndex['unique']);
+        $this->assertSame(['barangay_id', 'year', 'month'], $tenantPeriodIndex['columns']);
+
+        $tenantPublishedIndex = $indexes->firstWhere('name', 'disclosure_periods_tenant_published_idx');
+        $this->assertIsArray($tenantPublishedIndex);
+        $this->assertFalse($tenantPublishedIndex['unique']);
+        $this->assertSame(['barangay_id', 'is_published'], $tenantPublishedIndex['columns']);
+
+        $this->assertFalse(Schema::hasIndex('disclosure_periods', 'disclosure_periods_year_month_idx'));
+    }
+
     public function test_certificate_request_financial_fields_are_added_without_removing_existing_fields(): void
     {
         $columns = Schema::getColumnListing('certificate_requests');

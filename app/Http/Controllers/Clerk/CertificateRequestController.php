@@ -48,6 +48,8 @@ class CertificateRequestController extends Controller
 
     private const DEFAULT_PER_PAGE = 10;
 
+    private const FEE_ASSESSABLE_STATUSES = ['Pending', 'Needs Action', 'Processing'];
+
     public function index(Request $request)
     {
         // Barangay scoping is derived exclusively from the authenticated user.
@@ -191,6 +193,7 @@ class CertificateRequestController extends Controller
             'issuances' => $this->deferProp(fn () => $issuanceListing()[0]),
             'allRecords' => $this->deferProp(fn () => $allListing()[0]),
             'statuses' => CertificateRequestWorkflow::statuses(),
+            'certificateFees' => $this->certificateFees($barangayId),
             'certificateOptions' => $this->deferProp(fn () => $this->rememberReference(
                 "clerk:certificate-options:{$barangayId}",
                 300,
@@ -290,6 +293,12 @@ class CertificateRequestController extends Controller
             ],
             'purpose' => $certificateRequest->purpose,
             'fee' => (string) $certificateRequest->fee,
+            'fee_assessment_allowed' => $this->feeAssessmentAllowed(
+                $certificateRequest,
+                $issuance,
+            ),
+            'assessment_version' => $this->feeAssessmentVersion($certificateRequest),
+            'updated_at' => self::timestampToken($certificateRequest),
             'business_name' => $certificateRequest->business_name,
             'business_address' => $certificateRequest->business_address,
             'notes' => $decoded['notes'],
@@ -464,12 +473,15 @@ class CertificateRequestController extends Controller
             $request->ip(),
         );
 
+        $fresh = $certificateRequest->fresh();
         $updated = CertificateRequestDetails::decode(
-            $certificateRequest->fresh()->additional_details,
+            $fresh->additional_details,
         );
 
         return response()->json([
             'message' => 'Certificate request details updated.',
+            'updated_at' => self::timestampToken($fresh),
+            'assessment_version' => $this->feeAssessmentVersion($fresh),
             'details' => CertificateRequestDetails::displayRows(
                 $updated['type'] ?? $type,
                 $updated['fields'],
@@ -483,6 +495,91 @@ class CertificateRequestController extends Controller
             'detail_values' => $updated['fields'],
             'notes' => $updated['notes'],
             'original_notes' => $updated['original_notes'],
+        ]);
+    }
+
+    /**
+     * Assess the payable certificate fee for a request still awaiting payment.
+     */
+    public function assessFee(
+        Request $request,
+        CertificateRequest $certificateRequest,
+    ): JsonResponse {
+        $barangayId = $request->user()->barangay_id;
+
+        abort_unless(
+            $barangayId !== null && $certificateRequest->barangay_id === $barangayId,
+            404,
+        );
+
+        $validated = $request->validate([
+            'fee' => ['required', 'integer', 'min:0'],
+            'expected_fee' => ['required', 'string'],
+            'updated_at' => ['required', 'string'],
+            'assessment_version' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $lockedRequest = null;
+
+        DB::transaction(function () use (
+            $request,
+            $barangayId,
+            $certificateRequest,
+            $validated,
+            &$lockedRequest,
+        ) {
+            $locked = CertificateRequest::query()
+                ->whereKey($certificateRequest->id)
+                ->where('barangay_id', $barangayId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $this->feeAssessmentAllowed($locked)) {
+                throw ValidationException::withMessages([
+                    'fee' => 'This request can no longer have its fee assessed.',
+                ]);
+            }
+
+            if ((int) $validated['assessment_version'] !== $this->feeAssessmentVersion($locked)) {
+                throw ValidationException::withMessages([
+                    'assessment_version' => 'This request changed while the fee was being assessed. Reopen the request and try again.',
+                ]);
+            }
+
+            if (! hash_equals(self::timestampToken($locked), $validated['updated_at'])
+                || ! hash_equals((string) $locked->fee, $validated['expected_fee'])) {
+                throw ValidationException::withMessages([
+                    'updated_at' => 'This request changed while the fee was being assessed. Reopen the request and try again.',
+                ]);
+            }
+
+            $locked->update([
+                'fee' => $validated['fee'],
+            ]);
+
+            $lockedRequest = $locked->fresh();
+
+            AuditLogger::recordOrFail(
+                'certificate_request.fee_assessed',
+                $barangayId,
+                (int) $request->user()->id,
+                'certificate_request',
+                $lockedRequest->id,
+                [
+                    'action' => 'fee_assessed',
+                    'amount' => number_format((float) $lockedRequest->fee, 2, '.', ''),
+                    'certificate_reference' => $lockedRequest->reference,
+                ],
+                $request->ip(),
+            );
+        });
+
+        return response()->json([
+            'message' => 'Certificate fee assessed.',
+            'fee' => (string) $lockedRequest->fee,
+            'fee_assessment_allowed' => $this->feeAssessmentAllowed($lockedRequest),
+            'assessment_version' => $this->feeAssessmentVersion($lockedRequest),
+            'updated_at' => self::timestampToken($lockedRequest),
         ]);
     }
 
@@ -591,6 +688,9 @@ class CertificateRequestController extends Controller
         return response()->json([
             'message' => 'Certificate request status updated.',
             'status' => $lockedRequest->status,
+            'updated_at' => self::timestampToken($lockedRequest),
+            'assessment_version' => $this->feeAssessmentVersion($lockedRequest),
+            'fee_assessment_allowed' => $this->feeAssessmentAllowed($lockedRequest),
             'allowed_statuses' => CertificateRequestWorkflow::genericStatuses(
                 $lockedRequest->status,
             ),
@@ -671,11 +771,19 @@ class CertificateRequestController extends Controller
                     ]);
                 }
 
-                if (! CertificateIssuance::where('barangay_id', $barangayId)
+                $issuance = CertificateIssuance::where('barangay_id', $barangayId)
                     ->where('certificate_request_id', $locked->id)
-                    ->exists()) {
+                    ->first(['fee']);
+
+                if (! $issuance) {
                     throw ValidationException::withMessages([
                         'status' => 'Payment cannot be confirmed before certificate issuance.',
+                    ]);
+                }
+
+                if (round((float) $issuance->fee, 2) !== round((float) $locked->fee, 2)) {
+                    throw ValidationException::withMessages([
+                        'status' => 'The issuance fee snapshot does not match the assessed certificate fee.',
                     ]);
                 }
 
@@ -762,6 +870,9 @@ class CertificateRequestController extends Controller
         return response()->json([
             'message' => 'Payment confirmed. Collection recorded and certificate is ready for claim.',
             'status' => $certificateRequest->status,
+            'updated_at' => self::timestampToken($certificateRequest),
+            'assessment_version' => $this->feeAssessmentVersion($certificateRequest),
+            'fee_assessment_allowed' => $this->feeAssessmentAllowed($certificateRequest),
             'allowed_statuses' => CertificateRequestWorkflow::genericStatuses(
                 $certificateRequest->status,
             ),
@@ -1257,6 +1368,56 @@ class CertificateRequestController extends Controller
             .' i.status as status,'
             .' i.issued_at as occurred_at'
         );
+    }
+
+    private static function timestampToken(CertificateRequest $certificateRequest): string
+    {
+        return $certificateRequest->updated_at?->toJSON() ?? '';
+    }
+
+    private function feeAssessmentVersion(CertificateRequest $certificateRequest): int
+    {
+        return (int) DB::table('audit_logs')
+            ->where('barangay_id', $certificateRequest->barangay_id)
+            ->where('event', 'certificate_request.fee_assessed')
+            ->where('entity_type', 'certificate_request')
+            ->where('entity_id', $certificateRequest->id)
+            ->count();
+    }
+
+    private function certificateFees(int $barangayId): array
+    {
+        return Certificate::query()
+            ->where('barangay_id', $barangayId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['name', 'code', 'fee'])
+            ->mapWithKeys(function (Certificate $certificate) {
+                $type = CertificateRequestDetails::typeForCertificate($certificate);
+
+                return $type === null ? [] : [$type => (string) $certificate->fee];
+            })
+            ->all();
+    }
+
+    private function feeAssessmentAllowed(
+        CertificateRequest $certificateRequest,
+        ?CertificateIssuance $issuance = null,
+    ): bool {
+        if (! in_array($certificateRequest->status, self::FEE_ASSESSABLE_STATUSES, true)) {
+            return false;
+        }
+
+        if ($certificateRequest->collection_id !== null || $certificateRequest->amount_paid !== null) {
+            return false;
+        }
+
+        $issuance ??= CertificateIssuance::query()
+            ->where('barangay_id', $certificateRequest->barangay_id)
+            ->where('certificate_request_id', $certificateRequest->id)
+            ->first(['id']);
+
+        return $issuance === null;
     }
 
     private function verifiedCollectionFor(

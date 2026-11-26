@@ -787,6 +787,7 @@ Route::group(['domain' => config('app.staff_domain')], function () {
             Route::get('/certificates/issuances/{issuance}', [ClerkCertificateRequestController::class, 'showIssuance'])->name('certificates.issuances.show');
             Route::get('/certificates/issuances/{issuance}/reprint', [CertificateController::class, 'reprint'])->name('certificates.issuances.reprint');
             Route::patch('/certificates/requests/{certificateRequest}', [ClerkCertificateRequestController::class, 'updateDetails'])->name('certificates.requests.update');
+            Route::patch('/certificates/requests/{certificateRequest}/assess-fee', [ClerkCertificateRequestController::class, 'assessFee'])->name('certificates.requests.assess-fee');
             Route::patch('/certificates/requests/{certificateRequest}/status', [ClerkCertificateRequestController::class, 'updateStatus'])->name('certificates.requests.status');
             Route::post('/certificates/requests/{certificateRequest}/confirm-payment', [ClerkCertificateRequestController::class, 'confirmPayment'])->name('certificates.requests.confirm-payment');
             Route::post('/certificates/requests/{certificateRequest}/release', [ClerkCertificateRequestController::class, 'confirmRelease'])->name('certificates.requests.release');
